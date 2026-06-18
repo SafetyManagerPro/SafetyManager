@@ -5,45 +5,32 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Safety Manager CRM</title>
   
-  <!-- Caricamento di Tailwind CSS per uno stile grafico moderno e pulito -->
+  <!-- Tailwind CSS per lo stile -->
   <script src="https://cdn.tailwindcss.com"></script>
   
-  <!-- Caricamento di Lucide Icons per icone vettoriali leggere e nitide -->
+  <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
   
-  <!-- Font di sistema premium per massimizzare la leggibilità -->
+  <!-- Font -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
 
   <style>
-    body {
-      font-family: 'Inter', sans-serif;
-    }
-    
-    /* Prevenzione del flickering per elementi in fase di caricamento */
+    body { font-family: 'Inter', sans-serif; }
     [x-cloak] { display: none !important; }
 
-    /* STILI TIPOGRAFICI E LAYOUT DEDICATI ALLA STAMPA PROFESSIONALE A4 */
+    /* STILI DEDICATI ALLA STAMPA PROFESSIONALE A4 */
     @media print {
       body {
         background-color: white !important;
         color: black !important;
       }
-      .print\:hidden {
-        display: none !important;
-      }
-      .print\:p-0 {
-        padding: 0 !important;
-      }
-      .print\:border-0 {
-        border: 0 !important;
-      }
-      .print\:shadow-none {
-        box-shadow: none !important;
-      }
-      .print\:bg-transparent {
-        background-color: transparent !important;
-      }
-      /* Regole per la gestione delle pagine d'esame e degli attestati fronte/retro */
+      .print\:hidden { display: none !important; }
+      .print\:p-0 { padding: 0 !important; }
+      .print\:border-0 { border: 0 !important; }
+      .print\:shadow-none { box-shadow: none !important; }
+      .print\:bg-transparent { background-color: transparent !important; }
+      
+      /* Regole per forzare le pagine A4 */
       .print-page {
         width: 210mm !important;
         min-height: 297mm !important;
@@ -55,30 +42,21 @@
         flex-direction: column !important;
         justify-content: space-between !important;
       }
-      .print-container {
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        z-index: 9999;
-        background: white;
-      }
+      /* Rimuove margini del browser in stampa */
+      @page { margin: 0; }
     }
   </style>
 </head>
 <body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col overflow-hidden">
 
-
-  <!-- Schermata 1: Configurazione Chiavi Supabase (Se non presenti in memoria locale) -->
   <div id="screen-config" class="hidden min-h-screen bg-slate-900 flex items-center justify-center p-4">
     <div class="max-w-md w-full bg-white rounded-2xl shadow-2xl p-6 border border-slate-200">
       <div class="text-center mb-6">
         <div class="p-3 bg-blue-600 text-white rounded-xl inline-block mb-3">
           <i data-lucide="database" class="w-6 h-6"></i>
         </div>
-        <h2 class="text-xl font-black uppercase text-slate-800">Inizializzazione Database</h2>
-        <p class="text-xs text-slate-500 mt-1">Inserisci le credenziali del tuo database di Supabase</p>
+        <h2 class="text-xl font-black uppercase text-slate-800">Connessione Database</h2>
+        <p class="text-xs text-slate-500 mt-1">Inserisci le chiavi del tuo progetto Supabase</p>
       </div>
       <form id="form-config" class="space-y-4">
         <div>
@@ -87,57 +65,53 @@
         </div>
         <div>
           <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Supabase Anon Key</label>
-          <input type="text" id="config-key" required placeholder="eyJhbGciOi..." class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs outline-none focus:ring-2 focus:ring-blue-500" />
+          <input type="password" id="config-key" required placeholder="eyJhbGciOi..." class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs outline-none focus:ring-2 focus:ring-blue-500" />
         </div>
-        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-2.5 rounded-lg transition uppercase tracking-wider">Connetti Database</button>
+        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-2.5 rounded-lg transition uppercase tracking-wider">Salva & Connetti</button>
       </form>
     </div>
   </div>
 
-  <!-- Schermata 2: Schermata d'accesso (Login) -->
   <div id="screen-login" class="hidden min-h-screen bg-slate-900 flex items-center justify-center p-4">
     <div class="max-w-[400px] w-full bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-800">
       <div class="bg-slate-800 text-white p-6 text-center flex flex-col items-center gap-2">
         <div class="p-3 bg-blue-600 rounded-xl shadow-md">
-          <i data-lucide="shield-alert" class="w-6 h-6"></i>
+          <i data-lucide="shield-alert" class="w-6 h-6 text-white"></i>
         </div>
         <h2 class="text-xl font-black uppercase tracking-tight">Safety Manager CRM</h2>
-        <p class="text-xs text-slate-400">Inserisci le tue credenziali per autenticarti</p>
+        <p class="text-xs text-slate-400">Area Riservata Consulenti</p>
       </div>
       <form id="form-login" class="p-6 space-y-4">
         <div id="login-error" class="hidden bg-red-50 border border-red-200 text-red-700 font-bold text-xs p-3 rounded-lg text-center"></div>
         <div>
-          <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Email Aziendale</label>
+          <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Email</label>
           <div class="relative">
             <i data-lucide="mail" class="w-4 h-4 text-slate-400 absolute left-3 top-3"></i>
-            <input type="email" id="login-email" required placeholder="consulente@sicurezza.it" class="w-full bg-slate-50 border border-slate-300 rounded-lg pl-9 pr-4 py-2.5 text-xs outline-none" />
+            <input type="email" id="login-email" required placeholder="nome@azienda.it" class="w-full bg-slate-50 border border-slate-300 rounded-lg pl-9 pr-4 py-2.5 text-xs outline-none focus:ring-2 focus:ring-blue-500" />
           </div>
         </div>
         <div>
           <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Password</label>
           <div class="relative">
             <i data-lucide="lock" class="w-4 h-4 text-slate-400 absolute left-3 top-3"></i>
-            <input type="password" id="login-password" required placeholder="••••••••" class="w-full bg-slate-50 border border-slate-300 rounded-lg pl-9 pr-4 py-2.5 text-xs outline-none" />
+            <input type="password" id="login-password" required placeholder="••••••••" class="w-full bg-slate-50 border border-slate-300 rounded-lg pl-9 pr-4 py-2.5 text-xs outline-none focus:ring-2 focus:ring-blue-500" />
           </div>
         </div>
-        <button type="submit" id="btn-login" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-2.5 rounded-lg transition uppercase tracking-wider">Accedi al Sistema</button>
+        <button type="submit" id="btn-login" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-2.5 rounded-lg transition uppercase tracking-wider">Accedi</button>
       </form>
     </div>
   </div>
 
-
-  <!-- Schermata 3: Area di Lavoro Principale -->
   <div id="screen-app" class="hidden flex-1 flex flex-col h-screen overflow-hidden">
+    
     <!-- Header -->
     <header class="bg-slate-900 text-white p-3 flex justify-between items-center print:hidden border-b border-slate-950 shrink-0">
       <div class="flex items-center gap-2">
-        <div class="bg-blue-600 p-1.5 rounded-md">
-          <i data-lucide="shield-alert" class="w-4 h-4"></i>
-        </div>
+        <div class="bg-blue-600 p-1.5 rounded-md"><i data-lucide="shield-alert" class="w-4 h-4"></i></div>
         <span class="font-black text-sm uppercase tracking-wider">Safety Manager <span class="text-blue-500 font-medium">CRM</span></span>
       </div>
       <div class="flex items-center gap-4">
-        <span class="text-[11px] font-bold text-slate-400">Operatore Connesso</span>
+        <span class="text-[11px] font-bold text-slate-400" id="user-email-display">Connesso</span>
         <button id="btn-reset-db" class="text-slate-500 hover:text-slate-300 text-[10px] uppercase font-bold" title="Reset Configurazione Database">Modifica DB</button>
       </div>
     </header>
@@ -145,7 +119,7 @@
     <!-- Main Container -->
     <div class="flex-1 flex w-full max-w-[1600px] mx-auto gap-4 p-4 overflow-hidden print:p-0 print:max-w-none">
       
-      <!-- Navigazione Laterale (Sidebar) -->
+      <!-- Sidebar di Navigazione -->
       <nav class="w-[200px] flex flex-col gap-1.5 print:hidden shrink-0 justify-between pb-2">
         <div class="flex flex-col gap-1.5" id="sidebar-menu">
           <button data-target="dashboard" class="menu-item flex items-center gap-3 px-4 py-2.5 rounded-lg font-bold text-xs uppercase tracking-wider transition-all bg-blue-600 text-white shadow-md">
@@ -158,51 +132,59 @@
             <i data-lucide="clipboard-list" class="w-4 h-4"></i> Registro Firme
           </button>
           <button data-target="attestati" class="menu-item flex items-center gap-3 px-4 py-2.5 rounded-lg font-bold text-xs uppercase tracking-wider transition-all text-slate-600 hover:bg-slate-200">
-            <i data-lucide="award" class="w-4 h-4"></i> Stampa Attestati
+            <i data-lucide="award" class="w-4 h-4"></i> Emetti Attestati
           </button>
           <button data-target="storico" class="menu-item flex items-center gap-3 px-4 py-2.5 rounded-lg font-bold text-xs uppercase tracking-wider transition-all text-slate-600 hover:bg-slate-200">
             <i data-lucide="file-text" class="w-4 h-4"></i> Storico
           </button>
         </div>
-        <button id="btn-logout" class="flex items-center gap-3 px-4 py-2.5 rounded-lg font-bold text-xs uppercase text-red-600 hover:bg-red-50 mt-auto">
+        <button id="btn-logout" class="flex items-center gap-3 px-4 py-2.5 rounded-lg font-bold text-xs uppercase text-red-600 hover:bg-red-50 mt-auto transition">
           <i data-lucide="log-out" class="w-4 h-4"></i> Esci dal CRM
         </button>
       </nav>
 
-
-      <!-- Contenitore Schermate Interne -->
-      <div class="flex-1 overflow-hidden bg-white rounded-xl shadow-sm border border-slate-200 p-4 print:p-0 print:border-0 print:shadow-none print:bg-transparent">
+      <div class="flex-1 overflow-hidden bg-white rounded-xl shadow-sm border border-slate-200 p-4 print:p-0 print:border-0 print:shadow-none print:bg-transparent relative">
         
         <!-- Vista 1: Dashboard -->
         <div id="view-dashboard" class="view-panel h-full overflow-y-auto space-y-6">
-          <!-- Widget numerici -->
+          <div class="flex justify-between items-center border-b pb-4 shrink-0">
+            <div>
+              <h2 class="text-2xl font-black text-slate-800 uppercase tracking-tight">Pannello di Controllo</h2>
+              <p class="text-xs text-slate-500">Monitoraggio attività e scadenze dei corsi</p>
+            </div>
+            <button onclick="caricaTuttiIDati()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-3 py-2 rounded-lg flex items-center gap-2 transition border border-slate-200">
+              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Aggiorna
+            </button>
+          </div>
+
+          <!-- Widget Statistiche -->
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div class="bg-white border p-4 rounded-xl flex items-center justify-between shadow-sm">
-              <div><p class="text-[10px] font-bold text-slate-400 uppercase">Aziende Partner</p><h3 id="stat-aziende" class="text-2xl font-black text-slate-800">0</h3></div>
-              <div class="p-3 bg-blue-50 text-blue-600 rounded-lg"><i data-lucide="building" class="w-6 h-6"></i></div>
+            <div class="bg-gradient-to-br from-white to-slate-50 border p-4 rounded-xl flex items-center justify-between shadow-sm">
+              <div><p class="text-[10px] font-bold text-slate-400 uppercase">Aziende Partner</p><h3 id="stat-aziende" class="text-3xl font-black text-slate-800">0</h3></div>
+              <div class="p-3 bg-blue-50 text-blue-600 rounded-xl border border-blue-100"><i data-lucide="building" class="w-6 h-6"></i></div>
             </div>
-            <div class="bg-white border p-4 rounded-xl flex items-center justify-between shadow-sm">
-              <div><p class="text-[10px] font-bold text-slate-400 uppercase">Lavoratori Anagrafati</p><h3 id="stat-corsisti" class="text-2xl font-black text-slate-800">0</h3></div>
-              <div class="p-3 bg-emerald-50 text-emerald-600 rounded-lg"><i data-lucide="users" class="w-6 h-6"></i></div>
+            <div class="bg-gradient-to-br from-white to-slate-50 border p-4 rounded-xl flex items-center justify-between shadow-sm">
+              <div><p class="text-[10px] font-bold text-slate-400 uppercase">Corsisti Registrati</p><h3 id="stat-corsisti" class="text-3xl font-black text-slate-800">0</h3></div>
+              <div class="p-3 bg-emerald-50 text-emerald-600 rounded-xl border border-emerald-100"><i data-lucide="users" class="w-6 h-6"></i></div>
             </div>
-            <div class="bg-white border p-4 rounded-xl flex items-center justify-between shadow-sm">
-              <div><p class="text-[10px] font-bold text-slate-400 uppercase">Attestati Monitorati</p><h3 id="stat-certificati" class="text-2xl font-black text-slate-800">0</h3></div>
-              <div class="p-3 bg-amber-50 text-amber-500 rounded-lg"><i data-lucide="award" class="w-6 h-6"></i></div>
+            <div class="bg-gradient-to-br from-white to-slate-50 border p-4 rounded-xl flex items-center justify-between shadow-sm">
+              <div><p class="text-[10px] font-bold text-slate-400 uppercase">Attestati Emessi</p><h3 id="stat-certificati" class="text-3xl font-black text-slate-800">0</h3></div>
+              <div class="p-3 bg-amber-50 text-amber-500 rounded-xl border border-amber-100"><i data-lucide="award" class="w-6 h-6"></i></div>
             </div>
           </div>
 
           <!-- Allarmi Scadenze -->
           <div class="border border-slate-200 rounded-xl bg-white shadow-sm overflow-hidden">
-            <div class="bg-slate-100 px-4 py-2.5 border-b flex items-center gap-2">
+            <div class="bg-slate-100 px-4 py-3 border-b flex items-center gap-2">
               <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-500"></i>
               <h4 class="text-xs font-bold text-slate-700 uppercase">Bacheca Allarmi Scadenze</h4>
             </div>
-            <div id="dashboard-allarmi" class="p-4 max-h-[200px] overflow-y-auto space-y-2 bg-slate-50/50">
+            <div id="dashboard-allarmi" class="p-4 max-h-[220px] overflow-y-auto space-y-2 bg-slate-50/50">
               <!-- Riempito dinamicamente -->
             </div>
           </div>
 
-          <!-- Dettaglio Anagrafiche Aziende e Corsisti -->
+          <!-- Anagrafiche -->
           <div class="space-y-4">
             <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Dettaglio Anagrafiche Clienti</h4>
             <div id="dashboard-aziende-container" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -211,178 +193,186 @@
           </div>
         </div>
 
-        <!-- Vista 2: Inserimento Dati -->
-        <div id="view-inserimento" class="view-panel h-full overflow-y-auto hidden">
-          <div class="max-w-[450px] mx-auto space-y-6 py-4">
-            <!-- Form Nuova Azienda -->
-            <form id="form-add-azienda" class="bg-blue-50/40 p-4 rounded-xl border border-blue-100 space-y-3 shadow-sm">
-              <h3 class="font-bold text-xs text-blue-800 uppercase flex items-center gap-2 mb-2"><i data-lucide="building" class="w-4 h-4"></i> Registra Azienda Cliente</h3>
-              <input required type="text" id="add-az-nome" placeholder="Ragione Sociale Azienda" class="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs outline-none" />
-              <input required type="text" id="add-az-piva" placeholder="Partita IVA" class="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs outline-none uppercase" />
-              <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-2 rounded-lg transition uppercase">Salva Anagrafica Azienda</button>
+        <div id="view-inserimento" class="view-panel h-full overflow-y-auto hidden bg-slate-50 -m-4 p-8">
+          <div class="max-w-[450px] mx-auto space-y-8">
+            <div class="text-center mb-6">
+              <h2 class="text-2xl font-black text-slate-800 uppercase tracking-tight">Area Inserimento</h2>
+              <p class="text-xs text-slate-500">Aggiungi nuove Aziende e Corsisti al database cloud</p>
+            </div>
+
+            <form id="form-add-azienda" class="bg-blue-50/40 p-5 rounded-xl border border-blue-100 space-y-3 shadow-sm">
+              <h3 class="font-bold text-xs text-blue-800 uppercase flex items-center gap-2 mb-3"><i data-lucide="building" class="w-4 h-4"></i> Registra Azienda Cliente</h3>
+              <input required type="text" id="add-az-nome" placeholder="Ragione Sociale Azienda" class="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs outline-none focus:border-blue-500" />
+              <input required type="text" id="add-az-piva" placeholder="Partita IVA / Codice Fiscale" class="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs outline-none focus:border-blue-500 uppercase" />
+              <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-2.5 rounded-lg transition uppercase flex justify-center items-center gap-2"><i data-lucide="save" class="w-3.5 h-3.5"></i> Salva Anagrafica Azienda</button>
             </form>
 
-            <!-- Form Nuovo Corsista -->
-            <form id="form-add-corsista" class="bg-emerald-50/40 p-4 rounded-xl border border-emerald-100 space-y-3 shadow-sm">
-              <h3 class="font-bold text-xs text-emerald-800 uppercase flex items-center gap-2 mb-2"><i data-lucide="users" class="w-4 h-4"></i> Aggiungi Lavoratore Dipendente</h3>
-              <select required id="add-cor-azienda" class="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs outline-none font-bold text-slate-700">
+            <form id="form-add-corsista" class="bg-emerald-50/40 p-5 rounded-xl border border-emerald-100 space-y-3 shadow-sm">
+              <h3 class="font-bold text-xs text-emerald-800 uppercase flex items-center gap-2 mb-3"><i data-lucide="users" class="w-4 h-4"></i> Aggiungi Lavoratore</h3>
+              <select required id="add-cor-azienda" class="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs outline-none font-bold text-slate-700 focus:border-emerald-500">
                 <option value="">-- Seleziona Azienda di Lavoro --</option>
-                <!-- Riempito dinamicamente -->
               </select>
-              <input required type="text" id="add-cor-nome" placeholder="Nome e Cognome Lavoratore" class="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs outline-none" />
-              <input type="text" id="add-cor-cf" placeholder="Codice Fiscale" class="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs outline-none uppercase font-mono" />
-              <input type="text" id="add-cor-mansione" placeholder="Mansione Specifica (es. Magazziniere)" class="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs outline-none" />
-              <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-2 rounded-lg transition uppercase">Inserisci Lavoratore</button>
+              <input required type="text" id="add-cor-nome" placeholder="Nome e Cognome Lavoratore" class="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs outline-none focus:border-emerald-500" />
+              <input type="text" id="add-cor-cf" placeholder="Codice Fiscale" class="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs outline-none uppercase font-mono focus:border-emerald-500" />
+              <input type="text" id="add-cor-mansione" placeholder="Mansione Specifica (es. Magazziniere)" class="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs outline-none focus:border-emerald-500" />
+              <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-2.5 rounded-lg transition uppercase flex justify-center items-center gap-2"><i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> Inserisci Lavoratore</button>
             </form>
           </div>
         </div>
 
-        <!-- Vista 3: Registro Firme (Foglio d'Aula d'Esame) -->
         <div id="view-registro" class="view-panel h-full flex gap-4 overflow-hidden hidden">
-          <div class="w-[300px] bg-slate-50 border p-4 rounded-xl space-y-3 shrink-0 print:hidden overflow-y-auto">
-            <h3 class="font-bold text-sm text-slate-800 uppercase">Configura Verbale</h3>
+          <!-- Sidebar configurazione -->
+          <div class="w-[300px] bg-slate-50 border border-slate-200 p-4 rounded-xl space-y-4 shrink-0 print:hidden overflow-y-auto">
             <div>
-              <label class="block text-[9px] font-bold text-slate-400 uppercase mb-0.5">Azienda</label>
-              <select id="reg-azienda" class="w-full bg-white border p-2 text-xs rounded-lg font-bold">
-                <option value="">-- Seleziona --</option>
-                <!-- Riempito dinamicamente -->
-              </select>
+              <h2 class="text-xl font-black text-slate-800 uppercase tracking-tight">Registro & Verbali</h2>
+              <p class="text-[10px] text-slate-500 uppercase mt-0.5 font-bold">Genera foglio presenze</p>
             </div>
-            <div>
-              <label class="block text-[9px] font-bold text-slate-400 uppercase mb-0.5">Corso</label>
-              <input type="text" id="reg-corso" placeholder="es. Antincendio Livello 1" class="w-full border p-2 text-xs rounded-lg" />
-            </div>
-            <div class="grid grid-cols-2 gap-2">
+            <div class="space-y-3">
               <div>
-                <label class="block text-[9px] font-bold text-slate-400 uppercase mb-0.5">Data</label>
-                <input type="date" id="reg-data" class="w-full border p-2 text-xs rounded-lg" />
+                <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1">Azienda</label>
+                <select id="reg-azienda" class="w-full bg-white border border-slate-300 p-2 text-xs rounded-lg font-bold outline-none focus:border-blue-500">
+                  <option value="">-- Seleziona --</option>
+                </select>
               </div>
               <div>
-                <label class="block text-[9px] font-bold text-slate-400 uppercase mb-0.5">Ore</label>
-                <input type="number" id="reg-ore" class="w-full border p-2 text-xs rounded-lg" />
+                <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1">Denominazione Corso</label>
+                <input type="text" id="reg-corso" placeholder="es. Antincendio Livello 1" class="w-full bg-white border border-slate-300 p-2 text-xs rounded-lg outline-none focus:border-blue-500" />
               </div>
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1">Data</label>
+                  <input type="date" id="reg-data" class="w-full bg-white border border-slate-300 p-2 text-xs rounded-lg outline-none focus:border-blue-500" />
+                </div>
+                <div>
+                  <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1">Durata (Ore)</label>
+                  <input type="number" id="reg-ore" class="w-full bg-white border border-slate-300 p-2 text-xs rounded-lg outline-none focus:border-blue-500" />
+                </div>
+              </div>
+              <div>
+                <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1">Docente / Formatore</label>
+                <input type="text" id="reg-docente" placeholder="es. Ing. Rossi" class="w-full bg-white border border-slate-300 p-2 text-xs rounded-lg outline-none focus:border-blue-500" />
+              </div>
+              <button onclick="window.print()" class="w-full bg-slate-800 text-white p-2.5 font-bold rounded-lg text-xs flex justify-center gap-2 items-center hover:bg-slate-900 transition shadow-md mt-2">
+                <i data-lucide="printer" class="w-4 h-4"></i> Stampa Foglio Firme
+              </button>
             </div>
-            <div>
-              <label class="block text-[9px] font-bold text-slate-400 uppercase mb-0.5">Docente</label>
-              <input type="text" id="reg-docente" placeholder="Ing. Alberto Rossi" class="w-full border p-2 text-xs rounded-lg" />
-            </div>
-            <button onclick="window.print()" class="w-full bg-slate-800 text-white p-2.5 font-bold rounded-lg text-xs flex justify-center gap-2 items-center hover:bg-slate-900 transition">
-              <i data-lucide="printer" class="w-4 h-4"></i> Stampa Foglio Firme
-            </button>
           </div>
 
-          <!-- Anteprima di stampa foglio a4 -->
-          <div class="flex-1 overflow-y-auto bg-slate-100 p-4 print:p-0 print:bg-white flex justify-center">
-            <div class="w-[210mm] min-h-[297mm] bg-white border p-12 flex flex-col justify-between text-slate-800 print:border-0 print:p-0 shadow-md print:shadow-none">
-              <div>
-                <div class="border-b-2 border-slate-800 pb-3 mb-4 flex justify-between items-end">
-                  <div>
-                    <h1 class="text-xl font-black uppercase text-slate-900">Registro Presenze e Verbale Corso</h1>
-                    <p class="text-[9px] font-bold text-slate-400 uppercase">Adempimento normativo D.Lgs. 81/2008</p>
-                  </div>
-                  <span class="text-[9px] font-mono text-slate-300">Mod. REG-01</span>
+          <!-- Anteprima A4 Registro -->
+          <div class="flex-1 overflow-y-auto bg-slate-200 p-4 print:p-0 print:bg-white flex justify-center">
+            <div class="w-[210mm] min-h-[297mm] bg-white border border-slate-300 p-10 flex flex-col text-slate-800 print:border-0 print:p-0 shadow-lg print:shadow-none">
+              
+              <div class="border-b-2 border-slate-800 pb-3 mb-6 flex justify-between items-end">
+                <div>
+                  <h1 class="text-2xl font-black uppercase tracking-tight text-slate-900">Registro Presenze e Verbale d'Esame</h1>
+                  <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mt-0.5">Adempimento D.Lgs. 81/08 e Accordi Stato-Regioni</p>
                 </div>
-                <div class="grid grid-cols-2 gap-4 bg-slate-50 p-3 rounded-lg border text-xs mb-4">
-                  <div class="space-y-1">
-                    <p class="text-slate-500 font-medium">AZIENDA: <span id="reg-view-azienda" class="font-black text-slate-800 uppercase">____________________</span></p>
-                    <p class="text-slate-500 font-medium">CORSO: <span id="reg-view-corso" class="font-black text-slate-800 uppercase">____________________</span></p>
-                  </div>
-                  <div class="space-y-1">
-                    <p class="text-slate-500 font-medium">DATA: <span id="reg-view-data" class="font-black text-slate-800">__/__/____</span> • ORE: <span id="reg-view-ore" class="font-black text-slate-800">__ h</span></p>
-                    <p class="text-slate-500 font-medium">DOCENTE: <span id="reg-view-docente" class="font-black text-slate-800 uppercase">____________________</span></p>
-                  </div>
-                </div>
-                <table class="w-full text-left border-collapse border border-slate-300 text-xs">
-                  <thead>
-                    <tr class="bg-slate-800 text-white uppercase text-[9px] font-bold">
-                      <th class="border border-slate-300 p-2 text-center w-8">N.</th>
-                      <th class="border border-slate-300 p-2">Cognome e Nome</th>
-                      <th class="border border-slate-300 p-2 w-32">Codice Fiscale</th>
-                      <th class="border border-slate-300 p-2 text-center w-28">Firma Entrata</th>
-                      <th class="border border-slate-300 p-2 text-center w-28">Firma Uscita</th>
-                      <th class="border border-slate-300 p-2 text-center w-16">Esito</th>
-                    </tr>
-                  </thead>
-                  <tbody id="reg-table-body">
-                    <!-- Riempito dinamicamente -->
-                  </tbody>
-                </table>
+                <span class="text-[10px] font-mono text-slate-400">Mod. SM-REG-01</span>
               </div>
-              <div class="pt-4 border-t">
-                <p class="text-[9px] text-slate-400 text-justify leading-relaxed mb-6">Il docente certifica la regolare esecuzione del corso ed il superamento dei test finali per i discenti idonei.</p>
-                <div class="grid grid-cols-2 gap-8 text-center text-xs uppercase font-bold text-slate-500">
-                  <div class="border-t border-dashed pt-2">Firma del Formatore</div>
-                  <div class="border-t border-dashed pt-2">Firma Rappresentante Azienda</div>
+              
+              <div class="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6 text-xs">
+                <div class="space-y-1.5">
+                  <p class="text-slate-500 font-medium uppercase flex items-center gap-1.5"><i data-lucide="building" class="w-3.5 h-3.5"></i> AZIENDA: <span id="reg-view-azienda" class="font-black text-slate-800">____________________</span></p>
+                  <p class="text-slate-500 font-medium uppercase flex items-center gap-1.5"><i data-lucide="book-open" class="w-3.5 h-3.5"></i> CORSO: <span id="reg-view-corso" class="font-black text-slate-800">____________________</span></p>
+                </div>
+                <div class="space-y-1.5">
+                  <p class="text-slate-500 font-medium uppercase flex items-center gap-1.5"><i data-lucide="calendar" class="w-3.5 h-3.5"></i> DATA: <span id="reg-view-data" class="font-black text-slate-800">__/__/____</span> • <i data-lucide="clock" class="w-3.5 h-3.5 ml-1"></i> ORE: <span id="reg-view-ore" class="font-black text-slate-800">__ h</span></p>
+                  <p class="text-slate-500 font-medium uppercase flex items-center gap-1.5"><i data-lucide="user-check" class="w-3.5 h-3.5"></i> DOCENTE: <span id="reg-view-docente" class="font-black text-slate-800">____________________</span></p>
                 </div>
               </div>
+              
+              <h3 class="text-[11px] font-black uppercase text-slate-700 tracking-wider mb-2">Elenco Partecipanti e Firme</h3>
+              <table class="w-full text-left border-collapse border border-slate-300 text-xs">
+                <thead>
+                  <tr class="bg-slate-800 text-white uppercase text-[9px] font-bold tracking-wider">
+                    <th class="border border-slate-300 p-2 text-center w-8">N.</th>
+                    <th class="border border-slate-300 p-2">Cognome e Nome</th>
+                    <th class="border border-slate-300 p-2 w-32">Codice Fiscale</th>
+                    <th class="border border-slate-300 p-2 text-center w-28">Firma Entrata</th>
+                    <th class="border border-slate-300 p-2 text-center w-28">Firma Uscita</th>
+                    <th class="border border-slate-300 p-2 text-center w-16">Esito</th>
+                  </tr>
+                </thead>
+                <tbody id="reg-table-body">
+                  <!-- Generato via JS -->
+                </tbody>
+              </table>
+
+              <div class="mt-auto pt-6 border-t border-slate-200">
+                <p class="text-[10px] text-slate-500 text-justify leading-relaxed mb-8">Il sottoscritto docente formatore dichiara che il corso si è svolto regolarmente nel rispetto dei contenuti minimi previsti dalla normativa vigente e che i lavoratori sopra elencati hanno frequentato il 100% delle ore previste, superando con esito positivo la verifica finale di apprendimento.</p>
+                <div class="grid grid-cols-2 gap-12 text-center text-xs uppercase font-bold text-slate-600">
+                  <div><div class="h-10 border-b border-dashed border-slate-400 mb-2"></div>Firma Docente / Formatore</div>
+                  <div><div class="h-10 border-b border-dashed border-slate-400 mb-2"></div>Firma Rappresentante Azienda</div>
+                </div>
+              </div>
+
             </div>
           </div>
         </div>
 
-        <!-- Vista 4: Stampa Attestati (Fronte/Retro A4) -->
         <div id="view-attestati" class="view-panel h-full flex gap-4 overflow-hidden hidden">
-          <div class="w-[300px] bg-white border p-4 rounded-xl space-y-3 shrink-0 print:hidden overflow-y-auto shadow-sm">
-            <h3 class="font-bold text-sm text-slate-800 uppercase flex items-center gap-1.5"><i data-lucide="award" class="text-amber-500"></i> Parametri Stampa</h3>
+          <!-- Form parametri stampa -->
+          <div class="w-[300px] bg-white border border-slate-200 p-4 rounded-xl space-y-4 shrink-0 print:hidden overflow-y-auto shadow-sm">
+            <div>
+              <h2 class="text-xl font-black text-slate-800 uppercase tracking-tight">Generatore</h2>
+              <p class="text-[10px] text-slate-500 uppercase mt-0.5 font-bold">Emissione Attestati</p>
+            </div>
             <form id="form-emetti" class="space-y-3">
               <div>
-                <label class="block text-[9px] font-bold text-slate-400 uppercase">Azienda</label>
-                <select required id="emetti-azienda" class="w-full border p-1.5 text-xs bg-slate-50 rounded-md font-bold">
-                  <option value="">-- Scegli --</option>
-                  <!-- Riempito dinamicamente -->
+                <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">Azienda</label>
+                <select required id="emetti-azienda" class="w-full border border-slate-300 p-2 text-xs bg-slate-50 rounded-lg font-bold outline-none focus:ring-2 focus:ring-amber-500"></select>
+              </div>
+              <div>
+                <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">Corsista</label>
+                <select required disabled id="emetti-corsista" class="w-full border border-slate-300 p-2 text-xs bg-slate-50 rounded-lg outline-none focus:ring-2 focus:ring-amber-500">
+                  <option value="">-- Scegli prima Azienda --</option>
                 </select>
               </div>
               <div>
-                <label class="block text-[9px] font-bold text-slate-400 uppercase">Corsista</label>
-                <select required id="emetti-corsista" class="w-full border p-1.5 text-xs bg-slate-50 rounded-md">
-                  <option value="">-- Scegli --</option>
-                  <!-- Riempito dinamicamente -->
-                </select>
+                <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">Corso Ministeriale</label>
+                <select required id="emetti-corso" class="w-full border border-slate-300 p-2 text-xs bg-slate-50 rounded-lg outline-none focus:ring-2 focus:ring-amber-500"></select>
               </div>
               <div>
-                <label class="block text-[9px] font-bold text-slate-400 uppercase">Corso Ministeriale</label>
-                <select required id="emetti-corso" class="w-full border p-1.5 text-xs bg-slate-50 rounded-md">
-                  <option value="">-- Scegli Corso --</option>
-                  <!-- Riempito dinamicamente -->
-                </select>
+                <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">Data Esame / Fine</label>
+                <input required type="date" id="emetti-data" class="w-full border border-slate-300 p-2 text-xs bg-slate-50 rounded-lg outline-none focus:ring-2 focus:ring-amber-500" />
               </div>
-              <div>
-                <label class="block text-[9px] font-bold text-slate-400 uppercase">Data Chiusura Test</label>
-                <input required type="date" id="emetti-data" class="w-full border p-1.5 text-xs bg-slate-50 rounded-md" />
-              </div>
-              <button type="submit" class="w-full bg-amber-500 hover:bg-amber-600 text-white py-2 font-black rounded-lg text-xs uppercase tracking-wide shadow-md transition">Genera Attestato</button>
+              <button type="submit" class="w-full bg-amber-500 hover:bg-amber-600 text-white py-3 font-black rounded-lg text-xs uppercase tracking-wide shadow-md transition mt-2 flex justify-center items-center gap-2">
+                <i data-lucide="award" class="w-4 h-4"></i> Emetti Attestato
+              </button>
             </form>
           </div>
 
-          <div class="flex-1 overflow-y-auto bg-slate-100 p-4 print:p-0 print:bg-white flex flex-col items-center space-y-6 print:space-y-0" id="attestato-preview-container">
-            <div id="attestato-placeholder" class="text-center py-20 text-slate-400">
-              <i data-lucide="file-text" class="w-12 h-12 mx-auto mb-2 opacity-40"></i>
-              <p class="text-sm font-bold">Nessun attestato elaborato</p>
-              <p class="text-xs">Imposta i dati a sinistra per caricare l'A4 fronte/retro.</p>
+          <!-- Anteprima A4 Fronte/Retro -->
+          <div class="flex-1 overflow-y-auto bg-slate-200 p-4 print:p-0 print:bg-white flex flex-col items-center space-y-6 print:space-y-0 relative" id="attestato-preview-container">
+            <div id="attestato-placeholder" class="text-center py-20 text-slate-400 h-full flex flex-col items-center justify-center">
+              <i data-lucide="file-text" class="w-16 h-16 mx-auto mb-4 opacity-30"></i>
+              <p class="text-lg font-bold text-slate-500">Nessun attestato elaborato</p>
+              <p class="text-xs">Compila i dati a sinistra per generare il PDF fronte/retro.</p>
             </div>
-            <!-- Gli attestati A4 stampabili saranno visualizzati qui dinamici -->
+            <!-- Pagine iniettate da JS -->
           </div>
         </div>
 
-        <!-- Vista 5: Registro Storico Certificati -->
-        <div id="view-storico" class="view-panel h-full overflow-y-auto space-y-4 hidden">
-          <div class="flex justify-between items-center border-b pb-3 shrink-0">
+        <div id="view-storico" class="view-panel h-full overflow-y-auto space-y-4 hidden bg-slate-50 -m-4 p-6">
+          <div class="flex justify-between items-center border-b border-slate-200 pb-4 shrink-0">
             <div class="min-w-0">
-              <h2 class="text-xl font-black uppercase text-slate-800">Registro Storico</h2>
-              <p class="text-xs text-slate-400">Archivio generale degli attestati erogati e registrati in cloud</p>
+              <h2 class="text-2xl font-black uppercase text-slate-800 tracking-tight">Registro Storico</h2>
+              <p class="text-xs text-slate-500">Archivio generale degli attestati erogati e registrati in cloud</p>
             </div>
-            <div class="relative">
+            <div class="relative shadow-sm">
               <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-2.5"></i>
-              <input type="text" id="storico-ricerca" placeholder="Cerca lavoratore o corso..." class="bg-slate-50 border p-1.5 pl-9 rounded-lg text-xs outline-none w-[220px]" />
+              <input type="text" id="storico-ricerca" placeholder="Cerca lavoratore o corso..." class="bg-white border border-slate-300 p-2 pl-9 rounded-lg text-xs outline-none focus:ring-2 focus:ring-blue-500 w-[260px]" />
             </div>
           </div>
-          <div class="bg-white border rounded-xl overflow-hidden shadow-sm">
+          <div class="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
             <table class="w-full text-left text-xs border-collapse">
               <thead>
-                <tr class="bg-slate-800 text-white uppercase text-[9px] font-bold">
-                  <th class="p-3">Data Test</th>
-                  <th class="p-3">Lavoratore Certificato</th>
-                  <th class="p-3">Tipologia Corso Erogato</th>
-                  <th class="p-3 text-right">Azioni</th>
+                <tr class="bg-slate-800 text-white uppercase text-[10px] font-bold tracking-wider">
+                  <th class="p-3 border-b border-slate-900">Data Test</th>
+                  <th class="p-3 border-b border-slate-900">Lavoratore Certificato</th>
+                  <th class="p-3 border-b border-slate-900">Azienda di Lavoro</th>
+                  <th class="p-3 border-b border-slate-900">Tipologia Corso Erogato</th>
+                  <th class="p-3 border-b border-slate-900 text-right">Azioni</th>
                 </tr>
               </thead>
               <tbody id="storico-table-body">
@@ -393,87 +383,33 @@
         </div>
 
       </div>
-
     </div>
   </div>
 
   <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
 
-    // DIZIONARIO CORSI CON ORE E SILLABI REGOLAMENTATI
+    // ==========================================
+    // 1. DIZIONARIO CORSI E SILLABI (Integrato)
+    // ==========================================
     const DATI_CORSI = {
-      "formazione_generale": {
-        titolo: "Formazione Generale Lavoratori",
-        ore: 4,
-        validitaAnni: 99,
-        syllabus: "Concetti di rischio, danno, prevenzione, protezione, organizzazione della prevenzione aziendale, diritti, doveri e sanzioni dei vari soggetti aziendali, organi di vigilanza, controllo e assistenza."
-      },
-      "formazione_specifica_basso": {
-        titolo: "Formazione Specifica Lavoratori - Rischio Basso",
-        ore: 4,
-        validitaAnni: 5,
-        syllabus: "Rischi infortuni, meccanici, elettrici, macchine, attrezzature, microclima e illuminazione, videoterminali, DPI, segnaletica, emergenze, procedure di sicurezza connesse alla specifica mansione (commercio, uffici, servizi)."
-      },
-      "formazione_specifica_medio": {
-        titolo: "Formazione Specifica Lavoratori - Rischio Medio",
-        ore: 8,
-        validitaAnni: 5,
-        syllabus: "Rischi specifici di settore, rischi chimici, fisici, biologici, movimentazione manuale dei carichi, attrezzature di lavoro, DPI, procedure di esodo e di emergenza, approfondimento sui rischi infortunistici della mansione."
-      },
-      "formazione_specifica_alto": {
-        titolo: "Formazione Specifica Lavoratori - Rischio Alto",
-        ore: 12,
-        validitaAnni: 5,
-        syllabus: "Analisi dettagliata dei rischi specifici di cantiere, chimici, cancerogeni, biologici, rumore, vibrazioni, radiazioni, movimentazione carichi, lavori in quota, uso di DPI di III categoria, procedure operative complesse e piani di emergenza."
-      },
-      "antincendio_livello_1": {
-        titolo: "Addetto Antincendio - Livello 1 (Rischio Basso)",
-        ore: 4,
-        validitaAnni: 5,
-        syllabus: "L'incendio e la prevenzione incendi, principi sulla combustione e dinamica dell'incendio, sostanze estinguenti, triangolo del fuoco, misure di protezione passiva ed attiva, procedure da adottare in caso di incendio, presa visione estintori."
-      },
-      "antincendio_livello_2": {
-        titolo: "Addetto Antincendio - Livello 2 (Rischio Medio)",
-        ore: 8,
-        validitaAnni: 5,
-        syllabus: "Principi sulla combustione, prevenzione incendi, protezione antincendio e procedure da adottare in caso di incendio. Esercitazioni pratiche sull'uso degli estintori portatili e modalità di spegnimento di un focolaio."
-      },
-      "antincendio_livello_3": {
-        titolo: "Addetto Antincendio - Livello 3 (Rischio Alto)",
-        ore: 16,
-        validitaAnni: 5,
-        syllabus: "Dinamica dell'incendio, chimica del fuoco, vie d'esodo, sistemi di rilevazione e spegnimento automatico. Esercitazioni pratiche con idranti, naspi ed estintori portatili, utilizzo di maschere antigas e DPI specifici."
-      },
-      "primo_soccorso_gruppo_a": {
-        titolo: "Addetto Primo Soccorso - Aziende Gruppo A",
-        ore: 16,
-        validitaAnni: 3,
-        syllabus: "Allertare il sistema di soccorso, riconoscere un'emergenza sanitaria, attuare gli interventi di primo soccorso, rianimazione cardiopolmonare (BLS/BLSD), tamponamento emorragie, traumi, lussazioni, ustioni, avvelenamenti."
-      },
-      "primo_soccorso_gruppo_bc": {
-        titolo: "Addetto Primo Soccorso - Aziende Gruppo B/C",
-        ore: 12,
-        validitaAnni: 3,
-        syllabus: "Allertamento del sistema di soccorso nazionale, riconoscimento del danno biologico e dell'emergenza medica, interventi pratici di primo soccorso, procedure di rianimazione cardio-polmonare di base."
-      },
-      "preposto": {
-        titolo: "Formazione Particolare Aggiuntiva per il Preposto",
-        ore: 8,
-        validitaAnni: 2,
-        syllabus: "Principali soggetti del sistema di prevenzione aziendale e relativi compiti, relazioni tra datore di lavoro e preposto, compiti di vigilanza sul comportamento dei lavoratori, tecniche di comunicazione e sensibilizzazione dei lavoratori."
-      },
-      "rls_base": {
-        titolo: "Rappresentante dei Lavoratori per la Sicurezza (RLS)",
-        ore: 32,
-        validitaAnni: 1,
-        syllabus: "Evoluzione legislativa della prevenzione, il D.Lgs. 81/08, il ruolo dell'RLS, la valutazione dei rischi (DVR), l'analisi degli infortuni, nozioni sulla contrattazione collettiva e la comunicazione nei contesti lavorativi."
-      }
+      "formazione_generale": { titolo: "Formazione Generale Lavoratori", ore: 4, validitaAnni: 99, syllabus: "Concetti di rischio, danno, prevenzione, protezione, organizzazione della prevenzione aziendale, diritti, doveri e sanzioni dei vari soggetti aziendali, organi di vigilanza, controllo e assistenza." },
+      "formazione_specifica_basso": { titolo: "Formazione Specifica Lavoratori - Rischio Basso", ore: 4, validitaAnni: 5, syllabus: "Rischi infortuni, meccanici, elettrici, macchine, attrezzature, microclima e illuminazione, videoterminali, DPI, segnaletica, emergenze, procedure di sicurezza connesse alla specifica mansione (commercio, uffici, servizi)." },
+      "formazione_specifica_medio": { titolo: "Formazione Specifica Lavoratori - Rischio Medio", ore: 8, validitaAnni: 5, syllabus: "Rischi specifici di settore, rischi chimici, fisici, biologici, movimentazione manuale dei carichi, attrezzature di lavoro, DPI, procedure di esodo e di emergenza, approfondimento sui rischi infortunistici della mansione." },
+      "formazione_specifica_alto": { titolo: "Formazione Specifica Lavoratori - Rischio Alto", ore: 12, validitaAnni: 5, syllabus: "Analisi dettagliata dei rischi specifici di cantiere, chimici, cancerogeni, biologici, rumore, vibrazioni, radiazioni, movimentazione carichi, lavori in quota, uso di DPI di III categoria, procedure operative complesse e piani di emergenza." },
+      "antincendio_livello_1": { titolo: "Addetto Antincendio - Livello 1 (Rischio Basso)", ore: 4, validitaAnni: 5, syllabus: "L'incendio e la prevenzione incendi, principi sulla combustione e dinamica dell'incendio, sostanze estinguenti, triangolo del fuoco, misure di protezione passiva ed attiva, procedure da adottare in caso di incendio, presa visione estintori." },
+      "antincendio_livello_2": { titolo: "Addetto Antincendio - Livello 2 (Rischio Medio)", ore: 8, validitaAnni: 5, syllabus: "Principi sulla combustione, prevenzione incendi, protezione antincendio e procedure da adottare in caso di incendio. Esercitazioni pratiche sull'uso degli estintori portatili e modalità di spegnimento di un focolaio." },
+      "antincendio_livello_3": { titolo: "Addetto Antincendio - Livello 3 (Rischio Alto)", ore: 16, validitaAnni: 5, syllabus: "Dinamica dell'incendio, chimica del fuoco, vie d'esodo, sistemi di rilevazione e spegnimento automatico. Esercitazioni pratiche con idranti, naspi ed estintori portatili, utilizzo di maschere antigas e DPI specifici." },
+      "primo_soccorso_gruppo_a": { titolo: "Addetto Primo Soccorso - Aziende Gruppo A", ore: 16, validitaAnni: 3, syllabus: "Allertare il sistema di soccorso, riconoscere un'emergenza sanitaria, attuare gli interventi di primo soccorso, rianimazione cardiopolmonare (BLS/BLSD), tamponamento emorragie, traumi, lussazioni, ustioni, avvelenamenti." },
+      "primo_soccorso_gruppo_bc": { titolo: "Addetto Primo Soccorso - Aziende Gruppo B/C", ore: 12, validitaAnni: 3, syllabus: "Allertamento del sistema di soccorso nazionale, riconoscimento del danno biologico e dell'emergenza medica, interventi pratici di primo soccorso, procedure di rianimazione cardio-polmonare di base." },
+      "preposto": { titolo: "Formazione Particolare Aggiuntiva per il Preposto", ore: 8, validitaAnni: 2, syllabus: "Principali soggetti del sistema di prevenzione aziendale e relativi compiti, relazioni tra datore di lavoro e preposto, compiti di vigilanza sul comportamento dei lavoratori, tecniche di comunicazione e sensibilizzazione dei lavoratori." },
+      "rls_base": { titolo: "Rappresentante dei Lavoratori per la Sicurezza (RLS)", ore: 32, validitaAnni: 1, syllabus: "Evoluzione legislativa della prevenzione, il D.Lgs. 81/08, il ruolo dell'RLS, la valutazione dei rischi (DVR), l'analisi degli infortuni, nozioni sulla contrattazione collettiva e la comunicazione nei contesti lavorativi." }
     };
 
-    // ALGORITMO PER IL CALCOLO DI GIORNATE FORMATIVE ED ESCLUSIONE WEEKEND
+    // Helper: Calcolo Date Giornate Formative escludendo Sabato(6) e Domenica(0)
     function calcolaGiornate(dataEsameStr, oreTotali) {
       if (!dataEsameStr || !oreTotali) return [];
-      const numeroGiornate = Math.ceil(oreTotali / 4); // Max 4 ore giornaliere
+      const numeroGiornate = Math.ceil(oreTotali / 4);
       const dateCorso = [];
       let dataCorrente = new Date(dataEsameStr);
       while (dateCorso.length < numeroGiornate) {
@@ -486,35 +422,38 @@
       return dateCorso;
     }
 
-    // ALGORITMO DI ANALISI SCADENZE PER I BOLLINI DELLA DASHBOARD
+    // Helper: Scadenziario
     function analizzaScadenza(dataEsameStr, titoloCorso) {
       if (!dataEsameStr) return null;
       const dataEsame = new Date(dataEsameStr);
-      const corsoIdentificato = Object.values(DATI_CORSI).find(c => c.titolo === titoloCorso) || { validitaAnni: 5 };
-      
-      if (corsoIdentificato.validitaAnni === 99) return { dataScadenza: "Permanente", giorniMancanti: 9999, stato: "valido" };
+      const c = Object.values(DATI_CORSI).find(x => x.titolo === titoloCorso) || { validitaAnni: 5 };
+      if (c.validitaAnni === 99) return { dataScadenza: "Permanente", giorniMancanti: 9999, stato: "valido" };
 
       const dataScadenza = new Date(dataEsame);
-      dataScadenza.setFullYear(dataEsame.getFullYear() + corsoIdentificato.validitaAnni);
-      const oggi = new Date();
-      const giorniMancanti = Math.ceil((dataScadenza.getTime() - oggi.getTime()) / (1000 * 60 * 60 * 24));
-
+      dataScadenza.setFullYear(dataEsame.getFullYear() + c.validitaAnni);
+      const giorniMancanti = Math.ceil((dataScadenza.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+      
       let stato = "valido";
       if (giorniMancanti <= 0) stato = "scaduto";
       else if (giorniMancanti <= 60) stato = "in_scadenza";
-
       return { dataScadenza: dataScadenza.toLocaleDateString('it-IT'), giorniMancanti, stato };
     }
 
-    // GESTIONE DELLO STATO DELL'APP (DATABASE, UTENTE, DATI)
+    // ==========================================
+    // 2. STATO APP & INIZIALIZZAZIONE SUPABASE
+    // ==========================================
     let supabaseClient = null;
     let aziendeGlobal = [];
     let certificatiGlobal = [];
     let editCorsistaId = null;
 
+    function mostraSchermata(id) {
+      ['screen-config', 'screen-login', 'screen-app'].forEach(s => document.getElementById(s).classList.add('hidden'));
+      document.getElementById(id).classList.remove('hidden');
+    }
 
-    // Inizializzazione all'avvio
     function initApp() {
+      lucide.createIcons();
       const url = localStorage.getItem('sm_supabase_url');
       const key = localStorage.getItem('sm_supabase_key');
 
@@ -525,69 +464,58 @@
         supabaseClient.auth.getSession().then(({ data: { session } }) => {
           if (session) {
             mostraSchermata('screen-app');
-            caricaTuttiIDati();
+            document.getElementById('user-email-display').textContent = session.user.email;
+            window.caricaTuttiIDati();
           } else {
             mostraSchermata('screen-login');
           }
-        }).catch(() => {
-          mostraSchermata('screen-config');
-        });
+        }).catch(() => mostraSchermata('screen-config'));
       }
     }
 
-    function mostraSchermata(id) {
-      document.getElementById('screen-config').classList.add('hidden');
-      document.getElementById('screen-login').classList.add('hidden');
-      document.getElementById('screen-app').classList.add('hidden');
-      document.getElementById(id).classList.remove('hidden');
-    }
-
-    // Configurazione del DB tramite Form
+    // Auth Event Listeners
     document.getElementById('form-config').addEventListener('submit', (e) => {
       e.preventDefault();
-      const url = document.getElementById('config-url').value;
-      const key = document.getElementById('config-key').value;
-      localStorage.setItem('sm_supabase_url', url);
-      localStorage.setItem('sm_supabase_key', key);
+      localStorage.setItem('sm_supabase_url', document.getElementById('config-url').value);
+      localStorage.setItem('sm_supabase_key', document.getElementById('config-key').value);
       initApp();
     });
 
-    document.getElementById('btn-reset-db').addEventListener('click', () => {
-      if(confirm("Vuoi reimpostare le chiavi di Supabase?")) {
-        localStorage.removeItem('sm_supabase_url');
-        localStorage.removeItem('sm_supabase_key');
-        location.reload();
-      }
-    });
-
-    // Gestione del Login
     document.getElementById('form-login').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const email = document.getElementById('login-email').value;
-      const password = document.getElementById('login-password').value;
-      const errorDiv = document.getElementById('login-error');
+      const errDiv = document.getElementById('login-error');
+      const btn = document.getElementById('btn-login');
+      btn.textContent = 'Verifica...'; errDiv.classList.add('hidden');
       
-      errorDiv.classList.add('hidden');
+      const { error } = await supabaseClient.auth.signInWithPassword({
+        email: document.getElementById('login-email').value,
+        password: document.getElementById('login-password').value
+      });
       
-      const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
       if (error) {
-        errorDiv.textContent = "Errore d'accesso: verifica email e password.";
-        errorDiv.classList.remove('hidden');
+        errDiv.textContent = "Credenziali errate."; errDiv.classList.remove('hidden');
+        btn.textContent = 'Accedi';
       } else {
-        mostraSchermata('screen-app');
-        caricaTuttiIDati();
+        initApp();
       }
     });
 
-    // Gestione del Logout
     document.getElementById('btn-logout').addEventListener('click', async () => {
       await supabaseClient.auth.signOut();
       location.reload();
     });
 
+    document.getElementById('btn-reset-db').addEventListener('click', () => {
+      if(confirm("Scollegare questo database?")) {
+        localStorage.clear(); location.reload();
+      }
+    });
 
-    // Caricamento asincrono globale dei dati
-    async function caricaTuttiIDati() {
+
+    // ==========================================
+    // 3. RECUPERO E RENDERING DATI (DASHBOARD)
+    // ==========================================
+    window.caricaTuttiIDati = async function() {
       const { data: az } = await supabaseClient.from('aziende').select('*, corsisti(*)').order('ragione_sociale');
       const { data: ce } = await supabaseClient.from('certificati').select('*, corsisti(*, aziende(*))').order('data_esame', { ascending: false });
       
@@ -596,57 +524,35 @@
 
       popolaSelettori();
       renderizzaDashboard();
+      aggiornaAnteprimaRegistro();
       renderizzaStorico();
       lucide.createIcons();
-    }
+    };
 
-    // Popola i vari menu a tendina
-    function popolaSelettori() {
-      const selectors = ['add-cor-azienda', 'reg-azienda', 'emetti-azienda'];
-      selectors.forEach(selId => {
-        const sel = document.getElementById(selId);
-        const valPrecedente = sel.value;
-        sel.innerHTML = '<option value="">-- Seleziona Azienda --</option>';
-        aziendeGlobal.forEach(a => {
-          sel.innerHTML += `<option value="${a.id}">${a.ragione_sociale}</option>`;
-        });
-        sel.value = valPrecedente;
-      });
-
-      // Selettore corsi per emissione
-      const emettiCorso = document.getElementById('emetti-corso');
-      emettiCorso.innerHTML = '<option value="">-- Seleziona Corso --</option>';
-      Object.entries(DATI_CORSI).forEach(([key, c]) => {
-        emettiCorso.innerHTML += `<option value="${key}">${c.titolo} (${c.ore}h)</option>`;
-      });
-    }
-
-    // Rendering Dashboard
     function renderizzaDashboard() {
+      // 1. Statistiche
       const totCorsisti = aziendeGlobal.reduce((acc, a) => acc + (a.corsisti?.length || 0), 0);
       document.getElementById('stat-aziende').textContent = aziendeGlobal.length;
       document.getElementById('stat-corsisti').textContent = totCorsisti;
       document.getElementById('stat-certificati').textContent = certificatiGlobal.length;
 
-      // Sezione Allarmi
-      const allarmiContainer = document.getElementById('dashboard-allarmi');
+      // 2. Bacheca Allarmi
       const allarmi = certificatiGlobal.filter(c => c.scadenzaInfo?.stato === 'scaduto' || c.scadenzaInfo?.stato === 'in_scadenza');
-      
+      const containerAllarmi = document.getElementById('dashboard-allarmi');
       if (allarmi.length === 0) {
-        allarmiContainer.innerHTML = `
-          <div class="text-center py-4 text-emerald-600 font-bold text-xs uppercase flex items-center justify-center gap-2">
-            <i data-lucide="check-circle-2" class="w-4 h-4"></i> Tutto in regola! Nessun corso in scadenza.
-          </div>`;
+        containerAllarmi.innerHTML = `<div class="text-center py-4 text-emerald-600 font-bold text-xs uppercase flex items-center justify-center gap-2"><i data-lucide="check-circle-2" class="w-4 h-4"></i> Nessun corso in scadenza.</div>`;
       } else {
-        allarmiContainer.innerHTML = '<div class="grid grid-cols-1 md:grid-cols-2 gap-2"></div>';
-        const grid = allarmiContainer.querySelector('.grid');
+        let html = '<div class="grid grid-cols-1 md:grid-cols-2 gap-3">';
         allarmi.forEach(c => {
           const isScad = c.scadenzaInfo.stato === 'scaduto';
-          grid.innerHTML += `
-            <div class="p-2.5 rounded-lg border bg-white flex justify-between items-center ${isScad ? 'border-red-200 bg-red-50/20' : 'border-amber-200 bg-amber-50/20'}">
-              <div class="min-w-0">
-                <p class="text-xs font-black uppercase text-slate-800 truncate">${c.corsisti?.nome_cognome}</p>
-                <p class="text-[10px] text-slate-500 truncate font-bold uppercase">${c.corso} • <span class="text-slate-400">${c.corsisti?.aziende?.ragione_sociale}</span></p>
+          html += `
+            <div class="p-3 rounded-lg border bg-white flex justify-between items-center shadow-sm ${isScad ? 'border-red-200 bg-red-50/30' : 'border-amber-200 bg-amber-50/20'}">
+              <div class="min-w-0 flex items-center gap-2">
+                <i data-lucide="${isScad ? 'alert-circle' : 'clock'}" class="w-5 h-5 ${isScad ? 'text-red-500' : 'text-amber-500'} shrink-0"></i>
+                <div class="min-w-0">
+                  <p class="text-xs font-black uppercase text-slate-800 truncate">${c.corsisti?.nome_cognome}</p>
+                  <p class="text-[10px] text-slate-500 truncate font-bold uppercase">${c.corso} • <span class="text-slate-400">${c.corsisti?.aziende?.ragione_sociale}</span></p>
+                </div>
               </div>
               <div class="text-right shrink-0">
                 <p class="text-xs font-black ${isScad ? 'text-red-600' : 'text-amber-600'}">${c.scadenzaInfo.dataScadenza}</p>
@@ -654,364 +560,223 @@
               </div>
             </div>`;
         });
+        containerAllarmi.innerHTML = html + '</div>';
       }
 
-      // Sezione Dettaglio Anagrafiche Aziende
-      const aziendeContainer = document.getElementById('dashboard-aziende-container');
-      aziendeContainer.innerHTML = '';
+      // 3. Tabella Anagrafiche Aziende (con id_corsisti)
+      const containerAz = document.getElementById('dashboard-aziende-container');
+      containerAz.innerHTML = '';
       aziendeGlobal.forEach(az => {
-        let dipendentiHtml = '';
+        let dipHtml = '';
         if (az.corsisti && az.corsisti.length > 0) {
           az.corsisti.forEach(c => {
             if (editCorsistaId === c.id_corsisti) {
-              dipendentiHtml += `
-                <tr class="border-b last:border-0 border-slate-200">
-                  <td class="py-1"><input type="text" id="edit-nome-${c.id_corsisti}" value="${c.nome_cognome}" class="bg-white border rounded p-0.5 font-bold w-full text-xs" /></td>
-                  <td class="py-1"><input type="text" id="edit-cf-${c.id_corsisti}" value="${c.codice_fiscale || ''}" class="bg-white border rounded p-0.5 font-mono uppercase w-full text-xs" /></td>
-                  <td class="py-1 text-right flex justify-end gap-1">
-                    <button onclick="salvaModificaLavoratore(${c.id_corsisti})" class="bg-emerald-600 text-white p-0.5 rounded"><i data-lucide="check" class="w-3 h-3"></i></button>
-                    <button onclick="annullaModifica()" class="bg-slate-300 p-0.5 rounded"><i data-lucide="x" class="w-3 h-3"></i></button>
+              dipHtml += `
+                <tr class="border-b border-slate-200 bg-blue-50/30">
+                  <td class="py-1 px-2"><input type="text" id="edit-nome-${c.id_corsisti}" value="${c.nome_cognome}" class="bg-white border border-blue-200 rounded p-1 font-bold text-xs w-full outline-none focus:ring-1 focus:ring-blue-500" /></td>
+                  <td class="py-1 px-2"><input type="text" id="edit-cf-${c.id_corsisti}" value="${c.codice_fiscale || ''}" class="bg-white border border-blue-200 rounded p-1 font-mono uppercase text-[10px] w-full outline-none" /></td>
+                  <td class="py-1 px-2 text-right flex justify-end gap-1">
+                    <button onclick="salvaModificaLavoratore(${c.id_corsisti})" class="bg-emerald-600 hover:bg-emerald-700 text-white p-1 rounded shadow-sm"><i data-lucide="check" class="w-3.5 h-3.5"></i></button>
+                    <button onclick="annullaModifica()" class="bg-slate-300 hover:bg-slate-400 p-1 rounded"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
                   </td>
                 </tr>`;
             } else {
-              dipendentiHtml += `
-                <tr class="border-b last:border-0 border-slate-100">
-                  <td class="py-2 font-bold text-slate-700 uppercase">${c.nome_cognome}</td>
-                  <td class="py-2 font-mono text-slate-500 uppercase">${c.codice_fiscale || '-'}</td>
-                  <td class="py-2 text-right">
-                    <div class="flex justify-end gap-2 opacity-60 hover:opacity-100">
-                      <button onclick="avviaModificaLavoratore(${c.id_corsisti})" class="text-blue-600"><i data-lucide="pencil" class="w-3.5 h-3.5"></i></button>
-                      <button onclick="eliminaLavoratore(${c.id_corsisti}, '${c.nome_cognome}')" class="text-red-500"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+              dipHtml += `
+                <tr class="border-b last:border-0 border-slate-100 hover:bg-slate-50 transition">
+                  <td class="py-2.5 px-2 font-bold text-slate-700 uppercase flex items-center gap-1.5"><i data-lucide="user" class="w-3 h-3 text-slate-400"></i> ${c.nome_cognome}</td>
+                  <td class="py-2.5 px-2 font-mono text-[10px] text-slate-500 uppercase">${c.codice_fiscale || '-'}</td>
+                  <td class="py-2.5 px-2 text-right">
+                    <div class="flex justify-end gap-2 opacity-40 hover:opacity-100 transition">
+                      <button onclick="avviaModificaLavoratore(${c.id_corsisti})" class="text-blue-600 p-0.5"><i data-lucide="pencil" class="w-3.5 h-3.5"></i></button>
+                      <button onclick="eliminaLavoratore(${c.id_corsisti}, '${c.nome_cognome}')" class="text-red-500 p-0.5"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
                     </div>
                   </td>
                 </tr>`;
             }
           });
-        } else {
-          dipendentiHtml = `<tr><td colspan="3" class="text-center py-2 italic text-slate-400 text-[10px]">Nessun dipendente associato</td></tr>`;
-        }
+        } else { dipHtml = `<tr><td colspan="3" class="text-center py-3 italic text-slate-400 text-xs">Nessun dipendente associato.</td></tr>`; }
 
-        aziendeContainer.innerHTML += `
-          <div class="border rounded-xl shadow-sm bg-white overflow-hidden flex flex-col">
+        containerAz.innerHTML += `
+          <div class="border border-slate-200 rounded-xl shadow-sm bg-white overflow-hidden flex flex-col">
             <div class="bg-slate-800 text-white p-3 flex justify-between items-center">
               <span class="font-bold text-xs uppercase flex items-center gap-2"><i data-lucide="building" class="w-4 h-4 text-blue-400"></i> ${az.ragione_sociale}</span>
-              <button onclick="eliminaAzienda(${az.id}, '${az.ragione_sociale}')" class="text-slate-400 hover:text-red-400"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+              <div class="flex items-center gap-2">
+                <span class="text-[9px] bg-slate-700 px-2 py-0.5 rounded-full font-bold uppercase text-slate-300">${az.corsisti?.length || 0} operai</span>
+                <button onclick="eliminaAzienda(${az.id}, '${az.ragione_sociale}')" class="text-slate-400 hover:text-red-400 p-1"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+              </div>
             </div>
-            <div class="p-3 bg-slate-50 flex-1">
+            <div class="flex-1 bg-white">
               <table class="w-full text-left text-xs">
-                <thead><tr class="text-slate-400 border-b uppercase text-[9px] font-bold"><th class="pb-1">Dipendente</th><th class="pb-1">Codice Fiscale</th><th class="pb-1 text-right">Azioni</th></tr></thead>
-                <tbody>${dipendentiHtml}</tbody>
+                <thead><tr class="text-slate-400 border-b border-slate-200 uppercase text-[9px] font-bold bg-slate-50"><th class="py-2 px-2">Dipendente</th><th class="py-2 px-2">Codice Fiscale</th><th class="py-2 px-2 text-right">Azioni</th></tr></thead>
+                <tbody>${dipHtml}</tbody>
               </table>
             </div>
           </div>`;
       });
-    }
-
-
-    window.avviaModificaLavoratore = function(id) {
-      editCorsistaId = id;
-      renderizzaDashboard();
       lucide.createIcons();
     }
 
-    window.annullaModifica = function() {
-      editCorsistaId = null;
-      renderizzaDashboard();
-      lucide.createIcons();
-    }
-
+    // CRUD Anagrafiche Inline (Uso id_corsisti)
+    window.avviaModificaLavoratore = function(id) { editCorsistaId = id; renderizzaDashboard(); }
+    window.annullaModifica = function() { editCorsistaId = null; renderizzaDashboard(); }
     window.salvaModificaLavoratore = async function(id) {
       const nome = document.getElementById(`edit-nome-${id}`).value;
       const cf = document.getElementById(`edit-cf-${id}`).value.toUpperCase();
       if(!nome) return alert("Inserisci il nome!");
-
       await supabaseClient.from('corsisti').update({ nome_cognome: nome, codice_fiscale: cf }).eq('id_corsisti', id);
-      editCorsistaId = null;
-      caricaTuttiIDati();
+      editCorsistaId = null; window.caricaTuttiIDati();
     }
-
     window.eliminaLavoratore = async function(id, nome) {
-      if(confirm(`Sei sicuro di voler eliminare ${nome}?`)) {
-        await supabaseClient.from('corsisti').delete().eq('id_corsisti', id);
-        caricaTuttiIDati();
-      }
+      if(confirm(`Eliminare ${nome}?`)) { await supabaseClient.from('corsisti').delete().eq('id_corsisti', id); window.caricaTuttiIDati(); }
     }
-
     window.eliminaAzienda = async function(id, nome) {
-      if(confirm(`Sei sicuro di voler eliminare l'azienda "${nome}"?`)) {
+      if(confirm(`Eliminare l'azienda "${nome}"?`)) {
         const { error } = await supabaseClient.from('aziende').delete().eq('id', id);
-        if (error) alert("Impossibile eliminare l'azienda: verifica che non ci siano dipendenti ad essa associati.");
-        else caricaTuttiIDati();
+        if (error) alert("Impossibile: ci sono dipendenti collegati."); else window.caricaTuttiIDati();
       }
     }
 
 
-    // Inserimenti Dati
+    // ==========================================
+    // 4. LOGICHE VISTE INSERIMENTO, REGISTRO, ATTESTATI
+    // ==========================================
+    function popolaSelettori() {
+      const selAziende = ['add-cor-azienda', 'reg-azienda', 'emetti-azienda'];
+      let optionsAz = '<option value="">-- Seleziona Azienda --</option>';
+      aziendeGlobal.forEach(a => optionsAz += `<option value="${a.id}">${a.ragione_sociale}</option>`);
+      selAziende.forEach(id => { const el = document.getElementById(id); const val = el.value; el.innerHTML = optionsAz; el.value = val; });
+
+      const selCorsi = document.getElementById('emetti-corso');
+      let optionsCorsi = '<option value="">-- Seleziona Corso --</option>';
+      Object.entries(DATI_CORSI).forEach(([k, c]) => optionsCorsi += `<option value="${k}">${c.titolo} (${c.ore}h)</option>`);
+      selCorsi.innerHTML = optionsCorsi;
+    }
+
+    // Inserimento
     document.getElementById('form-add-azienda').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const nome = document.getElementById('add-az-nome').value;
-      const piva = document.getElementById('add-az-piva').value.toUpperCase();
-
-      await supabaseClient.from('aziende').insert([{ ragione_sociale: nome, partita_iva: piva }]);
-      alert("Azienda registrata!");
-      document.getElementById('form-add-azienda').reset();
-      caricaTuttiIDati();
+      await supabaseClient.from('aziende').insert([{ ragione_sociale: document.getElementById('add-az-nome').value, partita_iva: document.getElementById('add-az-piva').value.toUpperCase() }]);
+      alert("Azienda registrata!"); e.target.reset(); window.caricaTuttiIDati();
     });
-
     document.getElementById('form-add-corsista').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const azienda_id = document.getElementById('add-cor-azienda').value;
-      const nome = document.getElementById('add-cor-nome').value;
-      const cf = document.getElementById('add-cor-cf').value.toUpperCase();
-      const mansione = document.getElementById('add-cor-mansione').value;
-
-      await supabaseClient.from('corsisti').insert([{ nome_cognome: nome, codice_fiscale: cf, mansione, azienda_id }]);
-      alert("Lavoratore registrato!");
-      document.getElementById('form-add-corsista').reset();
-      caricaTuttiIDati();
+      await supabaseClient.from('corsisti').insert([{ azienda_id: document.getElementById('add-cor-azienda').value, nome_cognome: document.getElementById('add-cor-nome').value, codice_fiscale: document.getElementById('add-cor-cf').value.toUpperCase(), mansione: document.getElementById('add-cor-mansione').value }]);
+      alert("Lavoratore registrato!"); e.target.reset(); window.caricaTuttiIDati();
     });
 
-    // LOGICHE DEL REGISTRO FIRME D'AULA
-    const regAzienda = document.getElementById('reg-azienda');
-    regAzienda.addEventListener('change', aggiornaAnteprimaRegistro);
-    document.getElementById('reg-corso').addEventListener('input', aggiornaAnteprimaRegistro);
-    document.getElementById('reg-data').addEventListener('input', aggiornaAnteprimaRegistro);
-    document.getElementById('reg-ore').addEventListener('input', aggiornaAnteprimaRegistro);
-    document.getElementById('reg-docente').addEventListener('input', aggiornaAnteprimaRegistro);
-
+    // Registro Firme
+    const eventiRegistro = ['reg-azienda', 'reg-corso', 'reg-data', 'reg-ore', 'reg-docente'];
+    eventiRegistro.forEach(id => document.getElementById(id).addEventListener('input', aggiornaAnteprimaRegistro));
+    
     function aggiornaAnteprimaRegistro() {
-      const azId = regAzienda.value;
-      const corso = document.getElementById('reg-corso').value;
-      const data = document.getElementById('reg-data').value;
-      const ore = document.getElementById('reg-ore').value;
-      const docente = document.getElementById('reg-docente').value;
-
-      const azSelected = aziendeGlobal.find(a => a.id == azId);
-
-      document.getElementById('reg-view-azienda').textContent = azSelected ? azSelected.ragione_sociale : '____________________';
-      document.getElementById('reg-view-corso').textContent = corso || '____________________';
-      document.getElementById('reg-view-data').textContent = data ? new Date(data).toLocaleDateString('it-IT') : '__/__/____';
-      document.getElementById('reg-view-ore').textContent = ore ? `${ore} h` : '__ h';
-      document.getElementById('reg-view-docente').textContent = docente || '____________________';
+      const azId = document.getElementById('reg-azienda').value;
+      const az = aziendeGlobal.find(a => a.id == azId);
+      
+      document.getElementById('reg-view-azienda').textContent = az ? az.ragione_sociale : '____________________';
+      document.getElementById('reg-view-corso').textContent = document.getElementById('reg-corso').value || '____________________';
+      const d = document.getElementById('reg-data').value; document.getElementById('reg-view-data').textContent = d ? new Date(d).toLocaleDateString('it-IT') : '__/__/____';
+      const o = document.getElementById('reg-ore').value; document.getElementById('reg-view-ore').textContent = o ? `${o} h` : '__ h';
+      document.getElementById('reg-view-docente').textContent = document.getElementById('reg-docente').value || '____________________';
 
       const tbody = document.getElementById('reg-table-body');
       tbody.innerHTML = '';
-
-      if (azSelected && azSelected.corsisti && azSelected.corsisti.length > 0) {
-        azSelected.corsisti.forEach((c, i) => {
-          tbody.innerHTML += `
-            <tr class="h-8 uppercase">
-              <td class="border border-slate-300 text-center font-mono font-bold text-slate-500">${i+1}</td>
-              <td class="border border-slate-300 px-2 font-bold text-slate-800">${c.nome_cognome}</td>
-              <td class="border border-slate-300 px-2 font-mono text-[10px] text-slate-500">${c.codice_fiscale || '-'}</td>
-              <td class="border border-slate-300 bg-slate-50/50"></td>
-              <td class="border border-slate-300 bg-slate-50/50"></td>
-              <td class="border border-slate-300 text-center font-bold text-[9px] text-emerald-600">IDONEO</td>
-            </tr>`;
+      if (az && az.corsisti && az.corsisti.length > 0) {
+        az.corsisti.forEach((c, i) => {
+          tbody.innerHTML += `<tr class="h-9 uppercase"><td class="border border-slate-300 text-center font-mono font-bold text-slate-500">${i+1}</td><td class="border border-slate-300 px-2 font-bold text-slate-800">${c.nome_cognome}</td><td class="border border-slate-300 px-2 font-mono text-[10px] text-slate-500">${c.codice_fiscale || '-'}</td><td class="border border-slate-300 bg-slate-50/50"></td><td class="border border-slate-300 bg-slate-50/50"></td><td class="border border-slate-300 text-center text-[9px] font-bold text-slate-400">IDONEO</td></tr>`;
         });
       } else {
-        for(let i=0; i<6; i++) {
-          tbody.innerHTML += `
-            <tr class="h-8">
-              <td class="border border-slate-300 text-center font-mono text-slate-300">${i+1}</td>
-              <td class="border border-slate-300"></td>
-              <td class="border border-slate-300"></td>
-              <td class="border border-slate-300"></td>
-              <td class="border border-slate-300"></td>
-              <td class="border border-slate-300 text-center text-[9px] text-slate-300">Test</td>
-            </tr>`;
-        }
+        for(let i=0; i<8; i++) tbody.innerHTML += `<tr class="h-9"><td class="border border-slate-300 text-center font-mono text-slate-300">${i+1}</td><td class="border border-slate-300"></td><td class="border border-slate-300"></td><td class="border border-slate-300"></td><td class="border border-slate-300"></td><td class="border border-slate-300 text-center text-[9px] text-slate-300">Test</td></tr>`;
       }
     }
 
-
-    // LOGICHE DI EMISSIONE ATTESTATI FRONTE/RETRO
-    const emettiAz = document.getElementById('emetti-azienda');
-    const emettiCor = document.getElementById('emetti-corsista');
-
-    emettiAz.addEventListener('change', () => {
-      const azId = emettiAz.value;
-      const az = aziendeGlobal.find(a => a.id == azId);
-      emettiCor.innerHTML = '<option value="">-- Scegli --</option>';
-      if (az && az.corsisti) {
-        az.corsisti.forEach(c => {
-          emettiCor.innerHTML += `<option value="${c.id_corsisti}">${c.nome_cognome}</option>`;
-        });
-      }
+    // Emissione Attestati
+    document.getElementById('emetti-azienda').addEventListener('change', (e) => {
+      const az = aziendeGlobal.find(a => a.id == e.target.value);
+      const selCor = document.getElementById('emetti-corsista');
+      selCor.disabled = !az;
+      selCor.innerHTML = '<option value="">-- Scegli Corsista --</option>';
+      if (az && az.corsisti) az.corsisti.forEach(c => selCor.innerHTML += `<option value="${c.id_corsisti}">${c.nome_cognome}</option>`);
     });
 
     document.getElementById('form-emetti').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const azId = emettiAz.value;
-      const corId = emettiCor.value;
-      const ckey = document.getElementById('emetti-corso').value;
+      const az = aziendeGlobal.find(a => a.id == document.getElementById('emetti-azienda').value);
+      const cor = az.corsisti.find(c => c.id_corsisti == document.getElementById('emetti-corsista').value);
+      const cInfo = DATI_CORSI[document.getElementById('emetti-corso').value];
       const dataE = document.getElementById('emetti-data').value;
+      const gCalc = calcolaGiornate(dataE, cInfo.ore);
 
-      const cInfo = DATI_CORSI[ckey];
-      const az = aziendeGlobal.find(a => a.id == azId);
-      const cor = az.corsisti.find(c => c.id_corsisti == corId);
-      const gCalcolate = calcolaGiornate(dataE, cInfo.ore);
-
-      const { data, error } = await supabaseClient.from('certificati').insert([{
-        corsista_id: cor.id_corsisti,
-        corso: cInfo.titolo,
-        data_esame: dataE
-      }]).select();
-
+      const { data } = await supabaseClient.from('certificati').insert([{ corsista_id: cor.id_corsisti, corso: cInfo.titolo, data_esame: dataE }]).select();
+      
       if (data) {
-        mostraAnteprimaAttestato({
-          ...data[0],
-          corsista: cor,
-          azienda: az,
-          dettagliCorso: cInfo,
-          dateSvolgimento: gCalcolate
-        });
-        alert("Attestato inserito nello storico cloud!");
-        caricaTuttiIDati();
+        renderizzaAttestato(data[0], cor, az, cInfo, gCalc);
+        alert("Attestato inserito nel registro cloud!"); window.caricaTuttiIDati();
       }
     });
 
-    function mostraAnteprimaAttestato(att) {
+    function renderizzaAttestato(cert, cor, az, cInfo, gCalc) {
       document.getElementById('attestato-placeholder').classList.add('hidden');
       const container = document.getElementById('attestato-preview-container');
-      
-      // Elimina i vecchi attestati prima di renderizzare il nuovo
-      const vecchi = container.querySelectorAll('.print-page');
-      vecchi.forEach(v => v.remove());
+      container.querySelectorAll('.print-page').forEach(el => el.remove());
 
-      const htmlAttestato = `
-        <button onclick="window.print()" class="bg-slate-900 text-white px-5 py-2 rounded-full font-bold text-xs shadow-lg flex items-center gap-1.5 print:hidden fixed right-6 top-6 z-50">
-          <i data-lucide="printer" class="w-4 h-4"></i> Stampa PDF Fronte/Retro
-        </button>
-        
-        <!-- PAGINA 1: FRONTE -->
-        <div class="print-page w-[210mm] min-h-[297mm] bg-white border p-16 flex flex-col justify-between text-center print:border-0 print:shadow-none shadow-md print:break-after-page">
-          <div class="border-b-2 pb-6">
-            <h1 class="text-3xl font-black text-slate-900 uppercase">Safety Manager</h1>
-            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mt-0.5">Centro di Formazione Sicurezza sul Lavoro</p>
-          </div>
-          <div class="space-y-6 flex-1 flex flex-col justify-center">
-            <h2 class="text-2xl font-black text-amber-600 uppercase tracking-wider border-y py-2 max-w-max mx-auto px-4">Attestato di Frequenza</h2>
-            <div class="space-y-1">
-              <p class="text-slate-500 text-sm">Si certifica che il lavoratore / la lavoratrice</p>
-              <p class="text-2xl font-black text-slate-900 uppercase">${att.corsista.nome_cognome}</p>
-              <p class="text-xs font-mono text-slate-400 uppercase">Codice Fiscale: ${att.corsista.codice_fiscale || '-'}</p>
+      const validitaTxt = cInfo.validitaAnni === 99 ? 'Credito Formativo Permanente' : `${cInfo.validitaAnni} Anni`;
+      const html = `
+        <button onclick="window.print()" class="absolute top-6 right-8 bg-slate-900 text-white px-5 py-2.5 rounded-full font-bold text-xs shadow-xl flex items-center gap-2 print:hidden z-50 hover:bg-slate-800 transition"><i data-lucide="printer" class="w-4 h-4"></i> Stampa PDF A4 Fronte/Retro</button>
+        <!-- FRONTE -->
+        <div class="print-page w-[210mm] min-h-[297mm] bg-white border border-slate-300 p-16 flex flex-col justify-between text-center print:border-0 print:shadow-none shadow-2xl mx-auto print:break-after-page relative">
+          <div class="border-b-2 border-slate-800 pb-8"><h1 class="text-4xl font-black text-slate-900 tracking-tighter uppercase">Safety Manager</h1><p class="text-sm font-bold text-slate-500 tracking-widest uppercase mt-1">Centro di Formazione Sicurezza sul Lavoro</p><p class="text-xs text-slate-400 mt-2">Ai sensi del D.Lgs. 81/08 e Accordi Stato-Regioni vigenti</p></div>
+          <div class="flex-1 flex flex-col justify-center px-8 space-y-8 text-center">
+            <h2 class="text-3xl font-black text-amber-600 uppercase tracking-widest border-y border-amber-200 py-4 inline-block mx-auto">Attestato di Frequenza</h2>
+            <div class="space-y-2"><p class="text-slate-600 text-lg">Si attesta che il Sig. / La Sig.ra</p><p class="text-3xl font-black text-slate-900 uppercase">${cor.nome_cognome}</p><p class="text-sm font-mono text-slate-500">C.F. ${cor.codice_fiscale || '-'}</p></div>
+            <div class="space-y-2"><p class="text-slate-600 text-lg">In qualità di dipendente dell'Azienda:</p><p class="text-xl font-bold text-slate-800 uppercase">${az.ragione_sociale}</p></div>
+            <div class="bg-slate-50 border border-slate-200 p-6 rounded-xl space-y-4"><p class="text-slate-600">Ha frequentato con esito positivo il corso di formazione professionale:</p><p class="text-2xl font-black text-blue-900 uppercase leading-tight">${cInfo.titolo}</p>
+              <div class="grid grid-cols-2 gap-4 text-sm mt-4 text-left border-t border-slate-200 pt-4"><div><span class="font-bold text-slate-500 uppercase text-[10px] block">Durata Corso</span><span class="font-bold text-slate-800 text-base">${cInfo.ore} Ore</span></div><div><span class="font-bold text-slate-500 uppercase text-[10px] block">Giornate di Svolgimento</span><span class="font-bold text-slate-800">${gCalc.join(' • ')}</span></div></div>
             </div>
-            <div class="space-y-1">
-              <p class="text-slate-500 text-sm">Dipendente dell'impresa:</p>
-              <p class="text-lg font-bold text-slate-800 uppercase">${att.azienda.ragione_sociale}</p>
-            </div>
-            <div class="bg-slate-50 border p-4 rounded-xl max-w-xl mx-auto space-y-2">
-              <p class="text-slate-500 text-xs">Ha completato con profitto il percorso didattico obbligatorio:</p>
-              <p class="text-xl font-black text-blue-900 uppercase leading-tight">${att.dettagliCorso.titolo}</p>
-              <div class="grid grid-cols-2 gap-4 border-t pt-2 text-left text-xs font-bold text-slate-700 mt-2">
-                <div>
-                  <span class="text-[9px] uppercase text-slate-400 block">Durata</span>
-                  ${att.dettagliCorso.ore} Ore Formative
-                </div>
-                <div>
-                  <span class="text-[9px] uppercase text-slate-400 block">Calendario Date</span>
-                  ${att.dateSvolgimento.join(' • ')}
-                </div>
-              </div>
-            </div>
-            <p class="text-xs text-slate-500">Verifica finale eseguita positivamente in data ${new Date(att.data_esame).toLocaleDateString('it-IT')}</p>
+            <p class="text-sm text-slate-600 max-w-lg mx-auto">Avendo superato la verifica finale di apprendimento in data <strong>${new Date(cert.data_esame).toLocaleDateString('it-IT')}</strong></p>
           </div>
-          <div class="grid grid-cols-2 gap-12 text-center text-xs font-bold text-slate-500 pt-6 border-t">
-            <div><div class="h-12 border-b border-dashed mb-1"></div>Il Direttore del Corso</div>
-            <div><div class="h-12 border-b border-dashed mb-1"></div>Il Docente Formatore</div>
-          </div>
+          <div class="mt-8 pt-8 border-t border-slate-200 grid grid-cols-2 gap-16 text-center text-xs uppercase font-bold text-slate-600"><div><div class="h-16 border-b border-dashed border-slate-400 mb-2"></div>Il Docente / Formatore</div><div><div class="h-16 border-b border-dashed border-slate-400 mb-2"></div>Il Direttore del Corso</div></div>
+          <div class="absolute bottom-6 right-8 text-[10px] font-mono text-slate-300">ID_CERT: ${cert.id}/${new Date().getFullYear()}</div>
         </div>
-
-        <!-- PAGINA 2: RETRO CON SYLLABUS -->
-        <div class="print-page w-[210mm] min-h-[297mm] bg-white border p-16 flex flex-col text-left print:border-0 print:shadow-none shadow-md">
-          <div class="border-b pb-2 mb-4">
-            <h3 class="text-lg font-black text-slate-800 uppercase">Allegato Didattico Nazionale</h3>
-            <p class="text-xs text-slate-400 uppercase font-bold">Dettaglio materie d'esame ai sensi del D.Lgs 81/08</p>
-          </div>
-          <div class="space-y-4 flex-1">
-            <div class="bg-slate-50 p-3 rounded-lg border text-xs text-slate-600">
-              <strong>Allievo:</strong> ${att.corsista.nome_cognome}<br />
-              <strong>Corso:</strong> ${att.dettagliCorso.titolo}<br />
-              <strong>Validità Obbligo:</strong> ${att.dettagliCorso.validitaAnni === 99 ? 'Credito Permanente' : `${att.dettagliCorso.validitaAnni} Anni`}
-            </div>
-            <h4 class="font-black text-xs uppercase text-slate-800 border-b pb-1">Programma delle Ore Svolte (Syllabus)</h4>
-            <p class="text-xs text-slate-600 leading-relaxed text-justify">${att.dettagliCorso.syllabus}</p>
-          </div>
-          <p class="text-[9px] text-slate-400 text-justify mt-auto border-t pt-2">Il presente programma ricalca fedelmente le direttive dell'Accordo Stato-Regioni. I test d'esame sono conservati a registro della segreteria didattica.</p>
+        <!-- RETRO SYLLABUS -->
+        <div class="print-page w-[210mm] min-h-[297mm] bg-white border border-slate-300 p-16 flex flex-col text-left print:border-0 print:shadow-none shadow-2xl mx-auto">
+          <div class="border-b-2 border-slate-200 pb-4 mb-8"><h3 class="text-xl font-black text-slate-800 uppercase tracking-tight">Allegato Tecnico: Programma Didattico</h3><p class="text-xs font-bold text-slate-500 uppercase mt-1">Dettaglio moduli formativi erogati</p></div>
+          <div class="flex-1"><div class="bg-slate-50 p-6 rounded-xl border border-slate-200 mb-8"><h4 class="font-black text-sm text-slate-900 uppercase mb-2">Riferimento Attestato</h4><p class="text-xs text-slate-600"><strong>Corsista:</strong> ${cor.nome_cognome}</p><p class="text-xs text-slate-600"><strong>Corso:</strong> ${cInfo.titolo}</p><p class="text-xs text-slate-600"><strong>Validità Norma:</strong> ${validitaTxt}</p></div>
+          <h4 class="font-black text-sm text-slate-900 uppercase mb-4 border-b border-slate-200 pb-2">Contenuti Trattati (Syllabus)</h4><p class="text-sm text-slate-700 leading-relaxed text-justify">${cInfo.syllabus}</p>
+          <div class="mt-8 text-xs text-slate-500 text-justify leading-relaxed"><p><strong>Dichiarazione:</strong> Il programma didattico è conforme ai contenuti minimi previsti dagli Accordi Stato-Regioni e dal D.Lgs 81/08. La verifica è stata erogata mediante test a risposta multipla, garantendo la comprensione degli argomenti da parte del discente.</p></div></div>
         </div>`;
-
-      container.insertAdjacentHTML('beforeend', htmlAttestato);
+      container.insertAdjacentHTML('beforeend', html);
       lucide.createIcons();
     }
 
-
-    // RENDERING E FUNZIONI DELLO STORICO ARCHIVIO
+    // Storico
     function renderizzaStorico() {
       const tbody = document.getElementById('storico-table-body');
-      const ricerca = document.getElementById('storico-ricerca').value.toLowerCase();
+      const term = document.getElementById('storico-ricerca').value.toLowerCase();
+      const filtrati = certificatiGlobal.filter(c => c.corsisti?.nome_cognome?.toLowerCase().includes(term) || c.corso?.toLowerCase().includes(term));
+      
       tbody.innerHTML = '';
-
-      const filtrati = certificatiGlobal.filter(c => 
-        c.corsisti?.nome_cognome?.toLowerCase().includes(ricerca) || 
-        c.corso?.toLowerCase().includes(ricerca)
-      );
-
-      if (filtrati.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-slate-400">Nessun certificato trovato</td></tr>`;
-        return;
-      }
-
+      if(filtrati.length===0) return tbody.innerHTML = '<tr><td colspan="5" class="text-center py-6 text-slate-400 italic">Nessun certificato trovato.</td></tr>';
+      
       filtrati.forEach(c => {
-        tbody.innerHTML += `
-          <tr class="border-b last:border-0 border-slate-100 hover:bg-slate-50 transition uppercase font-medium">
-            <td class="p-3 font-bold text-slate-600">${new Date(c.data_esame).toLocaleDateString('it-IT')}</td>
-            <td class="p-3 font-black text-slate-800">${c.corsisti?.nome_cognome}</td>
-            <td class="p-3 text-blue-900 font-bold text-[11px]">${c.corso}</td>
-            <td class="p-3 text-right">
-              <button onclick="cancellaCertificato(${c.id})" class="text-red-500 hover:text-red-700 bg-red-50 p-1 rounded transition">
-                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-              </button>
-            </td>
-          </tr>`;
+        tbody.innerHTML += `<tr class="border-b last:border-0 border-slate-100 hover:bg-slate-50 transition uppercase font-medium"><td class="p-3 font-bold text-slate-600">${new Date(c.data_esame).toLocaleDateString('it-IT')}</td><td class="p-3 font-black text-slate-800">${c.corsisti?.nome_cognome}</td><td class="p-3 text-slate-500">${c.corsisti?.aziende?.ragione_sociale || '-'}</td><td class="p-3 text-blue-900 font-bold text-[10px]">${c.corso}</td><td class="p-3 text-right"><button onclick="cancellaCert(${c.id})" class="text-red-500 hover:text-red-700 bg-red-50 p-1 rounded transition"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button></td></tr>`;
       });
       lucide.createIcons();
     }
-
     document.getElementById('storico-ricerca').addEventListener('input', renderizzaStorico);
+    window.cancellaCert = async function(id) { if(confirm("Cancellare definitivamente lo storico di questo test?")) { await supabaseClient.from('certificati').delete().eq('id', id); window.caricaTuttiIDati(); } }
 
-    window.cancellaCertificato = async function(id) {
-      if(confirm("Eliminare definitivamente questo attestato dallo storico?")) {
-        await supabaseClient.from('certificati').delete().eq('id', id);
-        caricaTuttiIDati();
-      }
-    }
-
-    // SISTEMA DI NAVIGAZIONE INTERNA TRA LE TAB (VIEWPANELS)
-    const menuButtons = document.querySelectorAll('.menu-item');
-    menuButtons.forEach(btn => {
+    // Navigazione Menu
+    document.querySelectorAll('.menu-item').forEach(btn => {
       btn.addEventListener('click', () => {
-        menuButtons.forEach(b => {
-          b.classList.remove('bg-blue-600', 'text-white', 'shadow-md');
-          b.classList.add('text-slate-600', 'hover:bg-slate-200');
-        });
-        btn.classList.add('bg-blue-600', 'text-white', 'shadow-md');
-        btn.classList.remove('text-slate-600', 'hover:bg-slate-200');
-
-        const target = btn.getAttribute('data-target');
-        const panels = document.querySelectorAll('.view-panel');
-        panels.forEach(p => p.classList.add('hidden'));
-        document.getElementById(`view-${target}`).classList.remove('hidden');
-
-        // Reset e caricamento dati specifico per tab
-        if(target === 'registro') aggiornaAnteprimaRegistro();
+        document.querySelectorAll('.menu-item').forEach(b => { b.classList.remove('bg-blue-600', 'text-white', 'shadow-md'); b.classList.add('text-slate-600', 'hover:bg-slate-200'); });
+        btn.classList.add('bg-blue-600', 'text-white', 'shadow-md'); btn.classList.remove('text-slate-600', 'hover:bg-slate-200');
+        document.querySelectorAll('.view-panel').forEach(p => p.classList.add('hidden'));
+        document.getElementById(`view-${btn.dataset.target}`).classList.remove('hidden');
+        if(btn.dataset.target === 'registro') aggiornaAnteprimaRegistro();
       });
     });
 
-    // Avvio dell'app al caricamento della pagina
-    window.onload = () => {
-      initApp();
-    }
+    window.onload = initApp;
   </script>
 </body>
 </html>
