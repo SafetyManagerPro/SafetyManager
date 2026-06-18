@@ -1,0 +1,70 @@
+<div id="view-corsisti" class="w-full max-w-7xl mx-auto mt-4 mb-10">
+    <div class="border-b-2 border-slate-900 pb-3 mb-6">
+        <h1 class="text-3xl font-black uppercase text-slate-900 tracking-tighter">Anagrafica Corsisti</h1>
+        <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Gestione dei lavoratori e associazione alle aziende</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200 h-fit sticky top-0">
+            <h3 class="font-bold text-slate-800 flex items-center gap-2 border-b pb-3 mb-4"><i data-lucide="user-plus" class="w-5 h-5 text-blue-600"></i> Nuovo Corsista</h3>
+            
+            <form id="form-corsista" onsubmit="event.preventDefault(); window.salvaCorsistaDB();" class="space-y-4">
+                <input type="hidden" id="cor-id" value="">
+                
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase">Nome e Cognome *</label>
+                    <input type="text" id="cor-nome" required class="input-field font-bold text-blue-900" placeholder="Es. Luigi Verdi">
+                </div>
+                
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase">Codice Fiscale *</label>
+                    <input type="text" id="cor-cf" required class="input-field font-mono uppercase" placeholder="VRDLGU80A01H501Z">
+                </div>
+                
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase">Luogo e Data di Nascita *</label>
+                    <input type="text" id="cor-nascita" required class="input-field text-xs" placeholder="Es. Roma, 15/04/1980">
+                </div>
+                
+                <div class="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <label class="text-[10px] font-bold text-blue-800 uppercase flex items-center gap-1 mb-1"><i data-lucide="briefcase" class="w-3 h-3"></i> Azienda di Appartenenza</label>
+                    <select id="cor-azienda" class="input-field text-xs font-bold text-slate-800">
+                        <option value="">-- Nessuna Azienda / Privato --</option>
+                        </select>
+                </div>
+
+                <div class="pt-4 border-t border-slate-100 flex gap-2">
+                    <button type="button" onclick="window.resetFormCorsista()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-2 rounded-lg text-xs font-bold transition">Annulla</button>
+                    <button type="submit" class="flex-[2] bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition shadow">
+                        <i data-lucide="save" class="w-4 h-4"></i> Salva Corsista
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-md border border-slate-200">
+            <div class="flex justify-between items-center border-b pb-3 mb-4">
+                <h3 class="font-bold text-slate-800 flex items-center gap-2"><i data-lucide="users" class="w-5 h-5 text-blue-600"></i> Database Corsisti</h3>
+                <input type="text" id="search-corsisti" oninput="window.filtraCorsisti()" placeholder="Cerca corsista o CF..." class="px-3 py-1.5 text-xs border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs border-collapse">
+                    <thead class="bg-slate-50 text-slate-500">
+                        <tr>
+                            <th class="p-3 border-b font-bold uppercase tracking-wider">Nome Cognome</th>
+                            <th class="p-3 border-b font-bold uppercase tracking-wider">C.F.</th>
+                            <th class="p-3 border-b font-bold uppercase tracking-wider">Azienda</th>
+                            <th class="p-3 border-b font-bold uppercase tracking-wider text-center">Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabella-corsisti" class="divide-y divide-slate-100">
+                        <tr><td colspan="4" class="p-6 text-center text-slate-400 italic">Caricamento in corso...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
