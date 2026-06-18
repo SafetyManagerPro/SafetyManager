@@ -7,7 +7,6 @@
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/lucide.min.js"></script>
-    
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <link rel="stylesheet" href="css/style.css">
@@ -16,90 +15,142 @@
 
     <div id="print-area-temp"></div>
 
+    <input type="file" id="json-file-input" accept=".json" class="hidden" onchange="window.importaJSON(event)">
+    <input type="file" id="csv-file-input" accept=".csv" class="hidden" onchange="window.gestisciImportazioneCSV(event)">
+
     <header class="no-print bg-slate-900 text-white flex-shrink-0 shadow-md z-50">
         <div class="max-w-[1500px] mx-auto px-4 py-3 flex justify-between items-center">
+            
             <div class="flex items-center gap-4">
                 <div class="bg-blue-600 p-2 rounded-lg font-black tracking-widest text-lg shadow-inner flex items-center gap-2">
                     <i data-lucide="cloud" class="w-5 h-5 text-blue-200"></i> S|M Cloud
                 </div>
                 <div>
                     <h1 class="font-bold text-lg leading-tight">Safety Management PRO</h1>
-                    <p class="text-[10px] text-blue-300 uppercase tracking-widest">Powered by Supabase</p>
+                    <p class="text-[10px] text-blue-300 uppercase tracking-widest" id="app-status-badge">App Modulare - Supabase DB</p>
                 </div>
             </div>
             
             <div class="flex gap-1.5 bg-slate-800 p-1 rounded-xl items-center overflow-x-auto">
                 <div onclick="window.loadModule('config')" id="nav-config" class="btn-tab active text-white hover:text-slate-900"><i data-lucide="settings" class="w-4 h-4"></i><span class="text-[8px] font-bold mt-1">Setup</span></div>
-                <div onclick="window.loadModule('admin')" id="nav-admin" class="btn-tab text-emerald-400 hover:bg-emerald-100"><i data-lucide="bar-chart-3" class="w-4 h-4"></i><span class="text-[8px] font-bold mt-1">Dashboard</span></div>
-                <div onclick="window.loadModule('progetto')" id="nav-progetto" class="btn-tab text-white"><i data-lucide="layout-template" class="w-4 h-4"></i><span class="text-[8px] font-bold mt-1">Progetto</span></div>
-                <div onclick="window.loadModule('registro')" id="nav-registro" class="btn-tab text-white"><i data-lucide="users" class="w-4 h-4"></i><span class="text-[8px] font-bold mt-1">Reg. Allievi</span></div>
-                <div onclick="window.loadModule('attestato')" id="nav-attestato" class="btn-tab text-white"><i data-lucide="award" class="w-4 h-4"></i><span class="text-[8px] font-bold mt-1">Attestati</span></div>
+                <div onclick="window.loadModule('admin')" id="nav-admin" class="btn-tab text-emerald-400 hover:text-emerald-900 hover:bg-emerald-100 border-emerald-800/30"><i data-lucide="bar-chart-3" class="w-4 h-4"></i><span class="text-[8px] font-bold mt-1">Dashboard</span></div>
+                <div onclick="window.loadModule('progetto')" id="nav-progetto" class="btn-tab text-white hover:text-slate-900"><i data-lucide="layout-template" class="w-4 h-4"></i><span class="text-[8px] font-bold mt-1">Progetto</span></div>
+                <div onclick="window.loadModule('registro')" id="nav-registro" class="btn-tab text-white hover:text-slate-900"><i data-lucide="users" class="w-4 h-4"></i><span class="text-[8px] font-bold mt-1">Reg. Allievi</span></div>
+                <div onclick="window.loadModule('regdocenti')" id="nav-regdocenti" class="btn-tab text-white hover:text-slate-900"><i data-lucide="user-check" class="w-4 h-4"></i><span class="text-[8px] font-bold mt-1">Reg. Docenti</span></div>
+                <div onclick="window.loadModule('esame')" id="nav-esame" class="btn-tab text-white hover:text-slate-900"><i data-lucide="file-question" class="w-4 h-4"></i><span class="text-[8px] font-bold mt-1">Esame/Test</span></div>
+                <div onclick="window.loadModule('verbale')" id="nav-verbale" class="btn-tab text-white hover:text-slate-900"><i data-lucide="clipboard-check" class="w-4 h-4"></i><span class="text-[8px] font-bold mt-1">Verbale</span></div>
+                <div onclick="window.loadModule('attestato')" id="nav-attestato" class="btn-tab text-white hover:text-slate-900"><i data-lucide="award" class="w-4 h-4"></i><span class="text-[8px] font-bold mt-1">Attestato</span></div>
+                <div onclick="window.loadModule('autocert')" id="nav-autocert" class="btn-tab text-amber-400 hover:text-amber-900 hover:bg-amber-100 border-amber-800/30"><i data-lucide="scale" class="w-4 h-4"></i><span class="text-[8px] font-bold mt-1">Autocert.</span></div>
                 
                 <div class="w-px bg-slate-700 h-8 mx-1"></div>
-                <div onclick="window.forzaAggiornamento()" class="btn-tab bg-indigo-600 text-white"><i data-lucide="refresh-cw" class="w-4 h-4"></i><span class="text-[8px] font-bold mt-1">Aggiorna</span></div>
+                
+                <div onclick="window.forzaAggiornamento()" id="btn-aggiorna" class="btn-tab bg-indigo-600 text-white hover:bg-indigo-500 border-indigo-500 shadow"><i data-lucide="refresh-cw" class="w-4 h-4"></i><span class="text-[8px] font-bold mt-1">Aggiorna</span></div>
+                <div onclick="window.stampaSezioneAttuale()" class="btn-tab bg-blue-600 text-white hover:bg-blue-500 border-blue-500 shadow ml-1"><i data-lucide="printer" class="w-4 h-4"></i><span class="text-[8px] font-bold mt-1">Print View</span></div>
+                <div onclick="window.stampaSoloAttestato()" class="btn-tab bg-purple-600 text-white hover:bg-purple-500 border-purple-500 shadow ml-1"><i data-lucide="award" class="w-4 h-4"></i><span class="text-[8px] font-bold mt-1">Print Certs</span></div>
             </div>
         </div>
     </header>
 
     <div class="flex-1 flex max-w-[1500px] mx-auto w-full gap-6 p-4 overflow-hidden">
         
+        <aside class="no-print w-[250px] flex-shrink-0 space-y-4 overflow-y-auto pb-10 pr-2">
+            <div class="bg-blue-50 p-4 rounded-xl shadow-sm border border-blue-200">
+                <h3 class="font-bold text-blue-900 mb-3 flex items-center gap-2 border-b border-blue-200 pb-2"><i data-lucide="cloud-database" class="w-4 h-4"></i> Storage Cloud</h3>
+                <div class="space-y-2">
+                    <button onclick="window.mostraArchivio()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition shadow-sm">
+                        <i data-lucide="database" class="w-4 h-4"></i> Archivio Corsisti
+                    </button>
+                    <button onclick="window.mostraSessioni()" class="w-full bg-white hover:bg-blue-100 text-blue-800 border border-blue-300 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition shadow-sm">
+                        <i data-lucide="folders" class="w-4 h-4"></i> Gestione Sessioni
+                    </button>
+                    
+                    <div class="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-blue-200">
+                        <button onclick="window.esportaJSON()" class="bg-white hover:bg-blue-100 text-blue-800 border border-blue-300 py-1.5 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 transition shadow-sm" title="Esporta in formato JSON">
+                            <i data-lucide="download" class="w-3 h-3"></i> Esp. JSON
+                        </button>
+                        <button onclick="document.getElementById('json-file-input').click()" class="bg-white hover:bg-blue-100 text-blue-800 border border-blue-300 py-1.5 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 transition shadow-sm" title="Importa file JSON">
+                            <i data-lucide="upload" class="w-3 h-3"></i> Imp. JSON
+                        </button>
+
+                        <button onclick="window.esportaUniversaleCSV()" class="bg-white hover:bg-blue-100 text-blue-800 border border-blue-300 py-1.5 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 transition shadow-sm" title="Esporta in formato CSV">
+                            <i data-lucide="download" class="w-3 h-3"></i> Esp. CSV
+                        </button>
+                        <button onclick="window.attivaImportazioneCSV()" class="bg-white hover:bg-blue-100 text-blue-800 border border-blue-300 py-1.5 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 transition shadow-sm" title="Importa file CSV">
+                            <i data-lucide="upload" class="w-3 h-3"></i> Imp. CSV
+                        </button>
+                    </div>
+                    
+                    <div class="text-center pt-3 mt-1">
+                        <span id="db-counter" class="text-[10px] font-black text-blue-900 bg-blue-200 px-3 py-1 rounded-full shadow-inner">0 Corsisti nel Cloud</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
         <main class="flex-1 w-full relative overflow-y-auto pb-10" id="app-content">
             </main>
+    </div>
+
+    <div id="archivio-modal" class="no-print fixed inset-0 bg-slate-900/60 hidden z-[100] flex items-center justify-center p-4 backdrop-blur-sm transition-opacity">
+        <div id="archivio-modal-box" class="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col transition-all duration-300 overflow-hidden">
+            <div class="p-4 border-b flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-50">
+                <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="database" class="w-5 h-5 text-blue-600"></i> Archivio Corsisti
+                </h2>
+                <div class="flex-1 w-full max-w-md mx-4">
+                    <input type="text" id="search-archivio" oninput="window.filtraArchivio()" placeholder="Cerca per nome, azienda o corso..." class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none shadow-sm">
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="window.toggleMaximizeArchivio()" class="p-2 text-slate-500 hover:bg-blue-100 hover:text-blue-700 rounded-lg transition-colors"><i data-lucide="maximize" id="icon-maximize" class="w-5 h-5"></i></button>
+                    <button onclick="window.chiudiArchivio()" class="p-2 text-slate-500 hover:bg-red-100 hover:text-red-600 rounded-lg transition-colors"><i data-lucide="x" class="w-6 h-6"></i></button>
+                </div>
+            </div>
+            <div class="flex-1 overflow-auto bg-slate-50/50 p-4">
+                <table class="w-full text-xs text-left border-collapse bg-white shadow-sm rounded-lg overflow-hidden">
+                    <thead class="sticky top-0 bg-slate-100 shadow-sm z-10">
+                        <tr><th class="p-3 border-b">ID Certificato</th><th class="p-3 border-b">Corsista</th><th class="p-3 border-b">C.F.</th><th class="p-3 border-b">Azienda</th><th class="p-3 border-b">Corso</th><th class="p-3 border-b">Data Fine</th><th class="p-3 border-b text-center">Azioni</th></tr>
+                    </thead>
+                    <tbody id="archivio-rows" class="divide-y divide-slate-100"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="sessioni-modal" class="no-print fixed inset-0 bg-slate-900/60 hidden z-[100] flex items-center justify-center p-4 backdrop-blur-sm transition-opacity">
+        <div id="sessioni-modal-box" class="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col transition-all duration-300 overflow-hidden">
+            <div class="p-4 border-b flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-50">
+                <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2 whitespace-nowrap">
+                    <i data-lucide="folders" class="w-5 h-5 text-blue-600"></i> Gestione Corsi / Sessioni
+                </h2>
+                <div class="flex-1 w-full max-w-md mx-4">
+                    <input type="text" id="search-sessioni" oninput="window.filtraSessioni()" placeholder="Cerca per codice, azienda o corso..." class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none shadow-sm">
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="window.chiudiSessioni()" class="p-2 text-slate-500 hover:bg-red-100 hover:text-red-600 rounded-lg transition-colors"><i data-lucide="x" class="w-6 h-6"></i></button>
+                </div>
+            </div>
+            <div class="flex-1 overflow-auto bg-slate-50/50 p-4">
+                <table class="w-full text-xs text-left border-collapse bg-white shadow-sm rounded-lg overflow-hidden">
+                    <thead class="sticky top-0 bg-slate-100 shadow-sm z-10">
+                        <tr>
+                            <th class="p-3 border-b">Codice Progetto</th>
+                            <th class="p-3 border-b">Azienda / Corso</th>
+                            <th class="p-3 border-b text-center">Data Inizio</th>
+                            <th class="p-3 border-b text-center">Data Fine</th>
+                            <th class="p-3 border-b text-center">N. Corsisti</th>
+                            <th class="p-3 border-b text-center">Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sessioni-rows" class="divide-y divide-slate-100"></tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
     <script src="js/data.js"></script>
     <script src="js/supabase_config.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/app.js"></script>
-    <!-- Modale Archivio -->
-<div id="archivio-modal" class="no-print fixed inset-0 bg-slate-900/60 hidden z-[100] flex items-center justify-center p-4 backdrop-blur-sm transition-opacity">
-    <div id="archivio-modal-box" class="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col transition-all duration-300 overflow-hidden">
-        <div class="p-4 border-b flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-50">
-            <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2 whitespace-nowrap">
-                <i data-lucide="database" class="w-5 h-5 text-blue-600"></i> Archivio Corsisti (Cloud)
-            </h2>
-            <div class="flex-1 w-full max-w-md mx-4">
-                <input type="text" id="search-archivio" oninput="window.filtraArchivio()" placeholder="Cerca per nome, azienda o corso..." class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg outline-none shadow-sm">
-            </div>
-            <div class="flex items-center gap-2">
-                <button onclick="window.toggleMaximizeArchivio()" class="p-2 text-slate-500 hover:bg-blue-100 rounded-lg"><i data-lucide="maximize" id="icon-maximize" class="w-5 h-5"></i></button>
-                <button onclick="window.chiudiArchivio()" class="p-2 text-slate-500 hover:bg-red-100 hover:text-red-600 rounded-lg"><i data-lucide="x" class="w-6 h-6"></i></button>
-            </div>
-        </div>
-        <div class="flex-1 overflow-auto bg-slate-50/50 p-4">
-            <table class="w-full text-xs text-left bg-white shadow-sm rounded-lg overflow-hidden border-collapse">
-                <thead class="sticky top-0 bg-slate-100 shadow-sm z-10">
-                    <tr><th class="p-3 border-b">ID Certificato</th><th class="p-3 border-b">Corsista</th><th class="p-3 border-b">C.F.</th><th class="p-3 border-b">Azienda</th><th class="p-3 border-b">Corso</th><th class="p-3 border-b">Data</th><th class="p-3 border-b text-center">Azioni</th></tr>
-                </thead>
-                <tbody id="archivio-rows" class="divide-y divide-slate-100"></tbody>
-            </table>
-        </div>
-    </div>
-</div>
 
-<!-- Modale Sessioni -->
-<div id="sessioni-modal" class="no-print fixed inset-0 bg-slate-900/60 hidden z-[100] flex items-center justify-center p-4 backdrop-blur-sm transition-opacity">
-    <div id="sessioni-modal-box" class="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col transition-all duration-300 overflow-hidden">
-        <div class="p-4 border-b flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-50">
-            <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2 whitespace-nowrap">
-                <i data-lucide="folders" class="w-5 h-5 text-blue-600"></i> Gestione Corsi / Sessioni
-            </h2>
-            <div class="flex-1 w-full max-w-md mx-4">
-                <input type="text" id="search-sessioni" oninput="window.filtraSessioni()" placeholder="Cerca per codice, azienda o corso..." class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg outline-none shadow-sm">
-            </div>
-            <div class="flex items-center gap-2">
-                <button onclick="window.chiudiSessioni()" class="p-2 text-slate-500 hover:bg-red-100 hover:text-red-600 rounded-lg"><i data-lucide="x" class="w-6 h-6"></i></button>
-            </div>
-        </div>
-        <div class="flex-1 overflow-auto bg-slate-50/50 p-4">
-            <table class="w-full text-xs text-left border-collapse bg-white shadow-sm rounded-lg overflow-hidden">
-                <thead class="sticky top-0 bg-slate-100 shadow-sm z-10">
-                    <tr><th class="p-3 border-b">Codice Progetto</th><th class="p-3 border-b">Azienda / Corso</th><th class="p-3 border-b text-center">Inizio</th><th class="p-3 border-b text-center">Esame</th><th class="p-3 border-b text-center">N. Corsisti</th><th class="p-3 border-b text-center">Azioni</th></tr>
-                </thead>
-                <tbody id="sessioni-rows" class="divide-y divide-slate-100"></tbody>
-            </table>
-        </div>
-    </div>
-</div>
 </body>
 </html>
