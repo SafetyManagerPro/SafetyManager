@@ -24,7 +24,7 @@ window.correctorEnabled = false;
 
 window.renderUDInputs = function() {
     const corsoEl = document.getElementById('cfg-corso');
-    if (!corsoEl) return; // Evita errori se il modulo config non è caricato
+    if (!corsoEl) return;
     
     const courseId = corsoEl.value;
     const c = window.DB_CORSI[courseId];
@@ -51,7 +51,9 @@ window.updateDBCounter = function() {
     }
 }
 
-// Funzione core per aggiornare tutti i campi della UI e calcolare le date
+// ==========================================
+// UPDATE ALL - MOTORE LOGICO PRINCIPALE
+// ==========================================
 window.updateAll = function() {
     const corsoEl = document.getElementById('cfg-corso');
     if (!corsoEl) return; 
@@ -87,7 +89,7 @@ window.updateAll = function() {
     const az = currentAzienda.split(' ')[0].toUpperCase().replace(/[^A-Z0-9]/g,'') || "AZ";
     const currentCorso = c.t;
     
-    let codice = "";
+    let codice = document.getElementById('cfg-codice') ? document.getElementById('cfg-codice').value : "";
     const existingId = document.getElementById('cfg-loaded-cert-id').value;
     
     if(existingId && window.dbCorsisti) { 
@@ -117,11 +119,9 @@ window.updateAll = function() {
         }
     }
     
-    document.getElementById('cfg-codice').value = codice || "";
+    if(document.getElementById('cfg-codice')) document.getElementById('cfg-codice').value = codice || "";
 
-    // ==========================================
-    // MOTORE CALCOLO DATE, DOCENTI E SYLLABUS
-    // ==========================================
+    // Calcolo Date, Docenti e Syllabus
     let docentiMap = {}; 
     let scheduleHtml = ""; 
     let currentDay = new Date(dInizio.getTime()); 
@@ -131,7 +131,6 @@ window.updateAll = function() {
     const calendarioManuale = document.getElementById('cfg-calendario').value.trim();
     let dailyHours = 0;
     
-    // Salta sabato e domenica per la data di inizio
     if(currentDay.getDay() === 6) currentDay.setDate(currentDay.getDate() + 2); 
     if(currentDay.getDay() === 0) currentDay.setDate(currentDay.getDate() + 1);
 
@@ -149,7 +148,6 @@ window.updateAll = function() {
         let remainingUDHours = ud.ore;
         let udDates = []; 
 
-        // Ripartizione ore giornaliere (Max 8h) saltando i weekend
         while(remainingUDHours > 0) {
             if(dailyHours >= 8) {
                 currentDay.setDate(currentDay.getDate() + 1);
@@ -188,22 +186,17 @@ window.updateAll = function() {
         idxRd++;
     }
     
-    // Inserimento negli elementi DOM solo se esistono (poiché siamo in SPA)
     if(document.getElementById('rd-rows')) document.getElementById('rd-rows').innerHTML = rdHtml;
     if(document.getElementById('p-programma')) document.getElementById('p-programma').innerHTML = scheduleHtml;
     if(document.getElementById('retro-programma')) document.getElementById('retro-programma').innerHTML = scheduleHtml;
     
-    // Auto-compilazione Date e Calendario
     if (!calendarioManuale) {
         document.getElementById('cfg-calendario').value = calendarioTesto;
         const offsetDate = new Date(currentDay.getTime() - (currentDay.getTimezoneOffset() * 60000));
         document.getElementById('cfg-data-esame').value = offsetDate.toISOString().split('T')[0];
     }
 
-    // ==========================================
-    // POPOLAMENTO DATI GLOBALI NELLA UI CORRENTE
-    // ==========================================
-    
+    // Aggiornamento Campi View
     const sedeInput = document.getElementById('cfg-sede-corso').value.trim();
     const sedeToDisplay = sedeInput || document.getElementById('cfg-azienda-indirizzo').value || "Sede Aziendale";
 
@@ -248,7 +241,6 @@ window.updateAll = function() {
     document.querySelectorAll('.val-ente-indirizzo').forEach(el => el.innerText = document.getElementById('cfg-ente-indirizzo').value);
     document.querySelectorAll('.val-ente-contatti').forEach(el => el.innerText = document.getElementById('cfg-ente-contatti').value);
 
-    // Cert ID Generator
     let certIdStr = document.getElementById('cfg-loaded-cert-id').value;
     if(!certIdStr && codice) {
         const safeCf = (document.getElementById('cfg-cf').value || "XXX").substring(0,6);
@@ -256,7 +248,6 @@ window.updateAll = function() {
     }
     document.querySelectorAll('.val-cert-id').forEach(el => el.innerText = certIdStr || "---");
 
-    // Logo Manager
     const logoUrl = document.getElementById('cfg-logo').value;
     document.querySelectorAll('.logo-img').forEach(img => { 
         if(logoUrl){ img.src=logoUrl; img.classList.remove('hidden'); } 
@@ -265,7 +256,6 @@ window.updateAll = function() {
     
     document.querySelectorAll('.val-dicitura-legale').forEach(el => el.innerHTML = "Corso erogato in conformità al <strong>" + (c.norma || "D.Lgs. 81/08 e Accordi Stato Regioni vigenti") + "</strong>. Qualifica della Docenza Registrata: " + document.getElementById('cfg-req-docente').value + ".");
 
-    // Calcolo Scadenza
     if (c.scad === 99) { 
         document.querySelectorAll('.val-scadenza').forEach(el => el.innerText = "Credito Permanente"); 
     } else if(dEsameRaw) { 
@@ -277,62 +267,58 @@ window.updateAll = function() {
         document.querySelectorAll('.val-scadenza').forEach(el => el.innerText = '--/--/-- (Agg. ' + c.scad + ' Anni)'); 
     }
 
-    // Auto-generazione delle 30 righe vuote nei Registri (Se aperti)
+    // Auto-generazione Righe vuote utente singolo (Corretto con h-7 e &nbsp;)
     const vRows = document.getElementById('v-rows');
     if (vRows && !vRows.dataset.populated) {
         const nomeVal = document.getElementById('cfg-nome').value;
         const mansioneVal = document.getElementById('cfg-mansione').value;
         const cfVal = document.getElementById('cfg-cf').value;
 
-        let rr = '<tr><td class="border border-slate-800 p-1 text-center font-bold h-6">1</td><td class="border border-slate-800 p-1 leading-tight"><span class="font-bold">' + nomeVal + '</span><br><span class="text-[7px] text-slate-500">' + mansioneVal + '</span></td><td class="border border-slate-800 p-1 text-center font-mono">' + cfVal + '</td><td class="border border-slate-800 p-1"></td><td class="border border-slate-800 p-1"></td><td class="border border-slate-800 p-1"></td><td class="border border-slate-800 p-1"></td></tr>';
-        for(let i=0; i<29; i++){ rr += '<tr><td class="border border-slate-800 p-1 h-6"></td><td class="border border-slate-800 p-1"></td><td class="border border-slate-800 p-1"></td><td class="border border-slate-800 p-1"></td><td class="border border-slate-800 p-1"></td><td class="border border-slate-800 p-1"></td><td class="border border-slate-800 p-1"></td></tr>'; }
+        let rr = '<tr><td class="border border-slate-800 p-1 text-center font-bold h-7">1</td><td class="border border-slate-800 p-1 bg-white leading-tight"><span class="font-bold">' + nomeVal + '</span><br><span class="text-[7px] text-slate-500 uppercase">' + (mansioneVal || '') + '</span></td><td class="border border-slate-800 p-1 text-center font-mono">' + cfVal + '</td><td class="border border-slate-800 p-1 text-center">&nbsp;</td><td class="border border-slate-800 p-1">&nbsp;</td><td class="border border-slate-800 p-1 text-center">&nbsp;</td><td class="border border-slate-800 p-1">&nbsp;</td></tr>';
+        for(let i=0; i<25; i++){ rr += '<tr><td class="border border-slate-800 p-1 h-7">&nbsp;</td><td class="border border-slate-800 p-1">&nbsp;</td><td class="border border-slate-800 p-1">&nbsp;</td><td class="border border-slate-800 p-1">&nbsp;</td><td class="border border-slate-800 p-1">&nbsp;</td><td class="border border-slate-800 p-1">&nbsp;</td><td class="border border-slate-800 p-1">&nbsp;</td></tr>'; }
         if(document.getElementById('r-rows')) document.getElementById('r-rows').innerHTML = rr;
 
-        let vr = '<tr><td class="border border-slate-900 p-1 leading-tight h-5"><span class="font-bold">' + nomeVal + '</span><br><span class="text-[7px] text-slate-500">' + mansioneVal + '</span></td><td class="border border-slate-900 p-1 text-center font-bold text-emerald-700">SI</td><td class="border border-slate-900 p-1 text-center italic">__ / 30</td><td class="border border-slate-900 p-1 text-center">Positivo</td><td class="border border-slate-900 p-1 text-center font-bold uppercase text-blue-700">Idoneo</td></tr>';
-        for(let i=0; i<29; i++){ vr += '<tr><td class="border border-slate-900 p-1 h-5"></td><td class="border border-slate-900 p-1"></td><td class="border border-slate-900 p-1"></td><td class="border border-slate-900 p-1"></td><td class="border border-slate-900 p-1"></td></tr>'; }
+        let vr = '<tr><td class="border border-slate-900 p-1 leading-tight h-6"><span class="font-bold">' + nomeVal + '</span><br><span class="text-[7px] text-slate-500 uppercase">' + (mansioneVal || '') + '</span></td><td class="border border-slate-900 p-1 text-center font-bold text-emerald-700">SI</td><td class="border border-slate-900 p-1 text-center italic">__ / 30</td><td class="border border-slate-900 p-1 text-center">Positivo</td><td class="border border-slate-900 p-1 text-center font-bold uppercase text-blue-700">Idoneo</td></tr>';
+        for(let i=0; i<29; i++){ vr += '<tr><td class="border border-slate-900 p-1 h-6">&nbsp;</td><td class="border border-slate-900 p-1">&nbsp;</td><td class="border border-slate-900 p-1">&nbsp;</td><td class="border border-slate-900 p-1">&nbsp;</td><td class="border border-slate-900 p-1">&nbsp;</td></tr>'; }
         
         vRows.innerHTML = vr;
         vRows.dataset.populated = "true";
     }
 
-    // Se stiamo operando su una sessione massiva caricata (con più di 1 utente)
     if (window.currentSessionCorsisti && window.currentSessionCorsisti.length > 0) {
         if(typeof window.aggiornaTabelleSessione === 'function') window.aggiornaTabelleSessione();
     }
-
     window.updateTests();
 }
 
-// Funzione helper per il registro massivo (Da aggiungere sempre in utils.js)
+// ==========================================
+// AGGIORNA TABELLE SESSIONE (MULTI UTENTE)
+// ==========================================
 window.aggiornaTabelleSessione = function() {
     if (!window.currentSessionCorsisti || window.currentSessionCorsisti.length === 0) return;
     let rRows = ""; let vRows = "";
     
-    // Genera le righe compilate
     window.currentSessionCorsisti.forEach((c, idx) => {
-        rRows += '<tr><td class="border border-slate-800 p-1 text-center font-bold">' + (idx + 1) + '</td><td class="border border-slate-800 p-1 bg-white leading-tight"><span class="font-bold">' + c.nome + '</span><br><span class="text-[7px] text-slate-500 uppercase">' + (c.mansione || '') + '</span></td><td class="border border-slate-800 p-1 text-center font-mono">' + c.cf + '</td><td class="border border-slate-800 p-1 text-center">...</td><td class="border border-slate-800 p-1"></td><td class="border border-slate-800 p-1 text-center">...</td><td class="border border-slate-800 p-1"></td></tr>';
+        rRows += '<tr><td class="border border-slate-800 p-1 text-center font-bold h-7">' + (idx + 1) + '</td><td class="border border-slate-800 p-1 bg-white leading-tight"><span class="font-bold">' + c.nome + '</span><br><span class="text-[7px] text-slate-500 uppercase">' + (c.mansione || '') + '</span></td><td class="border border-slate-800 p-1 text-center font-mono">' + c.cf + '</td><td class="border border-slate-800 p-1 text-center">&nbsp;</td><td class="border border-slate-800 p-1">&nbsp;</td><td class="border border-slate-800 p-1 text-center">&nbsp;</td><td class="border border-slate-800 p-1">&nbsp;</td></tr>';
         
-        vRows += '<tr><td class="border border-slate-900 p-1 leading-tight"><span class="font-bold">' + c.nome + '</span><br><span class="text-[7px] text-slate-500 uppercase">' + (c.mansione || '') + '</span></td><td class="border border-slate-900 p-1 text-center font-bold text-emerald-700">SI</td><td class="border border-slate-900 p-1 text-center italic">__ / 30</td><td class="border border-slate-900 p-1 text-center">Positivo</td><td class="border border-slate-900 p-1 text-center font-black uppercase text-blue-700">Idoneo</td></tr>';
+        vRows += '<tr><td class="border border-slate-900 p-1 leading-tight h-6"><span class="font-bold">' + c.nome + '</span><br><span class="text-[7px] text-slate-500 uppercase">' + (c.mansione || '') + '</span></td><td class="border border-slate-900 p-1 text-center font-bold text-emerald-700">SI</td><td class="border border-slate-900 p-1 text-center italic">__ / 30</td><td class="border border-slate-900 p-1 text-center">Positivo</td><td class="border border-slate-900 p-1 text-center font-black uppercase text-blue-700">Idoneo</td></tr>';
     });
 
-    // Costante ottimale di righe per A4 Orizzontale = 26
     const TOTAL_ROWS_REGISTRO = 26;
     const remainingR = Math.max(0, TOTAL_ROWS_REGISTRO - window.currentSessionCorsisti.length);
     for(let i=0; i<remainingR; i++){
-        rRows += '<tr><td class="border border-slate-800 p-1"></td><td class="border border-slate-800 p-1"></td><td class="border border-slate-800 p-1"></td><td class="border border-slate-800 p-1"></td><td class="border border-slate-800 p-1"></td><td class="border border-slate-800 p-1"></td><td class="border border-slate-800 p-1"></td></tr>';
+        rRows += '<tr><td class="border border-slate-800 p-1 h-7">&nbsp;</td><td class="border border-slate-800 p-1">&nbsp;</td><td class="border border-slate-800 p-1">&nbsp;</td><td class="border border-slate-800 p-1">&nbsp;</td><td class="border border-slate-800 p-1">&nbsp;</td><td class="border border-slate-800 p-1">&nbsp;</td><td class="border border-slate-800 p-1">&nbsp;</td></tr>';
     }
     
-    // Costante ottimale per A4 Verticale (Verbale) = 30
     const TOTAL_ROWS_VERBALE = 30;
     const remainingV = Math.max(0, TOTAL_ROWS_VERBALE - window.currentSessionCorsisti.length);
     for(let i=0; i<remainingV; i++){
-        vRows += '<tr><td class="border border-slate-900 p-1"></td><td class="border border-slate-900 p-1"></td><td class="border border-slate-900 p-1"></td><td class="border border-slate-900 p-1"></td><td class="border border-slate-900 p-1"></td></tr>';
+        vRows += '<tr><td class="border border-slate-900 p-1 h-6">&nbsp;</td><td class="border border-slate-900 p-1">&nbsp;</td><td class="border border-slate-900 p-1">&nbsp;</td><td class="border border-slate-900 p-1">&nbsp;</td><td class="border border-slate-900 p-1">&nbsp;</td></tr>';
     }
 
     if(document.getElementById('r-rows')) document.getElementById('r-rows').innerHTML = rRows;
     if(document.getElementById('v-rows')) document.getElementById('v-rows').innerHTML = vRows;
     
-    // Popolamento select corsista (modulo configurazione)
     const selectEl = document.getElementById('cfg-select-corsista');
     if(selectEl) {
         const currVal = selectEl.value;
@@ -344,13 +330,17 @@ window.aggiornaTabelleSessione = function() {
         selectEl.value = currVal || 0; 
     }
 }
+
+// ==========================================
+// TEST, UTILITY, EXPORT E MODALI
+// ==========================================
+
 window.updateTests = function() {
     const corsoEl = document.getElementById('cfg-corso');
     if (!corsoEl) return;
     
     const courseId = corsoEl.value;
     if (window.currentTestCourseId !== courseId || window.currentTestQuestions.length === 0) {
-        // La funzione generateTestQuestions andrebbe definita qui o in data.js
         if(typeof window.generateTestQuestions === 'function') {
             window.currentTestQuestions = window.generateTestQuestions(courseId);
         }
@@ -370,186 +360,31 @@ window.updateTests = function() {
         });
         testContainer.innerHTML = htmlTest;
     }
-}
-
-// Stampa Massiva
-window.preparaEStampaMassiva = function(tabId) {
-    if (!window.currentSessionCorsisti || window.currentSessionCorsisti.length === 0) return;
     
-    const currentIndex = document.getElementById('cfg-select-corsista').value;
-    let printArea = document.getElementById('print-area-temp');
-    printArea.innerHTML = '';
+    // Colloquio
+    const colloquioContainer = document.getElementById('colloquio-container');
+    if (colloquioContainer && window.currentTestQuestions.length > 0) {
+        let htmlColl = "";
+        window.currentTestQuestions.slice(0, 15).forEach((item, idx) => {
+            const qNum = (idx + 1) + ".";
+            const qText = item.q;
+            const correctAns = item.a[item.correct];
+            
+            const answerHtml = window.correctorEnabled 
+                ? '<p class="text-emerald-700 italic text-[7px]">Risposta esatta: ' + correctAns + '</p>' 
+                : '<div class="mt-1 border-b border-dotted border-slate-400 h-2.5 w-full"></div><div class="border-b border-dotted border-slate-400 h-2.5 w-full"></div>';
 
-    let viewsToPrint = [];
-    if (tabId === 'esame') viewsToPrint = ['view-esame-scritto', 'view-esame-orale'];
-    else if (tabId === 'attestato') viewsToPrint = ['view-attestato', 'view-attestato-retro'];
-    else viewsToPrint = ['view-' + tabId];
-
-    window.currentSessionCorsisti.forEach((c, idx) => {
-        document.getElementById('cfg-select-corsista').value = idx;
-        window.cambiaCorsistaSessione(); 
-        
-        viewsToPrint.forEach(vid => {
-            const original = document.getElementById(vid);
-            if(original) {
-                const clone = original.cloneNode(true);
-                clone.id = "";
-                clone.classList.remove('hidden');
-                clone.classList.add('print-show', 'temp-page');
-                if(original.classList.contains('landscape')) clone.classList.add('landscape-force');
-                else clone.classList.add('portrait');
-                printArea.appendChild(clone);
-            }
+            htmlColl += '<tr class="bg-white">';
+            htmlColl += '<td class="border border-slate-300 text-center font-bold align-top p-1">' + qNum + '</td>';
+            htmlColl += '<td class="border border-slate-300 align-top p-1"><p class="font-bold text-slate-800 mb-0.5">' + qText + '</p>' + answerHtml + '</td>';
+            htmlColl += '<td class="border border-slate-300 text-center text-slate-400 align-middle p-1">[1-10]</td>';
+            htmlColl += '<td class="border border-slate-300 p-1">&nbsp;</td>';
+            htmlColl += '</tr>';
         });
-    });
-
-    document.body.classList.add('is-printing-temp');
-
-    setTimeout(() => { 
-        window.print(); 
-        document.body.classList.remove('is-printing-temp');
-        printArea.innerHTML = ''; 
-        
-        document.getElementById('cfg-select-corsista').value = currentIndex;
-        window.cambiaCorsistaSessione();
-    }, 1000);
-}
-// --- RENDER DASHBOARD ADMIN ---
-window.renderAdminDashboard = function() {
-    const container = document.getElementById('admin-content');
-    if (!container) return;
-    
-    if (!window.dbCorsisti || window.dbCorsisti.length === 0) {
-        container.innerHTML = '<p class="text-center text-slate-500 py-10">Nessun dato presente nel database Cloud.</p>';
-        return;
-    }
-
-    let aziendeMap = {};
-    window.dbCorsisti.forEach(c => {
-        let azName = c.azienda || "Azienda Non Specificata";
-        let corsoName = c.corso || "Corso Non Specificato";
-        if (!aziendeMap[azName]) aziendeMap[azName] = {};
-        if (!aziendeMap[azName][corsoName]) aziendeMap[azName][corsoName] = [];
-        aziendeMap[azName][corsoName].push(c);
-    });
-
-    let html = '<div class="grid grid-cols-2 gap-4 mb-6"><div class="bg-indigo-50 border border-indigo-200 p-4 rounded-xl shadow-sm"><h4 class="text-xs text-indigo-600 font-bold uppercase mb-1">Aziende Gestite</h4><p class="text-3xl font-black text-indigo-900">' + Object.keys(aziendeMap).length + '</p></div><div class="bg-emerald-50 border border-emerald-200 p-4 rounded-xl shadow-sm"><h4 class="text-xs text-emerald-600 font-bold uppercase mb-1">Corsisti Formati</h4><p class="text-3xl font-black text-emerald-900">' + window.dbCorsisti.length + '</p></div></div><div class="space-y-6 pb-10">';
-    
-    for (let az in aziendeMap) {
-        html += '<div class="border border-slate-300 rounded-lg shadow-sm bg-white overflow-hidden break-inside-avoid"><div class="bg-slate-800 text-white p-3 font-bold text-sm uppercase flex items-center gap-2"><i data-lucide="building" class="w-4 h-4"></i> ' + az + '</div><div class="p-4 bg-slate-50 space-y-4">';
-        for (let corso in aziendeMap[az]) {
-            let corsisti = aziendeMap[az][corso];
-            html += '<div class="border border-slate-200 bg-white rounded shadow-sm overflow-hidden"><div class="bg-blue-100 p-2 border-b border-blue-200 font-bold text-blue-900 text-[11px] flex justify-between items-center uppercase"><span>' + corso + '</span><span class="bg-blue-600 text-white px-2 py-0.5 rounded-full text-[9px]">' + corsisti.length + ' Allievi</span></div><table class="w-full text-[10px] text-left"><thead class="bg-slate-50 text-slate-500 border-b border-slate-200"><tr><th class="p-2">Nominativo</th><th class="p-2">C.F.</th><th class="p-2 text-center">ID Certificato</th></tr></thead><tbody>';
-            corsisti.forEach(c => {
-                html += '<tr class="border-b border-slate-100 last:border-0 hover:bg-slate-50"><td class="p-2 font-bold text-slate-800">' + c.nome + '</td><td class="p-2 font-mono text-slate-500 uppercase">' + c.cf + '</td><td class="p-2 text-center font-mono text-[9px] bg-slate-50">' + c.id_certificato + '</td></tr>';
-            });
-            html += '</tbody></table></div>';
-        }
-        html += '</div></div>';
-    }
-    html += '</div>';
-    container.innerHTML = html;
-    if (typeof lucide !== 'undefined') lucide.createIcons();
-}
-
-// --- GESTIONE ARCHIVIO (MODALE) ---
-window.mostraArchivio = function() {
-    const tbody = document.getElementById('archivio-rows');
-    if (!window.dbCorsisti || window.dbCorsisti.length === 0) { 
-        tbody.innerHTML = '<tr><td colspan="7" class="p-6 text-center text-slate-500 italic">Nessun record presente in archivio.</td></tr>'; 
-    } else {
-        let ht = "";
-        window.dbCorsisti.forEach((r, originalIdx) => {
-            ht += '<tr class="hover:bg-blue-50 transition-colors border-b border-slate-100">';
-            ht += '<td class="p-3 font-mono text-[10px] text-slate-500">' + r.id_certificato + '</td>';
-            ht += '<td class="p-3 font-bold text-slate-800">' + r.nome + '</td>';
-            ht += '<td class="p-3 font-mono text-[10px] text-slate-600">' + r.cf + '</td>';
-            ht += '<td class="p-3 text-[10px] text-slate-600">' + (r.azienda || '-') + '</td>';
-            ht += '<td class="p-3 text-xs truncate max-w-[200px]" title="' + r.corso + '">' + r.corso + '</td>';
-            ht += '<td class="p-3 text-[10px] text-slate-500">' + window.formatDataToItalian(r.data_esame) + '</td>';
-            ht += '<td class="p-3 text-center whitespace-nowrap"><button onclick="window.caricaCorsista(' + originalIdx + ')" class="bg-blue-600 text-white px-3 py-1.5 rounded text-[10px] font-bold hover:bg-blue-500 shadow">Carica</button><button onclick="window.eliminaCorsista(\'' + r.id_certificato + '\')" class="bg-red-100 text-red-600 px-3 py-1.5 rounded text-[10px] font-bold hover:bg-red-200 ml-1">X</button></td>';
-            ht += '</tr>';
-        });
-        tbody.innerHTML = ht;
-    }
-    document.getElementById('archivio-modal').classList.remove('hidden');
-    if (typeof lucide !== 'undefined') lucide.createIcons();
-}
-
-window.chiudiArchivio = function() { document.getElementById('archivio-modal').classList.add('hidden'); }
-window.toggleMaximizeArchivio = function() {
-    const box = document.getElementById('archivio-modal-box'); const icon = document.getElementById('icon-maximize');
-    box.classList.toggle('max-w-5xl'); box.classList.toggle('max-h-[90vh]'); box.classList.toggle('w-full'); box.classList.toggle('h-full'); box.classList.toggle('rounded-xl');
-    if (box.classList.contains('h-full')) { icon.setAttribute('data-lucide', 'minimize'); } else { icon.setAttribute('data-lucide', 'maximize'); }
-    if (typeof lucide !== 'undefined') lucide.createIcons();
-}
-window.filtraArchivio = function() {
-    const filter = document.getElementById('search-archivio')?.value.toLowerCase() || "";
-    const tr = document.getElementById('archivio-rows').getElementsByTagName('tr');
-    for (let i = 0; i < tr.length; i++) {
-        if(tr[i].cells.length === 1) continue; 
-        tr[i].style.display = tr[i].innerText.toLowerCase().includes(filter) ? "" : "none";
+        colloquioContainer.innerHTML = htmlColl;
     }
 }
 
-// Integrazione Eliminazione con Supabase
-window.eliminaCorsista = async function(id_certificato) {
-    if(confirm("Sei sicuro di voler eliminare questo record in modo permanente dal Cloud? L'operazione è irreversibile.")) {
-        if (typeof window.deleteCorsistaCloud === 'function') {
-            await window.deleteCorsistaCloud(id_certificato);
-            window.dbCorsisti = await window.loadCloudDatabase();
-            window.updateDBCounter(); 
-            window.mostraArchivio();
-        }
-    }
-}
-
-// --- GESTIONE SESSIONI (MODALE) ---
-window.mostraSessioni = function() {
-    if (!window.dbCorsisti) return;
-    const sessioni = {};
-    window.dbCorsisti.forEach(r => {
-        const key = r.codice;
-        if (!sessioni[key]) {
-            sessioni[key] = {
-                codice: r.codice, corso: r.corso, data_inizio: window.formatDataToItalian(r.data_inizio) || "---",
-                data_esame: window.formatDataToItalian(r.data_esame) || "---", data_sort: r.data_esame || "0000-00-00", 
-                azienda: r.azienda || "Nessuna Azienda", count: 0
-            };
-        }
-        sessioni[key].count++;
-    });
-
-    const tbody = document.getElementById('sessioni-rows');
-    const arrSessioni = Object.values(sessioni).sort((a,b) => b.data_sort.localeCompare(a.data_sort));
-    
-    if(arrSessioni.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center italic text-slate-500">Nessuna sessione trovata.</td></tr>';
-    } else {
-        let html = "";
-        arrSessioni.forEach(s => {
-            html += '<tr class="hover:bg-blue-50 border-b"><td class="p-3 font-mono font-bold text-slate-700">' + s.codice + '</td><td class="p-3 font-semibold text-blue-800">' + s.corso + '<br><span class="text-[9px] text-slate-500 font-normal">' + s.azienda + '</span></td><td class="p-3 text-[10px] text-center">' + s.data_inizio + '</td><td class="p-3 text-[10px] font-bold text-center">' + s.data_esame + '</td><td class="p-3 text-center"><span class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full font-bold">' + s.count + '</span></td><td class="p-3 text-center"><button onclick="window.caricaSessioneByCodice(\'' + s.codice + '\')" class="bg-blue-600 text-white px-3 py-1.5 rounded text-[10px] font-bold shadow"><i data-lucide="folder-open" class="w-3 h-3 inline"></i> Carica</button></td></tr>';
-        });
-        tbody.innerHTML = html;
-    }
-    document.getElementById('sessioni-modal').classList.remove('hidden');
-    if (typeof lucide !== 'undefined') lucide.createIcons();
-}
-window.chiudiSessioni = function() { document.getElementById('sessioni-modal').classList.add('hidden'); }
-window.filtraSessioni = function() {
-    const filter = document.getElementById('search-sessioni')?.value.toLowerCase() || "";
-    const tr = document.getElementById('sessioni-rows').getElementsByTagName('tr');
-    for (let i = 0; i < tr.length; i++) {
-        if(tr[i].cells.length === 1) continue; 
-        tr[i].style.display = tr[i].innerText.toLowerCase().includes(filter) ? "" : "none";
-    }
-}
-// =====================================================================
-// FUNZIONI MANCANTI: LOGICHE DI GESTIONE, SESSIONI, STAMPE ED EXPORT
-// Da aggiungere alla fine di js/utils.js
-// =====================================================================
-
-// --- GENERAZIONE DOMANDE ESAME ---
 window.generateTestQuestions = function(courseId) {
     let distribution = [];
     if (courseId === 'lav_basso' || courseId === 'agg_lav') distribution = [{p: window.POOL_GENERALE, c: 15}, {p: window.POOL_BASSO, c: 15}];
@@ -580,7 +415,6 @@ window.generateTestQuestions = function(courseId) {
     return test.slice(0, 30);
 }
 
-// --- NORMALIZZAZIONE DATABASE ---
 window.normalizeDatabase = function() {
     if(!window.dbCorsisti) window.dbCorsisti = [];
     const sessionCodes = {};
@@ -588,13 +422,11 @@ window.normalizeDatabase = function() {
         const normAzienda = (r.azienda || "").trim().toLowerCase();
         const normCorso = (r.corso || "").trim().toLowerCase();
         const key = normAzienda + "|" + normCorso + "|" + r.data_esame;
-        
         if (!sessionCodes[key] && r.codice && r.codice !== "ND" && r.codice !== "") {
             if (r.codice.match(/\/\d{2}$/)) sessionCodes[key] = r.codice;
             else sessionCodes[key] = r.codice + "/01";
         }
     });
-    
     window.dbCorsisti.forEach(r => {
         const normAzienda = (r.azienda || "").trim().toLowerCase();
         const normCorso = (r.corso || "").trim().toLowerCase();
@@ -603,7 +435,6 @@ window.normalizeDatabase = function() {
     });
 }
 
-// --- INTERAZIONI FORM CONFIGURAZIONE ---
 window.cambioCorso = function() {
     window.pulisciCertIdCaricato();
     window.renderUDInputs();
@@ -620,7 +451,7 @@ window.cambiaDataInizio = function() {
 
 window.forzaAggiornamento = function() {
     window.updateAll();
-    const btn = document.querySelector('.btn-tab.bg-indigo-600');
+    const btn = document.getElementById('btn-aggiorna');
     if (btn) {
         const originalHtml = btn.innerHTML;
         btn.innerHTML = '<i data-lucide="check" class="w-4 h-4 mx-auto"></i><span class="text-[8px] font-bold mt-1 block">Fatto!</span>';
@@ -637,16 +468,11 @@ window.forzaAggiornamento = function() {
 window.caricaLogoFile = function(event) {
     const file = event.target.files[0]; if (!file) return;
     const reader = new FileReader();
-    reader.onload = (e) => { 
-        document.getElementById('cfg-logo').value = e.target.result; 
-        window.updateAll(); 
-    };
+    reader.onload = (e) => { document.getElementById('cfg-logo').value = e.target.result; window.updateAll(); };
     reader.readAsDataURL(file);
 }
 
-// --- GESTIONE SESSIONE CORRENTE (MULTI-CORSISTA) ---
 window.currentSessionCorsisti = [];
-
 window.pulisciCertIdCaricato = function() {
     if(document.getElementById('cfg-loaded-cert-id')) document.getElementById('cfg-loaded-cert-id').value = "";
     if(document.getElementById('cfg-nome')) document.getElementById('cfg-nome').value = "";
@@ -686,68 +512,58 @@ window.caricaSessioneByCodice = function(codice) {
     if (sessionCorsisti.length === 0) return alert("Errore nel caricamento della sessione.");
 
     const cRef = sessionCorsisti[0];
+    let courseKey = "lav_basso"; 
+    for (const [key, value] of Object.entries(window.DB_CORSI)) { if (value.t === cRef.corso) { courseKey = key; break; } }
     
-    // Per ricaricare i dati nel setup, navighiamo prima alla pagina config se non ci siamo
-    window.loadModule('config').then(() => {
-        let courseKey = "lav_basso"; 
-        for (const [key, value] of Object.entries(window.DB_CORSI)) { if (value.t === cRef.corso) { courseKey = key; break; } }
-        document.getElementById('cfg-corso').value = courseKey;
-        
-        window.renderUDInputs();
-        
-        document.getElementById('cfg-azienda').value = cRef.azienda || "";
-        document.getElementById('cfg-azienda-indirizzo').value = cRef.indirizzo_azienda || "";
-        document.getElementById('cfg-ateco').value = cRef.ateco || "";
-        document.getElementById('cfg-sede-corso').value = cRef.sede_corso || "";
-        document.getElementById('cfg-modalita').value = cRef.modalita || "In Presenza Fisica";
-        document.getElementById('cfg-calendario').value = cRef.calendario || "";
-        document.getElementById('cfg-data-esame').value = window.formatDataToISODate(cRef.data_esame);
-        document.getElementById('cfg-data-inizio').value = window.formatDataToISODate(cRef.data_inizio);
-        
-        window.currentSessionCorsisti = sessionCorsisti;
-        
-        // Popola la select nel caso serva gestire più corsisti (questo HTML andrebbe aggiunto in config se rimosso)
-        // Se non hai più il div box-select-corsista, puoi ometterlo, o rimetterlo in config.html
-        
-        window.chiudiSessioni();
-        alert("Sessione [" + codice + "] caricata con successo (" + sessionCorsisti.length + " Corsisti).");
-    });
+    if(document.getElementById('cfg-corso')) document.getElementById('cfg-corso').value = courseKey;
+    window.renderUDInputs();
+    
+    if(document.getElementById('cfg-azienda')) document.getElementById('cfg-azienda').value = cRef.azienda || "";
+    if(document.getElementById('cfg-azienda-indirizzo')) document.getElementById('cfg-azienda-indirizzo').value = cRef.indirizzo_azienda || "";
+    if(document.getElementById('cfg-ateco')) document.getElementById('cfg-ateco').value = cRef.ateco || "";
+    if(document.getElementById('cfg-sede-corso')) document.getElementById('cfg-sede-corso').value = cRef.sede_corso || "";
+    if(document.getElementById('cfg-modalita')) document.getElementById('cfg-modalita').value = cRef.modalita || "In Presenza Fisica";
+    if(document.getElementById('cfg-calendario')) document.getElementById('cfg-calendario').value = cRef.calendario || "";
+    if(document.getElementById('cfg-data-esame')) document.getElementById('cfg-data-esame').value = window.formatDataToISODate(cRef.data_esame);
+    if(document.getElementById('cfg-data-inizio')) document.getElementById('cfg-data-inizio').value = window.formatDataToISODate(cRef.data_inizio);
+    
+    window.currentSessionCorsisti = sessionCorsisti;
+    window.chiudiSessioni();
+    window.updateAll();
+    alert("Sessione [" + codice + "] caricata con successo (" + sessionCorsisti.length + " Corsisti).");
 }
 
 window.caricaCorsista = function(idx) {
     const r = window.dbCorsisti[idx];
-    window.loadModule('config').then(() => {
-        let courseKey = "lav_basso"; 
-        for (const [key, value] of Object.entries(window.DB_CORSI)) { if (value.t === r.corso) { courseKey = key; break; } }
-        document.getElementById('cfg-corso').value = courseKey;
-        
-        window.renderUDInputs();
+    let courseKey = "lav_basso"; 
+    for (const [key, value] of Object.entries(window.DB_CORSI)) { if (value.t === r.corso) { courseKey = key; break; } }
+    
+    if(document.getElementById('cfg-corso')) document.getElementById('cfg-corso').value = courseKey;
+    window.renderUDInputs();
 
-        document.getElementById('cfg-azienda').value = r.azienda || "";
-        document.getElementById('cfg-azienda-indirizzo').value = r.indirizzo_azienda || "";
-        document.getElementById('cfg-ateco').value = r.ateco || "";
-        document.getElementById('cfg-nome').value = r.nome || "";
-        document.getElementById('cfg-cf').value = r.cf || "";
-        document.getElementById('cfg-mansione').value = r.mansione || "";
-        document.getElementById('cfg-nascita').value = r.nascita || "";
-        document.getElementById('cfg-loaded-cert-id').value = r.id_certificato || "";
-        document.getElementById('cfg-sede-corso').value = r.sede_corso || "";
+    if(document.getElementById('cfg-azienda')) document.getElementById('cfg-azienda').value = r.azienda || "";
+    if(document.getElementById('cfg-azienda-indirizzo')) document.getElementById('cfg-azienda-indirizzo').value = r.indirizzo_azienda || "";
+    if(document.getElementById('cfg-ateco')) document.getElementById('cfg-ateco').value = r.ateco || "";
+    if(document.getElementById('cfg-nome')) document.getElementById('cfg-nome').value = r.nome || "";
+    if(document.getElementById('cfg-cf')) document.getElementById('cfg-cf').value = r.cf || "";
+    if(document.getElementById('cfg-mansione')) document.getElementById('cfg-mansione').value = r.mansione || "";
+    if(document.getElementById('cfg-nascita')) document.getElementById('cfg-nascita').value = r.nascita || "";
+    if(document.getElementById('cfg-loaded-cert-id')) document.getElementById('cfg-loaded-cert-id').value = r.id_certificato || "";
+    if(document.getElementById('cfg-sede-corso')) document.getElementById('cfg-sede-corso').value = r.sede_corso || "";
 
-        document.getElementById('cfg-data-esame').value = window.formatDataToISODate(r.data_esame);
-        document.getElementById('cfg-data-inizio').value = window.formatDataToISODate(r.data_inizio);
+    if(document.getElementById('cfg-data-esame')) document.getElementById('cfg-data-esame').value = window.formatDataToISODate(r.data_esame);
+    if(document.getElementById('cfg-data-inizio')) document.getElementById('cfg-data-inizio').value = window.formatDataToISODate(r.data_inizio);
 
-        if (r.docenti_ud && r.docenti_ud.length > 0) {
-            r.docenti_ud.forEach((docName, i) => {
-                const input = document.getElementById('docente_ud_' + i);
-                if (input) input.value = docName;
-            });
-        }
-        window.chiudiArchivio(); 
-        window.updateAll();
-    });
+    if (r.docenti_ud && r.docenti_ud.length > 0) {
+        r.docenti_ud.forEach((docName, i) => {
+            const input = document.getElementById('docente_ud_' + i);
+            if (input) input.value = docName;
+        });
+    }
+    window.chiudiArchivio(); 
+    window.updateAll();
 }
 
-// --- LOGICHE DI STAMPA SPECIFICHE ---
 window.stampaSezioneAttuale = function() {
     const isMulti = window.currentSessionCorsisti && window.currentSessionCorsisti.length > 0;
     const activeTabBtn = document.querySelector('.btn-tab.active');
@@ -759,7 +575,6 @@ window.stampaSezioneAttuale = function() {
         let printArea = document.getElementById('print-area-temp');
         printArea.innerHTML = '';
         
-        // Cerca i doc-page nel container principale e clonali nell'area temporanea
         document.querySelectorAll('#app-content .doc-page').forEach(original => {
             const clone = original.cloneNode(true);
             clone.id = "";
@@ -781,7 +596,61 @@ window.stampaSezioneAttuale = function() {
     window.preparaEStampaMassiva(activeTabId);
 }
 
-// --- ESPORTAZIONE E IMPORTAZIONE (JSON / CSV) ---
+window.stampaSoloAttestato = function() {
+    const isMulti = window.currentSessionCorsisti && window.currentSessionCorsisti.length > 0;
+    if (!isMulti) {
+        let printArea = document.getElementById('print-area-temp');
+        printArea.innerHTML = '';
+        
+        document.querySelectorAll('#app-content .doc-page').forEach(original => {
+            const clone = original.cloneNode(true);
+            clone.id = "";
+            clone.classList.remove('hidden');
+            clone.classList.add('print-show', 'temp-page', 'portrait');
+            printArea.appendChild(clone);
+        });
+
+        document.body.classList.add('is-printing-temp');
+        setTimeout(() => { 
+            window.print(); 
+            document.body.classList.remove('is-printing-temp');
+            printArea.innerHTML = ''; 
+        }, 800);
+        return;
+    }
+    window.preparaEStampaMassiva('attestato');
+}
+
+window.preparaEStampaMassiva = function(tabId) {
+    const currentIndex = document.getElementById('cfg-select-corsista').value;
+    let printArea = document.getElementById('print-area-temp');
+    printArea.innerHTML = '';
+
+    window.currentSessionCorsisti.forEach((c, idx) => {
+        document.getElementById('cfg-select-corsista').value = idx;
+        window.cambiaCorsistaSessione(); 
+        
+        document.querySelectorAll('#app-content .doc-page').forEach(original => {
+            const clone = original.cloneNode(true);
+            clone.id = "";
+            clone.classList.remove('hidden');
+            clone.classList.add('print-show', 'temp-page');
+            if(original.classList.contains('landscape')) clone.classList.add('landscape-force');
+            else clone.classList.add('portrait');
+            printArea.appendChild(clone);
+        });
+    });
+
+    document.body.classList.add('is-printing-temp');
+    setTimeout(() => { 
+        window.print(); 
+        document.body.classList.remove('is-printing-temp');
+        printArea.innerHTML = ''; 
+        document.getElementById('cfg-select-corsista').value = currentIndex;
+        window.cambiaCorsistaSessione();
+    }, 1000);
+}
+
 window.esportaJSON = function() {
     if(!window.dbCorsisti || window.dbCorsisti.length === 0) return alert("Il database è vuoto.");
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(window.dbCorsisti, null, 2));
@@ -819,7 +688,6 @@ window.esportaUniversaleCSV = function() {
     URL.revokeObjectURL(url);
 }
 
-// Nota: Per l'importazione (JSON/CSV) nel Cloud, per mantenere la stabilità, ti consiglio di iterare e usare `saveCorsistaCloud(record)` su Supabase.
 window.importaJSON = async function(event) {
     const file = event.target.files[0]; if(!file) return;
     const reader = new FileReader();
@@ -829,9 +697,9 @@ window.importaJSON = async function(event) {
             if(Array.isArray(imported)) {
                 alert("L'importazione nel Cloud inizierà in background. Attendere.");
                 for (let record of imported) {
-                    await window.saveCorsistaCloud(record); // Salva riga per riga in Supabase
+                    if (typeof window.saveCorsistaCloud === 'function') await window.saveCorsistaCloud(record);
                 }
-                window.dbCorsisti = await window.loadCloudDatabase();
+                if (typeof window.loadCloudDatabase === 'function') window.dbCorsisti = await window.loadCloudDatabase();
                 window.updateDBCounter();
                 alert("Importazione completata con successo!");
             }
@@ -858,21 +726,42 @@ window.gestisciImportazioneCSV = function(event) {
             const record = { 
                 id_certificato: cols[colMap["ID_CERTIFICATO"]], 
                 data_esame: window.formatDataToISODate(cols[colMap["DATA_ESAME_EMISSIONE"]]), 
+                data_inizio: window.formatDataToISODate(cols[colMap["DATA_INIZIO"]]), 
+                codice: cols[colMap["CODICE_INTERNO"]], 
+                calendario: cols[colMap["CALENDARIO"]] ? cols[colMap["CALENDARIO"]].replace(/\|/g, '\n') : '', 
+                azienda: cols[colMap["AZIENDA_COMMITTENTE"]], 
+                indirizzo_azienda: cols[colMap["INDIRIZZO_AZIENDA"]],
+                ateco: cols[colMap["CODICE_ATECO"]], 
                 nome: cols[colMap["COGNOME_E_NOME"]], 
-                cf: cols[colMap["CODICE_FISCALE"]],
-                corso: cols[colMap["CORSO_EROGATO"]],
-                azienda: cols[colMap["AZIENDA_COMMITTENTE"]]
-                // (Mappa gli altri campi come facevi prima)
+                nascita: cols[colMap["LUOGO_DATA_NASCITA"]], 
+                cf: cols[colMap["CODICE_FISCALE"]], 
+                mansione: cols[colMap["MANSIONE"]], 
+                corso: cols[colMap["CORSO_EROGATO"]], 
+                modalita: cols[colMap["MODALITA_EROGAZIONE"]], 
+                ore: parseInt(cols[colMap["MONTE_ORE_DIDATTICA"]]) || 0, 
+                ente: cols[colMap["SOGGETTO_FORMATORE"]], 
+                ente_indirizzo: cols[colMap["INDIRIZZO_ENTE"]], 
+                ente_contatti: cols[colMap["CONTATTI_ENTE"]], 
+                resp_corso: cols[colMap["RESP_CORSO"]], 
+                docente: cols[colMap["DOCENTE_PRINCIPALE"]] || "Docente Principale", 
+                docenti_ud: cols[colMap["DOCENTI_UD"]] ? cols[colMap["DOCENTI_UD"]].split(' | ') : [],
+                resp_progetto: cols[colMap["RESP_PROGETTO"]] || cols[colMap["RESP_CORSO"]] || "",
+                sede_corso: cols[colMap["SEDE_SVOLGIMENTO"]],
+                req_docente: cols[colMap["QUALIFICA_DOCENTE"]] || "Formatore Qualificato",
+                luogo_emissione: cols[colMap["LUOGO_EMISSIONE"]] || "Avellino"
             };
-            if(record.id_certificato) await window.saveCorsistaCloud(record);
+            if(record.id_certificato && typeof window.saveCorsistaCloud === 'function') {
+                await window.saveCorsistaCloud(record);
+            }
         }
-        window.dbCorsisti = await window.loadCloudDatabase();
+        if (typeof window.loadCloudDatabase === 'function') window.dbCorsisti = await window.loadCloudDatabase();
         window.updateDBCounter();
         alert("Importazione completata!");
         event.target.value = '';
     };
     reader.readAsText(file, 'utf-8');
 }
+
 window.attivaImportazioneCSV = function() { document.getElementById('csv-file-input').click(); }
 
 window.toggleCorrector = function() { 
@@ -888,5 +777,137 @@ window.toggleCorrector = function() {
             btn.classList.replace('bg-amber-400', 'bg-emerald-500');
         }
         if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+}
+
+window.renderAdminDashboard = function() {
+    const container = document.getElementById('admin-content');
+    if (!container) return;
+    
+    if (!window.dbCorsisti || window.dbCorsisti.length === 0) {
+        container.innerHTML = '<p class="text-center text-slate-500 py-10">Nessun dato presente nel database Cloud.</p>';
+        return;
+    }
+
+    let aziendeMap = {};
+    window.dbCorsisti.forEach(c => {
+        let azName = c.azienda || "Azienda Non Specificata";
+        let corsoName = c.corso || "Corso Non Specificato";
+        if (!aziendeMap[azName]) aziendeMap[azName] = {};
+        if (!aziendeMap[azName][corsoName]) aziendeMap[azName][corsoName] = [];
+        aziendeMap[azName][corsoName].push(c);
+    });
+
+    let html = '<div class="grid grid-cols-2 gap-4 mb-6"><div class="bg-indigo-50 border border-indigo-200 p-4 rounded-xl shadow-sm"><h4 class="text-xs text-indigo-600 font-bold uppercase mb-1">Aziende Gestite</h4><p class="text-3xl font-black text-indigo-900">' + Object.keys(aziendeMap).length + '</p></div><div class="bg-emerald-50 border border-emerald-200 p-4 rounded-xl shadow-sm"><h4 class="text-xs text-emerald-600 font-bold uppercase mb-1">Corsisti Formati</h4><p class="text-3xl font-black text-emerald-900">' + window.dbCorsisti.length + '</p></div></div><div class="space-y-6 pb-10">';
+    
+    for (let az in aziendeMap) {
+        html += '<div class="border border-slate-300 rounded-lg shadow-sm bg-white overflow-hidden break-inside-avoid"><div class="bg-slate-800 text-white p-3 font-bold text-sm uppercase flex items-center gap-2"><i data-lucide="building" class="w-4 h-4"></i> ' + az + '</div><div class="p-4 bg-slate-50 space-y-4">';
+        for (let corso in aziendeMap[az]) {
+            let corsisti = aziendeMap[az][corso];
+            html += '<div class="border border-slate-200 bg-white rounded shadow-sm overflow-hidden"><div class="bg-blue-100 p-2 border-b border-blue-200 font-bold text-blue-900 text-[11px] flex justify-between items-center uppercase"><span>' + corso + '</span><span class="bg-blue-600 text-white px-2 py-0.5 rounded-full text-[9px]">' + corsisti.length + ' Allievi</span></div><table class="w-full text-[10px] text-left"><thead class="bg-slate-50 text-slate-500 border-b border-slate-200"><tr><th class="p-2">Nominativo</th><th class="p-2">C.F.</th><th class="p-2 text-center">ID Certificato</th></tr></thead><tbody>';
+            corsisti.forEach(c => {
+                html += '<tr class="border-b border-slate-100 last:border-0 hover:bg-slate-50"><td class="p-2 font-bold text-slate-800">' + c.nome + '</td><td class="p-2 font-mono text-slate-500 uppercase">' + c.cf + '</td><td class="p-2 text-center font-mono text-[9px] bg-slate-50">' + c.id_certificato + '</td></tr>';
+            });
+            html += '</tbody></table></div>';
+        }
+        html += '</div></div>';
+    }
+    html += '</div>';
+    container.innerHTML = html;
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+window.mostraArchivio = function() {
+    const tbody = document.getElementById('archivio-rows');
+    if (!window.dbCorsisti || window.dbCorsisti.length === 0) { 
+        tbody.innerHTML = '<tr><td colspan="7" class="p-6 text-center text-slate-500 italic">Nessun record presente in archivio.</td></tr>'; 
+    } else {
+        const reverseDB = [...window.dbCorsisti].sort((a,b) => b.data_esame.localeCompare(a.data_esame));
+        let ht = "";
+        reverseDB.forEach((r, reverseIdx) => {
+            const originalIdx = window.dbCorsisti.indexOf(r);
+            ht += '<tr class="hover:bg-blue-50 transition-colors border-b border-slate-100">';
+            ht += '<td class="p-3 font-mono text-[10px] text-slate-500">' + r.id_certificato + '</td>';
+            ht += '<td class="p-3 font-bold text-slate-800">' + r.nome + '</td>';
+            ht += '<td class="p-3 font-mono text-[10px] text-slate-600">' + r.cf + '</td>';
+            ht += '<td class="p-3 text-[10px] text-slate-600">' + (r.azienda || '-') + '</td>';
+            ht += '<td class="p-3 text-xs truncate max-w-[200px]" title="' + r.corso + '">' + r.corso + '</td>';
+            ht += '<td class="p-3 text-[10px] text-slate-500">' + window.formatDataToItalian(r.data_esame) + '</td>';
+            ht += '<td class="p-3 text-center whitespace-nowrap"><button onclick="window.caricaCorsista(' + originalIdx + ')" class="bg-blue-600 text-white px-3 py-1.5 rounded text-[10px] font-bold hover:bg-blue-500 shadow">Carica</button><button onclick="window.eliminaCorsista(\'' + r.id_certificato + '\')" class="bg-red-100 text-red-600 px-3 py-1.5 rounded text-[10px] font-bold hover:bg-red-200 ml-1">X</button></td>';
+            ht += '</tr>';
+        });
+        tbody.innerHTML = ht;
+    }
+    document.getElementById('archivio-modal').classList.remove('hidden');
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+window.chiudiArchivio = function() { document.getElementById('archivio-modal').classList.add('hidden'); }
+
+window.toggleMaximizeArchivio = function() {
+    const box = document.getElementById('archivio-modal-box'); const icon = document.getElementById('icon-maximize');
+    box.classList.toggle('max-w-5xl'); box.classList.toggle('max-h-[90vh]'); box.classList.toggle('w-full'); box.classList.toggle('h-full'); box.classList.toggle('rounded-xl');
+    if (box.classList.contains('h-full')) { icon.setAttribute('data-lucide', 'minimize'); } else { icon.setAttribute('data-lucide', 'maximize'); }
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+window.filtraArchivio = function() {
+    const filter = document.getElementById('search-archivio')?.value.toLowerCase() || "";
+    const tr = document.getElementById('archivio-rows').getElementsByTagName('tr');
+    for (let i = 0; i < tr.length; i++) {
+        if(tr[i].cells.length === 1) continue; 
+        tr[i].style.display = tr[i].innerText.toLowerCase().includes(filter) ? "" : "none";
+    }
+}
+
+window.eliminaCorsista = async function(id_certificato) {
+    if(confirm("Sei sicuro di voler eliminare questo record in modo permanente dal Cloud? L'operazione è irreversibile.")) {
+        if (typeof window.deleteCorsistaCloud === 'function') {
+            await window.deleteCorsistaCloud(id_certificato);
+            window.dbCorsisti = await window.loadCloudDatabase();
+            window.updateDBCounter(); 
+            window.mostraArchivio();
+        }
+    }
+}
+
+window.mostraSessioni = function() {
+    if (!window.dbCorsisti) return;
+    const sessioni = {};
+    window.dbCorsisti.forEach(r => {
+        const key = r.codice;
+        if (!sessioni[key]) {
+            sessioni[key] = {
+                codice: r.codice, corso: r.corso, data_inizio: window.formatDataToItalian(r.data_inizio) || "---",
+                data_esame: window.formatDataToItalian(r.data_esame) || "---", data_sort: r.data_esame || "0000-00-00", 
+                azienda: r.azienda || "Nessuna Azienda", count: 0
+            };
+        }
+        sessioni[key].count++;
+    });
+
+    const tbody = document.getElementById('sessioni-rows');
+    const arrSessioni = Object.values(sessioni).sort((a,b) => b.data_sort.localeCompare(a.data_sort));
+    
+    if(arrSessioni.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center italic text-slate-500">Nessuna sessione trovata.</td></tr>';
+    } else {
+        let html = "";
+        arrSessioni.forEach(s => {
+            html += '<tr class="hover:bg-blue-50 border-b"><td class="p-3 font-mono font-bold text-slate-700">' + s.codice + '</td><td class="p-3 font-semibold text-blue-800">' + s.corso + '<br><span class="text-[9px] text-slate-500 font-normal">' + s.azienda + '</span></td><td class="p-3 text-[10px] text-center">' + s.data_inizio + '</td><td class="p-3 text-[10px] font-bold text-center">' + s.data_esame + '</td><td class="p-3 text-center"><span class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full font-bold">' + s.count + '</span></td><td class="p-3 text-center"><button onclick="window.caricaSessioneByCodice(\'' + s.codice + '\')" class="bg-blue-600 text-white px-3 py-1.5 rounded text-[10px] font-bold shadow"><i data-lucide="folder-open" class="w-3 h-3 inline"></i> Carica</button></td></tr>';
+        });
+        tbody.innerHTML = html;
+    }
+    document.getElementById('sessioni-modal').classList.remove('hidden');
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+window.chiudiSessioni = function() { document.getElementById('sessioni-modal').classList.add('hidden'); }
+window.filtraSessioni = function() {
+    const filter = document.getElementById('search-sessioni')?.value.toLowerCase() || "";
+    const tr = document.getElementById('sessioni-rows').getElementsByTagName('tr');
+    for (let i = 0; i < tr.length; i++) {
+        if(tr[i].cells.length === 1) continue; 
+        tr[i].style.display = tr[i].innerText.toLowerCase().includes(filter) ? "" : "none";
     }
 }
