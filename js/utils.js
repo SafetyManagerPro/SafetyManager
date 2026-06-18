@@ -1,5 +1,14 @@
 // js/utils.js
 
+// Variabili globali per lo stato dell'app
+window.currentTestCourseId = "";
+window.currentTestQuestions = [];
+window.correctorEnabled = false;
+window.currentSessionCorsisti = [];
+
+// ==========================================
+// UTILITY DI FORMATTAZIONE
+// ==========================================
 window.formatDataToISODate = function(dStr) {
     if (!dStr || dStr.includes('_')) return "";
     if (dStr.includes('/')) {
@@ -18,10 +27,16 @@ window.formatDataToItalian = function(dStr) {
     return dStr;
 }
 
-window.currentTestCourseId = "";
-window.currentTestQuestions = [];
-window.correctorEnabled = false;
+window.updateDBCounter = function() {
+    const counter = document.getElementById('db-counter');
+    if (counter) {
+        counter.innerText = (window.dbCorsisti ? window.dbCorsisti.length : 0) + " Corsisti nel Cloud";
+    }
+}
 
+// ==========================================
+// MOTORE PRINCIPALE: UPDATE ALL
+// ==========================================
 window.renderUDInputs = function() {
     const corsoEl = document.getElementById('cfg-corso');
     if (!corsoEl) return;
@@ -44,16 +59,6 @@ window.renderUDInputs = function() {
     if (container) container.innerHTML = html;
 }
 
-window.updateDBCounter = function() {
-    const counter = document.getElementById('db-counter');
-    if (counter) {
-        counter.innerText = (window.dbCorsisti ? window.dbCorsisti.length : 0) + " Corsisti nel Cloud";
-    }
-}
-
-// ==========================================
-// UPDATE ALL - MOTORE LOGICO PRINCIPALE
-// ==========================================
 window.updateAll = function() {
     const corsoEl = document.getElementById('cfg-corso');
     if (!corsoEl) return; 
@@ -196,7 +201,7 @@ window.updateAll = function() {
         document.getElementById('cfg-data-esame').value = offsetDate.toISOString().split('T')[0];
     }
 
-    // Aggiornamento Campi View
+    // Trasferimento valori nei campi HTML (sezione view correnti)
     const sedeInput = document.getElementById('cfg-sede-corso').value.trim();
     const sedeToDisplay = sedeInput || document.getElementById('cfg-azienda-indirizzo').value || "Sede Aziendale";
 
@@ -216,8 +221,8 @@ window.updateAll = function() {
     document.querySelectorAll('.val-resp-corso').forEach(el => el.innerText = document.getElementById('cfg-resp-corso').value);
     document.querySelectorAll('.val-resp-progetto').forEach(el => el.innerText = document.getElementById('cfg-resp-progetto').value);
     document.querySelectorAll('.val-luogo-emissione').forEach(el => el.innerText = document.getElementById('cfg-luogo-emissione').value);
-    
     document.querySelectorAll('.val-req-docente').forEach(el => el.innerText = document.getElementById('cfg-req-docente').value || "Formatore Qualificato");
+    
     const tutorVal = document.getElementById('cfg-tutor')?.value;
     document.querySelectorAll('.val-tutor').forEach(el => el.innerText = tutorVal ? tutorVal : "N/D - Non Applicabile");
     
@@ -241,6 +246,7 @@ window.updateAll = function() {
     document.querySelectorAll('.val-ente-indirizzo').forEach(el => el.innerText = document.getElementById('cfg-ente-indirizzo').value);
     document.querySelectorAll('.val-ente-contatti').forEach(el => el.innerText = document.getElementById('cfg-ente-contatti').value);
 
+    // Cert ID Generator
     let certIdStr = document.getElementById('cfg-loaded-cert-id').value;
     if(!certIdStr && codice) {
         const safeCf = (document.getElementById('cfg-cf').value || "XXX").substring(0,6);
@@ -248,6 +254,7 @@ window.updateAll = function() {
     }
     document.querySelectorAll('.val-cert-id').forEach(el => el.innerText = certIdStr || "---");
 
+    // Logo Manager
     const logoUrl = document.getElementById('cfg-logo').value;
     document.querySelectorAll('.logo-img').forEach(img => { 
         if(logoUrl){ img.src=logoUrl; img.classList.remove('hidden'); } 
@@ -256,6 +263,7 @@ window.updateAll = function() {
     
     document.querySelectorAll('.val-dicitura-legale').forEach(el => el.innerHTML = "Corso erogato in conformità al <strong>" + (c.norma || "D.Lgs. 81/08 e Accordi Stato Regioni vigenti") + "</strong>. Qualifica della Docenza Registrata: " + document.getElementById('cfg-req-docente').value + ".");
 
+    // Scadenza
     if (c.scad === 99) { 
         document.querySelectorAll('.val-scadenza').forEach(el => el.innerText = "Credito Permanente"); 
     } else if(dEsameRaw) { 
@@ -267,20 +275,25 @@ window.updateAll = function() {
         document.querySelectorAll('.val-scadenza').forEach(el => el.innerText = '--/--/-- (Agg. ' + c.scad + ' Anni)'); 
     }
 
-    // Auto-generazione Righe vuote utente singolo (Corretto con h-7 e &nbsp;)
+    // Auto-generazione Righe vuote per utente singolo (Forzato a 30 righe compatte con py-0.5)
     const vRows = document.getElementById('v-rows');
     if (vRows && !vRows.dataset.populated) {
         const nomeVal = document.getElementById('cfg-nome').value;
         const mansioneVal = document.getElementById('cfg-mansione').value;
         const cfVal = document.getElementById('cfg-cf').value;
 
-        let rr = '<tr><td class="border border-slate-800 p-1 text-center font-bold h-7">1</td><td class="border border-slate-800 p-1 bg-white leading-tight"><span class="font-bold">' + nomeVal + '</span><br><span class="text-[7px] text-slate-500 uppercase">' + (mansioneVal || '') + '</span></td><td class="border border-slate-800 p-1 text-center font-mono">' + cfVal + '</td><td class="border border-slate-800 p-1 text-center">&nbsp;</td><td class="border border-slate-800 p-1">&nbsp;</td><td class="border border-slate-800 p-1 text-center">&nbsp;</td><td class="border border-slate-800 p-1">&nbsp;</td></tr>';
-        for(let i=0; i<25; i++){ rr += '<tr><td class="border border-slate-800 p-1 h-7">&nbsp;</td><td class="border border-slate-800 p-1">&nbsp;</td><td class="border border-slate-800 p-1">&nbsp;</td><td class="border border-slate-800 p-1">&nbsp;</td><td class="border border-slate-800 p-1">&nbsp;</td><td class="border border-slate-800 p-1">&nbsp;</td><td class="border border-slate-800 p-1">&nbsp;</td></tr>'; }
+        // Registro (Landscape)
+        let rr = '<tr><td class="border border-slate-800 py-0.5 px-1 text-center font-bold">1</td><td class="border border-slate-800 py-0.5 px-1 bg-white leading-none"><span class="font-bold">' + nomeVal + '</span><br><span class="text-[6px] text-slate-500 uppercase">' + (mansioneVal || '') + '</span></td><td class="border border-slate-800 py-0.5 px-1 text-center font-mono">' + cfVal + '</td><td class="border border-slate-800 py-0.5 px-1 text-center">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1 text-center">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td></tr>';
+        for(let i=0; i<29; i++){ 
+            rr += '<tr><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td></tr>'; 
+        }
         if(document.getElementById('r-rows')) document.getElementById('r-rows').innerHTML = rr;
 
-        let vr = '<tr><td class="border border-slate-900 p-1 leading-tight h-6"><span class="font-bold">' + nomeVal + '</span><br><span class="text-[7px] text-slate-500 uppercase">' + (mansioneVal || '') + '</span></td><td class="border border-slate-900 p-1 text-center font-bold text-emerald-700">SI</td><td class="border border-slate-900 p-1 text-center italic">__ / 30</td><td class="border border-slate-900 p-1 text-center">Positivo</td><td class="border border-slate-900 p-1 text-center font-bold uppercase text-blue-700">Idoneo</td></tr>';
-        for(let i=0; i<29; i++){ vr += '<tr><td class="border border-slate-900 p-1 h-6">&nbsp;</td><td class="border border-slate-900 p-1">&nbsp;</td><td class="border border-slate-900 p-1">&nbsp;</td><td class="border border-slate-900 p-1">&nbsp;</td><td class="border border-slate-900 p-1">&nbsp;</td></tr>'; }
-        
+        // Verbale (Portrait)
+        let vr = '<tr><td class="border border-slate-900 py-0.5 px-1 leading-tight"><span class="font-bold">' + nomeVal + '</span><br><span class="text-[6.5px] text-slate-500 uppercase">' + (mansioneVal || '') + '</span></td><td class="border border-slate-900 py-0.5 px-1 text-center font-bold text-emerald-700">SI</td><td class="border border-slate-900 py-0.5 px-1 text-center italic">__ / 30</td><td class="border border-slate-900 py-0.5 px-1 text-center">Positivo</td><td class="border border-slate-900 py-0.5 px-1 text-center font-bold uppercase text-blue-700">Idoneo</td></tr>';
+        for(let i=0; i<29; i++){ 
+            vr += '<tr><td class="border border-slate-900 py-0.5 px-1">&nbsp;</td><td class="border border-slate-900 py-0.5 px-1">&nbsp;</td><td class="border border-slate-900 py-0.5 px-1">&nbsp;</td><td class="border border-slate-900 py-0.5 px-1">&nbsp;</td><td class="border border-slate-900 py-0.5 px-1">&nbsp;</td></tr>'; 
+        }
         vRows.innerHTML = vr;
         vRows.dataset.populated = "true";
     }
@@ -288,32 +301,33 @@ window.updateAll = function() {
     if (window.currentSessionCorsisti && window.currentSessionCorsisti.length > 0) {
         if(typeof window.aggiornaTabelleSessione === 'function') window.aggiornaTabelleSessione();
     }
+
     window.updateTests();
 }
 
 // ==========================================
-// AGGIORNA TABELLE SESSIONE (MULTI UTENTE)
+// RIGHE TABELLE PER MULTI UTENTE (30 RIGHE)
 // ==========================================
 window.aggiornaTabelleSessione = function() {
     if (!window.currentSessionCorsisti || window.currentSessionCorsisti.length === 0) return;
     let rRows = ""; let vRows = "";
     
     window.currentSessionCorsisti.forEach((c, idx) => {
-        rRows += '<tr><td class="border border-slate-800 p-1 text-center font-bold h-7">' + (idx + 1) + '</td><td class="border border-slate-800 p-1 bg-white leading-tight"><span class="font-bold">' + c.nome + '</span><br><span class="text-[7px] text-slate-500 uppercase">' + (c.mansione || '') + '</span></td><td class="border border-slate-800 p-1 text-center font-mono">' + c.cf + '</td><td class="border border-slate-800 p-1 text-center">&nbsp;</td><td class="border border-slate-800 p-1">&nbsp;</td><td class="border border-slate-800 p-1 text-center">&nbsp;</td><td class="border border-slate-800 p-1">&nbsp;</td></tr>';
+        rRows += '<tr><td class="border border-slate-800 py-0.5 px-1 text-center font-bold">' + (idx + 1) + '</td><td class="border border-slate-800 py-0.5 px-1 bg-white leading-none"><span class="font-bold">' + c.nome + '</span><br><span class="text-[6px] text-slate-500 uppercase">' + (c.mansione || '') + '</span></td><td class="border border-slate-800 py-0.5 px-1 text-center font-mono">' + c.cf + '</td><td class="border border-slate-800 py-0.5 px-1 text-center">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1 text-center">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td></tr>';
         
-        vRows += '<tr><td class="border border-slate-900 p-1 leading-tight h-6"><span class="font-bold">' + c.nome + '</span><br><span class="text-[7px] text-slate-500 uppercase">' + (c.mansione || '') + '</span></td><td class="border border-slate-900 p-1 text-center font-bold text-emerald-700">SI</td><td class="border border-slate-900 p-1 text-center italic">__ / 30</td><td class="border border-slate-900 p-1 text-center">Positivo</td><td class="border border-slate-900 p-1 text-center font-black uppercase text-blue-700">Idoneo</td></tr>';
+        vRows += '<tr><td class="border border-slate-900 py-0.5 px-1 leading-tight"><span class="font-bold">' + c.nome + '</span><br><span class="text-[6.5px] text-slate-500 uppercase">' + (c.mansione || '') + '</span></td><td class="border border-slate-900 py-0.5 px-1 text-center font-bold text-emerald-700">SI</td><td class="border border-slate-900 py-0.5 px-1 text-center italic">__ / 30</td><td class="border border-slate-900 py-0.5 px-1 text-center">Positivo</td><td class="border border-slate-900 py-0.5 px-1 text-center font-black uppercase text-blue-700">Idoneo</td></tr>';
     });
 
-    const TOTAL_ROWS_REGISTRO = 26;
+    const TOTAL_ROWS_REGISTRO = 30;
     const remainingR = Math.max(0, TOTAL_ROWS_REGISTRO - window.currentSessionCorsisti.length);
     for(let i=0; i<remainingR; i++){
-        rRows += '<tr><td class="border border-slate-800 p-1 h-7">&nbsp;</td><td class="border border-slate-800 p-1">&nbsp;</td><td class="border border-slate-800 p-1">&nbsp;</td><td class="border border-slate-800 p-1">&nbsp;</td><td class="border border-slate-800 p-1">&nbsp;</td><td class="border border-slate-800 p-1">&nbsp;</td><td class="border border-slate-800 p-1">&nbsp;</td></tr>';
+        rRows += '<tr><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td></tr>';
     }
     
     const TOTAL_ROWS_VERBALE = 30;
     const remainingV = Math.max(0, TOTAL_ROWS_VERBALE - window.currentSessionCorsisti.length);
     for(let i=0; i<remainingV; i++){
-        vRows += '<tr><td class="border border-slate-900 p-1 h-6">&nbsp;</td><td class="border border-slate-900 p-1">&nbsp;</td><td class="border border-slate-900 p-1">&nbsp;</td><td class="border border-slate-900 p-1">&nbsp;</td><td class="border border-slate-900 p-1">&nbsp;</td></tr>';
+        vRows += '<tr><td class="border border-slate-900 py-0.5 px-1">&nbsp;</td><td class="border border-slate-900 py-0.5 px-1">&nbsp;</td><td class="border border-slate-900 py-0.5 px-1">&nbsp;</td><td class="border border-slate-900 py-0.5 px-1">&nbsp;</td><td class="border border-slate-900 py-0.5 px-1">&nbsp;</td></tr>';
     }
 
     if(document.getElementById('r-rows')) document.getElementById('r-rows').innerHTML = rRows;
@@ -435,6 +449,7 @@ window.normalizeDatabase = function() {
     });
 }
 
+// Handler dei form laterali
 window.cambioCorso = function() {
     window.pulisciCertIdCaricato();
     window.renderUDInputs();
@@ -442,13 +457,11 @@ window.cambioCorso = function() {
     if (calEl) calEl.value = ""; 
     window.updateAll();
 }
-
 window.cambiaDataInizio = function() {
     const calEl = document.getElementById('cfg-calendario');
     if (calEl) calEl.value = ""; 
     window.updateAll();
 }
-
 window.forzaAggiornamento = function() {
     window.updateAll();
     const btn = document.getElementById('btn-aggiorna');
@@ -464,7 +477,6 @@ window.forzaAggiornamento = function() {
         }, 1500);
     }
 }
-
 window.caricaLogoFile = function(event) {
     const file = event.target.files[0]; if (!file) return;
     const reader = new FileReader();
@@ -472,7 +484,7 @@ window.caricaLogoFile = function(event) {
     reader.readAsDataURL(file);
 }
 
-window.currentSessionCorsisti = [];
+// Session e Corsista Management
 window.pulisciCertIdCaricato = function() {
     if(document.getElementById('cfg-loaded-cert-id')) document.getElementById('cfg-loaded-cert-id').value = "";
     if(document.getElementById('cfg-nome')) document.getElementById('cfg-nome').value = "";
@@ -482,7 +494,6 @@ window.pulisciCertIdCaricato = function() {
     window.currentSessionCorsisti = [];
     window.updateAll();
 }
-
 window.cambiaCorsistaSessione = function() {
     const selectEl = document.getElementById('cfg-select-corsista');
     if(!selectEl) return;
@@ -506,7 +517,6 @@ window.cambiaCorsistaSessione = function() {
         window.updateAll();
     }
 }
-
 window.caricaSessioneByCodice = function(codice) {
     const sessionCorsisti = window.dbCorsisti.filter(r => r.codice === codice);
     if (sessionCorsisti.length === 0) return alert("Errore nel caricamento della sessione.");
@@ -532,7 +542,6 @@ window.caricaSessioneByCodice = function(codice) {
     window.updateAll();
     alert("Sessione [" + codice + "] caricata con successo (" + sessionCorsisti.length + " Corsisti).");
 }
-
 window.caricaCorsista = function(idx) {
     const r = window.dbCorsisti[idx];
     let courseKey = "lav_basso"; 
@@ -550,7 +559,6 @@ window.caricaCorsista = function(idx) {
     if(document.getElementById('cfg-nascita')) document.getElementById('cfg-nascita').value = r.nascita || "";
     if(document.getElementById('cfg-loaded-cert-id')) document.getElementById('cfg-loaded-cert-id').value = r.id_certificato || "";
     if(document.getElementById('cfg-sede-corso')) document.getElementById('cfg-sede-corso').value = r.sede_corso || "";
-
     if(document.getElementById('cfg-data-esame')) document.getElementById('cfg-data-esame').value = window.formatDataToISODate(r.data_esame);
     if(document.getElementById('cfg-data-inizio')) document.getElementById('cfg-data-inizio').value = window.formatDataToISODate(r.data_inizio);
 
@@ -564,6 +572,7 @@ window.caricaCorsista = function(idx) {
     window.updateAll();
 }
 
+// Stampe
 window.stampaSezioneAttuale = function() {
     const isMulti = window.currentSessionCorsisti && window.currentSessionCorsisti.length > 0;
     const activeTabBtn = document.querySelector('.btn-tab.active');
@@ -651,6 +660,7 @@ window.preparaEStampaMassiva = function(tabId) {
     }, 1000);
 }
 
+// Esportazione e Importazione
 window.esportaJSON = function() {
     if(!window.dbCorsisti || window.dbCorsisti.length === 0) return alert("Il database è vuoto.");
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(window.dbCorsisti, null, 2));
@@ -761,7 +771,6 @@ window.gestisciImportazioneCSV = function(event) {
     };
     reader.readAsText(file, 'utf-8');
 }
-
 window.attivaImportazioneCSV = function() { document.getElementById('csv-file-input').click(); }
 
 window.toggleCorrector = function() { 
@@ -780,6 +789,7 @@ window.toggleCorrector = function() {
     }
 }
 
+// Admin Dashboard, Archivio e Sessioni
 window.renderAdminDashboard = function() {
     const container = document.getElementById('admin-content');
     if (!container) return;
@@ -843,14 +853,12 @@ window.mostraArchivio = function() {
 }
 
 window.chiudiArchivio = function() { document.getElementById('archivio-modal').classList.add('hidden'); }
-
 window.toggleMaximizeArchivio = function() {
     const box = document.getElementById('archivio-modal-box'); const icon = document.getElementById('icon-maximize');
     box.classList.toggle('max-w-5xl'); box.classList.toggle('max-h-[90vh]'); box.classList.toggle('w-full'); box.classList.toggle('h-full'); box.classList.toggle('rounded-xl');
     if (box.classList.contains('h-full')) { icon.setAttribute('data-lucide', 'minimize'); } else { icon.setAttribute('data-lucide', 'maximize'); }
     if (typeof lucide !== 'undefined') lucide.createIcons();
 }
-
 window.filtraArchivio = function() {
     const filter = document.getElementById('search-archivio')?.value.toLowerCase() || "";
     const tr = document.getElementById('archivio-rows').getElementsByTagName('tr');
@@ -859,7 +867,6 @@ window.filtraArchivio = function() {
         tr[i].style.display = tr[i].innerText.toLowerCase().includes(filter) ? "" : "none";
     }
 }
-
 window.eliminaCorsista = async function(id_certificato) {
     if(confirm("Sei sicuro di voler eliminare questo record in modo permanente dal Cloud? L'operazione è irreversibile.")) {
         if (typeof window.deleteCorsistaCloud === 'function') {
@@ -901,7 +908,6 @@ window.mostraSessioni = function() {
     document.getElementById('sessioni-modal').classList.remove('hidden');
     if (typeof lucide !== 'undefined') lucide.createIcons();
 }
-
 window.chiudiSessioni = function() { document.getElementById('sessioni-modal').classList.add('hidden'); }
 window.filtraSessioni = function() {
     const filter = document.getElementById('search-sessioni')?.value.toLowerCase() || "";
