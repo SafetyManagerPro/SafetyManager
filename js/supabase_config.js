@@ -1,6 +1,6 @@
 // js/supabase_config.js
-const SUPABASE_URL = 'INSERISCI_QUI_IL_TUO_URL_SUPABASE';
-const SUPABASE_ANON_KEY = 'INSERISCI_QUI_LA_TUA_CHIAVE_ANON_SUPABASE';
+const SUPABASE_URL = 'https://gblcedkfnasqlnrxupzx.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdibGNlZGtmbmFzcWxucnh1cHp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3NDU3NzksImV4cCI6MjA5NzMyMTc3OX0.KKt8nVCPnYsdHBITY0w901CvLweIVdmxJWVgEVCPDNs';
 
 // Inizializza il client Supabase (la libreria viene caricata nell'index.html)
 const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
