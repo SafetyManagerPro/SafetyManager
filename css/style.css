@@ -15,8 +15,20 @@ body { background-color: #f8fafc; color: #1e293b; }
 /* ---------------------------------------------------- */
 /* FORZATURA ASSOLUTA BORDI REGISTRI E VERBALI          */
 /* ---------------------------------------------------- */
-.table-bordered { border-collapse: collapse !important; width: 100% !important; }
-.table-bordered th, .table-bordered td { border: 1px solid #1e293b !important; }
+.table-bordered { 
+    border-collapse: collapse !important; 
+    width: 100% !important; 
+}
+.table-bordered th, .table-bordered td { 
+    border: 1px solid #1e293b !important; 
+}
+
+@media print {
+    /* FORZA IL BORDO A 1PX ESATTO NERO SU CARTA */
+    .table-bordered th, .table-bordered td { 
+        border: 1px solid #000000 !important; 
+    }
+}
 
 @media print {
     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; font-family: Arial, Helvetica, sans-serif !important; overflow: visible !important; }
