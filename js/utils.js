@@ -1,5 +1,5 @@
 // js/utils.js
-
+window.AppState = window.AppState || {};
 // ==========================================
 // VARIABILI GLOBALI
 // ==========================================
