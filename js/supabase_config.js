@@ -4,61 +4,56 @@
 const SUPABASE_URL = 'https://gblcedkfnasqlnrxupzx.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdibGNlZGtmbmFzcWxucnh1cHp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3NDU3NzksImV4cCI6MjA5NzMyMTc3OX0.KKt8nVCPnYsdHBITY0w901CvLweIVdmxJWVgEVCPDNs';
 
-// Usiamo window.supabase (fornito dalla CDN) e lo salviamo in una variabile DIVERSA per non creare conflitti
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// Funzione globale di Lettura
-window.loadCloudDatabase = async function() {
+// ==========================================
+// API AZIENDE (CRM)
+// ==========================================
+
+// Legge tutte le aziende in ordine alfabetico
+window.getAziende = async function() {
     try {
         const { data, error } = await supabaseClient
-            .from('corsisti')
+            .from('aziende')
             .select('*')
-            .order('created_at', { ascending: false });
+            .order('ragione_sociale', { ascending: true });
             
-        if (error) { 
-            console.error("Supabase READ Error:", error); 
-            return []; 
-        }
+        if (error) throw error;
         return data || [];
     } catch (err) {
-        console.error("Errore di connessione Supabase:", err);
+        console.error("Errore lettura Aziende:", err);
         return [];
     }
 };
 
-// Funzione globale di Salvataggio
-window.saveCorsistaCloud = async function(record) {
+// Crea o aggiorna un'azienda
+window.saveAzienda = async function(record) {
     try {
         const { data, error } = await supabaseClient
-            .from('corsisti')
-            .upsert(record, { onConflict: 'id_certificato' });
+            .from('aziende')
+            .upsert(record)
+            .select();
             
-        if (error) { 
-            console.error("Supabase UPSERT Error:", error); 
-            return false; 
-        }
-        return true;
+        if (error) throw error;
+        return data;
     } catch (err) {
-        console.error("Errore invio dati:", err);
+        console.error("Errore salvataggio Azienda:", err);
         return false;
     }
 };
 
-// Funzione globale di Eliminazione
-window.deleteCorsistaCloud = async function(id_certificato) {
+// Elimina un'azienda tramite ID
+window.deleteAzienda = async function(id) {
     try {
         const { error } = await supabaseClient
-            .from('corsisti')
+            .from('aziende')
             .delete()
-            .eq('id_certificato', id_certificato);
+            .eq('id', id);
             
-        if (error) { 
-            console.error("Supabase DELETE Error:", error); 
-            return false; 
-        }
+        if (error) throw error;
         return true;
     } catch (err) {
-        console.error("Errore eliminazione:", err);
+        console.error("Errore eliminazione Azienda:", err);
         return false;
     }
 };
