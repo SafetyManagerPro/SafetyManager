@@ -57,3 +57,53 @@ window.deleteAzienda = async function(id) {
         return false;
     }
 };
+// ==========================================
+// API DOCENTI
+// ==========================================
+window.getDocenti = async function() {
+    try {
+        const { data, error } = await supabaseClient.from('docenti').select('*').order('nome_cognome');
+        if (error) throw error; return data || [];
+    } catch (err) { console.error(err); return []; }
+};
+
+window.saveDocente = async function(record) {
+    try {
+        const { data, error } = await supabaseClient.from('docenti').upsert(record).select();
+        if (error) throw error; return data;
+    } catch (err) { console.error(err); return false; }
+};
+
+window.deleteDocente = async function(id) {
+    try {
+        const { error } = await supabaseClient.from('docenti').delete().eq('id', id);
+        if (error) throw error; return true;
+    } catch (err) { console.error(err); return false; }
+};
+
+// ==========================================
+// API CORSISTI (Con Join su Aziende)
+// ==========================================
+window.getCorsisti = async function() {
+    try {
+        const { data, error } = await supabaseClient
+            .from('corsisti')
+            .select('*, aziende(ragione_sociale)')
+            .order('nome_cognome');
+        if (error) throw error; return data || [];
+    } catch (err) { console.error(err); return []; }
+};
+
+window.saveCorsistaData = async function(record) {
+    try {
+        const { data, error } = await supabaseClient.from('corsisti').upsert(record).select();
+        if (error) throw error; return data;
+    } catch (err) { console.error(err); return false; }
+};
+
+window.deleteCorsistaData = async function(id) {
+    try {
+        const { error } = await supabaseClient.from('corsisti').delete().eq('id', id);
+        if (error) throw error; return true;
+    } catch (err) { console.error(err); return false; }
+};
