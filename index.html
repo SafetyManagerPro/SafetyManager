@@ -51,5 +51,55 @@
     <script src="js/supabase_config.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/app.js"></script>
+    <!-- Modale Archivio -->
+<div id="archivio-modal" class="no-print fixed inset-0 bg-slate-900/60 hidden z-[100] flex items-center justify-center p-4 backdrop-blur-sm transition-opacity">
+    <div id="archivio-modal-box" class="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col transition-all duration-300 overflow-hidden">
+        <div class="p-4 border-b flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-50">
+            <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2 whitespace-nowrap">
+                <i data-lucide="database" class="w-5 h-5 text-blue-600"></i> Archivio Corsisti (Cloud)
+            </h2>
+            <div class="flex-1 w-full max-w-md mx-4">
+                <input type="text" id="search-archivio" oninput="window.filtraArchivio()" placeholder="Cerca per nome, azienda o corso..." class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg outline-none shadow-sm">
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="window.toggleMaximizeArchivio()" class="p-2 text-slate-500 hover:bg-blue-100 rounded-lg"><i data-lucide="maximize" id="icon-maximize" class="w-5 h-5"></i></button>
+                <button onclick="window.chiudiArchivio()" class="p-2 text-slate-500 hover:bg-red-100 hover:text-red-600 rounded-lg"><i data-lucide="x" class="w-6 h-6"></i></button>
+            </div>
+        </div>
+        <div class="flex-1 overflow-auto bg-slate-50/50 p-4">
+            <table class="w-full text-xs text-left bg-white shadow-sm rounded-lg overflow-hidden border-collapse">
+                <thead class="sticky top-0 bg-slate-100 shadow-sm z-10">
+                    <tr><th class="p-3 border-b">ID Certificato</th><th class="p-3 border-b">Corsista</th><th class="p-3 border-b">C.F.</th><th class="p-3 border-b">Azienda</th><th class="p-3 border-b">Corso</th><th class="p-3 border-b">Data</th><th class="p-3 border-b text-center">Azioni</th></tr>
+                </thead>
+                <tbody id="archivio-rows" class="divide-y divide-slate-100"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modale Sessioni -->
+<div id="sessioni-modal" class="no-print fixed inset-0 bg-slate-900/60 hidden z-[100] flex items-center justify-center p-4 backdrop-blur-sm transition-opacity">
+    <div id="sessioni-modal-box" class="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col transition-all duration-300 overflow-hidden">
+        <div class="p-4 border-b flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-50">
+            <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2 whitespace-nowrap">
+                <i data-lucide="folders" class="w-5 h-5 text-blue-600"></i> Gestione Corsi / Sessioni
+            </h2>
+            <div class="flex-1 w-full max-w-md mx-4">
+                <input type="text" id="search-sessioni" oninput="window.filtraSessioni()" placeholder="Cerca per codice, azienda o corso..." class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg outline-none shadow-sm">
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="window.chiudiSessioni()" class="p-2 text-slate-500 hover:bg-red-100 hover:text-red-600 rounded-lg"><i data-lucide="x" class="w-6 h-6"></i></button>
+            </div>
+        </div>
+        <div class="flex-1 overflow-auto bg-slate-50/50 p-4">
+            <table class="w-full text-xs text-left border-collapse bg-white shadow-sm rounded-lg overflow-hidden">
+                <thead class="sticky top-0 bg-slate-100 shadow-sm z-10">
+                    <tr><th class="p-3 border-b">Codice Progetto</th><th class="p-3 border-b">Azienda / Corso</th><th class="p-3 border-b text-center">Inizio</th><th class="p-3 border-b text-center">Esame</th><th class="p-3 border-b text-center">N. Corsisti</th><th class="p-3 border-b text-center">Azioni</th></tr>
+                </thead>
+                <tbody id="sessioni-rows" class="divide-y divide-slate-100"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
 </body>
 </html>
