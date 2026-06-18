@@ -307,24 +307,32 @@ window.updateAll = function() {
 window.aggiornaTabelleSessione = function() {
     if (!window.currentSessionCorsisti || window.currentSessionCorsisti.length === 0) return;
     let rRows = ""; let vRows = "";
+    
+    // Genera le righe compilate
     window.currentSessionCorsisti.forEach((c, idx) => {
-        rRows += '<tr><td class="border border-slate-800 p-1 text-center font-bold h-6">' + (idx + 1) + '</td><td class="border border-slate-800 p-1 bg-white leading-tight"><span class="font-bold">' + c.nome + '</span><br><span class="text-[7px] text-slate-500 uppercase">' + (c.mansione || '') + '</span></td><td class="border border-slate-800 p-1 text-center font-mono">' + c.cf + '</td><td class="border border-slate-800 p-1 text-center">...</td><td class="border border-slate-800 p-1"></td><td class="border border-slate-800 p-1 text-center">...</td><td class="border border-slate-800 p-1"></td></tr>';
-        vRows += '<tr><td class="border border-slate-900 p-1 leading-tight h-5"><span class="font-bold">' + c.nome + '</span><br><span class="text-[7px] text-slate-500 uppercase">' + (c.mansione || '') + '</span></td><td class="border border-slate-900 p-1 text-center font-bold text-emerald-700">SI</td><td class="border border-slate-900 p-1 text-center italic">__ / 30</td><td class="border border-slate-900 p-1 text-center">Positivo</td><td class="border border-slate-900 p-1 text-center font-black uppercase text-blue-700">Idoneo</td></tr>';
+        rRows += '<tr><td class="border border-slate-800 p-1 text-center font-bold">' + (idx + 1) + '</td><td class="border border-slate-800 p-1 bg-white leading-tight"><span class="font-bold">' + c.nome + '</span><br><span class="text-[7px] text-slate-500 uppercase">' + (c.mansione || '') + '</span></td><td class="border border-slate-800 p-1 text-center font-mono">' + c.cf + '</td><td class="border border-slate-800 p-1 text-center">...</td><td class="border border-slate-800 p-1"></td><td class="border border-slate-800 p-1 text-center">...</td><td class="border border-slate-800 p-1"></td></tr>';
+        
+        vRows += '<tr><td class="border border-slate-900 p-1 leading-tight"><span class="font-bold">' + c.nome + '</span><br><span class="text-[7px] text-slate-500 uppercase">' + (c.mansione || '') + '</span></td><td class="border border-slate-900 p-1 text-center font-bold text-emerald-700">SI</td><td class="border border-slate-900 p-1 text-center italic">__ / 30</td><td class="border border-slate-900 p-1 text-center">Positivo</td><td class="border border-slate-900 p-1 text-center font-black uppercase text-blue-700">Idoneo</td></tr>';
     });
 
-    const remainingR = Math.max(0, 30 - window.currentSessionCorsisti.length);
+    // Costante ottimale di righe per A4 Orizzontale = 26
+    const TOTAL_ROWS_REGISTRO = 26;
+    const remainingR = Math.max(0, TOTAL_ROWS_REGISTRO - window.currentSessionCorsisti.length);
     for(let i=0; i<remainingR; i++){
-        rRows += '<tr><td class="border border-slate-800 p-1 h-6"></td><td class="border border-slate-800 p-1"></td><td class="border border-slate-800 p-1"></td><td class="border border-slate-800 p-1"></td><td class="border border-slate-800 p-1"></td><td class="border border-slate-800 p-1"></td><td class="border border-slate-800 p-1"></td></tr>';
+        rRows += '<tr><td class="border border-slate-800 p-1"></td><td class="border border-slate-800 p-1"></td><td class="border border-slate-800 p-1"></td><td class="border border-slate-800 p-1"></td><td class="border border-slate-800 p-1"></td><td class="border border-slate-800 p-1"></td><td class="border border-slate-800 p-1"></td></tr>';
     }
     
-    const remainingV = Math.max(0, 30 - window.currentSessionCorsisti.length);
+    // Costante ottimale per A4 Verticale (Verbale) = 30
+    const TOTAL_ROWS_VERBALE = 30;
+    const remainingV = Math.max(0, TOTAL_ROWS_VERBALE - window.currentSessionCorsisti.length);
     for(let i=0; i<remainingV; i++){
-        vRows += '<tr><td class="border border-slate-900 p-1 h-5"></td><td class="border border-slate-900 p-1"></td><td class="border border-slate-900 p-1"></td><td class="border border-slate-900 p-1"></td><td class="border border-slate-900 p-1"></td></tr>';
+        vRows += '<tr><td class="border border-slate-900 p-1"></td><td class="border border-slate-900 p-1"></td><td class="border border-slate-900 p-1"></td><td class="border border-slate-900 p-1"></td><td class="border border-slate-900 p-1"></td></tr>';
     }
 
     if(document.getElementById('r-rows')) document.getElementById('r-rows').innerHTML = rRows;
     if(document.getElementById('v-rows')) document.getElementById('v-rows').innerHTML = vRows;
     
+    // Popolamento select corsista (modulo configurazione)
     const selectEl = document.getElementById('cfg-select-corsista');
     if(selectEl) {
         const currVal = selectEl.value;
