@@ -1563,3 +1563,173 @@ window.rimuoviIscrizione = async function(id) {
         if(await window.deleteIscrizione(id)) await window.loadIscrittiTable();
     }
 };
+// ==========================================
+// LOGICA CRM: ENTE E STAMPE
+// ==========================================
+
+// --- ENTE ---
+window.loadEnteData = async function() {
+    const ente = await window.getEnte();
+    if(ente) {
+        document.getElementById('ente-id').value = ente.id;
+        document.getElementById('ente-ragione').value = ente.ragione_sociale || "";
+        document.getElementById('ente-piva').value = ente.piva_cf || "";
+        document.getElementById('ente-indirizzo').value = ente.indirizzo || "";
+        document.getElementById('ente-contatti').value = ente.contatti || "";
+        document.getElementById('ente-legale-nome').value = ente.legale_nome || "";
+        document.getElementById('ente-legale-nascita').value = ente.legale_nascita || "";
+        document.getElementById('ente-luogo-emissione').value = ente.luogo_emissione || "";
+        
+        if(ente.logo_url) {
+            document.getElementById('cfg-logo').value = ente.logo_url;
+            window.AppState['cfg-logo'] = ente.logo_url;
+        }
+        
+        // Salviamo in AppState così i moduli di stampa pescano da qui
+        window.AppState['cfg-ente'] = ente.ragione_sociale;
+        window.AppState['cfg-ente-indirizzo'] = ente.indirizzo;
+        window.AppState['cfg-ente-contatti'] = ente.contatti;
+        window.AppState['cfg-luogo-emissione'] = ente.luogo_emissione;
+        window.AppState['cfg-legale-nome'] = ente.legale_nome;
+        window.AppState['cfg-legale-nascita'] = ente.legale_nascita;
+    }
+};
+
+window.salvaEnteDB = async function() {
+    const id = document.getElementById('ente-id').value;
+    const record = {
+        ragione_sociale: document.getElementById('ente-ragione').value.trim(),
+        piva_cf: document.getElementById('ente-piva').value.trim(),
+        indirizzo: document.getElementById('ente-indirizzo').value.trim(),
+        contatti: document.getElementById('ente-contatti').value.trim(),
+        legale_nome: document.getElementById('ente-legale-nome').value.trim(),
+        legale_nascita: document.getElementById('ente-legale-nascita').value.trim(),
+        luogo_emissione: document.getElementById('ente-luogo-emissione').value.trim(),
+        logo_url: document.getElementById('cfg-logo').value // base64
+    };
+    if (id) record.id = id;
+
+    const salvato = await window.saveEnteData(record);
+    if(salvato) {
+        alert("Dati Ente aggiornati con successo!");
+        await window.loadEnteData();
+    }
+};
+
+// --- AREA STAMPE ---
+window.initStampe = async function() {
+    const sel = document.getElementById('stampa-progetto');
+    if(!sel) return;
+    
+    if(window.progettiList.length === 0) window.progettiList = await window.getProgetti();
+    
+    let html = '<option value="">-- Seleziona un progetto --</option>';
+    window.progettiList.forEach(p => {
+        const azName = p.aziende ? p.aziende.ragione_sociale : '';
+        html += `<option value="${p.id}">${p.codice} - ${azName}</option>`;
+    });
+    sel.innerHTML = html;
+};
+
+window.currentPrintModule = "";
+
+window.caricaDatiStampa = async function() {
+    const progId = document.getElementById('stampa-progetto').value;
+    if(!progId) return;
+
+    const p = window.progettiList.find(x => x.id === progId);
+    if(!p) return;
+
+    // Recupera docenti e iscritti dal DB
+    if(window.docentiList.length === 0) window.docentiList = await window.getDocenti();
+    const doc = window.docentiList.find(d => d.id === p.docente_principale);
+    const iscritti = await window.getIscrizioni(progId);
+
+    // TRADUZIONE: Travasa i dati del Database nel vecchio 'AppState' per permettere la stampa!
+    window.AppState['cfg-corso'] = p.corso_id;
+    window.AppState['cfg-codice'] = p.codice;
+    window.AppState['cfg-modalita'] = p.modalita;
+    window.AppState['cfg-data-inizio'] = p.data_inizio;
+    window.AppState['cfg-data-esame'] = p.data_esame;
+    window.AppState['cfg-sede-corso'] = p.sede;
+    window.AppState['cfg-azienda'] = p.aziende ? p.aziende.ragione_sociale : "";
+    window.AppState['cfg-ateco'] = p.aziende ? p.aziende.ateco : "";
+    window.AppState['cfg-azienda-indirizzo'] = p.aziende ? p.aziende.indirizzo : "";
+    window.AppState['cfg-docente'] = doc ? doc.nome_cognome : "Docente";
+    window.AppState['cfg-req-docente'] = doc ? doc.qualifica : "Formatore Qualificato";
+
+    // Imposta la sessione dei corsisti per i Registri e i Verbali
+    window.currentSessionCorsisti = iscritti.map(isc => ({
+        nome: isc.corsisti.nome_cognome,
+        cf: isc.corsisti.cf,
+        nascita: isc.corsisti.luogo_data_nascita,
+        mansione: isc.mansione_storica || "",
+        id_certificato: isc.id_certificato
+    }));
+
+    // Se c'è un documento già aperto nell'anteprima, ricaricalo con i nuovi dati
+    if(window.currentPrintModule) {
+        window.loadPrintPreview(window.currentPrintModule);
+    }
+};
+
+window.loadPrintPreview = async function(modulo) {
+    const progId = document.getElementById('stampa-progetto').value;
+    if(!progId) return alert("Seleziona prima un Progetto dal menu a tendina!");
+
+    window.currentPrintModule = modulo;
+    const container = document.getElementById('print-preview-container');
+    
+    try {
+        const response = await fetch(`modules/${modulo}.html`);
+        if(!response.ok) throw new Error("File del documento non trovato.");
+        const html = await response.text();
+        
+        container.innerHTML = html;
+        
+        // Disabilita lo shadow nativo per permettere la preview
+        container.querySelectorAll('.doc-page').forEach(doc => {
+            doc.style.margin = "0";
+            doc.classList.add('scale-[0.8]', 'origin-top'); 
+        });
+
+        // Esegue l'update per renderizzare i dati appena pescati
+        if (typeof window.updateAll === 'function') {
+            window.updateAll();
+        }
+
+    } catch (error) {
+        container.innerHTML = `<p class="text-red-500 font-bold">${error.message}</p>`;
+    }
+};
+
+// Adatta la funzione di stampa per pescare dall'anteprima
+window.stampaSezioneAttuale = function() {
+    if(!window.currentPrintModule) return alert("Seleziona un documento da stampare.");
+    
+    const printArea = document.getElementById('print-area-temp');
+    printArea.innerHTML = '';
+    
+    const docOriginale = document.querySelector('#print-preview-container .doc-page');
+    if(!docOriginale) return;
+
+    if(window.currentPrintModule === 'attestato' && window.currentSessionCorsisti.length > 0) {
+        window.preparaEStampaMassiva(window.currentPrintModule);
+        return;
+    }
+
+    const clone = docOriginale.cloneNode(true);
+    clone.classList.remove('scale-[0.8]', 'origin-top');
+    clone.classList.add('print-show', 'temp-page');
+    if(docOriginale.classList.contains('landscape')) clone.classList.add('landscape-force');
+    else clone.classList.add('portrait');
+    
+    printArea.appendChild(clone);
+
+    document.body.classList.add('is-printing-temp');
+    setTimeout(() => { 
+        window.print(); 
+        document.body.classList.remove('is-printing-temp');
+        printArea.innerHTML = ''; 
+    }, 800);
+};
