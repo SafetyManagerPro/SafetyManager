@@ -289,3 +289,349 @@ window.filtraSessioni = function() {
         tr[i].style.display = tr[i].innerText.toLowerCase().includes(filter) ? "" : "none";
     }
 }
+// =====================================================================
+// FUNZIONI MANCANTI: LOGICHE DI GESTIONE, SESSIONI, STAMPE ED EXPORT
+// Da aggiungere alla fine di js/utils.js
+// =====================================================================
+
+// --- GENERAZIONE DOMANDE ESAME ---
+window.generateTestQuestions = function(courseId) {
+    let distribution = [];
+    if (courseId === 'lav_basso' || courseId === 'agg_lav') distribution = [{p: window.POOL_GENERALE, c: 15}, {p: window.POOL_BASSO, c: 15}];
+    else if (courseId === 'lav_medio') distribution = [{p: window.POOL_GENERALE, c: 10}, {p: window.POOL_BASSO, c: 10}, {p: window.POOL_ALTO, c: 10}];
+    else if (courseId === 'lav_alto') distribution = [{p: window.POOL_GENERALE, c: 10}, {p: window.POOL_BASSO, c: 5}, {p: window.POOL_ALTO, c: 15}];
+    else if (courseId === 'preposto' || courseId === 'dirigente' || courseId === 'agg_prep' || courseId === 'agg_dir') distribution = [{p: window.POOL_GENERALE, c: 10}, {p: window.POOL_DIRIGENTI, c: 15}, {p: window.POOL_CANTIERI, c: 5}];
+    else if (courseId.startsWith('attr_') || courseId === 'agg_pratico_4h') distribution = [{p: window.POOL_GENERALE, c: 10}, {p: window.POOL_BASSO, c: 5}, {p: window.POOL_ATTREZZATURE, c: 15}];
+    else if (courseId === 'amb_confinati') distribution = [{p: window.POOL_GENERALE, c: 10}, {p: window.POOL_ALTO, c: 10}, {p: window.POOL_ATTREZZATURE, c: 10}];
+    else if (courseId === 'lav_quota') distribution = [{p: window.POOL_GENERALE, c: 10}, {p: window.POOL_ALTO, c: 10}, {p: window.POOL_CANTIERI, c: 10}];
+    else if (courseId.includes('primo_soccorso')) distribution = [{p: window.POOL_GENERALE, c: 10}, {p: window.POOL_BASSO, c: 5}, {p: window.POOL_PS, c: 15}];
+    else if (courseId.includes('antincendio')) distribution = [{p: window.POOL_GENERALE, c: 10}, {p: window.POOL_BASSO, c: 5}, {p: window.POOL_AI, c: 15}];
+    else if (courseId === 'dl_base' || courseId.startsWith('dl_spp') || courseId === 'agg_dl' || courseId === 'agg_dl_spp') distribution = [{p: window.POOL_GENERALE, c: 10}, {p: window.POOL_DIRIGENTI, c: 10}, {p: window.POOL_CANTIERI, c: 10}];
+    else distribution = [{p: window.POOL_GENERALE, c: 15}, {p: window.POOL_BASSO, c: 15}];
+
+    let test = [];
+    distribution.forEach(d => {
+        let shuffled = [...d.p].sort(() => 0.5 - Math.random());
+        let available = Math.min(d.c, shuffled.length);
+        test = test.concat(shuffled.slice(0, available));
+    });
+    
+    if (test.length < 30) {
+        let extra = [...window.POOL_GENERALE, ...window.POOL_BASSO].sort(() => 0.5 - Math.random());
+        for (let i=0; i<extra.length && test.length < 30; i++) {
+            if (!test.includes(extra[i])) test.push(extra[i]);
+        }
+    }
+    return test.slice(0, 30);
+}
+
+// --- NORMALIZZAZIONE DATABASE ---
+window.normalizeDatabase = function() {
+    if(!window.dbCorsisti) window.dbCorsisti = [];
+    const sessionCodes = {};
+    window.dbCorsisti.forEach(r => {
+        const normAzienda = (r.azienda || "").trim().toLowerCase();
+        const normCorso = (r.corso || "").trim().toLowerCase();
+        const key = normAzienda + "|" + normCorso + "|" + r.data_esame;
+        
+        if (!sessionCodes[key] && r.codice && r.codice !== "ND" && r.codice !== "") {
+            if (r.codice.match(/\/\d{2}$/)) sessionCodes[key] = r.codice;
+            else sessionCodes[key] = r.codice + "/01";
+        }
+    });
+    
+    window.dbCorsisti.forEach(r => {
+        const normAzienda = (r.azienda || "").trim().toLowerCase();
+        const normCorso = (r.corso || "").trim().toLowerCase();
+        const key = normAzienda + "|" + normCorso + "|" + r.data_esame;
+        if (sessionCodes[key]) { r.codice = sessionCodes[key]; }
+    });
+}
+
+// --- INTERAZIONI FORM CONFIGURAZIONE ---
+window.cambioCorso = function() {
+    window.pulisciCertIdCaricato();
+    window.renderUDInputs();
+    const calEl = document.getElementById('cfg-calendario');
+    if (calEl) calEl.value = ""; 
+    window.updateAll();
+}
+
+window.cambiaDataInizio = function() {
+    const calEl = document.getElementById('cfg-calendario');
+    if (calEl) calEl.value = ""; 
+    window.updateAll();
+}
+
+window.forzaAggiornamento = function() {
+    window.updateAll();
+    const btn = document.querySelector('.btn-tab.bg-indigo-600');
+    if (btn) {
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<i data-lucide="check" class="w-4 h-4 mx-auto"></i><span class="text-[8px] font-bold mt-1 block">Fatto!</span>';
+        btn.classList.replace('bg-indigo-600', 'bg-teal-500'); 
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+        setTimeout(() => {
+            btn.innerHTML = originalHtml; 
+            btn.classList.replace('bg-teal-500', 'bg-indigo-600'); 
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }, 1500);
+    }
+}
+
+window.caricaLogoFile = function(event) {
+    const file = event.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => { 
+        document.getElementById('cfg-logo').value = e.target.result; 
+        window.updateAll(); 
+    };
+    reader.readAsDataURL(file);
+}
+
+// --- GESTIONE SESSIONE CORRENTE (MULTI-CORSISTA) ---
+window.currentSessionCorsisti = [];
+
+window.pulisciCertIdCaricato = function() {
+    if(document.getElementById('cfg-loaded-cert-id')) document.getElementById('cfg-loaded-cert-id').value = "";
+    if(document.getElementById('cfg-nome')) document.getElementById('cfg-nome').value = "";
+    if(document.getElementById('cfg-cf')) document.getElementById('cfg-cf').value = "";
+    if(document.getElementById('cfg-mansione')) document.getElementById('cfg-mansione').value = "";
+    if(document.getElementById('cfg-nascita')) document.getElementById('cfg-nascita').value = "";
+    window.currentSessionCorsisti = [];
+    window.updateAll();
+}
+
+window.cambiaCorsistaSessione = function() {
+    const selectEl = document.getElementById('cfg-select-corsista');
+    if(!selectEl) return;
+    const idx = selectEl.value;
+    if (!window.currentSessionCorsisti || window.currentSessionCorsisti.length === 0) return;
+    const c = window.currentSessionCorsisti[idx];
+    if(c) {
+        if(document.getElementById('cfg-nome')) document.getElementById('cfg-nome').value = c.nome || "";
+        if(document.getElementById('cfg-mansione')) document.getElementById('cfg-mansione').value = c.mansione || "";
+        if(document.getElementById('cfg-nascita')) document.getElementById('cfg-nascita').value = c.nascita || "";
+        if(document.getElementById('cfg-cf')) document.getElementById('cfg-cf').value = c.cf || "";
+        if(document.getElementById('cfg-loaded-cert-id')) document.getElementById('cfg-loaded-cert-id').value = c.id_certificato || "";
+        
+        document.querySelectorAll('[id^="docente_ud_"]').forEach(el => el.value = "");
+        if (c.docenti_ud && c.docenti_ud.length > 0) {
+            c.docenti_ud.forEach((doc, i) => {
+                const input = document.getElementById('docente_ud_' + i);
+                if (input) input.value = doc;
+            });
+        }
+        window.updateAll();
+    }
+}
+
+window.caricaSessioneByCodice = function(codice) {
+    const sessionCorsisti = window.dbCorsisti.filter(r => r.codice === codice);
+    if (sessionCorsisti.length === 0) return alert("Errore nel caricamento della sessione.");
+
+    const cRef = sessionCorsisti[0];
+    
+    // Per ricaricare i dati nel setup, navighiamo prima alla pagina config se non ci siamo
+    window.loadModule('config').then(() => {
+        let courseKey = "lav_basso"; 
+        for (const [key, value] of Object.entries(window.DB_CORSI)) { if (value.t === cRef.corso) { courseKey = key; break; } }
+        document.getElementById('cfg-corso').value = courseKey;
+        
+        window.renderUDInputs();
+        
+        document.getElementById('cfg-azienda').value = cRef.azienda || "";
+        document.getElementById('cfg-azienda-indirizzo').value = cRef.indirizzo_azienda || "";
+        document.getElementById('cfg-ateco').value = cRef.ateco || "";
+        document.getElementById('cfg-sede-corso').value = cRef.sede_corso || "";
+        document.getElementById('cfg-modalita').value = cRef.modalita || "In Presenza Fisica";
+        document.getElementById('cfg-calendario').value = cRef.calendario || "";
+        document.getElementById('cfg-data-esame').value = window.formatDataToISODate(cRef.data_esame);
+        document.getElementById('cfg-data-inizio').value = window.formatDataToISODate(cRef.data_inizio);
+        
+        window.currentSessionCorsisti = sessionCorsisti;
+        
+        // Popola la select nel caso serva gestire più corsisti (questo HTML andrebbe aggiunto in config se rimosso)
+        // Se non hai più il div box-select-corsista, puoi ometterlo, o rimetterlo in config.html
+        
+        window.chiudiSessioni();
+        alert("Sessione [" + codice + "] caricata con successo (" + sessionCorsisti.length + " Corsisti).");
+    });
+}
+
+window.caricaCorsista = function(idx) {
+    const r = window.dbCorsisti[idx];
+    window.loadModule('config').then(() => {
+        let courseKey = "lav_basso"; 
+        for (const [key, value] of Object.entries(window.DB_CORSI)) { if (value.t === r.corso) { courseKey = key; break; } }
+        document.getElementById('cfg-corso').value = courseKey;
+        
+        window.renderUDInputs();
+
+        document.getElementById('cfg-azienda').value = r.azienda || "";
+        document.getElementById('cfg-azienda-indirizzo').value = r.indirizzo_azienda || "";
+        document.getElementById('cfg-ateco').value = r.ateco || "";
+        document.getElementById('cfg-nome').value = r.nome || "";
+        document.getElementById('cfg-cf').value = r.cf || "";
+        document.getElementById('cfg-mansione').value = r.mansione || "";
+        document.getElementById('cfg-nascita').value = r.nascita || "";
+        document.getElementById('cfg-loaded-cert-id').value = r.id_certificato || "";
+        document.getElementById('cfg-sede-corso').value = r.sede_corso || "";
+
+        document.getElementById('cfg-data-esame').value = window.formatDataToISODate(r.data_esame);
+        document.getElementById('cfg-data-inizio').value = window.formatDataToISODate(r.data_inizio);
+
+        if (r.docenti_ud && r.docenti_ud.length > 0) {
+            r.docenti_ud.forEach((docName, i) => {
+                const input = document.getElementById('docente_ud_' + i);
+                if (input) input.value = docName;
+            });
+        }
+        window.chiudiArchivio(); 
+        window.updateAll();
+    });
+}
+
+// --- LOGICHE DI STAMPA SPECIFICHE ---
+window.stampaSezioneAttuale = function() {
+    const isMulti = window.currentSessionCorsisti && window.currentSessionCorsisti.length > 0;
+    const activeTabBtn = document.querySelector('.btn-tab.active');
+    const activeTabId = activeTabBtn ? activeTabBtn.id.replace('nav-', '') : 'registro';
+
+    const individualTabs = ['esame', 'attestato'];
+
+    if (!isMulti || !individualTabs.includes(activeTabId)) {
+        let printArea = document.getElementById('print-area-temp');
+        printArea.innerHTML = '';
+        
+        // Cerca i doc-page nel container principale e clonali nell'area temporanea
+        document.querySelectorAll('#app-content .doc-page').forEach(original => {
+            const clone = original.cloneNode(true);
+            clone.id = "";
+            clone.classList.remove('hidden');
+            clone.classList.add('print-show', 'temp-page');
+            if(original.classList.contains('landscape')) clone.classList.add('landscape-force');
+            else clone.classList.add('portrait');
+            printArea.appendChild(clone);
+        });
+
+        document.body.classList.add('is-printing-temp');
+        setTimeout(() => { 
+            window.print(); 
+            document.body.classList.remove('is-printing-temp');
+            printArea.innerHTML = ''; 
+        }, 800);
+        return;
+    }
+    window.preparaEStampaMassiva(activeTabId);
+}
+
+// --- ESPORTAZIONE E IMPORTAZIONE (JSON / CSV) ---
+window.esportaJSON = function() {
+    if(!window.dbCorsisti || window.dbCorsisti.length === 0) return alert("Il database è vuoto.");
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(window.dbCorsisti, null, 2));
+    const a = document.createElement('a'); 
+    a.href = dataStr; 
+    a.download = "SM_Cloud_Backup_" + new Date().toISOString().slice(0,10) + ".json"; 
+    document.body.appendChild(a); 
+    a.click(); 
+    document.body.removeChild(a); 
+}
+
+window.esportaUniversaleCSV = function() {
+    if(!window.dbCorsisti || window.dbCorsisti.length === 0) return alert("Il database è vuoto.");
+    let csvContent = "\uFEFFID_CERTIFICATO;DATA_ESAME_EMISSIONE;DATA_INIZIO;CODICE_INTERNO;CALENDARIO;AZIENDA_COMMITTENTE;INDIRIZZO_AZIENDA;CODICE_ATECO;COGNOME_E_NOME;LUOGO_DATA_NASCITA;CODICE_FISCALE;MANSIONE;CORSO_EROGATO;MODALITA_EROGAZIONE;MONTE_ORE_DIDATTICA;SOGGETTO_FORMATORE;INDIRIZZO_ENTE;CONTATTI_ENTE;RESP_CORSO;DOCENTE_PRINCIPALE;DOCENTI_UD;RESP_PROGETTO;SEDE_SVOLGIMENTO;QUALIFICA_DOCENTE;LUOGO_EMISSIONE\n";
+    
+    window.dbCorsisti.forEach(row => {
+        let docentiUniti = (row.docenti_ud || []).join(' | ');
+        let r = [
+            row.id_certificato, window.formatDataToItalian(row.data_esame), window.formatDataToItalian(row.data_inizio), row.codice, row.calendario ? row.calendario.replace(/\n/g, '|') : '', 
+            row.azienda, row.indirizzo_azienda, row.ateco, row.nome, row.nascita, row.cf, row.mansione, row.corso, row.modalita, 
+            row.ore, row.ente, row.ente_indirizzo, row.ente_contatti, row.resp_corso, row.docente, docentiUniti, row.resp_progetto, 
+            row.sede_corso, row.req_docente, row.luogo_emissione
+        ].map(testo => String(testo || "").replace(/;/g, ',').replace(/\n/g, ' '));
+        csvContent += r.join(";") + "\n";
+    });
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob); 
+    const a = document.createElement('a'); 
+    a.href = url; 
+    a.download = "SM_Cloud_CSV_" + new Date().getTime() + ".csv"; 
+    document.body.appendChild(a); 
+    a.click(); 
+    document.body.removeChild(a); 
+    URL.revokeObjectURL(url);
+}
+
+// Nota: Per l'importazione (JSON/CSV) nel Cloud, per mantenere la stabilità, ti consiglio di iterare e usare `saveCorsistaCloud(record)` su Supabase.
+window.importaJSON = async function(event) {
+    const file = event.target.files[0]; if(!file) return;
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+        try {
+            const imported = JSON.parse(e.target.result);
+            if(Array.isArray(imported)) {
+                alert("L'importazione nel Cloud inizierà in background. Attendere.");
+                for (let record of imported) {
+                    await window.saveCorsistaCloud(record); // Salva riga per riga in Supabase
+                }
+                window.dbCorsisti = await window.loadCloudDatabase();
+                window.updateDBCounter();
+                alert("Importazione completata con successo!");
+            }
+        } catch(err) { alert("Errore lettura JSON."); }
+        event.target.value = '';
+    };
+    reader.readAsText(file);
+}
+
+window.gestisciImportazioneCSV = function(event) {
+    const file = event.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+        const rows = e.target.result.replace(/^\uFEFF/, '').split(/\r?\n/); 
+        if (rows.length < 2) return;
+        const headerRow = rows[0].split(';');
+        const colMap = {};
+        headerRow.forEach((col, i) => colMap[col.trim().toUpperCase()] = i);
+        
+        alert("Importazione CSV nel Cloud iniziata.");
+        for (let i = 1; i < rows.length; i++) {
+            const rowStr = rows[i].trim(); if (!rowStr) continue;
+            let cols = rowStr.split(';');
+            const record = { 
+                id_certificato: cols[colMap["ID_CERTIFICATO"]], 
+                data_esame: window.formatDataToISODate(cols[colMap["DATA_ESAME_EMISSIONE"]]), 
+                nome: cols[colMap["COGNOME_E_NOME"]], 
+                cf: cols[colMap["CODICE_FISCALE"]],
+                corso: cols[colMap["CORSO_EROGATO"]],
+                azienda: cols[colMap["AZIENDA_COMMITTENTE"]]
+                // (Mappa gli altri campi come facevi prima)
+            };
+            if(record.id_certificato) await window.saveCorsistaCloud(record);
+        }
+        window.dbCorsisti = await window.loadCloudDatabase();
+        window.updateDBCounter();
+        alert("Importazione completata!");
+        event.target.value = '';
+    };
+    reader.readAsText(file, 'utf-8');
+}
+window.attivaImportazioneCSV = function() { document.getElementById('csv-file-input').click(); }
+
+window.toggleCorrector = function() { 
+    window.correctorEnabled = !window.correctorEnabled; 
+    window.updateTests(); 
+    const btn = document.getElementById('btn-corrector');
+    if (btn) {
+        if (window.correctorEnabled) {
+            btn.innerHTML = '<i data-lucide="check-square" class="w-4 h-4"></i> Disattiva Correttore';
+            btn.classList.replace('bg-emerald-500', 'bg-amber-400');
+        } else {
+            btn.innerHTML = '<i data-lucide="check-square" class="w-4 h-4"></i> Attiva Correttore Integrato';
+            btn.classList.replace('bg-amber-400', 'bg-emerald-500');
+        }
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+}
