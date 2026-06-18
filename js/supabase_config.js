@@ -5,26 +5,43 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 // Inizializza il client Supabase (la libreria viene caricata nell'index.html)
 const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// Funzioni centralizzate per il DB
-async function loadCloudDatabase() {
-    const { data, error } = await supabase.from('corsisti').select('*').order('created_at', { ascending: false });
-    if (error) { console.error("Errore DB:", error); return []; }
-    return data;
-}
-
-async function saveCorsistaCloud(record) {
-    const { data, error } = await supabase
+// Funzione di Lettura
+window.loadCloudDatabase = async function() {
+    const { data, error } = await supabaseClient
         .from('corsisti')
-        .upsert(record, { onConflict: 'id_certificato' }); // Aggiorna se esiste, altrimenti inserisce
+        .select('*')
+        .order('created_at', { ascending: false });
         
-    if (error) {
-        console.error("Errore salvataggio:", error);
-        return false;
+    if (error) { 
+        console.error("Supabase READ Error:", error); 
+        return []; 
+    }
+    return data || [];
+};
+
+// Funzione di Salvataggio/Aggiornamento
+window.saveCorsistaCloud = async function(record) {
+    const { data, error } = await supabaseClient
+        .from('corsisti')
+        .upsert(record, { onConflict: 'id_certificato' });
+        
+    if (error) { 
+        console.error("Supabase UPSERT Error:", error); 
+        return false; 
     }
     return true;
-}
+};
 
-async function deleteCorsistaCloud(id_certificato) {
-    const { error } = await supabase.from('corsisti').delete().eq('id_certificato', id_certificato);
-    return !error;
-}
+// Funzione di Eliminazione
+window.deleteCorsistaCloud = async function(id_certificato) {
+    const { error } = await supabaseClient
+        .from('corsisti')
+        .delete()
+        .eq('id_certificato', id_certificato);
+        
+    if (error) { 
+        console.error("Supabase DELETE Error:", error); 
+        return false; 
+    }
+    return true;
+};
