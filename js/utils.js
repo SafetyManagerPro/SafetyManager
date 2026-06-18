@@ -939,3 +939,89 @@ window.filtraSessioni = function() {
         tr[i].style.display = tr[i].innerText.toLowerCase().includes(filter) ? "" : "none";
     }
 }
+// ==========================================
+// SALVATAGGIO NEL CLOUD (SUPABASE)
+// ==========================================
+window.salvaCorsistaDB = async function() {
+    const courseId = document.getElementById('cfg-corso').value;
+    const nome = document.getElementById('cfg-nome').value.trim();
+    if(!nome) return alert("Errore: Inserisci almeno il nome del corsista prima di salvare!");
+    
+    // Recupera l'ID certificato, se già esiste o genera il testo corrente
+    let certId = document.getElementById('cfg-loaded-cert-id').value;
+    if(!certId) {
+        const certEl = document.querySelector('.val-cert-id');
+        certId = certEl ? certEl.innerText : "ND";
+    }
+
+    const c = window.DB_CORSI[courseId];
+    
+    // Raccoglie i docenti assegnati alle singole Unità Didattiche
+    let arrDocenti = [];
+    c.prog.forEach((_, idx) => {
+        const docInput = document.getElementById('docente_ud_' + idx);
+        arrDocenti.push(docInput ? docInput.value : document.getElementById('cfg-docente').value);
+    });
+
+    // Costruisce il pacchetto dati
+    const record = {
+        id_certificato: certId,
+        data_esame: document.getElementById('cfg-data-esame').value, 
+        data_inizio: document.getElementById('cfg-data-inizio').value, 
+        codice: document.getElementById('cfg-codice').value,
+        azienda: document.getElementById('cfg-azienda').value,
+        indirizzo_azienda: document.getElementById('cfg-azienda-indirizzo').value,
+        nome: nome,
+        cf: document.getElementById('cfg-cf').value,
+        mansione: document.getElementById('cfg-mansione').value,
+        nascita: document.getElementById('cfg-nascita').value,
+        corso: c.t,
+        docente: document.getElementById('cfg-docente').value, 
+        docenti_ud: arrDocenti, 
+        resp_corso: document.getElementById('cfg-resp-corso').value,
+        resp_progetto: document.getElementById('cfg-resp-progetto').value,
+        modalita: document.getElementById('cfg-modalita').value,
+        ore: c.ore,
+        ente: document.getElementById('cfg-ente').value,
+        ente_indirizzo: document.getElementById('cfg-ente-indirizzo').value,
+        ente_contatti: document.getElementById('cfg-ente-contatti').value,
+        calendario: document.getElementById('cfg-calendario').value,
+        ateco: document.getElementById('cfg-ateco').value,
+        sede_corso: document.getElementById('cfg-sede-corso').value,
+        req_docente: document.getElementById('cfg-req-docente').value,
+        luogo_emissione: document.getElementById('cfg-luogo-emissione').value
+    };
+    
+    const btn = document.getElementById('btn-save-cloud');
+    const originalHtml = btn.innerHTML;
+    btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Salvataggio...';
+    
+    // Chiama la funzione di rete verso Supabase
+    if (typeof window.saveCorsistaCloud !== 'function') {
+        alert("Errore di configurazione: manca la connessione a Supabase.");
+        btn.innerHTML = originalHtml;
+        return;
+    }
+
+    const success = await window.saveCorsistaCloud(record);
+    
+    if (success) {
+        // Se va a buon fine, ricarica il DB cloud per aggiornare la cache locale
+        window.dbCorsisti = await window.loadCloudDatabase();
+        window.updateDBCounter();
+        
+        btn.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i> Salvato nel Cloud!';
+        btn.classList.replace('bg-emerald-600', 'bg-teal-500'); 
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+
+        setTimeout(() => {
+            btn.innerHTML = originalHtml; 
+            btn.classList.replace('bg-teal-500', 'bg-emerald-600'); 
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }, 1500);
+    } else {
+        alert("Errore durante il salvataggio! Controlla la Console (F12) per i dettagli.");
+        btn.innerHTML = originalHtml; 
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+}
