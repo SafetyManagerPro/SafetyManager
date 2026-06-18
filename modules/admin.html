@@ -1,0 +1,20 @@
+<!-- modules/admin.html -->
+<div id="view-admin" class="doc-page multipage print-as-block max-w-5xl">
+    <div class="border-b-2 border-slate-900 pb-2 mb-4 flex justify-between items-end">
+        <div>
+            <h1 class="text-2xl font-black uppercase text-slate-900 tracking-tighter">Dashboard Amministrativa</h1>
+            <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Report Generale per Azienda e Corso (Dati Cloud)</p>
+        </div>
+        <button onclick="window.print()" class="no-print bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 shadow-sm transition-colors">
+            <i data-lucide="printer" class="w-4 h-4"></i> Stampa Report
+        </button>
+    </div>
+    
+    <!-- Questo div viene popolato da js/utils.js -->
+    <div id="admin-content" class="w-full">
+        <div class="flex items-center justify-center p-12 text-slate-400">
+            <i data-lucide="loader-2" class="w-8 h-8 animate-spin mr-3"></i>
+            <span class="font-bold">Caricamento dati da Supabase...</span>
+        </div>
+    </div>
+</div>
