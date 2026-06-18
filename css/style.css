@@ -4,24 +4,19 @@
 body { background-color: #f8fafc; color: #1e293b; }
 
 .doc-page { 
-    background: white; 
-    width: 210mm; 
-    min-height: 297mm; 
-    margin: 20px auto; 
-    padding: 15mm; 
-    box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
-    position: relative; 
-    box-sizing: border-box; 
-    z-index: 1; 
-    display: flex; 
-    flex-direction: column; 
+    background: white; width: 210mm; min-height: 297mm; margin: 20px auto; padding: 15mm; 
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1); position: relative; box-sizing: border-box; 
+    z-index: 1; display: flex; flex-direction: column; 
 }
 .doc-page.landscape { 
-    width: 297mm; 
-    min-height: 210mm; 
-    padding: 10mm 15mm; 
-    page: landscape-page; 
+    width: 297mm; min-height: 210mm; padding: 10mm 15mm; page: landscape-page; 
 }
+
+/* ---------------------------------------------------- */
+/* FORZATURA ASSOLUTA BORDI REGISTRI E VERBALI          */
+/* ---------------------------------------------------- */
+.table-bordered { border-collapse: collapse !important; width: 100% !important; }
+.table-bordered th, .table-bordered td { border: 1px solid #1e293b !important; }
 
 @media print {
     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; font-family: Arial, Helvetica, sans-serif !important; overflow: visible !important; }
@@ -47,6 +42,9 @@ body { background-color: #f8fafc; color: #1e293b; }
     
     ul.syllabus-list { margin-top: 2px !important; margin-bottom: 2px !important; padding-left: 12px !important; }
     ul.syllabus-list li { margin-bottom: 1px !important; }
+    
+    /* Garanzia bordi su carta */
+    .table-bordered th, .table-bordered td { border: 1pt solid black !important; }
 }
 
 #print-area-temp { display: none; }
