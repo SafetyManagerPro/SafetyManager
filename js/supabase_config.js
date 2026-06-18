@@ -106,4 +106,60 @@ window.deleteCorsistaData = async function(id) {
         const { error } = await supabaseClient.from('corsisti').delete().eq('id', id);
         if (error) throw error; return true;
     } catch (err) { console.error(err); return false; }
+};// ==========================================
+// API PROGETTI
+// ==========================================
+window.getProgetti = async function() {
+    try {
+        const { data, error } = await supabaseClient
+            .from('progetti')
+            .select('*, aziende(ragione_sociale)')
+            .order('data_esame', { ascending: false });
+        if (error) throw error; return data || [];
+    } catch (err) { console.error(err); return []; }
+};
+
+window.saveProgetto = async function(record) {
+    try {
+        const { data, error } = await supabaseClient.from('progetti').upsert(record).select();
+        if (error) throw error; return data;
+    } catch (err) { console.error(err); return false; }
+};
+
+window.deleteProgetto = async function(id) {
+    try {
+        const { error } = await supabaseClient.from('progetti').delete().eq('id', id);
+        if (error) throw error; return true;
+    } catch (err) { console.error(err); return false; }
+};
+
+// ==========================================
+// API ISCRIZIONI
+// ==========================================
+window.getIscrizioni = async function(progetto_id) {
+    try {
+        const { data, error } = await supabaseClient
+            .from('iscrizioni')
+            .select('*, corsisti(nome_cognome, cf)')
+            .eq('progetto_id', progetto_id)
+            .order('created_at', { ascending: true });
+        if (error) throw error; return data || [];
+    } catch (err) { console.error(err); return []; }
+};
+
+window.saveIscrizione = async function(record) {
+    try {
+        const { data, error } = await supabaseClient.from('iscrizioni').insert(record).select();
+        if (error) throw error; return data;
+    } catch (err) { 
+        console.error("Errore Iscrizione (Probabile duplicato):", err); 
+        return false; 
+    }
+};
+
+window.deleteIscrizione = async function(id) {
+    try {
+        const { error } = await supabaseClient.from('iscrizioni').delete().eq('id', id);
+        if (error) throw error; return true;
+    } catch (err) { console.error(err); return false; }
 };
