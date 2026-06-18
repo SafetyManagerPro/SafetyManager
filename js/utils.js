@@ -644,6 +644,107 @@ window.cambiaCorsistaSessione = function() {
             el.value = "";
             window.AppState[el.id] = "";
         });
+        // ==========================================
+// LOGICA CRM: MODULO AZIENDE
+// ==========================================
+window.aziendeList = [];
+
+// 1. Carica e disegna la tabella
+window.loadAziendeTable = async function() {
+    const tbody = document.getElementById('tabella-aziende');
+    if(!tbody) return;
+    
+    tbody.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-slate-400 italic"><i data-lucide="loader-2" class="w-5 h-5 animate-spin mx-auto mb-2"></i> Caricamento dati...</td></tr>';
+    if(typeof lucide !== 'undefined') lucide.createIcons();
+
+    window.aziendeList = await window.getAziende();
+
+    if (window.aziendeList.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-slate-500 italic">Nessuna azienda registrata.</td></tr>';
+        return;
+    }
+
+    let html = '';
+    window.aziendeList.forEach(az => {
+        html += `
+            <tr class="hover:bg-blue-50 transition-colors">
+                <td class="p-3 border-b font-bold text-slate-800">${az.ragione_sociale}</td>
+                <td class="p-3 border-b font-mono text-[10px] text-slate-600">${az.piva_cf || '-'}</td>
+                <td class="p-3 border-b font-mono text-[10px] text-slate-500">${az.ateco || '-'}</td>
+                <td class="p-3 border-b text-center whitespace-nowrap">
+                    <button onclick="window.modificaAzienda('${az.id}')" class="text-blue-600 hover:bg-blue-200 bg-blue-100 p-1.5 rounded transition shadow-sm" title="Modifica"><i data-lucide="edit" class="w-4 h-4"></i></button>
+                    <button onclick="window.eliminaAzienda('${az.id}')" class="text-red-600 hover:bg-red-200 bg-red-100 p-1.5 rounded transition shadow-sm ml-1" title="Elimina"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                </td>
+            </tr>
+        `;
+    });
+    tbody.innerHTML = html;
+    if(typeof lucide !== 'undefined') lucide.createIcons();
+};
+
+// 2. Salva dal Form al Database
+window.salvaAziendaDB = async function() {
+    const id = document.getElementById('az-id').value;
+    const record = {
+        ragione_sociale: document.getElementById('az-ragione-sociale').value.trim(),
+        piva_cf: document.getElementById('az-piva').value.trim(),
+        indirizzo: document.getElementById('az-indirizzo').value.trim(),
+        ateco: document.getElementById('az-ateco').value.trim(),
+        referente: document.getElementById('az-referente').value.trim()
+    };
+    
+    // Se il campo nascosto ID è pieno, stiamo aggiornando un record esistente
+    if (id) record.id = id;
+
+    const result = await window.saveAzienda(record);
+    if (result) {
+        window.resetFormAzienda();
+        await window.loadAziendeTable();
+    } else {
+        alert("Errore nel salvataggio dell'azienda. Verifica la connessione.");
+    }
+};
+
+// 3. Popola il form per la Modifica
+window.modificaAzienda = function(id) {
+    const az = window.aziendeList.find(a => a.id === id);
+    if(!az) return;
+    document.getElementById('az-id').value = az.id;
+    document.getElementById('az-ragione-sociale').value = az.ragione_sociale;
+    document.getElementById('az-piva').value = az.piva_cf;
+    document.getElementById('az-indirizzo').value = az.indirizzo || "";
+    document.getElementById('az-ateco').value = az.ateco || "";
+    document.getElementById('az-referente').value = az.referente || "";
+};
+
+// 4. Elimina
+window.eliminaAzienda = async function(id) {
+    if(confirm("Sei sicuro di voler eliminare questa azienda? \n\nATTENZIONE: Tutti i progetti e le iscrizioni collegati a questa azienda verranno eliminati (Cancellazione a Cascata).")) {
+        const success = await window.deleteAzienda(id);
+        if(success) {
+            await window.loadAziendeTable();
+        } else {
+            alert("Errore durante l'eliminazione.");
+        }
+    }
+};
+
+// 5. Reset Form
+window.resetFormAzienda = function() {
+    document.getElementById('az-id').value = "";
+    document.getElementById('form-azienda').reset();
+};
+
+// 6. Ricerca in tempo reale
+window.filtraAziende = function() {
+    const filter = document.getElementById('search-aziende').value.toLowerCase();
+    const rows = document.getElementById('tabella-aziende').getElementsByTagName('tr');
+    for (let i = 0; i < rows.length; i++) {
+        if(rows[i].cells.length === 1) continue; 
+        const text = rows[i].innerText.toLowerCase();
+        rows[i].style.display = text.includes(filter) ? "" : "none";
+    }
+};
         
         if (c.docenti_ud && c.docenti_ud.length > 0) {
             c.docenti_ud.forEach((doc, i) => {
