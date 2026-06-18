@@ -1,12 +1,25 @@
 // js/utils.js
-window.AppState = window.AppState || {};
+
 // ==========================================
-// VARIABILI GLOBALI
+// VARIABILI GLOBALI E STATE MANAGER
 // ==========================================
 window.currentTestCourseId = "";
 window.currentTestQuestions = [];
 window.correctorEnabled = false;
 window.currentSessionCorsisti = [];
+
+// Inizializzazione dello State Manager (Salva i dati in memoria quando cambi pagina)
+window.AppState = window.AppState || {};
+
+window.getVal = function(id, defaultVal = "") {
+    const el = document.getElementById(id);
+    if (el) {
+        window.AppState[id] = el.value; // Salva nel cloud temporaneo (memoria RAM)
+        return el.value;
+    }
+    // Se l'elemento non esiste nel DOM (perché siamo in un'altra schermata), lo pesca dalla memoria
+    return window.AppState[id] !== undefined ? window.AppState[id] : defaultVal;
+}
 
 // ==========================================
 // UTILITY DI FORMATTAZIONE E DB
@@ -40,20 +53,18 @@ window.updateDBCounter = function() {
 // MOTORE PRINCIPALE: RENDER E UPDATE
 // ==========================================
 window.renderUDInputs = function() {
-    const corsoEl = document.getElementById('cfg-corso');
-    if (!corsoEl) return;
-    
-    const courseId = corsoEl.value;
+    const courseId = window.getVal('cfg-corso', 'lav_basso');
     const c = window.DB_CORSI[courseId];
     if (!c || !c.prog) return;
     
-    const defaultDocente = document.getElementById('cfg-docente').value || "Mario Rossi";
+    const defaultDocente = window.getVal('cfg-docente', 'Mario Rossi');
     let html = '<label class="text-[10px] font-bold text-slate-500 uppercase block border-b pb-1 mb-2">Assegnazione Docenti per UD</label>';
     
     c.prog.forEach((ud, index) => {
+        const savedDoc = window.getVal('docente_ud_' + index, defaultDocente);
         html += '<div class="flex items-center justify-between gap-2 mt-1">';
         html += '<span class="text-[9px] font-bold text-slate-600 bg-slate-100 px-1 rounded w-8 text-center" title="' + ud.m + '">' + ud.ud + '</span>';
-        html += '<input type="text" id="docente_ud_' + index + '" class="input-field text-[10px] py-1 flex-1 h-6" value="' + defaultDocente + '" oninput="window.updateAll()">';
+        html += '<input type="text" id="docente_ud_' + index + '" class="input-field text-[10px] py-1 flex-1 h-6" value="' + savedDoc + '" oninput="window.updateAll()">';
         html += '</div>';
     });
     
@@ -62,44 +73,28 @@ window.renderUDInputs = function() {
 }
 
 window.updateAll = function() {
-    const corsoEl = document.getElementById('cfg-corso');
-    if (!corsoEl) return; 
-    
-    const courseId = corsoEl.value;
+    const courseId = window.getVal('cfg-corso', 'lav_basso');
     const c = window.DB_CORSI[courseId];
-    
     if(!c || !c.prog) return;
 
     if(document.getElementById('ud-docenti-container') && !document.getElementById('docente_ud_0')) {
         window.renderUDInputs();
     }
     
-    // Gestione Date Inizio ed Esame
-    const dataInizioRaw = document.getElementById('cfg-data-inizio').value;
-    let dInizio;
-    if (dataInizioRaw) {
-        const parts = dataInizioRaw.split('-');
-        dInizio = new Date(parts[0], parts[1] - 1, parts[2]);
-    } else {
-        dInizio = new Date();
-    }
+    const dataInizioRaw = window.getVal('cfg-data-inizio');
+    let dInizio = dataInizioRaw ? new Date(dataInizioRaw.split('-')[0], dataInizioRaw.split('-')[1] - 1, dataInizioRaw.split('-')[2]) : new Date();
 
-    const dEsameRaw = document.getElementById('cfg-data-esame').value;
-    let dataEsameStrFormatted = "___/___/2025";
-    if(dEsameRaw) {
-        const p = dEsameRaw.split('-');
-        dataEsameStrFormatted = p[2] + "/" + p[1] + "/" + p[0];
-    }
+    const dEsameRaw = window.getVal('cfg-data-esame');
+    let dataEsameStrFormatted = dEsameRaw ? window.formatDataToItalian(dEsameRaw) : "___/___/2025";
     
-    // Generazione Codice Progetto
     const yy = dInizio.getFullYear();
     const mm = (dInizio.getMonth() + 1).toString().padStart(2, '0');
-    const currentAzienda = document.getElementById('cfg-azienda').value.trim();
+    const currentAzienda = window.getVal('cfg-azienda').trim();
     const az = currentAzienda.split(' ')[0].toUpperCase().replace(/[^A-Z0-9]/g,'') || "AZ";
     const currentCorso = c.t;
     
-    let codice = document.getElementById('cfg-codice') ? document.getElementById('cfg-codice').value : "";
-    const existingId = document.getElementById('cfg-loaded-cert-id').value;
+    let codice = window.getVal('cfg-codice');
+    const existingId = window.getVal('cfg-loaded-cert-id');
     
     if(existingId && window.dbCorsisti) { 
         const found = window.dbCorsisti.find(x => x.id_certificato === existingId); 
@@ -112,7 +107,6 @@ window.updateAll = function() {
             (r.azienda || "").trim().toLowerCase() === currentAzienda.toLowerCase() && 
             (r.data_esame === dEsameRaw)
         );
-        
         if (existingSession && existingSession.codice) {
             codice = existingSession.codice;
         } else {
@@ -128,16 +122,18 @@ window.updateAll = function() {
         }
     }
     
-    if(document.getElementById('cfg-codice')) document.getElementById('cfg-codice').value = codice || "";
+    const codEl = document.getElementById('cfg-codice');
+    if(codEl) codEl.value = codice || "";
+    window.AppState['cfg-codice'] = codice;
 
     // Calcolo Date, Docenti e Syllabus (saltando Sabato e Domenica)
     let docentiMap = {}; 
     let scheduleHtml = ""; 
     let currentDay = new Date(dInizio.getTime()); 
     let calendarioTesto = "";
-    let docentePrincipale = document.getElementById('cfg-docente').value; 
+    let docentePrincipale = window.getVal('cfg-docente', 'Mario Rossi'); 
     
-    const calendarioManuale = document.getElementById('cfg-calendario').value.trim();
+    const calendarioManuale = window.getVal('cfg-calendario').trim();
     let dailyHours = 0;
     
     if(currentDay.getDay() === 6) currentDay.setDate(currentDay.getDate() + 2); 
@@ -146,8 +142,7 @@ window.updateAll = function() {
     let dateSummaryArr = [];
 
     c.prog.forEach((ud, index) => {
-        const docInput = document.getElementById('docente_ud_' + index);
-        const docName = docInput ? docInput.value : docentePrincipale;
+        const docName = window.getVal('docente_ud_' + index, docentePrincipale);
         if (index === 0) docentePrincipale = docName; 
 
         if (!docentiMap[docName]) docentiMap[docName] = { ore: 0, uds: [] };
@@ -200,78 +195,87 @@ window.updateAll = function() {
     if(document.getElementById('retro-programma')) document.getElementById('retro-programma').innerHTML = scheduleHtml;
     
     if (!calendarioManuale) {
-        document.getElementById('cfg-calendario').value = calendarioTesto;
+        const calEl = document.getElementById('cfg-calendario');
+        if (calEl) calEl.value = calendarioTesto;
+        window.AppState['cfg-calendario'] = calendarioTesto;
+        
         const offsetDate = new Date(currentDay.getTime() - (currentDay.getTimezoneOffset() * 60000));
-        document.getElementById('cfg-data-esame').value = offsetDate.toISOString().split('T')[0];
+        const autoEsame = offsetDate.toISOString().split('T')[0];
+        const dataEsameEl = document.getElementById('cfg-data-esame');
+        if (dataEsameEl) dataEsameEl.value = autoEsame;
+        window.AppState['cfg-data-esame'] = autoEsame;
     }
 
-    // Trasferimento valori ai campi HTML visualizzati
-    const sedeInput = document.getElementById('cfg-sede-corso').value.trim();
-    const sedeToDisplay = sedeInput || document.getElementById('cfg-azienda-indirizzo').value || "Sede Aziendale";
+    // ==========================================
+    // POPOLAMENTO DATI GLOBALI NELLA UI CORRENTE
+    // ==========================================
+    const sedeInput = window.getVal('cfg-sede-corso');
+    const sedeToDisplay = sedeInput || window.getVal('cfg-azienda-indirizzo') || "Sede Aziendale";
 
-    document.querySelectorAll('.val-ente').forEach(el => el.innerText = document.getElementById('cfg-ente').value);
-    document.querySelectorAll('.val-azienda').forEach(el => el.innerText = document.getElementById('cfg-azienda').value);
-    document.querySelectorAll('.val-ateco').forEach(el => el.innerText = document.getElementById('cfg-ateco').value);
-    document.querySelectorAll('.val-nome').forEach(el => el.innerText = document.getElementById('cfg-nome').value);
-    document.querySelectorAll('.val-mansione').forEach(el => el.innerText = document.getElementById('cfg-mansione').value);
-    document.querySelectorAll('.val-nascita').forEach(el => el.innerText = document.getElementById('cfg-nascita').value);
-    document.querySelectorAll('.val-cf').forEach(el => el.innerText = document.getElementById('cfg-cf').value);
+    document.querySelectorAll('.val-ente').forEach(el => el.innerText = window.getVal('cfg-ente'));
+    document.querySelectorAll('.val-azienda').forEach(el => el.innerText = window.getVal('cfg-azienda'));
+    document.querySelectorAll('.val-ateco').forEach(el => el.innerText = window.getVal('cfg-ateco'));
+    document.querySelectorAll('.val-nome').forEach(el => el.innerText = window.getVal('cfg-nome'));
+    document.querySelectorAll('.val-mansione').forEach(el => el.innerText = window.getVal('cfg-mansione'));
+    document.querySelectorAll('.val-nascita').forEach(el => el.innerText = window.getVal('cfg-nascita'));
+    document.querySelectorAll('.val-cf').forEach(el => el.innerText = window.getVal('cfg-cf'));
     document.querySelectorAll('.val-titolo-corso').forEach(el => el.innerText = c.t);
     document.querySelectorAll('.val-ore-corso').forEach(el => el.innerText = c.ore + " ORE");
-    document.querySelectorAll('.val-codice').forEach(el => el.innerText = codice);
+    document.querySelectorAll('.val-codice').forEach(el => el.innerText = window.getVal('cfg-codice'));
     document.querySelectorAll('.val-sede-corso').forEach(el => el.innerText = sedeToDisplay); 
-    document.querySelectorAll('.val-docente').forEach(el => el.innerText = document.getElementById('cfg-docente').value); 
+    document.querySelectorAll('.val-docente').forEach(el => el.innerText = window.getVal('cfg-docente')); 
     document.querySelectorAll('.val-docente-main').forEach(el => el.innerText = docentePrincipale); 
-    document.querySelectorAll('.val-resp-corso').forEach(el => el.innerText = document.getElementById('cfg-resp-corso').value);
-    document.querySelectorAll('.val-resp-progetto').forEach(el => el.innerText = document.getElementById('cfg-resp-progetto').value);
-    document.querySelectorAll('.val-luogo-emissione').forEach(el => el.innerText = document.getElementById('cfg-luogo-emissione').value);
-    document.querySelectorAll('.val-req-docente').forEach(el => el.innerText = document.getElementById('cfg-req-docente').value || "Formatore Qualificato");
+    document.querySelectorAll('.val-resp-corso').forEach(el => el.innerText = window.getVal('cfg-resp-corso'));
+    document.querySelectorAll('.val-resp-progetto').forEach(el => el.innerText = window.getVal('cfg-resp-progetto'));
+    document.querySelectorAll('.val-luogo-emissione').forEach(el => el.innerText = window.getVal('cfg-luogo-emissione'));
+    document.querySelectorAll('.val-req-docente').forEach(el => el.innerText = window.getVal('cfg-req-docente', 'Formatore Qualificato'));
     
-    const tutorVal = document.getElementById('cfg-tutor')?.value;
+    const tutorVal = window.getVal('cfg-tutor');
     document.querySelectorAll('.val-tutor').forEach(el => el.innerText = tutorVal ? tutorVal : "N/D - Non Applicabile");
     
-    document.querySelectorAll('.val-legale-nome').forEach(el => el.innerText = document.getElementById('cfg-legale-nome').value);
-    document.querySelectorAll('.val-legale-nascita').forEach(el => el.innerText = document.getElementById('cfg-legale-nascita').value);
+    document.querySelectorAll('.val-legale-nome').forEach(el => el.innerText = window.getVal('cfg-legale-nome'));
+    document.querySelectorAll('.val-legale-nascita').forEach(el => el.innerText = window.getVal('cfg-legale-nascita'));
     
     document.querySelectorAll('.val-date-ud').forEach(el => el.innerHTML = dateSummaryArr.join(' &bull; '));
-    document.querySelectorAll('.val-data-esame').forEach(el => el.innerText = dataEsameStrFormatted);
+    document.querySelectorAll('.val-data-esame').forEach(el => el.innerText = window.formatDataToItalian(window.getVal('cfg-data-esame')));
 
     document.querySelectorAll('.val-data-inizio').forEach(el => {
-        if(dataInizioRaw) {
-            const p = dataInizioRaw.split('-');
+        const di = window.getVal('cfg-data-inizio');
+        if(di) {
+            const p = di.split('-');
             el.innerText = p[2] + "/" + p[1] + "/" + p[0];
         } else {
             el.innerText = "___/___/2025";
         }
     });
 
-    document.querySelectorAll('.val-calendario').forEach(el => el.innerText = document.getElementById('cfg-calendario').value);
-    document.querySelectorAll('.val-modalita').forEach(el => el.innerText = document.getElementById('cfg-modalita').value);
-    document.querySelectorAll('.val-ente-indirizzo').forEach(el => el.innerText = document.getElementById('cfg-ente-indirizzo').value);
-    document.querySelectorAll('.val-ente-contatti').forEach(el => el.innerText = document.getElementById('cfg-ente-contatti').value);
+    document.querySelectorAll('.val-calendario').forEach(el => el.innerText = window.getVal('cfg-calendario'));
+    document.querySelectorAll('.val-modalita').forEach(el => el.innerText = window.getVal('cfg-modalita', 'In Presenza Fisica'));
+    document.querySelectorAll('.val-ente-indirizzo').forEach(el => el.innerText = window.getVal('cfg-ente-indirizzo'));
+    document.querySelectorAll('.val-ente-contatti').forEach(el => el.innerText = window.getVal('cfg-ente-contatti'));
 
     // Cert ID Generator
-    let certIdStr = document.getElementById('cfg-loaded-cert-id').value;
+    let certIdStr = window.getVal('cfg-loaded-cert-id');
     if(!certIdStr && codice) {
-        const safeCf = (document.getElementById('cfg-cf').value || "XXX").substring(0,6);
+        const safeCf = (window.getVal('cfg-cf') || "XXX").substring(0,6);
         certIdStr = "C25-" + codice.split(/[-/]/).pop() + "-" + safeCf + "-" + new Date().getTime().toString().slice(-4);
     }
     document.querySelectorAll('.val-cert-id').forEach(el => el.innerText = certIdStr || "---");
 
     // Logo Manager
-    const logoUrl = document.getElementById('cfg-logo').value;
+    const logoUrl = window.getVal('cfg-logo');
     document.querySelectorAll('.logo-img').forEach(img => { 
         if(logoUrl){ img.src=logoUrl; img.classList.remove('hidden'); } 
         else img.classList.add('hidden'); 
     });
     
-    document.querySelectorAll('.val-dicitura-legale').forEach(el => el.innerHTML = "Corso erogato in conformità al <strong>" + (c.norma || "D.Lgs. 81/08 e Accordi Stato Regioni vigenti") + "</strong>. Qualifica della Docenza Registrata: " + document.getElementById('cfg-req-docente').value + ".");
+    document.querySelectorAll('.val-dicitura-legale').forEach(el => el.innerHTML = "Corso erogato in conformità al <strong>" + (c.norma || "D.Lgs. 81/08 e Accordi Stato Regioni vigenti") + "</strong>. Qualifica della Docenza Registrata: " + window.getVal('cfg-req-docente') + ".");
 
     // Scadenza
     if (c.scad === 99) { 
         document.querySelectorAll('.val-scadenza').forEach(el => el.innerText = "Credito Permanente"); 
-    } else if(dEsameRaw) { 
-        const parts = dEsameRaw.split('-'); 
+    } else if(window.getVal('cfg-data-esame')) { 
+        const parts = window.getVal('cfg-data-esame').split('-'); 
         const d = new Date(parts[0], parts[1]-1, parts[2]); 
         d.setFullYear(d.getFullYear() + c.scad); 
         document.querySelectorAll('.val-scadenza').forEach(el => el.innerText = d.toLocaleDateString('it-IT') + ' (Agg. ' + c.scad + ' Anni)'); 
@@ -279,21 +283,23 @@ window.updateAll = function() {
         document.querySelectorAll('.val-scadenza').forEach(el => el.innerText = '--/--/-- (Agg. ' + c.scad + ' Anni)'); 
     }
 
-    // Auto-generazione Righe vuote per utente singolo
+    // ==========================================
+    // AUTO-GENERAZIONE RIGHE VUOTE REGISTRI
+    // ==========================================
     const vRows = document.getElementById('v-rows');
     if (vRows && !vRows.dataset.populated) {
-        const nomeVal = document.getElementById('cfg-nome').value;
-        const mansioneVal = document.getElementById('cfg-mansione').value;
-        const cfVal = document.getElementById('cfg-cf').value;
+        const nomeVal = window.getVal('cfg-nome');
+        const mansioneVal = window.getVal('cfg-mansione');
+        const cfVal = window.getVal('cfg-cf');
 
-        // Registro (Landscape)
+        // Registro Allievi (Landscape - 30 righe esatte)
         let rr = '<tr><td class="py-0.5 px-1 text-center font-bold">1</td><td class="py-0.5 px-1 bg-white leading-none"><span class="font-bold">' + nomeVal + '</span><br><span class="text-[6px] text-slate-500 uppercase">' + (mansioneVal || '') + '</span></td><td class="py-0.5 px-1 text-center font-mono">' + cfVal + '</td><td class="py-0.5 px-1 text-center">&nbsp;</td><td class="py-0.5 px-1">&nbsp;</td><td class="py-0.5 px-1 text-center">&nbsp;</td><td class="py-0.5 px-1">&nbsp;</td></tr>';
         for(let i=0; i<29; i++){ 
             rr += '<tr><td class="py-0.5 px-1">&nbsp;</td><td class="py-0.5 px-1">&nbsp;</td><td class="py-0.5 px-1">&nbsp;</td><td class="py-0.5 px-1">&nbsp;</td><td class="py-0.5 px-1">&nbsp;</td><td class="py-0.5 px-1">&nbsp;</td><td class="py-0.5 px-1">&nbsp;</td></tr>'; 
         }
         if(document.getElementById('r-rows')) document.getElementById('r-rows').innerHTML = rr;
 
-        // Verbale (Portrait)
+        // Verbale (Portrait - 30 righe esatte)
         let vr = '<tr><td class="py-0.5 px-1 leading-tight"><span class="font-bold">' + nomeVal + '</span><br><span class="text-[6.5px] text-slate-500 uppercase">' + (mansioneVal || '') + '</span></td><td class="py-0.5 px-1 text-center font-bold text-emerald-700">SI</td><td class="py-0.5 px-1 text-center italic">__ / 30</td><td class="py-0.5 px-1 text-center">Positivo</td><td class="py-0.5 px-1 text-center font-bold uppercase text-blue-700">Idoneo</td></tr>';
         for(let i=0; i<29; i++){ 
             vr += '<tr><td class="py-0.5 px-1">&nbsp;</td><td class="py-0.5 px-1">&nbsp;</td><td class="py-0.5 px-1">&nbsp;</td><td class="py-0.5 px-1">&nbsp;</td><td class="py-0.5 px-1">&nbsp;</td></tr>'; 
@@ -310,7 +316,7 @@ window.updateAll = function() {
 }
 
 // ==========================================
-// RIGHE TABELLE PER MULTI UTENTE (30 RIGHE)
+// RIGHE TABELLE PER MULTI UTENTE
 // ==========================================
 window.aggiornaTabelleSessione = function() {
     if (!window.currentSessionCorsisti || window.currentSessionCorsisti.length === 0) return;
@@ -339,13 +345,13 @@ window.aggiornaTabelleSessione = function() {
     
     const selectEl = document.getElementById('cfg-select-corsista');
     if(selectEl) {
-        const currVal = selectEl.value;
+        const currVal = window.getVal('cfg-select-corsista', 0);
         let opts = "";
         window.currentSessionCorsisti.forEach((c, i) => {
             opts += '<option value="' + i + '">' + c.nome + ' (' + (c.cf||'').slice(0,6) + ')</option>';
         });
         selectEl.innerHTML = opts;
-        selectEl.value = currVal || 0; 
+        selectEl.value = currVal; 
     }
 }
 
@@ -353,10 +359,7 @@ window.aggiornaTabelleSessione = function() {
 // TEST GENERATOR E COLLOQUIO
 // ==========================================
 window.updateTests = function() {
-    const corsoEl = document.getElementById('cfg-corso');
-    if (!corsoEl) return;
-    
-    const courseId = corsoEl.value;
+    const courseId = window.getVal('cfg-corso', 'lav_basso');
     if (window.currentTestCourseId !== courseId || window.currentTestQuestions.length === 0) {
         if(typeof window.generateTestQuestions === 'function') {
             window.currentTestQuestions = window.generateTestQuestions(courseId);
@@ -378,7 +381,6 @@ window.updateTests = function() {
         testContainer.innerHTML = htmlTest;
     }
     
-    // Colloquio
     const colloquioContainer = document.getElementById('colloquio-container');
     if (colloquioContainer && window.currentTestQuestions.length > 0) {
         let htmlColl = "";
@@ -433,7 +435,7 @@ window.generateTestQuestions = function(courseId) {
 }
 
 // ==========================================
-// DB NORMALIZE & UI HANDLERS
+// DB NORMALIZE E SALVATAGGIO
 // ==========================================
 window.normalizeDatabase = function() {
     if(!window.dbCorsisti) window.dbCorsisti = [];
@@ -455,17 +457,109 @@ window.normalizeDatabase = function() {
     });
 }
 
+window.salvaCorsistaDB = async function() {
+    const courseId = window.getVal('cfg-corso', 'lav_basso');
+    const nome = window.getVal('cfg-nome').trim();
+    if(!nome) return alert("Errore: Inserisci almeno il nome del corsista prima di salvare!");
+    
+    let certId = window.getVal('cfg-loaded-cert-id');
+    if(!certId) {
+        const certEl = document.querySelector('.val-cert-id');
+        certId = certEl ? certEl.innerText : "ND";
+    }
+
+    const c = window.DB_CORSI[courseId];
+    
+    let arrDocenti = [];
+    c.prog.forEach((_, idx) => {
+        arrDocenti.push(window.getVal('docente_ud_' + idx, window.getVal('cfg-docente')));
+    });
+
+    const record = {
+        id_certificato: certId,
+        data_esame: window.getVal('cfg-data-esame'), 
+        data_inizio: window.getVal('cfg-data-inizio'), 
+        codice: window.getVal('cfg-codice'),
+        azienda: window.getVal('cfg-azienda'),
+        indirizzo_azienda: window.getVal('cfg-azienda-indirizzo'),
+        nome: nome,
+        cf: window.getVal('cfg-cf'),
+        mansione: window.getVal('cfg-mansione'),
+        nascita: window.getVal('cfg-nascita'),
+        corso: c.t,
+        docente: window.getVal('cfg-docente'), 
+        docenti_ud: arrDocenti, 
+        resp_corso: window.getVal('cfg-resp-corso'),
+        resp_progetto: window.getVal('cfg-resp-progetto'),
+        modalita: window.getVal('cfg-modalita'),
+        ore: c.ore,
+        ente: window.getVal('cfg-ente'),
+        ente_indirizzo: window.getVal('cfg-ente-indirizzo'),
+        ente_contatti: window.getVal('cfg-ente-contatti'),
+        calendario: window.getVal('cfg-calendario'),
+        ateco: window.getVal('cfg-ateco'),
+        sede_corso: window.getVal('cfg-sede-corso'),
+        req_docente: window.getVal('cfg-req-docente'),
+        luogo_emissione: window.getVal('cfg-luogo-emissione')
+    };
+    
+    const btn = document.getElementById('btn-save-cloud');
+    let originalHtml = "Salva su DB";
+    if (btn) {
+        originalHtml = btn.innerHTML;
+        btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Salvataggio...';
+    }
+    
+    if (typeof window.saveCorsistaCloud !== 'function') {
+        alert("Errore di configurazione: manca la connessione a Supabase.");
+        if (btn) btn.innerHTML = originalHtml;
+        return;
+    }
+
+    const success = await window.saveCorsistaCloud(record);
+    
+    if (success) {
+        window.dbCorsisti = await window.loadCloudDatabase();
+        window.updateDBCounter();
+        
+        if (btn) {
+            btn.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i> Salvato nel Cloud!';
+            btn.classList.replace('bg-emerald-600', 'bg-teal-500'); 
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+
+            setTimeout(() => {
+                btn.innerHTML = originalHtml; 
+                btn.classList.replace('bg-teal-500', 'bg-emerald-600'); 
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            }, 1500);
+        } else {
+            alert("Salvato nel Cloud!");
+        }
+    } else {
+        alert("Errore durante il salvataggio! Controlla la Console (F12) per i dettagli.");
+        if (btn) btn.innerHTML = originalHtml; 
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+}
+
+// ==========================================
+// INTERAZIONI FORM CONFIGURAZIONE
+// ==========================================
 window.cambioCorso = function() {
     window.pulisciCertIdCaricato();
     window.renderUDInputs();
+    
     const calEl = document.getElementById('cfg-calendario');
     if (calEl) calEl.value = ""; 
+    window.AppState['cfg-calendario'] = "";
+    
     window.updateAll();
 }
 
 window.cambiaDataInizio = function() {
     const calEl = document.getElementById('cfg-calendario');
     if (calEl) calEl.value = ""; 
+    window.AppState['cfg-calendario'] = "";
     window.updateAll();
 }
 
@@ -488,7 +582,11 @@ window.forzaAggiornamento = function() {
 window.caricaLogoFile = function(event) {
     const file = event.target.files[0]; if (!file) return;
     const reader = new FileReader();
-    reader.onload = (e) => { document.getElementById('cfg-logo').value = e.target.result; window.updateAll(); };
+    reader.onload = (e) => { 
+        if(document.getElementById('cfg-logo')) document.getElementById('cfg-logo').value = e.target.result; 
+        window.AppState['cfg-logo'] = e.target.result;
+        window.updateAll(); 
+    };
     reader.readAsDataURL(file);
 }
 
@@ -512,11 +610,10 @@ window.toggleCorrector = function() {
 // SESSIONE E CORSISTA MANAGEMENT
 // ==========================================
 window.pulisciCertIdCaricato = function() {
-    if(document.getElementById('cfg-loaded-cert-id')) document.getElementById('cfg-loaded-cert-id').value = "";
-    if(document.getElementById('cfg-nome')) document.getElementById('cfg-nome').value = "";
-    if(document.getElementById('cfg-cf')) document.getElementById('cfg-cf').value = "";
-    if(document.getElementById('cfg-mansione')) document.getElementById('cfg-mansione').value = "";
-    if(document.getElementById('cfg-nascita')) document.getElementById('cfg-nascita').value = "";
+    ['cfg-loaded-cert-id', 'cfg-nome', 'cfg-cf', 'cfg-mansione', 'cfg-nascita'].forEach(id => {
+        if(document.getElementById(id)) document.getElementById(id).value = "";
+        window.AppState[id] = "";
+    });
     window.currentSessionCorsisti = [];
     window.updateAll();
 }
@@ -525,20 +622,31 @@ window.cambiaCorsistaSessione = function() {
     const selectEl = document.getElementById('cfg-select-corsista');
     if(!selectEl) return;
     const idx = selectEl.value;
+    window.AppState['cfg-select-corsista'] = idx;
     if (!window.currentSessionCorsisti || window.currentSessionCorsisti.length === 0) return;
     const c = window.currentSessionCorsisti[idx];
     if(c) {
-        if(document.getElementById('cfg-nome')) document.getElementById('cfg-nome').value = c.nome || "";
-        if(document.getElementById('cfg-mansione')) document.getElementById('cfg-mansione').value = c.mansione || "";
-        if(document.getElementById('cfg-nascita')) document.getElementById('cfg-nascita').value = c.nascita || "";
-        if(document.getElementById('cfg-cf')) document.getElementById('cfg-cf').value = c.cf || "";
-        if(document.getElementById('cfg-loaded-cert-id')) document.getElementById('cfg-loaded-cert-id').value = c.id_certificato || "";
+        const updateField = (id, val) => {
+            if(document.getElementById(id)) document.getElementById(id).value = val;
+            window.AppState[id] = val;
+        };
         
-        document.querySelectorAll('[id^="docente_ud_"]').forEach(el => el.value = "");
+        updateField('cfg-nome', c.nome || "");
+        updateField('cfg-mansione', c.mansione || "");
+        updateField('cfg-nascita', c.nascita || "");
+        updateField('cfg-cf', c.cf || "");
+        updateField('cfg-loaded-cert-id', c.id_certificato || "");
+        
+        document.querySelectorAll('[id^="docente_ud_"]').forEach(el => {
+            el.value = "";
+            window.AppState[el.id] = "";
+        });
+        
         if (c.docenti_ud && c.docenti_ud.length > 0) {
             c.docenti_ud.forEach((doc, i) => {
-                const input = document.getElementById('docente_ud_' + i);
-                if (input) input.value = doc;
+                const docId = 'docente_ud_' + i;
+                if (document.getElementById(docId)) document.getElementById(docId).value = doc;
+                window.AppState[docId] = doc;
             });
         }
         window.updateAll();
@@ -550,55 +658,78 @@ window.caricaSessioneByCodice = function(codice) {
     if (sessionCorsisti.length === 0) return alert("Errore nel caricamento della sessione.");
 
     const cRef = sessionCorsisti[0];
-    let courseKey = "lav_basso"; 
-    for (const [key, value] of Object.entries(window.DB_CORSI)) { if (value.t === cRef.corso) { courseKey = key; break; } }
     
-    if(document.getElementById('cfg-corso')) document.getElementById('cfg-corso').value = courseKey;
-    window.renderUDInputs();
-    
-    if(document.getElementById('cfg-azienda')) document.getElementById('cfg-azienda').value = cRef.azienda || "";
-    if(document.getElementById('cfg-azienda-indirizzo')) document.getElementById('cfg-azienda-indirizzo').value = cRef.indirizzo_azienda || "";
-    if(document.getElementById('cfg-ateco')) document.getElementById('cfg-ateco').value = cRef.ateco || "";
-    if(document.getElementById('cfg-sede-corso')) document.getElementById('cfg-sede-corso').value = cRef.sede_corso || "";
-    if(document.getElementById('cfg-modalita')) document.getElementById('cfg-modalita').value = cRef.modalita || "In Presenza Fisica";
-    if(document.getElementById('cfg-calendario')) document.getElementById('cfg-calendario').value = cRef.calendario || "";
-    if(document.getElementById('cfg-data-esame')) document.getElementById('cfg-data-esame').value = window.formatDataToISODate(cRef.data_esame);
-    if(document.getElementById('cfg-data-inizio')) document.getElementById('cfg-data-inizio').value = window.formatDataToISODate(cRef.data_inizio);
-    
-    window.currentSessionCorsisti = sessionCorsisti;
-    window.chiudiSessioni();
-    window.updateAll();
-    alert("Sessione [" + codice + "] caricata con successo (" + sessionCorsisti.length + " Corsisti).");
+    // Passa alla view di Config se non ci siamo
+    window.loadModule('config').then(() => {
+        let courseKey = "lav_basso"; 
+        for (const [key, value] of Object.entries(window.DB_CORSI)) { if (value.t === cRef.corso) { courseKey = key; break; } }
+        
+        if(document.getElementById('cfg-corso')) document.getElementById('cfg-corso').value = courseKey;
+        window.AppState['cfg-corso'] = courseKey;
+        
+        window.renderUDInputs();
+        
+        const applyField = (id, val) => {
+            if(document.getElementById(id)) document.getElementById(id).value = val;
+            window.AppState[id] = val;
+        };
+
+        applyField('cfg-azienda', cRef.azienda || "");
+        applyField('cfg-azienda-indirizzo', cRef.indirizzo_azienda || "");
+        applyField('cfg-ateco', cRef.ateco || "");
+        applyField('cfg-sede-corso', cRef.sede_corso || "");
+        applyField('cfg-modalita', cRef.modalita || "In Presenza Fisica");
+        applyField('cfg-calendario', cRef.calendario || "");
+        applyField('cfg-data-esame', window.formatDataToISODate(cRef.data_esame));
+        applyField('cfg-data-inizio', window.formatDataToISODate(cRef.data_inizio));
+        
+        window.currentSessionCorsisti = sessionCorsisti;
+        window.chiudiSessioni();
+        window.updateAll();
+        alert("Sessione [" + codice + "] caricata con successo (" + sessionCorsisti.length + " Corsisti).");
+    });
 }
 
 window.caricaCorsista = function(idx) {
     const r = window.dbCorsisti[idx];
-    let courseKey = "lav_basso"; 
-    for (const [key, value] of Object.entries(window.DB_CORSI)) { if (value.t === r.corso) { courseKey = key; break; } }
     
-    if(document.getElementById('cfg-corso')) document.getElementById('cfg-corso').value = courseKey;
-    window.renderUDInputs();
+    window.loadModule('config').then(() => {
+        let courseKey = "lav_basso"; 
+        for (const [key, value] of Object.entries(window.DB_CORSI)) { if (value.t === r.corso) { courseKey = key; break; } }
+        
+        if(document.getElementById('cfg-corso')) document.getElementById('cfg-corso').value = courseKey;
+        window.AppState['cfg-corso'] = courseKey;
+        
+        window.renderUDInputs();
 
-    if(document.getElementById('cfg-azienda')) document.getElementById('cfg-azienda').value = r.azienda || "";
-    if(document.getElementById('cfg-azienda-indirizzo')) document.getElementById('cfg-azienda-indirizzo').value = r.indirizzo_azienda || "";
-    if(document.getElementById('cfg-ateco')) document.getElementById('cfg-ateco').value = r.ateco || "";
-    if(document.getElementById('cfg-nome')) document.getElementById('cfg-nome').value = r.nome || "";
-    if(document.getElementById('cfg-cf')) document.getElementById('cfg-cf').value = r.cf || "";
-    if(document.getElementById('cfg-mansione')) document.getElementById('cfg-mansione').value = r.mansione || "";
-    if(document.getElementById('cfg-nascita')) document.getElementById('cfg-nascita').value = r.nascita || "";
-    if(document.getElementById('cfg-loaded-cert-id')) document.getElementById('cfg-loaded-cert-id').value = r.id_certificato || "";
-    if(document.getElementById('cfg-sede-corso')) document.getElementById('cfg-sede-corso').value = r.sede_corso || "";
-    if(document.getElementById('cfg-data-esame')) document.getElementById('cfg-data-esame').value = window.formatDataToISODate(r.data_esame);
-    if(document.getElementById('cfg-data-inizio')) document.getElementById('cfg-data-inizio').value = window.formatDataToISODate(r.data_inizio);
+        const applyField = (id, val) => {
+            if(document.getElementById(id)) document.getElementById(id).value = val;
+            window.AppState[id] = val;
+        };
 
-    if (r.docenti_ud && r.docenti_ud.length > 0) {
-        r.docenti_ud.forEach((docName, i) => {
-            const input = document.getElementById('docente_ud_' + i);
-            if (input) input.value = docName;
-        });
-    }
-    window.chiudiArchivio(); 
-    window.updateAll();
+        applyField('cfg-azienda', r.azienda || "");
+        applyField('cfg-azienda-indirizzo', r.indirizzo_azienda || "");
+        applyField('cfg-ateco', r.ateco || "");
+        applyField('cfg-nome', r.nome || "");
+        applyField('cfg-cf', r.cf || "");
+        applyField('cfg-mansione', r.mansione || "");
+        applyField('cfg-nascita', r.nascita || "");
+        applyField('cfg-loaded-cert-id', r.id_certificato || "");
+        applyField('cfg-sede-corso', r.sede_corso || "");
+        applyField('cfg-data-esame', window.formatDataToISODate(r.data_esame));
+        applyField('cfg-data-inizio', window.formatDataToISODate(r.data_inizio));
+
+        if (r.docenti_ud && r.docenti_ud.length > 0) {
+            r.docenti_ud.forEach((docName, i) => {
+                const docId = 'docente_ud_' + i;
+                if (document.getElementById(docId)) document.getElementById(docId).value = docName;
+                window.AppState[docId] = docName;
+            });
+        }
+        
+        window.chiudiArchivio(); 
+        window.updateAll();
+    });
 }
 
 // ==========================================
@@ -670,6 +801,7 @@ window.preparaEStampaMassiva = function(tabId) {
 
     window.currentSessionCorsisti.forEach((c, idx) => {
         if(selectEl) selectEl.value = idx;
+        window.AppState['cfg-select-corsista'] = idx; // Aggiorna lo stato in memoria
         window.cambiaCorsistaSessione(); 
         
         document.querySelectorAll('#app-content .doc-page').forEach(original => {
@@ -688,7 +820,9 @@ window.preparaEStampaMassiva = function(tabId) {
         window.print(); 
         document.body.classList.remove('is-printing-temp');
         printArea.innerHTML = ''; 
+        
         if(selectEl) selectEl.value = currentIndex;
+        window.AppState['cfg-select-corsista'] = currentIndex;
         window.cambiaCorsistaSessione();
     }, 1000);
 }
@@ -937,91 +1071,5 @@ window.filtraSessioni = function() {
     for (let i = 0; i < tr.length; i++) {
         if(tr[i].cells.length === 1) continue; 
         tr[i].style.display = tr[i].innerText.toLowerCase().includes(filter) ? "" : "none";
-    }
-}
-// ==========================================
-// SALVATAGGIO NEL CLOUD (SUPABASE)
-// ==========================================
-window.salvaCorsistaDB = async function() {
-    const courseId = document.getElementById('cfg-corso').value;
-    const nome = document.getElementById('cfg-nome').value.trim();
-    if(!nome) return alert("Errore: Inserisci almeno il nome del corsista prima di salvare!");
-    
-    // Recupera l'ID certificato, se già esiste o genera il testo corrente
-    let certId = document.getElementById('cfg-loaded-cert-id').value;
-    if(!certId) {
-        const certEl = document.querySelector('.val-cert-id');
-        certId = certEl ? certEl.innerText : "ND";
-    }
-
-    const c = window.DB_CORSI[courseId];
-    
-    // Raccoglie i docenti assegnati alle singole Unità Didattiche
-    let arrDocenti = [];
-    c.prog.forEach((_, idx) => {
-        const docInput = document.getElementById('docente_ud_' + idx);
-        arrDocenti.push(docInput ? docInput.value : document.getElementById('cfg-docente').value);
-    });
-
-    // Costruisce il pacchetto dati
-    const record = {
-        id_certificato: certId,
-        data_esame: document.getElementById('cfg-data-esame').value, 
-        data_inizio: document.getElementById('cfg-data-inizio').value, 
-        codice: document.getElementById('cfg-codice').value,
-        azienda: document.getElementById('cfg-azienda').value,
-        indirizzo_azienda: document.getElementById('cfg-azienda-indirizzo').value,
-        nome: nome,
-        cf: document.getElementById('cfg-cf').value,
-        mansione: document.getElementById('cfg-mansione').value,
-        nascita: document.getElementById('cfg-nascita').value,
-        corso: c.t,
-        docente: document.getElementById('cfg-docente').value, 
-        docenti_ud: arrDocenti, 
-        resp_corso: document.getElementById('cfg-resp-corso').value,
-        resp_progetto: document.getElementById('cfg-resp-progetto').value,
-        modalita: document.getElementById('cfg-modalita').value,
-        ore: c.ore,
-        ente: document.getElementById('cfg-ente').value,
-        ente_indirizzo: document.getElementById('cfg-ente-indirizzo').value,
-        ente_contatti: document.getElementById('cfg-ente-contatti').value,
-        calendario: document.getElementById('cfg-calendario').value,
-        ateco: document.getElementById('cfg-ateco').value,
-        sede_corso: document.getElementById('cfg-sede-corso').value,
-        req_docente: document.getElementById('cfg-req-docente').value,
-        luogo_emissione: document.getElementById('cfg-luogo-emissione').value
-    };
-    
-    const btn = document.getElementById('btn-save-cloud');
-    const originalHtml = btn.innerHTML;
-    btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Salvataggio...';
-    
-    // Chiama la funzione di rete verso Supabase
-    if (typeof window.saveCorsistaCloud !== 'function') {
-        alert("Errore di configurazione: manca la connessione a Supabase.");
-        btn.innerHTML = originalHtml;
-        return;
-    }
-
-    const success = await window.saveCorsistaCloud(record);
-    
-    if (success) {
-        // Se va a buon fine, ricarica il DB cloud per aggiornare la cache locale
-        window.dbCorsisti = await window.loadCloudDatabase();
-        window.updateDBCounter();
-        
-        btn.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i> Salvato nel Cloud!';
-        btn.classList.replace('bg-emerald-600', 'bg-teal-500'); 
-        if (typeof lucide !== 'undefined') lucide.createIcons();
-
-        setTimeout(() => {
-            btn.innerHTML = originalHtml; 
-            btn.classList.replace('bg-teal-500', 'bg-emerald-600'); 
-            if (typeof lucide !== 'undefined') lucide.createIcons();
-        }, 1500);
-    } else {
-        alert("Errore durante il salvataggio! Controlla la Console (F12) per i dettagli.");
-        btn.innerHTML = originalHtml; 
-        if (typeof lucide !== 'undefined') lucide.createIcons();
     }
 }
