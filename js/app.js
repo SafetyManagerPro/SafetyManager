@@ -6,65 +6,51 @@ window.dbCorsisti = [];
 window.loadModule = async function(moduleId) {
     const contentDiv = document.getElementById('app-content');
     
-    // Aggiorna la UI del menu
+    // 1. Aggiorna l'estetica del menu superiore
     document.querySelectorAll('.btn-tab').forEach(b => b.classList.remove('active', 'bg-blue-50', 'text-blue-900'));
     const activeBtn = document.getElementById('nav-' + moduleId);
     if(activeBtn) activeBtn.classList.add('active', 'bg-blue-50', 'text-blue-900');
 
     try {
-        // Carica il file HTML in modo asincrono
+        // 2. Chiama l'HTML del modulo selezionato
         const response = await fetch(`modules/${moduleId}.html`);
         if (!response.ok) throw new Error("Modulo non trovato");
         
         const html = await response.text();
         contentDiv.innerHTML = html;
         
-        // Re-inizializza le icone Lucide per il nuovo contenuto
+        // 3. Re-inizializza le icone Lucide (se presenti)
         if (typeof lucide !== 'undefined') lucide.createIcons();
         
-        // Esegui eventuali script specifici del modulo
-        window.updateAll(); // La tua funzione core di aggiornamento dati
+        // 4. Aggiorna i dati sul nuovo modulo iniettato
+        if (typeof window.updateAll === 'function') {
+            window.updateAll();
+        }
         
-        // Se è la dashboard admin, chiama il render
-        if(moduleId === 'admin') window.renderAdminDashboard();
+        // 5. Se è la dashboard, forza il rendering dei grafici
+        if(moduleId === 'admin' && typeof window.renderAdminDashboard === 'function') {
+            window.renderAdminDashboard();
+        }
 
     } catch (error) {
-        contentDiv.innerHTML = `<div class="p-10 text-center text-red-500 font-bold">Errore caricamento modulo: ${error.message}</div>`;
+        contentDiv.innerHTML = `<div class="p-10 text-center text-red-500 font-bold flex flex-col items-center"><i data-lucide="alert-triangle" class="w-10 h-10 mb-2"></i> Errore caricamento modulo: ${error.message}</div>`;
+        if (typeof lucide !== 'undefined') lucide.createIcons();
     }
 };
 
-// Modifica del salvataggio per usare Supabase
-window.salvaCorsistaDB = async function() {
-    // ... (Raccogli i dati dai form come facevi prima, creando l'oggetto 'record') ...
-    
-    const btn = document.getElementById('btn-save-cloud');
-    const originalHtml = btn.innerHTML;
-    btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Salvataggio su Supabase...';
-    
-    // Salva nel cloud
-    const success = await saveCorsistaCloud(record);
-    
-    if (success) {
-        // Ricarica il DB locale da Supabase per avere i dati sincronizzati
-        window.dbCorsisti = await loadCloudDatabase();
-        window.updateDBCounter();
-        
-        btn.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i> Salvato nel Cloud!';
-        setTimeout(() => { btn.innerHTML = originalHtml; lucide.createIcons(); }, 1500);
-    } else {
-        alert("Errore durante il salvataggio su Supabase.");
-        btn.innerHTML = originalHtml;
-    }
-}
-
-// Inizializzazione all'avvio
+// Inizializzazione automatica al caricamento del sito
 document.addEventListener("DOMContentLoaded", async () => {
-    // 1. Carica il DB da Supabase
-    window.dbCorsisti = await loadCloudDatabase();
     
-    // 2. Carica il modulo iniziale (es. Config o Dashboard)
+    // 1. Legge i dati dal cloud (Supabase) in modo sicuro
+    if (typeof window.loadCloudDatabase === 'function') {
+        window.dbCorsisti = await window.loadCloudDatabase();
+    }
+    
+    // 2. Carica la prima schermata di default
     await window.loadModule('config');
     
-    // 3. Aggiorna i contatori
-    window.updateDBCounter();
+    // 3. Aggiorna il contatore nella barra laterale
+    if (typeof window.updateDBCounter === 'function') {
+        window.updateDBCounter();
+    }
 });
