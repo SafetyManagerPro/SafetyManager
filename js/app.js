@@ -45,6 +45,15 @@ window.loadModule = async function(moduleId) {
         if (moduleId === 'progetti' && typeof window.loadProgettiTable === 'function') {
             window.loadProgettiTable();
         }
+        // Se apro Ente -> Carica Dati
+        if (moduleId === 'ente' && typeof window.loadEnteData === 'function') {
+            window.loadEnteData();
+        }
+
+        // Se apro Stampe -> Inizializza
+        if (moduleId === 'stampe' && typeof window.initStampe === 'function') {
+            window.initStampe();
+        }
 
     } catch (error) {
         contentDiv.innerHTML = `<div class="p-10 text-center text-red-500 font-bold flex flex-col items-center"><i data-lucide="alert-triangle" class="w-10 h-10 mb-2"></i> Errore caricamento modulo: ${error.message}</div>`;
