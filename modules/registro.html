@@ -1,62 +1,56 @@
-<div class="doc-page landscape print-as-block">
-    <table class="w-full border-none m-0 p-0">
-        <thead class="border-none bg-white">
-            <tr><td class="border-none p-0 bg-white pb-2">
-                <div class="flex justify-between items-end border-b-4 border-slate-900 pb-2">
-                    <div class="flex items-center gap-4">
-                        <img src="" alt="Logo" class="logo-img h-10 object-contain hidden">
-                        <h1 class="text-xl font-black uppercase logo-text val-ente">---</h1>
-                    </div>
-                    <div class="text-right">
-                        <p class="text-[9px] font-bold text-slate-500 uppercase">Cod. Progetto: <span class="val-codice text-black">---</span></p>
-                    </div>
-                </div>
-            </td></tr>
-        </thead>
-        <tbody class="border-none">
-            <tr><td class="border-none p-0 bg-white pt-2 align-top">
-                <div class="grid grid-cols-2 gap-4 text-xs border p-2 mb-2 bg-slate-50 rounded">
-                    <div><span class="font-bold uppercase text-slate-500 text-[9px] block label-azienda">Azienda Committente / ATECO</span> <span class="val-azienda font-black text-sm uppercase">---</span> <span class="text-[9px] text-slate-600">(ATECO: <span class="val-ateco">---</span>)</span></div>
-                    <div><span class="font-bold uppercase text-slate-500 text-[9px] block">Corso Erogato</span> <span class="val-titolo-corso text-blue-700 font-bold uppercase text-sm">---</span></div>
-                    <div>
-                        <span class="font-bold uppercase text-slate-500 text-[9px] block">Modalità / Calendario Inizio</span> 
-                        <span class="val-modalita font-bold text-blue-800 uppercase text-[9px] block mb-0.5">---</span>
-                        Inizio: <span class="val-data-inizio font-bold text-[9px]">---</span>
-                    </div>
-                    <div>
-                        <span class="font-bold uppercase text-slate-500 text-[9px] block">Data Esame e Sede Svolgimento</span> 
-                        <span class="val-data-esame font-black text-sm mb-0.5 block">---</span>
-                        <span class="val-sede-corso font-bold text-[8px] uppercase text-slate-600">---</span>
-                    </div>
-                </div>
+<div class="doc-page landscape flex flex-col" style="padding-bottom: 5mm;">
+    
+    <div class="flex justify-between items-end border-b-4 border-slate-900 pb-2 shrink-0 mb-2">
+        <div class="flex items-center gap-4">
+            <img src="" alt="Logo" class="logo-img h-10 object-contain hidden">
+            <h1 class="text-xl font-black uppercase logo-text val-ente">---</h1>
+        </div>
+        <div class="text-right">
+            <p class="text-[9px] font-bold text-slate-500 uppercase">Cod. Progetto: <span class="val-codice text-black">---</span></p>
+        </div>
+    </div>
 
-                <table class="w-full border-collapse border border-slate-800 text-[8px]">
-                    <thead class="bg-slate-200">
-                        <tr>
-                            <th class="border border-slate-800 p-1 w-6 text-center">#</th>
-                            <th class="border border-slate-800 p-1">CORSISTA</th>
-                            <th class="border border-slate-800 p-1 w-24 text-center">C.F.</th>
-                            <th class="border border-slate-800 p-1 w-16 text-center">Ingresso</th>
-                            <th class="border border-slate-800 p-1 w-32 text-center">Firma Ingresso</th>
-                            <th class="border border-slate-800 p-1 w-16 text-center">Uscita</th>
-                            <th class="border border-slate-800 p-1 w-32 text-center">Firma Uscita</th>
-                        </tr>
-                    </thead>
-                    <tbody id="r-rows"></tbody>
-                </table>
+    <div class="grid grid-cols-2 gap-4 text-xs border p-2 mb-2 bg-slate-50 rounded shrink-0">
+        <div><span class="font-bold uppercase text-slate-500 text-[9px] block">Azienda / ATECO</span> <span class="val-azienda font-black text-sm uppercase">---</span> <span class="text-[9px] text-slate-600">(ATECO: <span class="val-ateco">---</span>)</span></div>
+        <div><span class="font-bold uppercase text-slate-500 text-[9px] block">Corso Erogato</span> <span class="val-titolo-corso text-blue-700 font-bold uppercase text-sm">---</span></div>
+        <div>
+            <span class="font-bold uppercase text-slate-500 text-[9px] block">Modalità / Inizio</span> 
+            <span class="val-modalita font-bold text-blue-800 uppercase text-[9px] block mb-0.5">---</span>
+            Inizio: <span class="val-data-inizio font-bold text-[9px]">---</span>
+        </div>
+        <div>
+            <span class="font-bold uppercase text-slate-500 text-[9px] block">Data Esame / Sede</span> 
+            <span class="val-data-esame font-black text-sm mb-0.5 block">---</span>
+            <span class="val-sede-corso font-bold text-[8px] uppercase text-slate-600">---</span>
+        </div>
+    </div>
 
-                <div class="mt-4 flex flex-nowrap justify-between px-12 text-[10px] font-bold uppercase text-slate-400 text-center">
-                    <div class="w-2/5 px-2">
-                        <div class="w-full border-t-2 border-slate-800 mb-1"></div>
-                        <span class="text-[8px] font-bold text-slate-500 block">La Docenza (Firma)</span>
-                    </div>
-                    <div class="w-2/5 px-2">
-                        <div class="w-full border-t-2 border-slate-800 mb-1"></div>
-                        <span class="text-[8px] font-bold text-slate-500 block">Il Responsabile del Progetto</span>
-                        <span class="val-resp-progetto text-black font-black text-[9px] block">---</span>
-                    </div>
-                </div>
-            </td></tr>
-        </tbody>
-    </table>
+    <div class="flex-1 flex flex-col border border-slate-800">
+        <table class="w-full border-collapse text-[8px] h-full">
+            <thead class="bg-slate-200">
+                <tr>
+                    <th class="border border-slate-800 p-1 w-6 text-center">#</th>
+                    <th class="border border-slate-800 p-1">CORSISTA</th>
+                    <th class="border border-slate-800 p-1 w-24 text-center">C.F.</th>
+                    <th class="border border-slate-800 p-1 w-16 text-center">Ingresso</th>
+                    <th class="border border-slate-800 p-1 w-32 text-center">Firma Ingresso</th>
+                    <th class="border border-slate-800 p-1 w-16 text-center">Uscita</th>
+                    <th class="border border-slate-800 p-1 w-32 text-center">Firma Uscita</th>
+                </tr>
+            </thead>
+            <tbody id="r-rows" class="bg-white"></tbody>
+        </table>
+    </div>
+
+    <div class="mt-auto shrink-0 flex flex-nowrap justify-between px-12 text-[10px] font-bold uppercase text-slate-400 text-center pt-8">
+        <div class="w-2/5 px-2">
+            <div class="w-full border-t-2 border-slate-800 mb-1"></div>
+            <span class="text-[8px] font-bold text-slate-500 block">La Docenza (Firma)</span>
+        </div>
+        <div class="w-2/5 px-2">
+            <div class="w-full border-t-2 border-slate-800 mb-1"></div>
+            <span class="text-[8px] font-bold text-slate-500 block">Il Responsabile del Progetto</span>
+            <span class="val-resp-progetto text-black font-black text-[9px] block">---</span>
+        </div>
+    </div>
 </div>
