@@ -14,10 +14,10 @@ window.AppState = window.AppState || {};
 window.getVal = function(id, defaultVal = "") {
     const el = document.getElementById(id);
     if (el) {
-        window.AppState[id] = el.value; // Salva nel cloud temporaneo (memoria RAM)
+        window.AppState[id] = el.value; // Salva in memoria se esiste nel DOM
         return el.value;
     }
-    // Se l'elemento non esiste nel DOM (perché siamo in un'altra schermata), lo pesca dalla memoria
+    // Restituisce dalla memoria se non esiste nel DOM
     return window.AppState[id] !== undefined ? window.AppState[id] : defaultVal;
 }
 
@@ -181,11 +181,11 @@ window.updateAll = function() {
     let idxRd = 1;
     for (const [docName, data] of Object.entries(docentiMap)) {
         rdHtml += '<tr class="bg-white">';
-        rdHtml += '<td class="p-2 text-center font-bold">' + idxRd + '</td>';
-        rdHtml += '<td class="p-2 font-black text-slate-800">' + docName + '</td>';
-        rdHtml += '<td class="p-2 font-mono text-slate-600 text-[9px]">' + data.uds.join(', ') + '</td>';
-        rdHtml += '<td class="p-2 text-center font-bold text-blue-700">' + data.ore + ' h</td>';
-        rdHtml += '<td class="p-2 w-48">&nbsp;</td>';
+        rdHtml += '<td class="p-2 border border-slate-800 text-center font-bold">' + idxRd + '</td>';
+        rdHtml += '<td class="p-2 border border-slate-800 font-black text-slate-800">' + docName + '</td>';
+        rdHtml += '<td class="p-2 border border-slate-800 font-mono text-slate-600 text-[9px]">' + data.uds.join(', ') + '</td>';
+        rdHtml += '<td class="p-2 border border-slate-800 text-center font-bold text-blue-700">' + data.ore + ' h</td>';
+        rdHtml += '<td class="p-2 border border-slate-800 w-48">&nbsp;</td>';
         rdHtml += '</tr>';
         idxRd++;
     }
@@ -284,7 +284,7 @@ window.updateAll = function() {
     }
 
     // ==========================================
-    // AUTO-GENERAZIONE RIGHE VUOTE REGISTRI
+    // AUTO-GENERAZIONE RIGHE VUOTE REGISTRI (SINGOLO UTENTE)
     // ==========================================
     const vRows = document.getElementById('v-rows');
     if (vRows && !vRows.dataset.populated) {
@@ -292,17 +292,17 @@ window.updateAll = function() {
         const mansioneVal = window.getVal('cfg-mansione');
         const cfVal = window.getVal('cfg-cf');
 
-        // Registro Allievi (Landscape - 30 righe esatte)
-        let rr = '<tr><td class="py-0.5 px-1 text-center font-bold">1</td><td class="py-0.5 px-1 bg-white leading-none"><span class="font-bold">' + nomeVal + '</span><br><span class="text-[6px] text-slate-500 uppercase">' + (mansioneVal || '') + '</span></td><td class="py-0.5 px-1 text-center font-mono">' + cfVal + '</td><td class="py-0.5 px-1 text-center">&nbsp;</td><td class="py-0.5 px-1">&nbsp;</td><td class="py-0.5 px-1 text-center">&nbsp;</td><td class="py-0.5 px-1">&nbsp;</td></tr>';
+        // Registro Allievi (Landscape - 30 righe esatte con classi border Tailwind fisse)
+        let rr = '<tr><td class="border border-slate-800 py-0.5 px-1 text-center font-bold">1</td><td class="border border-slate-800 py-0.5 px-1 bg-white leading-none"><span class="font-bold">' + nomeVal + '</span><br><span class="text-[6px] text-slate-500 uppercase">' + (mansioneVal || '') + '</span></td><td class="border border-slate-800 py-0.5 px-1 text-center font-mono">' + cfVal + '</td><td class="border border-slate-800 py-0.5 px-1 text-center">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1 text-center">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td></tr>';
         for(let i=0; i<29; i++){ 
-            rr += '<tr><td class="py-0.5 px-1">&nbsp;</td><td class="py-0.5 px-1">&nbsp;</td><td class="py-0.5 px-1">&nbsp;</td><td class="py-0.5 px-1">&nbsp;</td><td class="py-0.5 px-1">&nbsp;</td><td class="py-0.5 px-1">&nbsp;</td><td class="py-0.5 px-1">&nbsp;</td></tr>'; 
+            rr += '<tr><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td></tr>'; 
         }
         if(document.getElementById('r-rows')) document.getElementById('r-rows').innerHTML = rr;
 
-        // Verbale (Portrait - 30 righe esatte)
-        let vr = '<tr><td class="py-0.5 px-1 leading-tight"><span class="font-bold">' + nomeVal + '</span><br><span class="text-[6.5px] text-slate-500 uppercase">' + (mansioneVal || '') + '</span></td><td class="py-0.5 px-1 text-center font-bold text-emerald-700">SI</td><td class="py-0.5 px-1 text-center italic">__ / 30</td><td class="py-0.5 px-1 text-center">Positivo</td><td class="py-0.5 px-1 text-center font-bold uppercase text-blue-700">Idoneo</td></tr>';
+        // Verbale (Portrait - 30 righe esatte con classi border Tailwind fisse)
+        let vr = '<tr><td class="border border-slate-900 py-0.5 px-1 leading-tight"><span class="font-bold">' + nomeVal + '</span><br><span class="text-[6.5px] text-slate-500 uppercase">' + (mansioneVal || '') + '</span></td><td class="border border-slate-900 py-0.5 px-1 text-center font-bold text-emerald-700">SI</td><td class="border border-slate-900 py-0.5 px-1 text-center italic">__ / 30</td><td class="border border-slate-900 py-0.5 px-1 text-center">Positivo</td><td class="border border-slate-900 py-0.5 px-1 text-center font-bold uppercase text-blue-700">Idoneo</td></tr>';
         for(let i=0; i<29; i++){ 
-            vr += '<tr><td class="py-0.5 px-1">&nbsp;</td><td class="py-0.5 px-1">&nbsp;</td><td class="py-0.5 px-1">&nbsp;</td><td class="py-0.5 px-1">&nbsp;</td><td class="py-0.5 px-1">&nbsp;</td></tr>'; 
+            vr += '<tr><td class="border border-slate-900 py-0.5 px-1">&nbsp;</td><td class="border border-slate-900 py-0.5 px-1">&nbsp;</td><td class="border border-slate-900 py-0.5 px-1">&nbsp;</td><td class="border border-slate-900 py-0.5 px-1">&nbsp;</td><td class="border border-slate-900 py-0.5 px-1">&nbsp;</td></tr>'; 
         }
         vRows.innerHTML = vr;
         vRows.dataset.populated = "true";
@@ -316,28 +316,28 @@ window.updateAll = function() {
 }
 
 // ==========================================
-// RIGHE TABELLE PER MULTI UTENTE
+// RIGHE TABELLE PER MULTI UTENTE (30 RIGHE)
 // ==========================================
 window.aggiornaTabelleSessione = function() {
     if (!window.currentSessionCorsisti || window.currentSessionCorsisti.length === 0) return;
     let rRows = ""; let vRows = "";
     
     window.currentSessionCorsisti.forEach((c, idx) => {
-        rRows += '<tr><td class="py-0.5 px-1 text-center font-bold">' + (idx + 1) + '</td><td class="py-0.5 px-1 bg-white leading-none"><span class="font-bold">' + c.nome + '</span><br><span class="text-[6px] text-slate-500 uppercase">' + (c.mansione || '') + '</span></td><td class="py-0.5 px-1 text-center font-mono">' + c.cf + '</td><td class="py-0.5 px-1 text-center">&nbsp;</td><td class="py-0.5 px-1">&nbsp;</td><td class="py-0.5 px-1 text-center">&nbsp;</td><td class="py-0.5 px-1">&nbsp;</td></tr>';
+        rRows += '<tr><td class="border border-slate-800 py-0.5 px-1 text-center font-bold">' + (idx + 1) + '</td><td class="border border-slate-800 py-0.5 px-1 bg-white leading-none"><span class="font-bold">' + c.nome + '</span><br><span class="text-[6px] text-slate-500 uppercase">' + (c.mansione || '') + '</span></td><td class="border border-slate-800 py-0.5 px-1 text-center font-mono">' + c.cf + '</td><td class="border border-slate-800 py-0.5 px-1 text-center">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1 text-center">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td></tr>';
         
-        vRows += '<tr><td class="py-0.5 px-1 leading-tight"><span class="font-bold">' + c.nome + '</span><br><span class="text-[6.5px] text-slate-500 uppercase">' + (c.mansione || '') + '</span></td><td class="py-0.5 px-1 text-center font-bold text-emerald-700">SI</td><td class="py-0.5 px-1 text-center italic">__ / 30</td><td class="py-0.5 px-1 text-center">Positivo</td><td class="py-0.5 px-1 text-center font-black uppercase text-blue-700">Idoneo</td></tr>';
+        vRows += '<tr><td class="border border-slate-900 py-0.5 px-1 leading-tight"><span class="font-bold">' + c.nome + '</span><br><span class="text-[6.5px] text-slate-500 uppercase">' + (c.mansione || '') + '</span></td><td class="border border-slate-900 py-0.5 px-1 text-center font-bold text-emerald-700">SI</td><td class="border border-slate-900 py-0.5 px-1 text-center italic">__ / 30</td><td class="border border-slate-900 py-0.5 px-1 text-center">Positivo</td><td class="border border-slate-900 py-0.5 px-1 text-center font-black uppercase text-blue-700">Idoneo</td></tr>';
     });
 
     const TOTAL_ROWS_REGISTRO = 30;
     const remainingR = Math.max(0, TOTAL_ROWS_REGISTRO - window.currentSessionCorsisti.length);
     for(let i=0; i<remainingR; i++){
-        rRows += '<tr><td class="py-0.5 px-1">&nbsp;</td><td class="py-0.5 px-1">&nbsp;</td><td class="py-0.5 px-1">&nbsp;</td><td class="py-0.5 px-1">&nbsp;</td><td class="py-0.5 px-1">&nbsp;</td><td class="py-0.5 px-1">&nbsp;</td><td class="py-0.5 px-1">&nbsp;</td></tr>';
+        rRows += '<tr><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td></tr>';
     }
     
     const TOTAL_ROWS_VERBALE = 30;
     const remainingV = Math.max(0, TOTAL_ROWS_VERBALE - window.currentSessionCorsisti.length);
     for(let i=0; i<remainingV; i++){
-        vRows += '<tr><td class="py-0.5 px-1">&nbsp;</td><td class="py-0.5 px-1">&nbsp;</td><td class="py-0.5 px-1">&nbsp;</td><td class="py-0.5 px-1">&nbsp;</td><td class="py-0.5 px-1">&nbsp;</td></tr>';
+        vRows += '<tr><td class="border border-slate-900 py-0.5 px-1">&nbsp;</td><td class="border border-slate-900 py-0.5 px-1">&nbsp;</td><td class="border border-slate-900 py-0.5 px-1">&nbsp;</td><td class="border border-slate-900 py-0.5 px-1">&nbsp;</td><td class="border border-slate-900 py-0.5 px-1">&nbsp;</td></tr>';
     }
 
     if(document.getElementById('r-rows')) document.getElementById('r-rows').innerHTML = rRows;
@@ -435,7 +435,7 @@ window.generateTestQuestions = function(courseId) {
 }
 
 // ==========================================
-// DB NORMALIZE E SALVATAGGIO
+// SALVATAGGIO CLOUD E NORMALIZZAZIONE
 // ==========================================
 window.normalizeDatabase = function() {
     if(!window.dbCorsisti) window.dbCorsisti = [];
@@ -543,16 +543,14 @@ window.salvaCorsistaDB = async function() {
 }
 
 // ==========================================
-// INTERAZIONI FORM CONFIGURAZIONE
+// INTERAZIONI FORM E UI
 // ==========================================
 window.cambioCorso = function() {
     window.pulisciCertIdCaricato();
     window.renderUDInputs();
-    
     const calEl = document.getElementById('cfg-calendario');
     if (calEl) calEl.value = ""; 
     window.AppState['cfg-calendario'] = "";
-    
     window.updateAll();
 }
 
@@ -623,6 +621,7 @@ window.cambiaCorsistaSessione = function() {
     if(!selectEl) return;
     const idx = selectEl.value;
     window.AppState['cfg-select-corsista'] = idx;
+    
     if (!window.currentSessionCorsisti || window.currentSessionCorsisti.length === 0) return;
     const c = window.currentSessionCorsisti[idx];
     if(c) {
@@ -659,7 +658,6 @@ window.caricaSessioneByCodice = function(codice) {
 
     const cRef = sessionCorsisti[0];
     
-    // Passa alla view di Config se non ci siamo
     window.loadModule('config').then(() => {
         let courseKey = "lav_basso"; 
         for (const [key, value] of Object.entries(window.DB_CORSI)) { if (value.t === cRef.corso) { courseKey = key; break; } }
@@ -801,7 +799,7 @@ window.preparaEStampaMassiva = function(tabId) {
 
     window.currentSessionCorsisti.forEach((c, idx) => {
         if(selectEl) selectEl.value = idx;
-        window.AppState['cfg-select-corsista'] = idx; // Aggiorna lo stato in memoria
+        window.AppState['cfg-select-corsista'] = idx;
         window.cambiaCorsistaSessione(); 
         
         document.querySelectorAll('#app-content .doc-page').forEach(original => {
