@@ -163,3 +163,21 @@ window.deleteIscrizione = async function(id) {
         if (error) throw error; return true;
     } catch (err) { console.error(err); return false; }
 };
+// ==========================================
+// API ENTE FORMATORE
+// ==========================================
+window.getEnte = async function() {
+    try {
+        const { data, error } = await supabaseClient.from('enti').select('*').limit(1).single();
+        if (error && error.code !== 'PGRST116') throw error; // PGRST116 è "nessuna riga trovata"
+        return data || null;
+    } catch (err) { console.error(err); return null; }
+};
+
+window.saveEnteData = async function(record) {
+    try {
+        // Usa upsert. Assicurati che l'ID sia passato per sovrascrivere l'unico record esistente.
+        const { data, error } = await supabaseClient.from('enti').upsert(record).select().single();
+        if (error) throw error; return data;
+    } catch (err) { console.error(err); return null; }
+};
