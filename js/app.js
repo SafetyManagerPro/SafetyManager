@@ -41,6 +41,10 @@ window.loadModule = async function(moduleId) {
         if (moduleId === 'corsisti' && typeof window.loadCorsistiTable === 'function') {
             window.loadCorsistiTable();
         }
+        // Se apro Progetti -> Carica tabella
+        if (moduleId === 'progetti' && typeof window.loadProgettiTable === 'function') {
+            window.loadProgettiTable();
+        }
 
     } catch (error) {
         contentDiv.innerHTML = `<div class="p-10 text-center text-red-500 font-bold flex flex-col items-center"><i data-lucide="alert-triangle" class="w-10 h-10 mb-2"></i> Errore caricamento modulo: ${error.message}</div>`;
