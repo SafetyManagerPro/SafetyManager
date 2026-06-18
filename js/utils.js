@@ -8,16 +8,14 @@ window.currentTestQuestions = [];
 window.correctorEnabled = false;
 window.currentSessionCorsisti = [];
 
-// Inizializzazione dello State Manager (Salva i dati in memoria quando cambi pagina)
 window.AppState = window.AppState || {};
 
 window.getVal = function(id, defaultVal = "") {
     const el = document.getElementById(id);
     if (el) {
-        window.AppState[id] = el.value; // Salva in memoria se esiste nel DOM
+        window.AppState[id] = el.value; 
         return el.value;
     }
-    // Restituisce dalla memoria se non esiste nel DOM
     return window.AppState[id] !== undefined ? window.AppState[id] : defaultVal;
 }
 
@@ -271,7 +269,6 @@ window.updateAll = function() {
     
     document.querySelectorAll('.val-dicitura-legale').forEach(el => el.innerHTML = "Corso erogato in conformità al <strong>" + (c.norma || "D.Lgs. 81/08 e Accordi Stato Regioni vigenti") + "</strong>. Qualifica della Docenza Registrata: " + window.getVal('cfg-req-docente') + ".");
 
-    // Scadenza
     if (c.scad === 99) { 
         document.querySelectorAll('.val-scadenza').forEach(el => el.innerText = "Credito Permanente"); 
     } else if(window.getVal('cfg-data-esame')) { 
@@ -284,31 +281,38 @@ window.updateAll = function() {
     }
 
     // ==========================================
-    // AUTO-GENERAZIONE RIGHE VUOTE REGISTRI (SINGOLO UTENTE)
+    // AUTO-GENERAZIONE RIGHE (Controlli INDIPENDENTI)
     // ==========================================
-    const vRows = document.getElementById('v-rows');
-    if (vRows && !vRows.dataset.populated) {
+    
+    if (!window.currentSessionCorsisti || window.currentSessionCorsisti.length === 0) {
+        // Modalità Utente Singolo
         const nomeVal = window.getVal('cfg-nome');
         const mansioneVal = window.getVal('cfg-mansione');
         const cfVal = window.getVal('cfg-cf');
 
-        // Registro Allievi (Landscape - 30 righe esatte con classi border Tailwind fisse)
-        let rr = '<tr><td class="border border-slate-800 py-0.5 px-1 text-center font-bold">1</td><td class="border border-slate-800 py-0.5 px-1 bg-white leading-none"><span class="font-bold">' + nomeVal + '</span><br><span class="text-[6px] text-slate-500 uppercase">' + (mansioneVal || '') + '</span></td><td class="border border-slate-800 py-0.5 px-1 text-center font-mono">' + cfVal + '</td><td class="border border-slate-800 py-0.5 px-1 text-center">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1 text-center">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td></tr>';
-        for(let i=0; i<29; i++){ 
-            rr += '<tr><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td></tr>'; 
+        // Controllo indipendente per il Registro
+        const rRowsEl = document.getElementById('r-rows');
+        if (rRowsEl && !rRowsEl.dataset.populated) {
+            let rr = '<tr><td class="border border-slate-800 py-0.5 px-1 text-center font-bold">1</td><td class="border border-slate-800 py-0.5 px-1 bg-white leading-none"><span class="font-bold">' + nomeVal + '</span><br><span class="text-[6px] text-slate-500 uppercase">' + (mansioneVal || '') + '</span></td><td class="border border-slate-800 py-0.5 px-1 text-center font-mono">' + cfVal + '</td><td class="border border-slate-800 py-0.5 px-1 text-center">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1 text-center">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td></tr>';
+            for(let i=0; i<29; i++){ 
+                rr += '<tr><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td></tr>'; 
+            }
+            rRowsEl.innerHTML = rr;
+            rRowsEl.dataset.populated = "true";
         }
-        if(document.getElementById('r-rows')) document.getElementById('r-rows').innerHTML = rr;
 
-        // Verbale (Portrait - 30 righe esatte con classi border Tailwind fisse)
-        let vr = '<tr><td class="border border-slate-900 py-0.5 px-1 leading-tight"><span class="font-bold">' + nomeVal + '</span><br><span class="text-[6.5px] text-slate-500 uppercase">' + (mansioneVal || '') + '</span></td><td class="border border-slate-900 py-0.5 px-1 text-center font-bold text-emerald-700">SI</td><td class="border border-slate-900 py-0.5 px-1 text-center italic">__ / 30</td><td class="border border-slate-900 py-0.5 px-1 text-center">Positivo</td><td class="border border-slate-900 py-0.5 px-1 text-center font-bold uppercase text-blue-700">Idoneo</td></tr>';
-        for(let i=0; i<29; i++){ 
-            vr += '<tr><td class="border border-slate-900 py-0.5 px-1">&nbsp;</td><td class="border border-slate-900 py-0.5 px-1">&nbsp;</td><td class="border border-slate-900 py-0.5 px-1">&nbsp;</td><td class="border border-slate-900 py-0.5 px-1">&nbsp;</td><td class="border border-slate-900 py-0.5 px-1">&nbsp;</td></tr>'; 
+        // Controllo indipendente per il Verbale
+        const vRowsEl = document.getElementById('v-rows');
+        if (vRowsEl && !vRowsEl.dataset.populated) {
+            let vr = '<tr><td class="border border-slate-900 py-0.5 px-1 leading-tight"><span class="font-bold">' + nomeVal + '</span><br><span class="text-[6.5px] text-slate-500 uppercase">' + (mansioneVal || '') + '</span></td><td class="border border-slate-900 py-0.5 px-1 text-center font-bold text-emerald-700">SI</td><td class="border border-slate-900 py-0.5 px-1 text-center italic">__ / 30</td><td class="border border-slate-900 py-0.5 px-1 text-center">Positivo</td><td class="border border-slate-900 py-0.5 px-1 text-center font-bold uppercase text-blue-700">Idoneo</td></tr>';
+            for(let i=0; i<29; i++){ 
+                vr += '<tr><td class="border border-slate-900 py-0.5 px-1">&nbsp;</td><td class="border border-slate-900 py-0.5 px-1">&nbsp;</td><td class="border border-slate-900 py-0.5 px-1">&nbsp;</td><td class="border border-slate-900 py-0.5 px-1">&nbsp;</td><td class="border border-slate-900 py-0.5 px-1">&nbsp;</td></tr>'; 
+            }
+            vRowsEl.innerHTML = vr;
+            vRowsEl.dataset.populated = "true";
         }
-        vRows.innerHTML = vr;
-        vRows.dataset.populated = "true";
-    }
-
-    if (window.currentSessionCorsisti && window.currentSessionCorsisti.length > 0) {
+    } else {
+        // Modalità Multi-Utente Sessione
         if(typeof window.aggiornaTabelleSessione === 'function') window.aggiornaTabelleSessione();
     }
 
@@ -435,7 +439,7 @@ window.generateTestQuestions = function(courseId) {
 }
 
 // ==========================================
-// SALVATAGGIO CLOUD E NORMALIZZAZIONE
+// DB NORMALIZE E SALVATAGGIO CLOUD
 // ==========================================
 window.normalizeDatabase = function() {
     if(!window.dbCorsisti) window.dbCorsisti = [];
@@ -1006,12 +1010,14 @@ window.mostraArchivio = function() {
 }
 
 window.chiudiArchivio = function() { document.getElementById('archivio-modal').classList.add('hidden'); }
+
 window.toggleMaximizeArchivio = function() {
     const box = document.getElementById('archivio-modal-box'); const icon = document.getElementById('icon-maximize');
     box.classList.toggle('max-w-5xl'); box.classList.toggle('max-h-[90vh]'); box.classList.toggle('w-full'); box.classList.toggle('h-full'); box.classList.toggle('rounded-xl');
     if (box.classList.contains('h-full')) { icon.setAttribute('data-lucide', 'minimize'); } else { icon.setAttribute('data-lucide', 'maximize'); }
     if (typeof lucide !== 'undefined') lucide.createIcons();
 }
+
 window.filtraArchivio = function() {
     const filter = document.getElementById('search-archivio')?.value.toLowerCase() || "";
     const tr = document.getElementById('archivio-rows').getElementsByTagName('tr');
@@ -1020,6 +1026,7 @@ window.filtraArchivio = function() {
         tr[i].style.display = tr[i].innerText.toLowerCase().includes(filter) ? "" : "none";
     }
 }
+
 window.eliminaCorsista = async function(id_certificato) {
     if(confirm("Sei sicuro di voler eliminare questo record in modo permanente dal Cloud? L'operazione è irreversibile.")) {
         if (typeof window.deleteCorsistaCloud === 'function') {
@@ -1063,6 +1070,7 @@ window.mostraSessioni = function() {
 }
 
 window.chiudiSessioni = function() { document.getElementById('sessioni-modal').classList.add('hidden'); }
+
 window.filtraSessioni = function() {
     const filter = document.getElementById('search-sessioni')?.value.toLowerCase() || "";
     const tr = document.getElementById('sessioni-rows').getElementsByTagName('tr');
