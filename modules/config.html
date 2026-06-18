@@ -1,0 +1,87 @@
+<!-- modules/config.html -->
+<div id="view-config" class="w-full max-w-4xl mx-auto bg-white p-6 rounded-xl shadow-md border border-slate-200">
+    <div class="border-b-2 border-slate-900 pb-2 mb-6 flex justify-between items-end">
+        <div>
+            <h1 class="text-2xl font-black uppercase text-slate-900 tracking-tighter">Setup Progetto & Corsista</h1>
+            <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Configurazione Dati Globali</p>
+        </div>
+        <button onclick="window.salvaCorsistaDB()" id="btn-save-cloud" class="no-print bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 shadow-sm transition-colors">
+            <i data-lucide="cloud-upload" class="w-4 h-4"></i> Salva su DB
+        </button>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- 1. ENTE FORMATORE -->
+        <div class="bg-slate-50 p-4 rounded-xl shadow-sm border border-slate-200">
+            <h3 class="font-bold text-slate-800 flex items-center gap-2 border-b pb-2 mb-3"><i data-lucide="building-2" class="w-4 h-4 text-blue-600"></i> Ente Formatore</h3>
+            <div class="space-y-3">
+                <input type="text" id="cfg-ente" onchange="window.updateAll()" value="CNA Imprenditori Avellino" class="input-field font-semibold text-blue-900" placeholder="Ragione Sociale">
+                <input type="text" id="cfg-ente-indirizzo" onchange="window.updateAll()" value="Via Serafino Soldi, 11/13 - 83100 Avellino" class="input-field text-xs" placeholder="Indirizzo Sede">
+                <input type="text" id="cfg-luogo-emissione" onchange="window.updateAll()" value="Avellino" class="input-field text-xs" placeholder="Luogo Emissione Attestati">
+                <input type="text" id="cfg-ente-contatti" onchange="window.updateAll()" value="P.IVA 02851400644 | cna.avellino@pec.it" class="input-field text-xs" placeholder="Contatti">
+                <div class="border-t border-slate-200 pt-2 mt-2">
+                    <label class="text-[10px] font-bold text-slate-500 uppercase">Legale Rappresentante</label>
+                    <input type="text" id="cfg-legale-nome" onchange="window.updateAll()" placeholder="Nome e Cognome" value="Mario Bianchi" class="input-field text-xs mt-1">
+                    <input type="text" id="cfg-legale-nascita" onchange="window.updateAll()" placeholder="Luogo e data di nascita" class="input-field text-xs mt-1">
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. COMMESSA E CORSO -->
+        <div class="bg-slate-50 p-4 rounded-xl shadow-sm border border-slate-200">
+            <h3 class="font-bold text-slate-800 mb-3 flex items-center gap-2 border-b pb-2"><i data-lucide="briefcase" class="w-4 h-4 text-blue-600"></i> Commessa / Corso</h3>
+            <div class="space-y-3">
+                <input type="text" id="cfg-azienda" oninput="window.updateAll()" placeholder="Azienda Committente (Es. ACME S.r.l.)" class="input-field font-semibold">
+                <input type="text" id="cfg-azienda-indirizzo" oninput="window.updateAll()" placeholder="Indirizzo Azienda" class="input-field text-xs bg-amber-50 border-amber-200">
+                <input type="text" id="cfg-ateco" oninput="window.updateAll()" placeholder="Codice ATECO" class="input-field text-xs font-mono">
+                
+                <select id="cfg-corso" onchange="window.cambioCorso()" class="input-field font-semibold text-xs text-blue-900 bg-blue-50">
+                    <option value="lav_basso">Formazione Lavoratori - Rischio Basso (8h)</option>
+                    <option value="lav_medio">Formazione Lavoratori - Rischio Medio (12h)</option>
+                    <option value="lav_alto">Formazione Lavoratori - Rischio Alto (16h)</option>
+                    <option value="preposto">Preposto Vigilanza Attiva (12h)</option>
+                    <option value="dirigente">Dirigente Sicurezza (12h)</option>
+                    <!-- Aggiungi qui le altre option che preferisci dal vecchio html -->
+                </select>
+                
+                <select id="cfg-modalita" onchange="window.updateAll()" class="input-field text-xs">
+                    <option value="In Presenza Fisica">In Presenza Fisica</option>
+                    <option value="Videoconferenza Sincrona (VCS)">Videoconferenza Sincrona (VCS)</option>
+                    <option value="E-Learning Asincrona">E-Learning (Asincrona)</option>
+                    <option value="Mista (Blended)">Mista (Blended)</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- 3. DATI CORSISTA -->
+        <div class="bg-blue-50 p-4 rounded-xl shadow-sm border border-blue-200 md:col-span-2">
+            <h3 class="font-bold text-blue-900 mb-3 flex items-center gap-2 border-b border-blue-200 pb-2"><i data-lucide="user" class="w-4 h-4"></i> Dati Corsista</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <input type="hidden" id="cfg-loaded-cert-id" value="">
+                <input type="text" id="cfg-nome" oninput="window.updateAll()" placeholder="Nome e Cognome Corsista" class="input-field font-bold text-lg">
+                <input type="text" id="cfg-cf" oninput="window.updateAll()" placeholder="Codice Fiscale" class="input-field font-mono uppercase">
+                <input type="text" id="cfg-nascita" oninput="window.updateAll()" placeholder="Luogo e Data di Nascita (Es. Roma, 01/01/1990)" class="input-field text-sm">
+                <input type="text" id="cfg-mansione" oninput="window.updateAll()" placeholder="Mansione Aziendale" class="input-field text-sm">
+            </div>
+        </div>
+        
+        <!-- 4. PIANIFICAZIONE -->
+        <div class="bg-slate-50 p-4 rounded-xl shadow-sm border border-slate-200 md:col-span-2">
+            <h3 class="font-bold text-slate-800 mb-3 flex items-center gap-2 border-b pb-2"><i data-lucide="calendar" class="w-4 h-4 text-emerald-600"></i> Pianificazione Corso</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="text-[10px] font-bold text-emerald-600 uppercase">Data Inizio</label>
+                    <input type="date" id="cfg-data-inizio" onchange="window.updateAll()" class="input-field text-sm font-bold border-emerald-300 bg-emerald-50">
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold text-blue-600 uppercase">Data Fine / Esame</label>
+                    <input type="date" id="cfg-data-esame" onchange="window.updateAll()" class="input-field text-sm font-bold">
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase">Sede Svolgimento</label>
+                    <input type="text" id="cfg-sede-corso" oninput="window.updateAll()" placeholder="Sede Corso" class="input-field text-sm">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
