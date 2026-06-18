@@ -1,46 +1,55 @@
-<div class="doc-page print-as-block">
-    <table class="w-full border-none m-0 p-0">
-        <thead class="border-none bg-white">
-            <tr><td class="border-none p-0 bg-white pb-4">
-                <div class="border-b-2 border-slate-900 pb-2 flex justify-between items-end">
-                    <div class="flex items-center gap-4">
-                        <img src="" alt="Logo" class="logo-img h-12 object-contain hidden">
-                        <div>
-                            <h1 class="text-2xl font-black uppercase text-slate-900 tracking-tighter logo-text val-ente">---</h1>
-                        </div>
-                    </div>
-                </div>
-            </td></tr>
-        </thead>
-        <tbody class="border-none">
-            <tr><td class="border-none p-0 bg-white pt-2 align-top">
-                <div class="text-center mb-4">
-                    <h1 class="text-xl font-black uppercase border-b-2 border-slate-900 inline-block pb-1 mb-1">Verbale Verifica di Apprendimento</h1>
-                </div>
+<!-- modules/verbale.html -->
+<div class="doc-page flex flex-col print-as-block" style="padding: 15mm !important; max-height: 297mm;">
+    
+    <!-- Redesign Header -->
+    <div class="flex justify-between items-center border-b border-slate-300 pb-4 shrink-0 mb-6">
+        <div class="flex items-center gap-4">
+            <img src="" alt="Logo" class="logo-img h-12 object-contain hidden">
+            <h1 class="text-2xl font-black uppercase text-slate-900 tracking-tighter logo-text val-ente">---</h1>
+        </div>
+    </div>
 
-                <div class="grid grid-cols-2 gap-4 text-[10px] mb-4 border border-slate-300 p-3 bg-slate-50 rounded">
-                    <p><strong class="uppercase text-slate-500">ID Progetto:</strong> <span class="val-codice font-bold">---</span></p>
-                    <p><strong class="uppercase text-slate-500">Titolo Corso:</strong> <span class="val-titolo-corso font-bold">---</span></p>
-                    <p><strong class="uppercase text-slate-500">Sede Corso:</strong> <span class="val-sede-corso font-bold uppercase">---</span></p>
-                    <p><strong class="uppercase text-slate-500">Azienda Committente:</strong> <span class="val-azienda font-bold">---</span> <span class="text-slate-500 text-[8px]">(ATECO: <span class="val-ateco font-mono">---</span>)</span></p>
-                    <p class="col-span-2 border-t border-slate-200 pt-2 flex justify-between">
-                        <span><strong class="uppercase text-slate-500">Monte Ore:</strong> <span class="val-ore-corso font-bold">---</span></span>
-                        <span><strong class="uppercase text-blue-700">Data Verifica:</strong> <span class="val-data-esame font-black text-sm">---</span></span>
-                    </p>
-                </div>
-                
-                <table class="w-full border-collapse border border-slate-900 text-[8px] mb-4">
-                    <thead class="bg-slate-800 text-white">
-                        <tr><th class="border border-slate-900 p-1.5">Candidato</th><th class="border border-slate-900 p-1.5 text-center w-16">Freq. >= 90%</th><th class="border border-slate-900 p-1.5 text-center w-16">Test Scritto</th><th class="border border-slate-900 p-1.5 text-center w-16">Colloquio/Pratica</th><th class="border border-slate-900 p-1.5 text-center w-16">Giudizio</th></tr>
-                    </thead>
-                    <tbody id="v-rows"></tbody>
-                </table>
-                
-                <div class="flex flex-nowrap justify-around text-[9px] font-bold uppercase text-center mt-auto shrink-0 pt-2">
-                    <div class="w-2/5 px-4"><div class="w-full border-b border-black h-8 mb-1"></div><span class="text-[8px] font-bold text-slate-500 block">La Commissione / Docente</span><span class="val-docente-main text-black font-black text-[9px] block">---</span></div>
-                    <div class="w-2/5 px-4"><div class="w-full border-b border-black h-8 mb-1"></div><span class="text-[8px] font-bold text-slate-500 block">Il Responsabile del Progetto</span><span class="val-resp-progetto text-black font-black text-[9px] block">---</span></div>
-                </div>
-            </td></tr>
-        </tbody>
-    </table>
+    <!-- Titolo Verbale -->
+    <div class="text-center mb-6 shrink-0">
+        <h2 class="text-lg font-black uppercase tracking-widest text-slate-800 border-b-2 border-slate-900 inline-block pb-1">Verbale Verifica di Apprendimento</h2>
+    </div>
+
+    <!-- Redesign Info Grid -->
+    <div class="grid grid-cols-2 gap-x-6 gap-y-3 text-[10px] mb-6 p-4 bg-slate-50 border border-slate-200 rounded shrink-0">
+        <p><strong class="uppercase text-slate-500 tracking-wide">ID Progetto:</strong> <span class="val-codice font-mono font-bold text-slate-800 ml-1">---</span></p>
+        <p><strong class="uppercase text-slate-500 tracking-wide">Azienda Committente:</strong> <span class="val-azienda font-bold text-slate-800 ml-1 uppercase">---</span></p>
+        <p class="col-span-2"><strong class="uppercase text-slate-500 tracking-wide">Corso Erogato:</strong> <span class="val-titolo-corso font-black text-blue-800 ml-1 text-xs uppercase">---</span></p>
+        <p class="border-t border-slate-200 pt-3 mt-1"><strong class="uppercase text-slate-500 tracking-wide">Sede Corso:</strong> <span class="val-sede-corso font-bold uppercase ml-1">---</span></p>
+        <p class="border-t border-slate-200 pt-3 mt-1 text-right"><strong class="uppercase text-blue-700 tracking-wide">Data Verifica:</strong> <span class="val-data-esame font-black text-sm ml-1">---</span></p>
+    </div>
+    
+    <!-- Tabella Verbale -->
+    <div class="flex-1 flex flex-col overflow-hidden mb-6">
+        <table class="table-bordered text-[9px] h-full table-fixed">
+            <thead class="bg-slate-100 text-slate-700">
+                <tr>
+                    <th class="py-1.5 px-2 text-left uppercase tracking-wide">Candidato</th>
+                    <th class="py-1.5 text-center w-16 uppercase tracking-wide text-[7px]">Freq. ≥ 90%</th>
+                    <th class="py-1.5 text-center w-20 uppercase tracking-wide">Test Scritto</th>
+                    <th class="py-1.5 text-center w-20 uppercase tracking-wide">Colloquio</th>
+                    <th class="py-1.5 text-center w-20 uppercase tracking-wide">Esito Finale</th>
+                </tr>
+            </thead>
+            <tbody id="v-rows" class="bg-white"></tbody>
+        </table>
+    </div>
+    
+    <!-- Firme -->
+    <div class="mt-auto shrink-0 flex flex-nowrap justify-around px-8 text-[10px] font-bold uppercase text-center pt-4 pb-2">
+        <div class="w-2/5 px-4">
+            <div class="w-full border-t border-slate-500 mb-1.5"></div>
+            <span class="text-[8px] font-bold text-slate-500 block tracking-widest">La Commissione Esaminatrice</span>
+            <span class="val-docente-main text-slate-800 font-black text-[10px] block mt-1">---</span>
+        </div>
+        <div class="w-2/5 px-4">
+            <div class="w-full border-t border-slate-500 mb-1.5"></div>
+            <span class="text-[8px] font-bold text-slate-500 block tracking-widest">Il Responsabile del Progetto</span>
+            <span class="val-resp-progetto text-slate-800 font-black text-[10px] block mt-1">---</span>
+        </div>
+    </div>
 </div>
