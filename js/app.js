@@ -32,6 +32,15 @@ window.loadModule = async function(moduleId) {
         if (['progetto', 'registro', 'verbale', 'attestato'].includes(moduleId) && typeof window.updateAll === 'function') {
             window.updateAll();
         }
+        // Se apro Docenti -> Carica tabella
+        if (moduleId === 'docenti' && typeof window.loadDocentiTable === 'function') {
+            window.loadDocentiTable();
+        }
+        
+        // Se apro Corsisti -> Carica tabella
+        if (moduleId === 'corsisti' && typeof window.loadCorsistiTable === 'function') {
+            window.loadCorsistiTable();
+        }
 
     } catch (error) {
         contentDiv.innerHTML = `<div class="p-10 text-center text-red-500 font-bold flex flex-col items-center"><i data-lucide="alert-triangle" class="w-10 h-10 mb-2"></i> Errore caricamento modulo: ${error.message}</div>`;
