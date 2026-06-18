@@ -1180,3 +1180,182 @@ window.filtraSessioni = function() {
         tr[i].style.display = tr[i].innerText.toLowerCase().includes(filter) ? "" : "none";
     }
 }
+// ==========================================
+// LOGICA CRM: DOCENTI E CORSISTI
+// ==========================================
+window.docentiList = [];
+window.corsistiList = [];
+
+// --- GESTIONE DOCENTI ---
+window.loadDocentiTable = async function() {
+    const tbody = document.getElementById('tabella-docenti');
+    if(!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-slate-400 italic"><i data-lucide="loader-2" class="w-5 h-5 animate-spin mx-auto mb-2"></i> Caricamento...</td></tr>';
+    if(typeof lucide !== 'undefined') lucide.createIcons();
+
+    window.docentiList = await window.getDocenti();
+
+    if (window.docentiList.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-slate-500 italic">Nessun docente registrato.</td></tr>';
+        return;
+    }
+
+    let html = '';
+    window.docentiList.forEach(doc => {
+        html += `
+            <tr class="hover:bg-slate-50 transition-colors">
+                <td class="p-3 border-b font-bold text-slate-800">${doc.nome_cognome}</td>
+                <td class="p-3 border-b font-mono text-[10px] text-slate-600">${doc.cf}</td>
+                <td class="p-3 border-b text-[10px] text-slate-500 truncate max-w-[150px]" title="${doc.qualifica}">${doc.qualifica}</td>
+                <td class="p-3 border-b text-center whitespace-nowrap">
+                    <button onclick="window.modificaDocente('${doc.id}')" class="text-blue-600 hover:bg-blue-200 bg-blue-100 p-1.5 rounded transition shadow-sm"><i data-lucide="edit" class="w-4 h-4"></i></button>
+                    <button onclick="window.eliminaDocente('${doc.id}')" class="text-red-600 hover:bg-red-200 bg-red-100 p-1.5 rounded transition shadow-sm ml-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                </td>
+            </tr>
+        `;
+    });
+    tbody.innerHTML = html;
+    if(typeof lucide !== 'undefined') lucide.createIcons();
+};
+
+window.salvaDocenteDB = async function() {
+    const id = document.getElementById('doc-id').value;
+    const record = {
+        nome_cognome: document.getElementById('doc-nome').value.trim(),
+        cf: document.getElementById('doc-cf').value.trim().toUpperCase(),
+        qualifica: document.getElementById('doc-qualifica').value,
+        email: document.getElementById('doc-email').value.trim(),
+        telefono: document.getElementById('doc-telefono').value.trim()
+    };
+    if (id) record.id = id;
+
+    if (await window.saveDocente(record)) {
+        window.resetFormDocente();
+        await window.loadDocentiTable();
+    } else alert("Errore nel salvataggio del docente.");
+};
+
+window.modificaDocente = function(id) {
+    const doc = window.docentiList.find(d => d.id === id);
+    if(!doc) return;
+    document.getElementById('doc-id').value = doc.id;
+    document.getElementById('doc-nome').value = doc.nome_cognome;
+    document.getElementById('doc-cf').value = doc.cf;
+    document.getElementById('doc-qualifica').value = doc.qualifica;
+    document.getElementById('doc-email').value = doc.email || "";
+    document.getElementById('doc-telefono').value = doc.telefono || "";
+};
+
+window.eliminaDocente = async function(id) {
+    if(confirm("Sicuro di voler eliminare questo docente?")) {
+        if(await window.deleteDocente(id)) await window.loadDocentiTable();
+    }
+};
+
+window.resetFormDocente = function() {
+    document.getElementById('doc-id').value = "";
+    document.getElementById('form-docente').reset();
+};
+
+window.filtraDocenti = function() {
+    const filter = document.getElementById('search-docenti').value.toLowerCase();
+    const rows = document.getElementById('tabella-docenti').getElementsByTagName('tr');
+    for (let i = 0; i < rows.length; i++) {
+        if(rows[i].cells.length === 1) continue; 
+        rows[i].style.display = rows[i].innerText.toLowerCase().includes(filter) ? "" : "none";
+    }
+};
+
+// --- GESTIONE CORSISTI ---
+window.loadCorsistiTable = async function() {
+    const tbody = document.getElementById('tabella-corsisti');
+    if(!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-slate-400 italic"><i data-lucide="loader-2" class="w-5 h-5 animate-spin mx-auto mb-2"></i> Caricamento...</td></tr>';
+    if(typeof lucide !== 'undefined') lucide.createIcons();
+
+    // Carica Corsisti e popola la select delle Aziende
+    window.corsistiList = await window.getCorsisti();
+    window.aziendeList = await window.getAziende(); // Serve per popolare la dropdown
+
+    const selectAzienda = document.getElementById('cor-azienda');
+    if (selectAzienda) {
+        let optHtml = '<option value="">-- Nessuna Azienda / Privato --</option>';
+        window.aziendeList.forEach(az => {
+            optHtml += `<option value="${az.id}">${az.ragione_sociale}</option>`;
+        });
+        selectAzienda.innerHTML = optHtml;
+    }
+
+    if (window.corsistiList.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-slate-500 italic">Nessun corsista registrato.</td></tr>';
+        return;
+    }
+
+    let html = '';
+    window.corsistiList.forEach(cor => {
+        // Estrai il nome dell'azienda dal JSON associato (grazie al Join di Supabase)
+        const nomeAzienda = cor.aziende ? cor.aziende.ragione_sociale : '<span class="text-slate-400">Privato</span>';
+        
+        html += `
+            <tr class="hover:bg-slate-50 transition-colors">
+                <td class="p-3 border-b font-bold text-slate-800">${cor.nome_cognome}</td>
+                <td class="p-3 border-b font-mono text-[10px] text-slate-600">${cor.cf}</td>
+                <td class="p-3 border-b text-xs text-blue-800 font-semibold">${nomeAzienda}</td>
+                <td class="p-3 border-b text-center whitespace-nowrap">
+                    <button onclick="window.modificaCorsista('${cor.id}')" class="text-blue-600 hover:bg-blue-200 bg-blue-100 p-1.5 rounded transition shadow-sm"><i data-lucide="edit" class="w-4 h-4"></i></button>
+                    <button onclick="window.eliminaCorsistaData('${cor.id}')" class="text-red-600 hover:bg-red-200 bg-red-100 p-1.5 rounded transition shadow-sm ml-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                </td>
+            </tr>
+        `;
+    });
+    tbody.innerHTML = html;
+    if(typeof lucide !== 'undefined') lucide.createIcons();
+};
+
+window.salvaCorsistaDB = async function() {
+    const id = document.getElementById('cor-id').value;
+    const aziendaId = document.getElementById('cor-azienda').value;
+    
+    const record = {
+        nome_cognome: document.getElementById('cor-nome').value.trim(),
+        cf: document.getElementById('cor-cf').value.trim().toUpperCase(),
+        luogo_data_nascita: document.getElementById('cor-nascita').value.trim(),
+        azienda_id: aziendaId ? aziendaId : null // Se vuoto salva come null (Privato)
+    };
+    if (id) record.id = id;
+
+    if (await window.saveCorsistaData(record)) {
+        window.resetFormCorsista();
+        await window.loadCorsistiTable();
+    } else alert("Errore nel salvataggio. Assicurati che il C.F. non sia già registrato.");
+};
+
+window.modificaCorsista = function(id) {
+    const cor = window.corsistiList.find(c => c.id === id);
+    if(!cor) return;
+    document.getElementById('cor-id').value = cor.id;
+    document.getElementById('cor-nome').value = cor.nome_cognome;
+    document.getElementById('cor-cf').value = cor.cf;
+    document.getElementById('cor-nascita').value = cor.luogo_data_nascita;
+    document.getElementById('cor-azienda').value = cor.azienda_id || "";
+};
+
+window.eliminaCorsistaData = async function(id) {
+    if(confirm("Sicuro di voler eliminare questo corsista? I suoi attestati verranno persi.")) {
+        if(await window.deleteCorsistaData(id)) await window.loadCorsistiTable();
+    }
+};
+
+window.resetFormCorsista = function() {
+    document.getElementById('cor-id').value = "";
+    document.getElementById('form-corsista').reset();
+};
+
+window.filtraCorsisti = function() {
+    const filter = document.getElementById('search-corsisti').value.toLowerCase();
+    const rows = document.getElementById('tabella-corsisti').getElementsByTagName('tr');
+    for (let i = 0; i < rows.length; i++) {
+        if(rows[i].cells.length === 1) continue; 
+        rows[i].style.display = rows[i].innerText.toLowerCase().includes(filter) ? "" : "none";
+    }
+};
