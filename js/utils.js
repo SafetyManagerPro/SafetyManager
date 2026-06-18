@@ -1359,3 +1359,207 @@ window.filtraCorsisti = function() {
         rows[i].style.display = rows[i].innerText.toLowerCase().includes(filter) ? "" : "none";
     }
 };
+// ==========================================
+// LOGICA CRM: PROGETTI E ISCRIZIONI
+// ==========================================
+window.progettiList = [];
+window.currentProgettoId = null;
+
+// Carica la tabella e popola i menu a tendina
+window.loadProgettiTable = async function() {
+    const tbody = document.getElementById('tabella-progetti');
+    if(!tbody) return;
+    
+    // Popola le Dropdown (Aziende e Docenti)
+    if(window.aziendeList.length === 0) window.aziendeList = await window.getAziende();
+    if(window.docentiList.length === 0) window.docentiList = await window.getDocenti();
+    
+    const selAzienda = document.getElementById('prog-azienda');
+    if(selAzienda) {
+        selAzienda.innerHTML = '<option value="">-- Seleziona Azienda --</option>' + 
+            window.aziendeList.map(a => `<option value="${a.id}">${a.ragione_sociale}</option>`).join('');
+    }
+    
+    const selDocente = document.getElementById('prog-docente');
+    if(selDocente) {
+        selDocente.innerHTML = '<option value="">-- Seleziona Docente --</option>' + 
+            window.docentiList.map(d => `<option value="${d.id}">${d.nome_cognome}</option>`).join('');
+    }
+
+    tbody.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-slate-400 italic"><i data-lucide="loader-2" class="w-5 h-5 animate-spin mx-auto mb-2"></i> Caricamento progetti...</td></tr>';
+    if(typeof lucide !== 'undefined') lucide.createIcons();
+
+    window.progettiList = await window.getProgetti();
+
+    if (window.progettiList.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-slate-500 italic">Nessun progetto formativo registrato.</td></tr>';
+        return;
+    }
+
+    let html = '';
+    window.progettiList.forEach(p => {
+        const nomeAzienda = p.aziende ? p.aziende.ragione_sociale : 'Azienda Sconosciuta';
+        const nomeCorso = window.DB_CORSI[p.corso_id] ? window.DB_CORSI[p.corso_id].t : p.corso_id;
+        
+        html += `
+            <tr class="hover:bg-amber-50 transition-colors">
+                <td class="p-3 border-b font-mono font-bold text-[10px] text-slate-800">${p.codice}</td>
+                <td class="p-3 border-b">
+                    <p class="font-bold text-xs text-blue-900">${nomeCorso}</p>
+                    <p class="text-[9px] text-slate-500 uppercase">${nomeAzienda}</p>
+                </td>
+                <td class="p-3 border-b font-bold text-center text-slate-700">${window.formatDataToItalian(p.data_esame)}</td>
+                <td class="p-3 border-b text-center whitespace-nowrap">
+                    <button onclick="window.apriIscrizioni('${p.id}')" class="text-white bg-slate-800 hover:bg-slate-700 p-1.5 rounded transition shadow-sm font-bold text-[9px] uppercase px-2"><i data-lucide="users" class="w-3 h-3 inline"></i> Iscritti</button>
+                    <button onclick="window.modificaProgetto('${p.id}')" class="text-blue-600 hover:bg-blue-200 bg-blue-100 p-1.5 rounded transition shadow-sm ml-1"><i data-lucide="edit" class="w-3 h-3"></i></button>
+                    <button onclick="window.eliminaProgetto('${p.id}')" class="text-red-600 hover:bg-red-200 bg-red-100 p-1.5 rounded transition shadow-sm ml-1"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
+                </td>
+            </tr>
+        `;
+    });
+    tbody.innerHTML = html;
+    if(typeof lucide !== 'undefined') lucide.createIcons();
+};
+
+window.salvaProgettoDB = async function() {
+    const id = document.getElementById('prog-id').value;
+    
+    // Auto-generazione codice se vuoto
+    let cod = document.getElementById('prog-codice').value.trim();
+    if(!cod) {
+        const d = new Date();
+        cod = `PRG-${d.getFullYear()}-${Math.floor(Math.random()*10000)}`;
+    }
+
+    const record = {
+        azienda_id: document.getElementById('prog-azienda').value,
+        corso_id: document.getElementById('prog-corso').value,
+        codice: cod,
+        modalita: document.getElementById('prog-modalita').value,
+        data_inizio: document.getElementById('prog-inizio').value || null,
+        data_esame: document.getElementById('prog-esame').value,
+        docente_principale: document.getElementById('prog-docente').value // Salviamo l'ID del docente
+    };
+    if (id) record.id = id;
+
+    if (await window.saveProgetto(record)) {
+        window.resetFormProgetto();
+        await window.loadProgettiTable();
+    } else alert("Errore. Verifica che il Codice Progetto non esista già.");
+};
+
+window.modificaProgetto = function(id) {
+    const p = window.progettiList.find(x => x.id === id);
+    if(!p) return;
+    document.getElementById('prog-id').value = p.id;
+    document.getElementById('prog-azienda').value = p.azienda_id;
+    document.getElementById('prog-corso').value = p.corso_id;
+    document.getElementById('prog-codice').value = p.codice;
+    document.getElementById('prog-modalita').value = p.modalita || "In Presenza Fisica";
+    document.getElementById('prog-inizio').value = p.data_inizio || "";
+    document.getElementById('prog-esame').value = p.data_esame || "";
+    document.getElementById('prog-docente').value = p.docente_principale || "";
+};
+
+window.eliminaProgetto = async function(id) {
+    if(confirm("Eliminare il progetto? Eliminerà anche le iscrizioni collegate.")) {
+        if(await window.deleteProgetto(id)) {
+            if(window.currentProgettoId === id) window.chiudiPannelloIscrizioni();
+            await window.loadProgettiTable();
+        }
+    }
+};
+
+window.resetFormProgetto = function() {
+    document.getElementById('prog-id').value = "";
+    document.getElementById('form-progetto').reset();
+};
+
+// --- GESTIONE ISCRIZIONI ---
+window.apriIscrizioni = async function(progetto_id) {
+    window.currentProgettoId = progetto_id;
+    const p = window.progettiList.find(x => x.id === progetto_id);
+    const aziendaName = p.aziende ? p.aziende.ragione_sociale : '';
+    
+    document.getElementById('lbl-progetto-attivo').innerHTML = `Cod: <span class="text-white">${p.codice}</span> | Azienda: <span class="text-white">${aziendaName}</span>`;
+    document.getElementById('panel-iscrizioni').classList.remove('hidden');
+    
+    // Popola select dei corsisti
+    if(window.corsistiList.length === 0) window.corsistiList = await window.getCorsisti();
+    
+    const sel = document.getElementById('sel-iscrivi-corsista');
+    let opts = '<option value="">-- Seleziona Corsista da aggiungere --</option>';
+    // Mostriamo in cima i dipendenti dell'azienda associata al progetto
+    window.corsistiList.forEach(c => {
+        const marker = c.azienda_id === p.azienda_id ? "📌 " : "";
+        opts += `<option value="${c.id}">${marker}${c.nome_cognome} (${c.cf})</option>`;
+    });
+    sel.innerHTML = opts;
+
+    await window.loadIscrittiTable();
+};
+
+window.chiudiPannelloIscrizioni = function() {
+    window.currentProgettoId = null;
+    document.getElementById('panel-iscrizioni').classList.add('hidden');
+};
+
+window.loadIscrittiTable = async function() {
+    const tbody = document.getElementById('tabella-iscritti');
+    tbody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-slate-500 italic">Caricamento...</td></tr>';
+    
+    const iscritti = await window.getIscrizioni(window.currentProgettoId);
+    
+    if(iscritti.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-slate-500 italic">Nessun corsista iscritto a questo progetto.</td></tr>';
+        return;
+    }
+
+    let html = '';
+    iscritti.forEach(isc => {
+        const cNome = isc.corsisti ? isc.corsisti.nome_cognome : 'Sconosciuto';
+        const cCF = isc.corsisti ? isc.corsisti.cf : '---';
+        
+        html += `
+            <tr class="hover:bg-slate-600 transition-colors">
+                <td class="p-2 border-b border-slate-600 text-sm font-bold text-blue-300">${cNome}</td>
+                <td class="p-2 border-b border-slate-600 font-mono text-[10px] text-slate-300">${cCF}</td>
+                <td class="p-2 border-b border-slate-600 font-mono text-[9px] text-amber-200">${isc.id_certificato}</td>
+                <td class="p-2 border-b border-slate-600 text-center">
+                    <button onclick="window.rimuoviIscrizione('${isc.id}')" class="text-red-400 hover:text-white hover:bg-red-500 p-1 rounded transition"><i data-lucide="user-minus" class="w-4 h-4"></i></button>
+                </td>
+            </tr>
+        `;
+    });
+    tbody.innerHTML = html;
+    if(typeof lucide !== 'undefined') lucide.createIcons();
+};
+
+window.aggiungiIscrizione = async function() {
+    const corsista_id = document.getElementById('sel-iscrivi-corsista').value;
+    if(!corsista_id || !window.currentProgettoId) return alert("Seleziona un corsista.");
+
+    // Generatore ID Certificato Univoco
+    const p = window.progettiList.find(x => x.id === window.currentProgettoId);
+    const c = window.corsistiList.find(x => x.id === corsista_id);
+    const id_cert = `C26-${p.codice}-${c.cf.substring(0,6)}-${Math.floor(Math.random()*999)}`;
+
+    const record = {
+        progetto_id: window.currentProgettoId,
+        corsista_id: corsista_id,
+        id_certificato: id_cert,
+        esito: "Idoneo"
+    };
+
+    if(await window.saveIscrizione(record)) {
+        await window.loadIscrittiTable();
+    } else {
+        alert("Errore. Il corsista potrebbe essere già iscritto a questo corso.");
+    }
+};
+
+window.rimuoviIscrizione = async function(id) {
+    if(confirm("Rimuovere il corsista da questo progetto?")) {
+        if(await window.deleteIscrizione(id)) await window.loadIscrittiTable();
+    }
+};
