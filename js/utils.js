@@ -40,13 +40,6 @@ window.formatDataToItalian = function(dStr) {
     return dStr;
 }
 
-window.updateDBCounter = function() {
-    const counter = document.getElementById('db-counter');
-    if (counter) {
-        counter.innerText = (window.dbCorsisti ? window.dbCorsisti.length : 0) + " Corsisti nel Cloud";
-    }
-}
-
 // ==========================================
 // LOGICA CRM: AZIENDE
 // ==========================================
@@ -74,8 +67,8 @@ window.loadAziendeTable = async function() {
                 <td class="p-3 border-b font-mono text-[10px] text-slate-600">${az.piva_cf || '-'}</td>
                 <td class="p-3 border-b font-mono text-[10px] text-slate-500">${az.ateco || '-'}</td>
                 <td class="p-3 border-b text-center whitespace-nowrap">
-                    <button onclick="window.modificaAzienda('${az.id}')" class="text-blue-600 hover:bg-blue-200 bg-blue-100 p-1.5 rounded transition shadow-sm"><i data-lucide="edit" class="w-4 h-4"></i></button>
-                    <button onclick="window.eliminaAzienda('${az.id}')" class="text-red-600 hover:bg-red-200 bg-red-100 p-1.5 rounded transition shadow-sm ml-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                    <button onclick="window.modificaAzienda('${az.id}')" class="text-blue-600 hover:bg-blue-200 bg-blue-100 p-1.5 rounded transition shadow-sm" title="Modifica"><i data-lucide="edit" class="w-4 h-4"></i></button>
+                    <button onclick="window.eliminaAzienda('${az.id}')" class="text-red-600 hover:bg-red-200 bg-red-100 p-1.5 rounded transition shadow-sm ml-1" title="Elimina"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                 </td>
             </tr>
         `;
@@ -115,8 +108,9 @@ window.modificaAzienda = function(id) {
 };
 
 window.eliminaAzienda = async function(id) {
-    if(confirm("Sei sicuro di voler eliminare questa azienda?")) {
+    if(confirm("Sei sicuro di voler eliminare questa azienda? \n\nTutti i progetti ad essa collegati verranno eliminati.")) {
         if(await window.deleteAzienda(id)) await window.loadAziendeTable();
+        else alert("Errore durante l'eliminazione.");
     }
 };
 
@@ -126,7 +120,7 @@ window.resetFormAzienda = function() {
 };
 
 window.filtraAziende = function() {
-    const filter = document.getElementById('search-azure').value.toLowerCase();
+    const filter = document.getElementById('search-aziende').value.toLowerCase();
     const rows = document.getElementById('tabella-aziende').getElementsByTagName('tr');
     for (let i = 0; i < rows.length; i++) {
         if(rows[i].cells.length === 1) continue; 
@@ -184,7 +178,7 @@ window.salvaDocenteDB = async function() {
     if (await window.saveDocente(record)) {
         window.resetFormDocente();
         await window.loadDocentiTable();
-    }
+    } else alert("Errore nel salvataggio del docente.");
 };
 
 window.modificaDocente = function(id) {
@@ -207,6 +201,15 @@ window.eliminaDocente = async function(id) {
 window.resetFormDocente = function() {
     document.getElementById('doc-id').value = "";
     document.getElementById('form-docente').reset();
+};
+
+window.filtraDocenti = function() {
+    const filter = document.getElementById('search-docenti').value.toLowerCase();
+    const rows = document.getElementById('tabella-docenti').getElementsByTagName('tr');
+    for (let i = 0; i < rows.length; i++) {
+        if(rows[i].cells.length === 1) continue; 
+        rows[i].style.display = rows[i].innerText.toLowerCase().includes(filter) ? "" : "none";
+    }
 };
 
 // ==========================================
@@ -266,7 +269,7 @@ window.salvaCorsistaDB = async function() {
     if (await window.saveCorsistaData(record)) {
         window.resetFormCorsista();
         await window.loadCorsistiTable();
-    }
+    } else alert("Errore nel salvataggio. C.F. potrebbe essere già registrato.");
 };
 
 window.modificaCorsista = function(id) {
@@ -280,8 +283,8 @@ window.modificaCorsista = function(id) {
 };
 
 window.eliminaCorsistaData = async function(id) {
-    if(confirm("Sicuro di voler eliminare questo corsista?")) {
-        if(await window.deleteDocente(id)) await window.loadCorsistiTable();
+    if(confirm("Sicuro di voler eliminare questo corsista? I suoi attestati verranno persi.")) {
+        if(await window.deleteCorsistaData(id)) await window.loadCorsistiTable();
     }
 };
 
@@ -290,8 +293,17 @@ window.resetFormCorsista = function() {
     document.getElementById('form-corsista').reset();
 };
 
+window.filtraCorsisti = function() {
+    const filter = document.getElementById('search-corsisti').value.toLowerCase();
+    const rows = document.getElementById('tabella-corsisti').getElementsByTagName('tr');
+    for (let i = 0; i < rows.length; i++) {
+        if(rows[i].cells.length === 1) continue; 
+        rows[i].style.display = rows[i].innerText.toLowerCase().includes(filter) ? "" : "none";
+    }
+};
+
 // ==========================================
-// MOTORE DI CALCOLO AUTOMATICO GIORNI FORMATIVI & SCADENZA
+// MOTORE DI CALCOLO AUTOMATICO GIORNI E SYLLABUS
 // ==========================================
 window.calcolaDettagliProgetto = function() {
     const corsoId = document.getElementById('prog-corso').value;
@@ -306,7 +318,6 @@ window.calcolaDettagliProgetto = function() {
     let dailyHours = 0;
     let syllabusHtml = "";
 
-    // Salta i weekend in partenza
     if(currentDay.getDay() === 6) currentDay.setDate(currentDay.getDate() + 2); 
     if(currentDay.getDay() === 0) currentDay.setDate(currentDay.getDate() + 1);
 
@@ -315,7 +326,7 @@ window.calcolaDettagliProgetto = function() {
         let udDates = [];
 
         while(remainingUDHours > 0) {
-            if(dailyHours >= 8) { // Max 8 ore al giorno
+            if(dailyHours >= 8) {
                 currentDay.setDate(currentDay.getDate() + 1);
                 if(currentDay.getDay() === 6) currentDay.setDate(currentDay.getDate() + 2);
                 if(currentDay.getDay() === 0) currentDay.setDate(currentDay.getDate() + 1);
@@ -334,22 +345,21 @@ window.calcolaDettagliProgetto = function() {
         }
         
         syllabusHtml += `
-            <div class="text-[11px] border-b border-slate-200 pb-1 mb-1 text-slate-700">
-                <span class="font-bold text-blue-700">${ud.ud}</span> (${ud.ore} Ore)<br>
-                <span class="text-[10px] text-slate-800 font-semibold uppercase">${ud.m}</span><br>
-                <span class="text-[9px] text-slate-500 font-mono">${udDates.join(' &bull; ')}</span>
+            <div class="text-[11px] border-b border-slate-200 pb-2 mb-2 text-slate-700">
+                <div class="flex justify-between items-center mb-1">
+                    <span class="font-bold text-blue-700">${ud.ud} - ${ud.m}</span>
+                    <span class="bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded text-[8px] font-bold">${ud.ore} Ore</span>
+                </div>
+                <p class="text-[9px] text-slate-600 leading-tight mb-1 italic">${ud.d}</p>
+                <span class="text-[9px] text-slate-500 font-mono font-bold">📅 ${udDates.join(' &bull; ')}</span>
             </div>
         `;
     });
 
-    // Imposta la data di emissione/esame (ultimo giorno di corso)
     const offsetDate = new Date(currentDay.getTime() - (currentDay.getTimezoneOffset() * 60000));
     document.getElementById('prog-esame').value = offsetDate.toISOString().split('T')[0];
-
-    // Scrive i giorni rilevati nella textarea
     document.getElementById('prog-calendario-testo').value = calendarioTesto;
 
-    // Calcola e visualizza la validità dell'attestato
     let scadTesto = "";
     if (c.scad === 99) {
         scadTesto = "Permanente (Senza Scadenza)";
@@ -358,10 +368,11 @@ window.calcolaDettagliProgetto = function() {
         dScad.setFullYear(dScad.getFullYear() + c.scad);
         scadTesto = dScad.toLocaleDateString('it-IT') + ` (Valido ${c.scad} Anni)`;
     }
-    document.getElementById('lbl-prog-scadenza').innerText = scadTesto;
-
-    // Inietta l'anteprima del Progetto Formativo
-    document.getElementById('prog-syllabus-preview').innerHTML = syllabusHtml;
+    const lblScadenza = document.getElementById('lbl-prog-scadenza');
+    if(lblScadenza) lblScadenza.innerText = scadTesto;
+    
+    const previewSyllabus = document.getElementById('prog-syllabus-preview');
+    if(previewSyllabus) previewSyllabus.innerHTML = syllabusHtml;
 };
 
 // ==========================================
@@ -426,15 +437,22 @@ window.loadProgettiTable = async function() {
 
 window.salvaProgettoDB = async function() {
     const id = document.getElementById('prog-id').value;
+    
+    let cod = document.getElementById('prog-codice').value.trim();
+    if(!cod) {
+        const d = new Date();
+        cod = `PRG-${d.getFullYear()}-${Math.floor(Math.random()*10000)}`;
+    }
+
     const record = {
         azienda_id: document.getElementById('prog-azienda').value,
         corso_id: document.getElementById('prog-corso').value,
-        codice: document.getElementById('prog-codice').value.trim(),
+        codice: cod,
         modalita: document.getElementById('prog-modalita').value,
         data_inizio: document.getElementById('prog-inizio').value,
         data_esame: document.getElementById('prog-esame').value,
         docente_principale: document.getElementById('prog-docente').value,
-        calendario: document.getElementById('prog-calendario-testo').value // Salva i giorni calcolati nel DB!
+        calendario: document.getElementById('prog-calendario-testo').value
     };
     if (id && id !== "") record.id = id;
 
@@ -455,7 +473,7 @@ window.modificaProgetto = function(id) {
     document.getElementById('prog-inizio').value = p.data_inizio || "";
     document.getElementById('prog-esame').value = p.data_esame || "";
     document.getElementById('prog-docente').value = p.docente_principale || "";
-    window.calcolaDettagliProgetto(); // Ricalcola al volo l'anteprima
+    window.calcolaDettagliProgetto(); 
 };
 
 window.eliminaProgetto = async function(id) {
@@ -467,12 +485,12 @@ window.eliminaProgetto = async function(id) {
 window.resetFormProgetto = function() {
     document.getElementById('prog-id').value = "";
     document.getElementById('form-progetto').reset();
-    document.getElementById('prog-syllabus-preview').innerHTML = '<span class="text-xs text-slate-400 italic">Seleziona corso e data d\'inizio...</span>';
+    const prev = document.getElementById('prog-syllabus-preview');
+    if(prev) prev.innerHTML = '<span class="text-xs text-slate-400 italic">Seleziona corso e data d\'inizio...</span>';
 };
 
-// --- GESTIONE DELLE ISCRIZIONI E DELLE SCADENZE REALI ---
 window.apriIscrizioni = async function(progetto_id) {
-    window.currentProgettoId = proyecto_id;
+    window.currentProgettoId = progetto_id;
     const p = window.progettiList.find(x => x.id === progetto_id);
     const aziendaName = p.aziende ? p.aziende.ragione_sociale : 'Privato';
     
@@ -533,7 +551,6 @@ window.aggiungiIscrizione = async function() {
     const c = window.corsistiList.find(x => x.id === corsista_id);
     const corsoInfo = window.DB_CORSI[p.corso_id];
 
-    // CALCOLO DATA SCADENZA REALE DA REGISTRARE SUL CORSISTA
     let dataScadenzaISO = null;
     if (corsoInfo && corsoInfo.scad !== 99) {
         let dScad = new Date(p.data_esame);
@@ -549,7 +566,7 @@ window.aggiungiIscrizione = async function() {
         corsista_id: corsista_id,
         id_certificato: id_cert,
         esito: "Idoneo",
-        data_scadenza: dataScadenzaISO // Registra la scadenza esatta su Supabase!
+        data_scadenza: dataScadenzaISO 
     };
 
     if(await window.saveIscrizione(record)) {
@@ -653,7 +670,7 @@ window.caricaDatiStampa = async function() {
     window.AppState['cfg-azienda-indirizzo'] = p.aziende ? p.aziende.indirizzo : "";
     window.AppState['cfg-docente'] = doc ? doc.nome_cognome : "Docente";
     window.AppState['cfg-req-docente'] = doc ? doc.qualifica : "Formatore Qualificato";
-    window.AppState['cfg-calendario'] = p.calendario || ""; // Travasa i giorni reali calcolati!
+    window.AppState['cfg-calendario'] = p.calendario || ""; 
 
     window.currentSessionCorsisti = iscritti.map(isc => ({
         nome: isc.corsisti.nome_cognome,
@@ -702,6 +719,11 @@ window.stampaSezioneAttuale = function() {
     const docOriginale = document.querySelector('#print-preview-container .doc-page');
     if(!docOriginale) return;
 
+    if(window.currentPrintModule === 'attestato' && window.currentSessionCorsisti.length > 0) {
+        window.preparaEStampaMassiva(window.currentPrintModule);
+        return;
+    }
+
     const clone = docOriginale.cloneNode(true);
     clone.classList.remove('scale-[0.8]', 'origin-top');
     clone.classList.add('print-show', 'temp-page');
@@ -718,20 +740,104 @@ window.stampaSezioneAttuale = function() {
     }, 800);
 };
 
+window.preparaEStampaMassiva = function(tabId) {
+    let printArea = document.getElementById('print-area-temp');
+    printArea.innerHTML = '';
+
+    const backupSession = [...window.currentSessionCorsisti];
+
+    backupSession.forEach((c, idx) => {
+        window.currentSessionCorsisti = [c];
+        window.updateAll(); 
+        
+        document.querySelectorAll('#print-preview-container .doc-page').forEach(original => {
+            const clone = original.cloneNode(true);
+            clone.id = "";
+            clone.classList.remove('scale-[0.8]', 'origin-top');
+            clone.classList.add('print-show', 'temp-page');
+            if(original.classList.contains('landscape')) clone.classList.add('landscape-force');
+            else clone.classList.add('portrait');
+            printArea.appendChild(clone);
+        });
+    });
+
+    window.currentSessionCorsisti = backupSession;
+    window.updateAll();
+
+    document.body.classList.add('is-printing-temp');
+    setTimeout(() => { 
+        window.print(); 
+        document.body.classList.remove('is-printing-temp');
+        printArea.innerHTML = ''; 
+    }, 1000);
+};
+
 // ==========================================
-// TRASFERIMENTO VALORI NELLE VIEW DI STAMPA
+// RENDER DOCUMENTI E SYLLABUS
 // ==========================================
 window.updateAll = function() {
     const courseId = window.getVal('cfg-corso', 'lav_basso');
     const c = window.DB_CORSI[courseId];
     if(!c || !c.prog) return;
 
+    const dataInizioRaw = window.getVal('cfg-data-inizio');
+    let dInizio = dataInizioRaw ? new Date(dataInizioRaw.split('-')[0], dataInizioRaw.split('-')[1] - 1, dataInizioRaw.split('-')[2]) : new Date();
+
     const dataEsameRaw = window.getVal('cfg-data-esame');
     let dataEsameStrFormatted = dataEsameRaw ? window.formatDataToItalian(dataEsameRaw) : "___/___/2025";
     
+    let currentDay = new Date(dInizio.getTime()); 
+    let docentePrincipale = window.getVal('cfg-docente', 'Mario Rossi'); 
+    let dailyHours = 0;
+    
+    if(currentDay.getDay() === 6) currentDay.setDate(currentDay.getDate() + 2); 
+    if(currentDay.getDay() === 0) currentDay.setDate(currentDay.getDate() + 1);
+
+    let dateSummaryArr = [];
+    let scheduleHtml = "";
+
+    c.prog.forEach((ud) => {
+        let remainingUDHours = ud.ore;
+        let udDates = []; 
+
+        while(remainingUDHours > 0) {
+            if(dailyHours >= 8) {
+                currentDay.setDate(currentDay.getDate() + 1);
+                if(currentDay.getDay() === 6) currentDay.setDate(currentDay.getDate() + 2);
+                if(currentDay.getDay() === 0) currentDay.setDate(currentDay.getDate() + 1);
+                dailyHours = 0;
+            }
+            let availableToday = 8 - dailyHours; 
+            let hoursToAllocate = Math.min(remainingUDHours, availableToday);
+            let dateStr = currentDay.toLocaleDateString('it-IT');
+            
+            if (!udDates.includes(dateStr)) udDates.push(dateStr);
+            dailyHours += hoursToAllocate; 
+            remainingUDHours -= hoursToAllocate;
+        }
+        dateSummaryArr.push('<span class="font-bold text-slate-800">' + ud.ud + '</span>: ' + udDates.join(', '));
+        
+        scheduleHtml += `
+        <tr>
+            <td class="text-center font-bold p-1.5 border border-slate-900 align-top text-[8px]">${udDates.join('<br>')}</td>
+            <td class="text-center p-1.5 border border-slate-900 align-top font-bold text-slate-500 text-[8px]">${ud.ud}</td>
+            <td class="p-1.5 border border-slate-900 align-top">
+                <p class="font-bold text-slate-800 uppercase mb-0.5 text-[9px]">${ud.m}</p>
+                <div class="text-slate-700 text-[7.5px] leading-tight text-justify italic">${ud.d}</div>
+            </td>
+            <td class="text-center p-1.5 border border-slate-900 font-bold text-blue-700 align-middle text-[8px]">${docentePrincipale}</td>
+            <td class="text-center font-bold p-1.5 border border-slate-900 align-middle text-[8px]">${ud.ore} h</td>
+        </tr>`;
+    });
+
+    const retroTable = document.getElementById('retro-programma');
+    if(retroTable) retroTable.innerHTML = scheduleHtml;
+
     const sedeToDisplay = window.getVal('cfg-sede-corso') || window.getVal('cfg-azienda-indirizzo') || "Sede Aziendale";
 
     document.querySelectorAll('.val-ente').forEach(el => el.innerText = window.getVal('cfg-ente'));
+    document.querySelectorAll('.val-ente-indirizzo').forEach(el => el.innerText = window.getVal('cfg-ente-indirizzo'));
+    document.querySelectorAll('.val-ente-contatti').forEach(el => el.innerText = window.getVal('cfg-ente-contatti'));
     document.querySelectorAll('.val-azienda').forEach(el => el.innerText = window.getVal('cfg-azienda'));
     document.querySelectorAll('.val-ateco').forEach(el => el.innerText = window.getVal('cfg-ateco'));
     document.querySelectorAll('.val-titolo-corso').forEach(el => el.innerText = c.t);
@@ -745,9 +851,10 @@ window.updateAll = function() {
     document.querySelectorAll('.val-legale-nascita').forEach(el => el.innerText = window.getVal('cfg-legale-nascita'));
     document.querySelectorAll('.val-data-esame').forEach(el => el.innerText = dataEsameStrFormatted);
     document.querySelectorAll('.val-modalita').forEach(el => el.innerText = window.getVal('cfg-modalita', 'In Presenza Fisica'));
-    
-    // Inietta il calendario dei giorni REALI calcolati dal CRM relazionale
     document.querySelectorAll('.val-calendario').forEach(el => el.innerText = window.getVal('cfg-calendario'));
+    document.querySelectorAll('.val-date-ud').forEach(el => el.innerHTML = dateSummaryArr.join(' &bull; '));
+
+    document.querySelectorAll('.val-dicitura-legale').forEach(el => el.innerHTML = "Corso erogato in conformità al <strong>" + (c.norma || "D.Lgs. 81/08 e Accordi Stato Regioni vigenti") + "</strong>. Qualifica della Docenza Registrata: " + window.getVal('cfg-req-docente') + ".");
 
     document.querySelectorAll('.val-data-inizio').forEach(el => {
         const di = window.getVal('cfg-data-inizio');
@@ -763,8 +870,14 @@ window.updateAll = function() {
         else img.classList.add('hidden'); 
     });
 
-    // Iniezione automatica delle righe nelle tabelle
+    // Inietta i dati del singolo allievo se siamo su attestato.html o nei registri
     if (window.currentSessionCorsisti && window.currentSessionCorsisti.length > 0) {
+        const c1 = window.currentSessionCorsisti[0];
+        document.querySelectorAll('.val-nome').forEach(el => el.innerText = c1.nome || "---");
+        document.querySelectorAll('.val-nascita').forEach(el => el.innerText = c1.nascita || "---");
+        document.querySelectorAll('.val-cf').forEach(el => el.innerText = c1.cf || "---");
+        document.querySelectorAll('.val-cert-id').forEach(el => el.innerText = c1.id_certificato || "---");
+        
         window.aggiornaTabelleSessione();
     }
 };
@@ -775,7 +888,6 @@ window.aggiornaTabelleSessione = function() {
     
     window.currentSessionCorsisti.forEach((c, idx) => {
         rRows += '<tr><td class="border border-slate-800 py-0.5 px-1 text-center font-bold">' + (idx + 1) + '</td><td class="border border-slate-800 py-0.5 px-1 bg-white leading-none"><span class="font-bold">' + c.nome + '</span><br><span class="text-[6px] text-slate-500 uppercase">' + (c.mansione || '') + '</span></td><td class="border border-slate-800 py-0.5 px-1 text-center font-mono">' + c.cf + '</td><td class="border border-slate-800 py-0.5 px-1 text-center">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1 text-center">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td></tr>';
-        
         vRows += '<tr><td class="border border-slate-900 py-0.5 px-1 leading-tight"><span class="font-bold">' + c.nome + '</span><br><span class="text-[6.5px] text-slate-500 uppercase">' + (c.mansione || '') + '</span></td><td class="border border-slate-900 py-0.5 px-1 text-center font-bold text-emerald-700">SI</td><td class="border border-slate-900 py-0.5 px-1 text-center italic">__ / 30</td><td class="border border-slate-900 py-0.5 px-1 text-center">Positivo</td><td class="border border-slate-900 py-0.5 px-1 text-center font-black uppercase text-blue-700">Idoneo</td></tr>';
     });
 
