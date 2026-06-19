@@ -1,3 +1,4 @@
+<!-- modules/progetti.html -->
 <div id="view-progetti" class="w-full max-w-7xl mx-auto mt-4 mb-10">
     <div class="border-b-2 border-slate-900 pb-3 mb-6">
         <h1 class="text-3xl font-black uppercase text-slate-900 tracking-tighter">Gestione Progetti Formativi</h1>
@@ -5,18 +6,26 @@
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        
         <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200 h-fit space-y-4">
             <h3 class="font-bold text-slate-800 flex items-center gap-2 border-b pb-3 mb-2"><i data-lucide="layout-template" class="w-5 h-5 text-amber-500"></i> Nuovo Progetto</h3>
             
             <form id="form-progetto" onsubmit="event.preventDefault(); window.salvaProgettoDB();" class="space-y-4">
                 <input type="hidden" id="prog-id" value="">
                 
-                <div>
-                    <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Azienda Committente *</label>
-                    <select id="prog-azienda" required class="input-field text-xs font-bold text-blue-900 bg-blue-50">
-                        <option value="">-- Seleziona Azienda --</option>
-                    </select>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Azienda Committente *</label>
+                        <select id="prog-azienda" required class="input-field text-xs font-bold text-blue-900 bg-blue-50">
+                            <option value="">-- Seleziona Azienda --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Ente Erogatore *</label>
+                        <select id="prog-erogatore" required class="input-field text-xs font-bold text-emerald-900 bg-emerald-50">
+                            <option value="ente">Ente Formatore Accreditato</option>
+                            <option value="azienda">Erogazione Diretta (Azienda)</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div>
@@ -33,56 +42,35 @@
                             <option value="preposto">Preposto Vigilanza Attiva (12h)</option>
                             <option value="agg_prep">Aggiornamento Preposto Biennale (6h)</option>
                             <option value="dirigente">Dirigente Sicurezza (12h)</option>
-                            <option value="agg_dir">Aggiornamento Dirigente (6h)</option>
-                            <option value="mod_cantieri">Modulo Aggiuntivo Cantieri (6h)</option>
                         </optgroup>
                         <optgroup label="Datori di Lavoro (RSPP)">
-                            <option value="dl_base">Datore di Lavoro - Base (16h)</option>
+                            <option value="dl_base">Datore di Lavoro - Base Universale (16h)</option>
                             <option value="dl_spp_comune">DL SPP - Modulo Comune (8h)</option>
-                            <option value="dl_spp_agri">DL SPP - Agricoltura/Zootecnia (24h)</option>
-                            <option value="dl_spp_pesca">DL SPP - Pesca (20h)</option>
-                            <option value="dl_spp_costruzioni">DL SPP - Costruzioni (24h)</option>
-                            <option value="dl_spp_chimico">DL SPP - Chimico-Petrolchimico (24h)</option>
-                            <option value="agg_dl">Aggiornamento Datore di Lavoro (6h)</option>
-                            <option value="agg_dl_spp">Aggiornamento DL SPP (Ex RSPP) (8h)</option>
                         </optgroup>
                         <optgroup label="Attrezzature e Rischi Specifici">
-                            <option value="rls">Rappresentante Lavoratori Sicurezza RLS (32h)</option>
-                            <option value="agg_rls_4h">Aggiornamento RLS - Imprese <50 dip. (4h)</option>
-                            <option value="agg_rls_8h">Aggiornamento RLS - Imprese >50 dip. (8h)</option>
+                            <option value="rls">Rappresentante Lavoratori Sicurezza (32h)</option>
                             <option value="amb_confinati">Ambienti Sospetti o Confinati (12h)</option>
                             <option value="attr_ple">Piattaforme Lavoro Elevabili PLE (10h)</option>
                             <option value="attr_carrelli_ind">Carrelli Elevatori Industriali (12h)</option>
-                            <option value="attr_carrelli_all">Carrelli Elev. (Frontali+Telescopici+Rotativi) (16h)</option>
-                            <option value="attr_mmt_esc">Macchine Movimento Terra / Escavatori (10h)</option>
-                            <option value="attr_mmt_all">Macchine Movimento Terra Complete (16h)</option>
-                            <option value="attr_gru_autocarro">Gru per Autocarro (12h)</option>
-                            <option value="attr_gru_torre">Gru a Torre (14h)</option>
-                            <option value="attr_pompe">Pompe per Calcestruzzo (14h)</option>
-                            <option value="attr_trattori">Trattori Agricoli o Forestali (8h)</option>
-                            <option value="lav_quota">Lavori in Quota e DPI 3° Categoria (8h)</option>
-                            <option value="agg_pratico_4h">Aggiornamento Pratico Attrezzature (4h)</option>
                         </optgroup>
                         <optgroup label="Emergenze">
                             <option value="primo_soccorso_12h">Primo Soccorso (Gr. B/C) (12h)</option>
-                            <option value="agg_primo_soccorso_4h">Aggiornamento Primo Soccorso (4h)</option>
                             <option value="antincendio_liv2">Antincendio - Livello 2 (8h)</option>
-                            <option value="agg_antincendio_liv2_5h">Aggiornamento Antincendio Liv. 2 (5h)</option>
                         </optgroup>
                     </select>
                 </div>
                 
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Cod. Progetto (Auto)</label>
+                        <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Cod. Interno</label>
                         <input type="text" id="prog-codice" class="input-field text-xs font-mono" placeholder="Es. AZ-01-26">
                     </div>
                     <div>
                         <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Modalità</label>
                         <select id="prog-modalita" class="input-field text-xs">
-                            <option value="In Presenza Fisica">Presenza Fisica</option>
+                            <option value="In Presenza Fisica">Presenza</option>
                             <option value="Videoconferenza Sincrona">FAD Sincrona</option>
-                            <option value="Blended (Mista)">Blended (Mista)</option>
+                            <option value="Blended (Mista)">Blended</option>
                         </select>
                     </div>
                 </div>
@@ -93,23 +81,22 @@
                         <input type="date" id="prog-inizio" required onchange="window.calcolaDettagliProgetto()" class="input-field text-xs border-emerald-300">
                     </div>
                     <div>
-                        <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Data Esame (Auto)</label>
+                        <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Data Fine / Esame</label>
                         <input type="date" id="prog-esame" required class="input-field text-xs bg-slate-50 font-bold text-slate-900">
                     </div>
                 </div>
 
-                <div>
-                    <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Docente Principale</label>
-                    <select id="prog-docente" class="input-field text-xs font-bold text-emerald-800 bg-emerald-50">
-                        <option value="">-- Seleziona Docente --</option>
-                    </select>
+                <div class="p-3 bg-slate-100 border border-slate-300 rounded-lg">
+                    <label class="text-[10px] font-bold text-slate-800 uppercase block mb-2"><i data-lucide="graduation-cap" class="w-3 h-3 inline"></i> Assegnazione Docenti per U.D.</label>
+                    <div id="prog-docenti-container" class="space-y-2">
+                        <span class="text-xs text-slate-400 italic">Seleziona un corso per caricare le unità didattiche...</span>
+                    </div>
                 </div>
 
                 <div class="p-3 bg-slate-50 border rounded-lg text-[11px] space-y-1">
                     <p class="text-slate-500 font-bold uppercase text-[9px]">Pianificazione Automatica</p>
-                    <div class="flex justify-between"><span>Scadenza:</span> <span id="lbl-prog-scadenza" class="font-bold text-blue-700">---</span></div>
-                    <label class="text-[9px] font-bold text-slate-400 uppercase block mt-1">Giorni calcolati (No Sab/Dom):</label>
-                    <textarea id="prog-calendario-testo" readonly class="w-full bg-white border text-[10px] p-1 font-mono rounded h-12 outline-none resize-none"></textarea>
+                    <div class="flex justify-between"><span>Validità / Scadenza:</span> <span id="lbl-prog-scadenza" class="font-bold text-blue-700">---</span></div>
+                    <textarea id="prog-calendario-testo" class="hidden"></textarea>
                 </div>
 
                 <div class="pt-2 flex gap-2">
@@ -140,7 +127,7 @@
             </div>
         </div>
     </div>
-
+    
     <div id="panel-iscrizioni" class="hidden bg-slate-800 rounded-xl shadow-xl border border-slate-700 p-6">
         <div class="flex justify-between items-center border-b border-slate-600 pb-4 mb-6">
             <div>
