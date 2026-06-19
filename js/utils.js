@@ -7,7 +7,6 @@ window.currentTestCourseId = "";
 window.currentTestQuestions = [];
 window.correctorEnabled = false;
 window.currentSessionCorsisti = [];
-
 window.AppState = window.AppState || {};
 
 window.getVal = function(id, defaultVal = "") {
@@ -32,13 +31,45 @@ window.formatDataToISODate = function(dStr) {
 }
 
 window.formatDataToItalian = function(dStr) {
-    if (!dStr) return "___/___/2025";
+    if (!dStr) return "___/___/2026";
     if (dStr.includes('-')) {
         const p = dStr.split('-');
         if (p.length === 3) return p[2] + "/" + p[1] + "/" + p[0];
     }
     return dStr;
 }
+
+// ==========================================
+// LOGICA DASHBOARD
+// ==========================================
+window.loadDashboardStats = async function() {
+    try {
+        const fetchCount = async (table) => {
+            const { count, error } = await supabaseClient.from(table).select('*', { count: 'exact', head: true });
+            if(error) return 0;
+            return count;
+        };
+
+        const [az, cor, doc, prog] = await Promise.all([
+            fetchCount('aziende'),
+            fetchCount('corsisti'),
+            fetchCount('docenti'),
+            fetchCount('progetti')
+        ]);
+
+        const elAz = document.getElementById('dash-aziende');
+        if(elAz) elAz.innerText = az;
+        const elCor = document.getElementById('dash-corsisti');
+        if(elCor) elCor.innerText = cor;
+        const elDoc = document.getElementById('dash-docenti');
+        if(elDoc) elDoc.innerText = doc;
+        const elProg = document.getElementById('dash-progetti');
+        if(elProg) elProg.innerText = prog;
+
+    } catch (e) {
+        console.error("Errore caricamento statistiche", e);
+    }
+};
 
 // ==========================================
 // LOGICA CRM: AZIENDE
@@ -86,7 +117,6 @@ window.salvaAziendaDB = async function() {
         ateco: document.getElementById('az-ateco').value.trim(),
         referente: document.getElementById('az-referente').value.trim()
     };
-    
     if (id && id !== "") record.id = id;
 
     const result = await window.saveAzienda(record);
@@ -244,6 +274,7 @@ window.loadCorsistiTable = async function() {
             <tr class="hover:bg-slate-50 transition-colors">
                 <td class="p-3 border-b font-bold text-slate-800">${cor.nome_cognome}</td>
                 <td class="p-3 border-b font-mono text-[10px] text-slate-600">${cor.cf}</td>
+                <td class="p-3 border-b text-[10px] text-slate-600">${cor.mansione_storica || '-'}</td>
                 <td class="p-3 border-b text-xs text-blue-800 font-semibold">${nomeAzienda}</td>
                 <td class="p-3 border-b text-center whitespace-nowrap">
                     <button onclick="window.modificaCorsista('${cor.id}')" class="text-blue-600 hover:bg-blue-200 bg-blue-100 p-1.5 rounded transition shadow-sm"><i data-lucide="edit" class="w-4 h-4"></i></button>
@@ -262,6 +293,7 @@ window.salvaCorsistaDB = async function() {
         nome_cognome: document.getElementById('cor-nome').value.trim(),
         cf: document.getElementById('cor-cf').value.trim().toUpperCase(),
         luogo_data_nascita: document.getElementById('cor-nascita').value.trim(),
+        mansione_storica: document.getElementById('cor-mansione') ? document.getElementById('cor-mansione').value.trim() : "",
         azienda_id: document.getElementById('cor-azienda').value || null 
     };
     if (id && id !== "") record.id = id;
@@ -279,6 +311,7 @@ window.modificaCorsista = function(id) {
     document.getElementById('cor-nome').value = cor.nome_cognome;
     document.getElementById('cor-cf').value = cor.cf;
     document.getElementById('cor-nascita').value = cor.luogo_data_nascita;
+    if(document.getElementById('cor-mansione')) document.getElementById('cor-mansione').value = cor.mansione_storica || "";
     document.getElementById('cor-azienda').value = cor.azienda_id || "";
 };
 
@@ -303,7 +336,7 @@ window.filtraCorsisti = function() {
 };
 
 // ==========================================
-// MOTORE DI CALCOLO AUTOMATICO GIORNI E SYLLABUS
+// MOTORE DI CALCOLO AUTOMATICO GIORNI E DOCENTI
 // ==========================================
 window.calcolaDettagliProgetto = function() {
     const corsoId = document.getElementById('prog-corso').value;
@@ -316,7 +349,10 @@ window.calcolaDettagliProgetto = function() {
     let currentDay = new Date(dataInizioRaw);
     let calendarioTesto = "";
     let dailyHours = 0;
-    let syllabusHtml = "";
+    
+    // Costruzione dinamica docenti
+    let docentiHtml = "";
+    let docentiOptions = '<option value="">-- Scegli Docente --</option>' + window.docentiList.map(d => `<option value="${d.id}">${d.nome_cognome}</option>`).join('');
 
     if(currentDay.getDay() === 6) currentDay.setDate(currentDay.getDate() + 2); 
     if(currentDay.getDay() === 0) currentDay.setDate(currentDay.getDate() + 1);
@@ -343,15 +379,14 @@ window.calcolaDettagliProgetto = function() {
             dailyHours += hoursToAllocate;
             remainingUDHours -= hoursToAllocate;
         }
-        
-        syllabusHtml += `
-            <div class="text-[11px] border-b border-slate-200 pb-2 mb-2 text-slate-700">
-                <div class="flex justify-between items-center mb-1">
-                    <span class="font-bold text-blue-700">${ud.ud} - ${ud.m}</span>
-                    <span class="bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded text-[8px] font-bold">${ud.ore} Ore</span>
-                </div>
-                <p class="text-[9px] text-slate-600 leading-tight mb-1 italic">${ud.d}</p>
-                <span class="text-[9px] text-slate-500 font-mono font-bold">📅 ${udDates.join(' &bull; ')}</span>
+
+        docentiHtml += `
+            <div class="flex items-center justify-between text-[10px] gap-2 border-b border-slate-200 pb-1 pt-1">
+                <span class="font-bold text-blue-700 w-10">${ud.ud}</span>
+                <span class="text-slate-600 truncate flex-1" title="${ud.m}">${ud.m}</span>
+                <select class="prog-docente-ud input-field text-[10px] py-1 px-1 w-36 bg-white border border-slate-300" data-ud="${ud.ud}" required>
+                    ${docentiOptions}
+                </select>
             </div>
         `;
     });
@@ -359,6 +394,7 @@ window.calcolaDettagliProgetto = function() {
     const offsetDate = new Date(currentDay.getTime() - (currentDay.getTimezoneOffset() * 60000));
     document.getElementById('prog-esame').value = offsetDate.toISOString().split('T')[0];
     document.getElementById('prog-calendario-testo').value = calendarioTesto;
+    document.getElementById('prog-docenti-container').innerHTML = docentiHtml;
 
     let scadTesto = "";
     if (c.scad === 99) {
@@ -370,9 +406,6 @@ window.calcolaDettagliProgetto = function() {
     }
     const lblScadenza = document.getElementById('lbl-prog-scadenza');
     if(lblScadenza) lblScadenza.innerText = scadTesto;
-    
-    const previewSyllabus = document.getElementById('prog-syllabus-preview');
-    if(previewSyllabus) previewSyllabus.innerHTML = syllabusHtml;
 };
 
 // ==========================================
@@ -392,12 +425,6 @@ window.loadProgettiTable = async function() {
     if(selAzienda) {
         selAzienda.innerHTML = '<option value="">-- Seleziona Azienda --</option>' + 
             window.aziendeList.map(a => `<option value="${a.id}">${a.ragione_sociale}</option>`).join('');
-    }
-    
-    const selDocente = document.getElementById('prog-docente');
-    if(selDocente) {
-        selDocente.innerHTML = '<option value="">-- Seleziona Docente --</option>' + 
-            window.docentiList.map(d => `<option value="${d.id}">${d.nome_cognome}</option>`).join('');
     }
 
     tbody.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-slate-400 italic"><i data-lucide="loader-2" class="w-5 h-5 animate-spin mx-auto mb-2"></i> Caricamento progetti...</td></tr>';
@@ -437,12 +464,16 @@ window.loadProgettiTable = async function() {
 
 window.salvaProgettoDB = async function() {
     const id = document.getElementById('prog-id').value;
-    
     let cod = document.getElementById('prog-codice').value.trim();
     if(!cod) {
         const d = new Date();
         cod = `PRG-${d.getFullYear()}-${Math.floor(Math.random()*10000)}`;
     }
+
+    let docenti_ud = {};
+    document.querySelectorAll('.prog-docente-ud').forEach(sel => {
+        docenti_ud[sel.getAttribute('data-ud')] = sel.value;
+    });
 
     const record = {
         azienda_id: document.getElementById('prog-azienda').value,
@@ -451,7 +482,8 @@ window.salvaProgettoDB = async function() {
         modalita: document.getElementById('prog-modalita').value,
         data_inizio: document.getElementById('prog-inizio').value,
         data_esame: document.getElementById('prog-esame').value,
-        docente_principale: document.getElementById('prog-docente').value,
+        ente_erogatore: document.getElementById('prog-erogatore') ? document.getElementById('prog-erogatore').value : 'ente',
+        docente_principale: JSON.stringify(docenti_ud),
         calendario: document.getElementById('prog-calendario-testo').value
     };
     if (id && id !== "") record.id = id;
@@ -467,13 +499,24 @@ window.modificaProgetto = function(id) {
     if(!p) return;
     document.getElementById('prog-id').value = p.id;
     document.getElementById('prog-azienda').value = p.azienda_id;
+    if(document.getElementById('prog-erogatore')) document.getElementById('prog-erogatore').value = p.ente_erogatore || 'ente';
     document.getElementById('prog-corso').value = p.corso_id;
     document.getElementById('prog-codice').value = p.codice;
     document.getElementById('prog-modalita').value = p.modalita;
     document.getElementById('prog-inizio').value = p.data_inizio || "";
     document.getElementById('prog-esame').value = p.data_esame || "";
-    document.getElementById('prog-docente').value = p.docente_principale || "";
+    
     window.calcolaDettagliProgetto(); 
+    
+    setTimeout(() => {
+        try {
+            let parsedDocs = JSON.parse(p.docente_principale || '{}');
+            document.querySelectorAll('.prog-docente-ud').forEach(sel => {
+                let ud = sel.getAttribute('data-ud');
+                if(parsedDocs[ud]) sel.value = parsedDocs[ud];
+            });
+        } catch(e) {}
+    }, 100);
 };
 
 window.eliminaProgetto = async function(id) {
@@ -485,8 +528,8 @@ window.eliminaProgetto = async function(id) {
 window.resetFormProgetto = function() {
     document.getElementById('prog-id').value = "";
     document.getElementById('form-progetto').reset();
-    const prev = document.getElementById('prog-syllabus-preview');
-    if(prev) prev.innerHTML = '<span class="text-xs text-slate-400 italic">Seleziona corso e data d\'inizio...</span>';
+    const prev = document.getElementById('prog-docenti-container');
+    if(prev) prev.innerHTML = '<span class="text-xs text-slate-400 italic">Seleziona un corso per caricare le unità didattiche...</span>';
 };
 
 window.apriIscrizioni = async function(progetto_id) {
@@ -656,7 +699,6 @@ window.caricaDatiStampa = async function() {
     if(!p) return;
 
     if(window.docentiList.length === 0) window.docentiList = await window.getDocenti();
-    const doc = window.docentiList.find(d => d.id === p.docente_principale);
     const iscritti = await window.getIscrizioni(progId);
 
     window.AppState['cfg-corso'] = p.corso_id;
@@ -667,18 +709,17 @@ window.caricaDatiStampa = async function() {
     window.AppState['cfg-sede-corso'] = p.sede;
     window.AppState['cfg-azienda'] = p.aziende ? p.aziende.ragione_sociale : "";
     window.AppState['cfg-ateco'] = p.aziende ? p.aziende.ateco : "";
-    window.AppState['cfg-azienda-indirizzo'] = p.aziende ? p.aziende.indirizzo : "";
-    window.AppState['cfg-docente'] = doc ? doc.nome_cognome : "Docente";
-    window.AppState['cfg-req-docente'] = doc ? doc.qualifica : "Formatore Qualificato";
+    window.AppState['cfg-ente-erogatore'] = p.ente_erogatore || 'ente';
+    window.AppState['cfg-docenti-ud'] = p.docente_principale || '{}';
     window.AppState['cfg-calendario'] = p.calendario || ""; 
 
     window.currentSessionCorsisti = iscritti.map(isc => ({
         nome: isc.corsisti.nome_cognome,
         cf: isc.corsisti.cf,
         nascita: isc.corsisti.luogo_data_nascita,
-        mansione: isc.mansione_storica || "Addetto/a", // Mappatura mansione
+        mansione: isc.corsisti.mansione_storica || "N/D",
         id_certificato: isc.id_certificato,
-        data_scadenza: isc.data_scadenza // Mappatura scadenza esatta
+        data_scadenza: isc.data_scadenza
     }));
 
     if(window.currentPrintModule) {
@@ -774,7 +815,7 @@ window.preparaEStampaMassiva = function(tabId) {
 };
 
 // ==========================================
-// RENDER DOCUMENTI E SYLLABUS
+// RENDER DOCUMENTI E SYLLABUS MULTIDOCENTE
 // ==========================================
 window.updateAll = function() {
     const courseId = window.getVal('cfg-corso', 'lav_basso');
@@ -785,10 +826,9 @@ window.updateAll = function() {
     let dInizio = dataInizioRaw ? new Date(dataInizioRaw.split('-')[0], dataInizioRaw.split('-')[1] - 1, dataInizioRaw.split('-')[2]) : new Date();
 
     const dataEsameRaw = window.getVal('cfg-data-esame');
-    let dataEsameStrFormatted = dataEsameRaw ? window.formatDataToItalian(dataEsameRaw) : "___/___/2025";
+    let dataEsameStrFormatted = dataEsameRaw ? window.formatDataToItalian(dataEsameRaw) : "___/___/2026";
     
     let currentDay = new Date(dInizio.getTime()); 
-    let docentePrincipale = window.getVal('cfg-docente', 'Mario Rossi'); 
     let dailyHours = 0;
     
     if(currentDay.getDay() === 6) currentDay.setDate(currentDay.getDate() + 2); 
@@ -797,9 +837,18 @@ window.updateAll = function() {
     let dateSummaryArr = [];
     let scheduleHtml = "";
 
-    c.prog.forEach((ud) => {
+    let docenti_ud = {};
+    try { docenti_ud = JSON.parse(window.getVal('cfg-docenti-ud', '{}')); } catch(e) {}
+
+    let primoDocenteNome = "Docente Formatore";
+
+    c.prog.forEach((ud, index) => {
         let remainingUDHours = ud.ore;
         let udDates = []; 
+
+        let docObj = window.docentiList.find(d => d.id === docenti_ud[ud.ud]);
+        let nomeDocente = docObj ? docObj.nome_cognome : "Docente Non Assegnato";
+        if(index === 0) primoDocenteNome = nomeDocente;
 
         while(remainingUDHours > 0) {
             if(dailyHours >= 8) {
@@ -826,13 +875,16 @@ window.updateAll = function() {
                 <p class="font-bold text-slate-800 uppercase mb-0.5 text-[9px]">${ud.m}</p>
                 <div class="text-slate-700 text-[7.5px] leading-tight text-justify italic">${ud.d}</div>
             </td>
-            <td class="text-center p-1.5 border border-slate-900 font-bold text-blue-700 align-middle text-[8px]">${docentePrincipale}</td>
+            <td class="text-center p-1.5 border border-slate-900 font-bold text-blue-700 align-middle text-[8px] uppercase">${nomeDocente}</td>
             <td class="text-center font-bold p-1.5 border border-slate-900 align-middle text-[8px]">${ud.ore} h</td>
         </tr>`;
     });
 
-    // Inietta il syllabus ovunque serva (Retro Attestato e Progetto Formativo)
     document.querySelectorAll('.val-syllabus-table').forEach(el => el.innerHTML = scheduleHtml);
+
+    const isAzienda = window.getVal('cfg-ente-erogatore') === 'azienda';
+    const nomeErogatore = isAzienda ? window.getVal('cfg-azienda') : window.getVal('cfg-ente');
+    document.querySelectorAll('.val-erogatore').forEach(el => el.innerText = nomeErogatore || "---");
 
     const sedeToDisplay = window.getVal('cfg-sede-corso') || window.getVal('cfg-azienda-indirizzo') || "Sede Aziendale";
 
@@ -845,24 +897,25 @@ window.updateAll = function() {
     document.querySelectorAll('.val-ore-corso').forEach(el => el.innerText = c.ore + " ORE");
     document.querySelectorAll('.val-codice').forEach(el => el.innerText = window.getVal('cfg-codice'));
     document.querySelectorAll('.val-sede-corso').forEach(el => el.innerText = sedeToDisplay); 
-    document.querySelectorAll('.val-docente-main').forEach(el => el.innerText = window.getVal('cfg-docente')); 
-    document.querySelectorAll('.val-resp-progetto').forEach(el => el.innerText = window.getVal('cfg-resp-progetto') || window.getVal('cfg-legale-nome'));
+    document.querySelectorAll('.val-docente-main').forEach(el => el.innerText = primoDocenteNome); 
+    document.querySelectorAll('.val-resp-progetto').forEach(el => el.innerText = window.getVal('cfg-legale-nome') || "Legale Rappresentante");
     document.querySelectorAll('.val-luogo-emissione').forEach(el => el.innerText = window.getVal('cfg-luogo-emissione'));
     document.querySelectorAll('.val-legale-nome').forEach(el => el.innerText = window.getVal('cfg-legale-nome'));
     document.querySelectorAll('.val-legale-nascita').forEach(el => el.innerText = window.getVal('cfg-legale-nascita'));
     document.querySelectorAll('.val-data-esame').forEach(el => el.innerText = dataEsameStrFormatted);
     document.querySelectorAll('.val-modalita').forEach(el => el.innerText = window.getVal('cfg-modalita', 'In Presenza Fisica'));
-    document.querySelectorAll('.val-req-docente').forEach(el => el.innerText = window.getVal('cfg-req-docente', 'Formatore Qualificato (D.I. 6/3/2013)'));
+    document.querySelectorAll('.val-calendario').forEach(el => el.innerText = window.getVal('cfg-calendario'));
     document.querySelectorAll('.val-date-ud').forEach(el => el.innerHTML = dateSummaryArr.join('<br>'));
 
-    document.querySelectorAll('.val-dicitura-legale').forEach(el => el.innerHTML = "Corso erogato in conformità a: <strong>" + (c.norma || "D.Lgs. 81/08 e Accordi Stato Regioni") + "</strong>");
+    // Nuova dicitura legale ASR 2025
+    document.querySelectorAll('.val-dicitura-legale').forEach(el => el.innerHTML = "Corso erogato in conformità a: <strong>" + (c.norma || "D.Lgs. 81/08 e Accordo Stato Regioni del 17 Aprile 2025") + "</strong>");
 
     document.querySelectorAll('.val-data-inizio').forEach(el => {
         const di = window.getVal('cfg-data-inizio');
         if(di) {
             const p = di.split('-');
             el.innerText = p[2] + "/" + p[1] + "/" + p[0];
-        } else el.innerText = "___/___/2025";
+        } else el.innerText = "___/___/2026";
     });
 
     const logoUrl = window.getVal('cfg-logo');
@@ -879,12 +932,13 @@ window.updateAll = function() {
         document.querySelectorAll('.val-cert-id').forEach(el => el.innerText = c1.id_certificato || "---");
         document.querySelectorAll('.val-mansione').forEach(el => el.innerText = c1.mansione || "N/D");
         
-        let stringaScadenza = c.scad === 99 ? "Permanente" : window.formatDataToItalian(c1.data_scadenza) + " (Agg. " + c.scad + " Anni)";
+        let stringaScadenza = c.scad === 99 ? "Permanente (Senza Scadenza)" : window.formatDataToItalian(c1.data_scadenza) + " (Agg. ogni " + c.scad + " Anni)";
         document.querySelectorAll('.val-scadenza').forEach(el => el.innerText = stringaScadenza);
 
         window.aggiornaTabelleSessione();
     }
 };
+
 window.aggiornaTabelleSessione = function() {
     if (!window.currentSessionCorsisti || window.currentSessionCorsisti.length === 0) return;
     let rRows = ""; let vRows = "";
@@ -906,35 +960,4 @@ window.aggiornaTabelleSessione = function() {
 
     if(document.getElementById('r-rows')) document.getElementById('r-rows').innerHTML = rRows;
     if(document.getElementById('v-rows')) document.getElementById('v-rows').innerHTML = vRows;
-};
-// ==========================================
-// LOGICA DASHBOARD
-// ==========================================
-window.loadDashboardStats = async function() {
-    try {
-        const fetchCount = async (table) => {
-            const { count, error } = await supabaseClient.from(table).select('*', { count: 'exact', head: true });
-            if(error) return 0;
-            return count;
-        };
-
-        const [az, cor, doc, prog] = await Promise.all([
-            fetchCount('aziende'),
-            fetchCount('corsisti'),
-            fetchCount('docenti'),
-            fetchCount('progetti')
-        ]);
-
-        const elAz = document.getElementById('dash-aziende');
-        if(elAz) elAz.innerText = az;
-        const elCor = document.getElementById('dash-corsisti');
-        if(elCor) elCor.innerText = cor;
-        const elDoc = document.getElementById('dash-docenti');
-        if(elDoc) elDoc.innerText = doc;
-        const elProg = document.getElementById('dash-progetti');
-        if(elProg) elProg.innerText = prog;
-
-    } catch (e) {
-        console.error("Errore caricamento statistiche", e);
-    }
 };
