@@ -1,4 +1,3 @@
-<!-- modules/progetti.html -->
 <div id="view-progetti" class="w-full max-w-7xl mx-auto mt-4 mb-10">
     <div class="border-b-2 border-slate-900 pb-3 mb-6">
         <h1 class="text-3xl font-black uppercase text-slate-900 tracking-tighter">Gestione Progetti Formativi</h1>
@@ -15,7 +14,7 @@
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Azienda Committente *</label>
-                        <select id="prog-azienda" required class="input-field text-xs font-bold text-blue-900 bg-blue-50">
+                        <select id="prog-azienda" required onchange="window.calcolaDettagliProgetto()" class="input-field text-xs font-bold text-blue-900 bg-blue-50">
                             <option value="">-- Seleziona Azienda --</option>
                         </select>
                     </div>
@@ -42,28 +41,49 @@
                             <option value="preposto">Preposto Vigilanza Attiva (12h)</option>
                             <option value="agg_prep">Aggiornamento Preposto Biennale (6h)</option>
                             <option value="dirigente">Dirigente Sicurezza (12h)</option>
+                            <option value="agg_dir">Aggiornamento Dirigente (6h)</option>
+                            <option value="mod_cantieri">Modulo Aggiuntivo Cantieri (6h)</option>
                         </optgroup>
                         <optgroup label="Datori di Lavoro (RSPP)">
                             <option value="dl_base">Datore di Lavoro - Base Universale (16h)</option>
                             <option value="dl_spp_comune">DL SPP - Modulo Comune (8h)</option>
+                            <option value="dl_spp_agri">DL SPP - Agricoltura/Zootecnia (24h)</option>
+                            <option value="dl_spp_pesca">DL SPP - Pesca (20h)</option>
+                            <option value="dl_spp_costruzioni">DL SPP - Costruzioni (24h)</option>
+                            <option value="dl_spp_chimico">DL SPP - Chimico-Petrolchimico (24h)</option>
+                            <option value="agg_dl">Aggiornamento Datore di Lavoro (6h)</option>
+                            <option value="agg_dl_spp">Aggiornamento DL SPP (Ex RSPP) (8h)</option>
                         </optgroup>
                         <optgroup label="Attrezzature e Rischi Specifici">
                             <option value="rls">Rappresentante Lavoratori Sicurezza (32h)</option>
+                            <option value="agg_rls_4h">Aggiornamento RLS - Imprese <50 dip. (4h)</option>
+                            <option value="agg_rls_8h">Aggiornamento RLS - Imprese >50 dip. (8h)</option>
                             <option value="amb_confinati">Ambienti Sospetti o Confinati (12h)</option>
                             <option value="attr_ple">Piattaforme Lavoro Elevabili PLE (10h)</option>
                             <option value="attr_carrelli_ind">Carrelli Elevatori Industriali (12h)</option>
+                            <option value="attr_carrelli_all">Carrelli Elev. (Frontali+Telescopici+Rotativi) (16h)</option>
+                            <option value="attr_mmt_esc">Macchine Movimento Terra / Escavatori (10h)</option>
+                            <option value="attr_mmt_all">Macchine Movimento Terra Complete (16h)</option>
+                            <option value="attr_gru_autocarro">Gru per Autocarro (12h)</option>
+                            <option value="attr_gru_torre">Gru a Torre (14h)</option>
+                            <option value="attr_pompe">Pompe per Calcestruzzo (14h)</option>
+                            <option value="attr_trattori">Trattori Agricoli o Forestali (8h)</option>
+                            <option value="lav_quota">Lavori in Quota e DPI 3° Categoria (8h)</option>
+                            <option value="agg_pratico_4h">Aggiornamento Pratico Attrezzature (4h)</option>
                         </optgroup>
                         <optgroup label="Emergenze">
                             <option value="primo_soccorso_12h">Primo Soccorso (Gr. B/C) (12h)</option>
+                            <option value="agg_primo_soccorso_4h">Aggiornamento Primo Soccorso (4h)</option>
                             <option value="antincendio_liv2">Antincendio - Livello 2 (8h)</option>
+                            <option value="agg_antincendio_liv2_5h">Aggiornamento Antincendio Liv. 2 (5h)</option>
                         </optgroup>
                     </select>
                 </div>
                 
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Cod. Interno</label>
-                        <input type="text" id="prog-codice" class="input-field text-xs font-mono" placeholder="Es. AZ-01-26">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Codice Progetto (Auto)</label>
+                        <input type="text" id="prog-codice" class="input-field text-xs font-mono font-bold text-blue-900 bg-blue-50" placeholder="Generato in automatico">
                     </div>
                     <div>
                         <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Modalità</label>
