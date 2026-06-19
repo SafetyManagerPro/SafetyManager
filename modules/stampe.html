@@ -1,7 +1,6 @@
 <!-- modules/stampe.html -->
 <div class="flex gap-6 w-full h-[calc(100vh-140px)]">
     
-    <!-- SIDEBAR STAMPE -->
     <div class="w-80 bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-5 shrink-0 overflow-y-auto">
         <h2 class="font-black text-slate-800 text-lg uppercase tracking-tight border-b pb-2"><i data-lucide="printer" class="w-5 h-5 inline text-blue-600"></i> Area Stampe</h2>
         
@@ -13,11 +12,17 @@
         </div>
 
         <div class="border-t border-slate-200 pt-4">
-            <label class="text-[10px] font-bold text-slate-500 uppercase block mb-2">2. Scegli il Documento</label>
-            <div class="space-y-2">
+            <label class="text-[10px] font-bold text-slate-500 uppercase block mb-2">2. Documenti del Corso</label>
+            <div class="space-y-1 mb-4">
+                <button onclick="window.loadPrintPreview('progetto_formativo')" class="w-full text-left px-3 py-2 text-sm font-bold text-slate-700 hover:bg-amber-50 hover:text-amber-700 rounded transition border border-transparent hover:border-amber-200"><i data-lucide="layout-template" class="w-4 h-4 inline mr-1"></i> Progetto Formativo</button>
                 <button onclick="window.loadPrintPreview('registro')" class="w-full text-left px-3 py-2 text-sm font-bold text-slate-700 hover:bg-blue-50 hover:text-blue-700 rounded transition border border-transparent hover:border-blue-200"><i data-lucide="users" class="w-4 h-4 inline mr-1"></i> Registro Presenze</button>
                 <button onclick="window.loadPrintPreview('verbale')" class="w-full text-left px-3 py-2 text-sm font-bold text-slate-700 hover:bg-blue-50 hover:text-blue-700 rounded transition border border-transparent hover:border-blue-200"><i data-lucide="clipboard-check" class="w-4 h-4 inline mr-1"></i> Verbale Esame</button>
-                <button onclick="window.loadPrintPreview('attestato')" class="w-full text-left px-3 py-2 text-sm font-bold text-slate-700 hover:bg-blue-50 hover:text-blue-700 rounded transition border border-transparent hover:border-blue-200"><i data-lucide="award" class="w-4 h-4 inline mr-1"></i> Attestati Allievi</button>
+            </div>
+
+            <label class="text-[10px] font-bold text-slate-500 uppercase block mb-2">3. Documenti Allievi ed Ente</label>
+            <div class="space-y-1">
+                <button onclick="window.loadPrintPreview('attestato')" class="w-full text-left px-3 py-2 text-sm font-bold text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 rounded transition border border-transparent hover:border-emerald-200"><i data-lucide="award" class="w-4 h-4 inline mr-1"></i> Attestati Allievi</button>
+                <button onclick="window.loadPrintPreview('autocertificazione')" class="w-full text-left px-3 py-2 text-sm font-bold text-slate-700 hover:bg-purple-50 hover:text-purple-700 rounded transition border border-transparent hover:border-purple-200"><i data-lucide="file-signature" class="w-4 h-4 inline mr-1"></i> Autocertificazione Ente</button>
             </div>
         </div>
 
@@ -28,7 +33,6 @@
         </div>
     </div>
 
-    <!-- ANTEPRIMA STAMPA -->
     <div class="flex-1 bg-slate-300 overflow-y-auto p-8 rounded-xl shadow-inner flex flex-col items-center relative" id="print-preview-container">
         <div class="text-slate-500 flex flex-col items-center mt-20 opacity-50">
             <i data-lucide="file-search" class="w-16 h-16 mb-2"></i>
