@@ -350,7 +350,6 @@ window.calcolaDettagliProgetto = function() {
     let calendarioTesto = "";
     let dailyHours = 0;
     
-    // Costruzione dinamica docenti
     let docentiHtml = "";
     let docentiOptions = '<option value="">-- Scegli Docente --</option>' + window.docentiList.map(d => `<option value="${d.id}">${d.nome_cognome}</option>`).join('');
 
@@ -734,6 +733,12 @@ window.loadPrintPreview = async function(modulo) {
     window.currentPrintModule = modulo;
     const container = document.getElementById('print-preview-container');
     
+    const btnCorrettore = document.getElementById('btn-correttore');
+    if (btnCorrettore) {
+        if (modulo === 'esame') btnCorrettore.classList.remove('hidden');
+        else btnCorrettore.classList.add('hidden');
+    }
+
     try {
         const response = await fetch(`modules/${modulo}.html`);
         if(!response.ok) throw new Error("File del documento non trovato.");
@@ -762,6 +767,12 @@ window.stampaSezioneAttuale = function() {
     if(!docOriginale) return;
 
     if(window.currentPrintModule === 'attestato' && window.currentSessionCorsisti.length > 0) {
+        window.preparaEStampaMassiva(window.currentPrintModule);
+        return;
+    }
+
+    // Anche per l'esame stampiamo un test distinto per ogni corsista
+    if(window.currentPrintModule === 'esame' && window.currentSessionCorsisti.length > 0) {
         window.preparaEStampaMassiva(window.currentPrintModule);
         return;
     }
@@ -815,12 +826,16 @@ window.preparaEStampaMassiva = function(tabId) {
 };
 
 // ==========================================
-// RENDER DOCUMENTI E SYLLABUS MULTIDOCENTE
+// RENDER DOCUMENTI E SYLLABUS
 // ==========================================
 window.updateAll = function() {
     const courseId = window.getVal('cfg-corso', 'lav_basso');
     const c = window.DB_CORSI[courseId];
     if(!c || !c.prog) return;
+
+    if (window.currentPrintModule === 'esame') {
+        window.generaTest(courseId);
+    }
 
     const dataInizioRaw = window.getVal('cfg-data-inizio');
     let dInizio = dataInizioRaw ? new Date(dataInizioRaw.split('-')[0], dataInizioRaw.split('-')[1] - 1, dataInizioRaw.split('-')[2]) : new Date();
@@ -907,8 +922,7 @@ window.updateAll = function() {
     document.querySelectorAll('.val-calendario').forEach(el => el.innerText = window.getVal('cfg-calendario'));
     document.querySelectorAll('.val-date-ud').forEach(el => el.innerHTML = dateSummaryArr.join('<br>'));
 
-    // INIEZIONE DICITURA LEGALE ESATTA E COMPLETA DA DATA.JS
-    document.querySelectorAll('.val-dicitura-legale').forEach(el => el.innerHTML = "Corso erogato in conformità a:<br><strong>" + (c.norma || "D.Lgs. 81/08 e Accordo Stato Regioni del 17 Aprile 2025") + "</strong>");
+    document.querySelectorAll('.val-dicitura-legale').forEach(el => el.innerHTML = "Corso erogato in conformità a:<br><strong>" + c.norma + "</strong>");
 
     document.querySelectorAll('.val-data-inizio').forEach(el => {
         const di = window.getVal('cfg-data-inizio');
@@ -942,4 +956,72 @@ window.updateAll = function() {
 
         window.aggiornaTabelleSessione();
     }
+};
+
+window.aggiornaTabelleSessione = function() {
+    if (!window.currentSessionCorsisti || window.currentSessionCorsisti.length === 0) return;
+    let rRows = ""; let vRows = "";
+    
+    window.currentSessionCorsisti.forEach((c, idx) => {
+        rRows += '<tr><td class="border border-slate-800 py-0.5 px-1 text-center font-bold">' + (idx + 1) + '</td><td class="border border-slate-800 py-0.5 px-1 bg-white leading-none"><span class="font-bold">' + c.nome + '</span><br><span class="text-[6px] text-slate-500 uppercase">' + (c.mansione || '') + '</span></td><td class="border border-slate-800 py-0.5 px-1 text-center font-mono">' + c.cf + '</td><td class="border border-slate-800 py-0.5 px-1 text-center">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1 text-center">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td></tr>';
+        vRows += '<tr><td class="border border-slate-900 py-0.5 px-1 leading-tight"><span class="font-bold">' + c.nome + '</span><br><span class="text-[6.5px] text-slate-500 uppercase">' + (c.mansione || '') + '</span></td><td class="border border-slate-900 py-0.5 px-1 text-center font-bold text-emerald-700">SI</td><td class="border border-slate-900 py-0.5 px-1 text-center italic">__ / 30</td><td class="border border-slate-900 py-0.5 px-1 text-center">Positivo</td><td class="border border-slate-900 py-0.5 px-1 text-center font-black uppercase text-blue-700">Idoneo</td></tr>';
+    });
+
+    const remainingR = Math.max(0, 30 - window.currentSessionCorsisti.length);
+    for(let i=0; i<remainingR; i++){
+        rRows += '<tr><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td></tr>';
+    }
+    
+    const remainingV = Math.max(0, 30 - window.currentSessionCorsisti.length);
+    for(let i=0; i<remainingV; i++){
+        vRows += '<tr><td class="border border-slate-900 py-0.5 px-1">&nbsp;</td><td class="border border-slate-900 py-0.5 px-1">&nbsp;</td><td class="border border-slate-900 py-0.5 px-1">&nbsp;</td><td class="border border-slate-900 py-0.5 px-1">&nbsp;</td><td class="border border-slate-900 py-0.5 px-1">&nbsp;</td></tr>';
+    }
+
+    if(document.getElementById('r-rows')) document.getElementById('r-rows').innerHTML = rRows;
+    if(document.getElementById('v-rows')) document.getElementById('v-rows').innerHTML = vRows;
+};
+
+// ==========================================
+// GENERATORE DEI TEST E CORRETTORE
+// ==========================================
+window.generaTest = function(courseId) {
+    let pool = [...(window.POOL_GENERALE || [])];
+    if(courseId.includes('basso')) pool = pool.concat(window.POOL_BASSO || []);
+    else if(courseId.includes('alto') || courseId.includes('medio')) pool = pool.concat(window.POOL_ALTO || []);
+    else if(courseId.includes('dirigente') || courseId.includes('preposto') || courseId.includes('dl_')) pool = pool.concat(window.POOL_DIRIGENTI || []);
+    else if(courseId.includes('cantieri') || courseId.includes('costruzioni')) pool = pool.concat(window.POOL_CANTIERI || []);
+    else if(courseId.includes('attr_')) pool = pool.concat(window.POOL_ATTREZZATURE || []);
+    else if(courseId.includes('soccorso')) pool = pool.concat(window.POOL_PS || []);
+    else if(courseId.includes('antincendio')) pool = pool.concat(window.POOL_AI || []);
+
+    // Mischia e pesca fino a un massimo di 15 domande per pagina
+    pool = pool.sort(() => 0.5 - Math.random()).slice(0, 15);
+    window.currentTestQuestions = pool;
+    window.renderTest();
+};
+
+window.renderTest = function() {
+    const container = document.getElementById('test-questions-container');
+    if(!container) return;
+    let html = '';
+    window.currentTestQuestions.forEach((q, qIndex) => {
+        html += `<div class="mb-4 break-inside-avoid">
+            <p class="font-bold text-[10px] text-slate-800 mb-1">${qIndex + 1}. ${q.q}</p>
+            <div class="space-y-1 ml-2">`;
+        q.a.forEach((ans, aIndex) => {
+            const isCorrect = window.correctorEnabled && aIndex === q.correct;
+            const boxClass = isCorrect ? "bg-green-200 border-green-500 font-bold" : "border-slate-400";
+            html += `<div class="flex items-start gap-2 text-[9px]">
+                <div class="w-3 h-3 border ${boxClass} rounded-sm shrink-0 flex items-center justify-center">${isCorrect ? 'X' : ''}</div>
+                <span class="${isCorrect ? 'text-green-800 font-bold' : 'text-slate-700'}">${ans}</span>
+            </div>`;
+        });
+        html += `</div></div>`;
+    });
+    container.innerHTML = html;
+};
+
+window.toggleCorrettore = function() {
+    window.correctorEnabled = !window.correctorEnabled;
+    window.renderTest();
 };
