@@ -1,82 +1,100 @@
-<div class="doc-page portrait flex flex-col p-10 print-as-block" style="padding: 15mm !important; max-height: 297mm; position: relative;">
+<div class="doc-page portrait flex flex-col p-10 print-as-block relative" style="padding: 15mm !important; max-height: 297mm;">
     
-    <div class="text-center mb-6 border-b-2 border-slate-900 pb-4 shrink-0">
-        <h1 class="text-2xl font-black uppercase tracking-widest text-slate-900 val-ente">---</h1>
-        <p class="text-[9px] uppercase font-bold text-slate-500 mt-1 val-ente-indirizzo">---</p>
-        <p class="text-[9px] uppercase font-bold text-slate-500 val-ente-contatti">---</p>
+    <div class="absolute top-8 right-12">
+        <p class="text-[8px] font-mono font-bold text-slate-400">CERT ID: <span class="val-cert-id text-black">---</span></p>
     </div>
 
-    <div class="text-center mb-8 mt-4 shrink-0">
-        <h2 class="text-4xl font-black uppercase text-blue-900 tracking-tighter">Attestato di Frequenza</h2>
-        <p class="text-xs uppercase font-bold text-slate-500 mt-2 val-dicitura-legale">---</p>
-    </div>
-
-    <div class="bg-slate-50 border border-slate-200 p-6 rounded-lg text-center mb-8 shrink-0">
-        <p class="text-xs uppercase font-bold text-slate-500 mb-1">Si attesta che il/la Sig./ra</p>
-        <h3 class="text-2xl font-black uppercase text-slate-800 val-nome">---</h3>
-        <p class="text-sm font-bold text-slate-600 mt-1">Nato/a a <span class="val-nascita">---</span> | C.F.: <span class="val-cf font-mono">---</span></p>
-        <p class="text-xs font-bold text-slate-500 mt-2 border-t border-slate-200 pt-2">Dipendente dell'Azienda: <span class="val-azienda uppercase text-slate-800">---</span></p>
-    </div>
-
-    <div class="text-center mb-10 shrink-0">
-        <p class="text-xs uppercase font-bold text-slate-500 mb-2">Ha frequentato con profitto il corso di formazione</p>
-        <h3 class="text-xl font-black uppercase text-slate-800 val-titolo-corso px-8">---</h3>
-        <p class="text-sm font-bold text-blue-700 mt-2">Della durata di <span class="val-ore-corso font-black">---</span></p>
-    </div>
-
-    <div class="grid grid-cols-2 gap-4 text-[10px] mb-8 p-4 border border-slate-200 rounded shrink-0">
-        <div><strong class="uppercase text-slate-500">Periodo di svolgimento:</strong> <span class="val-date-ud font-bold text-slate-800 block mt-1">---</span></div>
-        <div>
-            <strong class="uppercase text-slate-500">Sede Corso:</strong> <span class="val-sede-corso font-bold text-slate-800 block mt-1">---</span>
-            <strong class="uppercase text-slate-500 mt-2 block">Modalità:</strong> <span class="val-modalita font-bold text-slate-800 block">---</span>
+    <div class="text-center mb-6 mt-4 pb-4 shrink-0">
+        <img src="" alt="Logo" class="logo-img h-16 object-contain mx-auto mb-3 hidden">
+        <h1 class="text-xl font-black uppercase tracking-widest text-slate-900 val-ente">---</h1>
+        
+        <div class="mt-2 text-[7.5px] font-bold text-slate-500 uppercase leading-tight border-y border-slate-200 py-2">
+            <p>Soggetto formatore ai sensi del punto 1.3 Accordo Stato Regioni</p>
+            <p>Assoc. Sindacale Datoriale comparativamente più rappresentativa a livello nazionale</p>
+            <p class="font-normal text-[6px]">(Requisiti: Sedi in 50% Province, Consistenza Iscritti, Firmataria CCNL)</p>
+            <p>Erogazione Diretta o tramite struttura di diretta emanazione</p>
         </div>
+    </div>
+
+    <div class="text-center mb-6 shrink-0">
+        <h2 class="text-4xl font-black uppercase text-blue-900 tracking-tighter">Attestato</h2>
+        <p class="text-lg uppercase font-bold text-slate-600 mt-1 tracking-widest">Di Formazione e Profitto</p>
+    </div>
+
+    <div class="bg-slate-50 border border-slate-200 p-5 rounded-lg text-center mb-6 shrink-0 shadow-sm">
+        <p class="text-[10px] uppercase font-bold text-slate-500 mb-1">Si attesta che</p>
+        <h3 class="text-3xl font-black uppercase text-slate-800 val-nome">---</h3>
+        <p class="text-xs font-bold text-slate-600 mt-1">Nato/a a <span class="val-nascita">---</span></p>
+        <p class="text-xs font-bold text-slate-600">C.F.: <span class="val-cf font-mono">---</span></p>
+        <p class="text-[10px] font-bold text-slate-500 mt-2 bg-white inline-block px-2 py-1 border border-slate-200">Mansione: <span class="val-mansione text-slate-800 uppercase">---</span></p>
+        <p class="text-[10px] font-bold text-slate-500 mt-3 border-t border-slate-200 pt-2">In forza presso l'Azienda: <span class="val-azienda uppercase text-slate-800 font-black">---</span></p>
+    </div>
+
+    <div class="text-center mb-6 shrink-0">
+        <p class="text-[10px] uppercase font-bold text-slate-500 mb-1">Ha frequentato e superato con verifica finale il corso per:</p>
+        <h3 class="text-lg font-black uppercase text-slate-800 val-titolo-corso px-4">---</h3>
+        <p class="text-[9px] uppercase font-bold text-slate-500 mt-2 val-dicitura-legale">---</p>
+        <p class="text-[9px] uppercase font-bold text-slate-500 mt-1">Svolto dal <span class="val-data-inizio font-bold text-slate-800"></span> al <span class="val-data-esame font-bold text-slate-800"></span></p>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4 text-[10px] mb-6 p-3 border border-slate-200 rounded bg-slate-50 shrink-0 text-center">
+        <div><strong class="uppercase text-slate-500 block mb-0.5">Monte Ore</strong> <span class="val-ore-corso font-black text-blue-700 text-sm">---</span></div>
+        <div class="border-l border-slate-300"><strong class="uppercase text-slate-500 block mb-0.5">Modalità</strong> <span class="val-modalita font-bold text-slate-800">---</span></div>
     </div>
 
     <div class="mt-auto shrink-0">
         <div class="flex justify-between items-end mb-4">
-            <div class="text-[9px]">
-                <p><strong>ID Certificato:</strong> <span class="val-cert-id font-mono">---</span></p>
-                <p><strong>Data Emissione:</strong> <span class="val-data-esame font-bold">---</span></p>
-                <p><strong>Scadenza:</strong> <span class="val-scadenza font-bold text-red-600">---</span></p>
+            <div class="text-[9px] border-l-2 border-red-500 pl-2">
+                <p><strong>Data Scadenza / Aggiornamento:</strong></p>
+                <p class="val-scadenza font-black text-red-600 text-xs">---</p>
             </div>
             <div class="text-right text-[9px]">
-                <p>Luogo: <span class="val-luogo-emissione font-bold">---</span></p>
+                <p>Luogo e Data Emissione</p>
+                <p class="font-bold"><span class="val-luogo-emissione uppercase">---</span>, <span class="val-data-esame">---</span></p>
             </div>
         </div>
 
         <div class="flex justify-between text-center pt-8 border-t border-slate-300">
             <div class="w-1/3">
-                <span class="text-[8px] font-bold text-slate-500 block uppercase">Il Docente Formatore</span>
+                <span class="text-[8px] font-bold text-slate-500 block uppercase">Il Formatore Qualificato</span>
                 <span class="val-docente-main font-black text-[10px] block mt-1 uppercase">---</span>
             </div>
+            <div class="w-1/3 text-slate-300 text-[8px] font-bold">
+                Timbro Soggetto Formatore
+            </div>
             <div class="w-1/3">
-                <span class="text-[8px] font-bold text-slate-500 block uppercase">Il Resp. Progetto / Ente</span>
+                <span class="text-[8px] font-bold text-slate-500 block uppercase">Il Responsabile del Progetto</span>
                 <span class="val-resp-progetto font-black text-[10px] block mt-1 uppercase">---</span>
             </div>
         </div>
     </div>
 </div>
 
-<div class="doc-page portrait flex flex-col p-10 print-as-block page-break-before" style="padding: 15mm !important; max-height: 297mm; page-break-before: always;">
+<div class="doc-page portrait flex flex-col p-8 print-as-block page-break-before" style="padding: 15mm !important; max-height: 297mm; page-break-before: always;">
     
-    <div class="text-center border-b-2 border-slate-900 pb-3 mb-6 shrink-0">
-        <h3 class="font-black text-lg uppercase text-slate-900">Programma Analitico del Corso</h3>
-        <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Rif. Progetto: <span class="val-codice">---</span> | Allievo: <span class="val-nome text-slate-800">---</span></p>
+    <div class="flex justify-between items-center border-b-2 border-slate-900 pb-3 mb-4 shrink-0">
+        <div>
+            <h3 class="font-black text-sm uppercase text-slate-900">Syllabus Dettagliato Erogato</h3>
+            <p class="text-[8px] text-slate-500 font-bold mt-0.5"><span class="val-ente uppercase">---</span> - Sede: <span class="val-sede-corso uppercase">---</span></p>
+        </div>
+        <div class="text-right">
+            <p class="text-[8px] font-bold text-slate-500 uppercase">Allegato Cert: <span class="val-cert-id text-black">---</span></p>
+            <p class="text-[8px] font-bold text-slate-500 uppercase mt-0.5">Rif. Progetto: <span class="val-codice text-black">---</span></p>
+        </div>
     </div>
 
     <div class="flex-1 flex flex-col overflow-hidden">
         <table class="w-full table-bordered table-fixed">
             <thead class="bg-slate-100">
                 <tr>
-                    <th class="p-2 border border-slate-800 text-[9px] uppercase w-20 text-center">Date</th>
-                    <th class="p-2 border border-slate-800 text-[9px] uppercase w-16 text-center">Unità</th>
-                    <th class="p-2 border border-slate-800 text-[9px] uppercase">Argomenti Trattati (Syllabus)</th>
-                    <th class="p-2 border border-slate-800 text-[9px] uppercase w-24 text-center">Docente</th>
-                    <th class="p-2 border border-slate-800 text-[9px] uppercase w-12 text-center">Ore</th>
+                    <th class="p-1 border border-slate-800 text-[8px] uppercase w-16 text-center">Date</th>
+                    <th class="p-1 border border-slate-800 text-[8px] uppercase w-12 text-center">Unità</th>
+                    <th class="p-1 border border-slate-800 text-[8px] uppercase">Contenuti e Argomenti</th>
+                    <th class="p-1 border border-slate-800 text-[8px] uppercase w-24 text-center">Docente</th>
+                    <th class="p-1 border border-slate-800 text-[8px] uppercase w-10 text-center">Ore</th>
                 </tr>
             </thead>
-            <tbody id="retro-programma" class="bg-white"></tbody>
+            <tbody class="val-syllabus-table bg-white"></tbody>
         </table>
     </div>
-
 </div>
