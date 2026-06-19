@@ -771,7 +771,6 @@ window.stampaSezioneAttuale = function() {
         return;
     }
 
-    // Anche per l'esame stampiamo un test distinto per ogni corsista
     if(window.currentPrintModule === 'esame' && window.currentSessionCorsisti.length > 0) {
         window.preparaEStampaMassiva(window.currentPrintModule);
         return;
@@ -826,7 +825,7 @@ window.preparaEStampaMassiva = function(tabId) {
 };
 
 // ==========================================
-// RENDER DOCUMENTI E SYLLABUS
+// RENDER DOCUMENTI E SYLLABUS MULTIDOCENTE
 // ==========================================
 window.updateAll = function() {
     const courseId = window.getVal('cfg-corso', 'lav_basso');
@@ -994,8 +993,8 @@ window.generaTest = function(courseId) {
     else if(courseId.includes('soccorso')) pool = pool.concat(window.POOL_PS || []);
     else if(courseId.includes('antincendio')) pool = pool.concat(window.POOL_AI || []);
 
-    // Mischia e pesca fino a un massimo di 15 domande per pagina
-    pool = pool.sort(() => 0.5 - Math.random()).slice(0, 15);
+    // Mischia e pesca fino a un massimo di 30 domande per pagina
+    pool = pool.sort(() => 0.5 - Math.random()).slice(0, 30);
     window.currentTestQuestions = pool;
     window.renderTest();
 };
@@ -1005,14 +1004,14 @@ window.renderTest = function() {
     if(!container) return;
     let html = '';
     window.currentTestQuestions.forEach((q, qIndex) => {
-        html += `<div class="mb-4 break-inside-avoid">
-            <p class="font-bold text-[10px] text-slate-800 mb-1">${qIndex + 1}. ${q.q}</p>
-            <div class="space-y-1 ml-2">`;
+        html += `<div class="mb-2 break-inside-avoid">
+            <p class="font-bold text-[8px] text-slate-800 mb-0.5 leading-tight">${qIndex + 1}. ${q.q}</p>
+            <div class="space-y-0.5 ml-2">`;
         q.a.forEach((ans, aIndex) => {
             const isCorrect = window.correctorEnabled && aIndex === q.correct;
             const boxClass = isCorrect ? "bg-green-200 border-green-500 font-bold" : "border-slate-400";
-            html += `<div class="flex items-start gap-2 text-[9px]">
-                <div class="w-3 h-3 border ${boxClass} rounded-sm shrink-0 flex items-center justify-center">${isCorrect ? 'X' : ''}</div>
+            html += `<div class="flex items-start gap-1.5 text-[7.5px] leading-tight">
+                <div class="w-2.5 h-2.5 border ${boxClass} rounded-sm shrink-0 flex items-center justify-center">${isCorrect ? 'X' : ''}</div>
                 <span class="${isCorrect ? 'text-green-800 font-bold' : 'text-slate-700'}">${ans}</span>
             </div>`;
         });
