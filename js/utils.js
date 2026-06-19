@@ -693,6 +693,20 @@ window.salvaAziendaDB = async function() {
         referente: document.getElementById('az-referente').value.trim()
     };
     
+    // Passiamo l'id SOLO se esiste davvero (evita bug con le stringhe vuote in Supabase)
+    if (id && id !== "") {
+        record.id = id;
+    }
+
+    console.log("Tentativo di salvataggio record:", record); // Per debug in Console (F12)
+
+    const result = await window.saveAzienda(record);
+    
+    if (result) {
+        window.resetFormAzienda();
+        await window.loadAziendeTable();
+    } 
+};
     // Se il campo nascosto ID è pieno, stiamo aggiornando un record esistente
     if (id) record.id = id;
 
