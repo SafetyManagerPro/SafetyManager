@@ -8,7 +8,6 @@ window.currentTestQuestions = [];
 window.correctorEnabled = false;
 window.currentSessionCorsisti = [];
 
-// State Manager in Memoria
 window.AppState = window.AppState || {};
 
 window.getVal = function(id, defaultVal = "") {
@@ -41,6 +40,13 @@ window.formatDataToItalian = function(dStr) {
     return dStr;
 }
 
+window.updateDBCounter = function() {
+    const counter = document.getElementById('db-counter');
+    if (counter) {
+        counter.innerText = (window.dbCorsisti ? window.dbCorsisti.length : 0) + " Corsisti nel Cloud";
+    }
+}
+
 // ==========================================
 // LOGICA CRM: AZIENDE
 // ==========================================
@@ -68,8 +74,8 @@ window.loadAziendeTable = async function() {
                 <td class="p-3 border-b font-mono text-[10px] text-slate-600">${az.piva_cf || '-'}</td>
                 <td class="p-3 border-b font-mono text-[10px] text-slate-500">${az.ateco || '-'}</td>
                 <td class="p-3 border-b text-center whitespace-nowrap">
-                    <button onclick="window.modificaAzienda('${az.id}')" class="text-blue-600 hover:bg-blue-200 bg-blue-100 p-1.5 rounded transition shadow-sm" title="Modifica"><i data-lucide="edit" class="w-4 h-4"></i></button>
-                    <button onclick="window.eliminaAzienda('${az.id}')" class="text-red-600 hover:bg-red-200 bg-red-100 p-1.5 rounded transition shadow-sm ml-1" title="Elimina"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                    <button onclick="window.modificaAzienda('${az.id}')" class="text-blue-600 hover:bg-blue-200 bg-blue-100 p-1.5 rounded transition shadow-sm"><i data-lucide="edit" class="w-4 h-4"></i></button>
+                    <button onclick="window.eliminaAzienda('${az.id}')" class="text-red-600 hover:bg-red-200 bg-red-100 p-1.5 rounded transition shadow-sm ml-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                 </td>
             </tr>
         `;
@@ -109,9 +115,8 @@ window.modificaAzienda = function(id) {
 };
 
 window.eliminaAzienda = async function(id) {
-    if(confirm("Sei sicuro di voler eliminare questa azienda? \n\nTutti i progetti ad essa collegati verranno eliminati.")) {
+    if(confirm("Sei sicuro di voler eliminare questa azienda?")) {
         if(await window.deleteAzienda(id)) await window.loadAziendeTable();
-        else alert("Errore durante l'eliminazione.");
     }
 };
 
@@ -121,7 +126,7 @@ window.resetFormAzienda = function() {
 };
 
 window.filtraAziende = function() {
-    const filter = document.getElementById('search-aziende').value.toLowerCase();
+    const filter = document.getElementById('search-azure').value.toLowerCase();
     const rows = document.getElementById('tabella-aziende').getElementsByTagName('tr');
     for (let i = 0; i < rows.length; i++) {
         if(rows[i].cells.length === 1) continue; 
@@ -179,7 +184,7 @@ window.salvaDocenteDB = async function() {
     if (await window.saveDocente(record)) {
         window.resetFormDocente();
         await window.loadDocentiTable();
-    } else alert("Errore nel salvataggio del docente.");
+    }
 };
 
 window.modificaDocente = function(id) {
@@ -204,15 +209,6 @@ window.resetFormDocente = function() {
     document.getElementById('form-docente').reset();
 };
 
-window.filtraDocenti = function() {
-    const filter = document.getElementById('search-docenti').value.toLowerCase();
-    const rows = document.getElementById('tabella-docenti').getElementsByTagName('tr');
-    for (let i = 0; i < rows.length; i++) {
-        if(rows[i].cells.length === 1) continue; 
-        rows[i].style.display = rows[i].innerText.toLowerCase().includes(filter) ? "" : "none";
-    }
-};
-
 // ==========================================
 // LOGICA CRM: CORSISTI
 // ==========================================
@@ -222,17 +218,14 @@ window.loadCorsistiTable = async function() {
     const tbody = document.getElementById('tabella-corsisti');
     if(!tbody) return;
     tbody.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-slate-400 italic"><i data-lucide="loader-2" class="w-5 h-5 animate-spin mx-auto mb-2"></i> Caricamento...</td></tr>';
-    if(typeof lucide !== 'undefined') lucide.createIcons();
-
+    
     window.corsistiList = await window.getCorsisti();
     window.aziendeList = await window.getAziende(); 
 
     const selectAzienda = document.getElementById('cor-azienda');
     if (selectAzienda) {
         let optHtml = '<option value="">-- Nessuna Azienda / Privato --</option>';
-        window.aziendeList.forEach(az => {
-            optHtml += `<option value="${az.id}">${az.ragione_sociale}</option>`;
-        });
+        window.aziendeList.forEach(az => { optHtml += `<option value="${az.id}">${az.ragione_sociale}</option>`; });
         selectAzienda.innerHTML = optHtml;
     }
 
@@ -262,20 +255,18 @@ window.loadCorsistiTable = async function() {
 
 window.salvaCorsistaDB = async function() {
     const id = document.getElementById('cor-id').value;
-    const aziendaId = document.getElementById('cor-azienda').value;
-    
     const record = {
         nome_cognome: document.getElementById('cor-nome').value.trim(),
         cf: document.getElementById('cor-cf').value.trim().toUpperCase(),
         luogo_data_nascita: document.getElementById('cor-nascita').value.trim(),
-        azienda_id: aziendaId ? aziendaId : null 
+        azienda_id: document.getElementById('cor-azienda').value || null 
     };
     if (id && id !== "") record.id = id;
 
     if (await window.saveCorsistaData(record)) {
         window.resetFormCorsista();
         await window.loadCorsistiTable();
-    } else alert("Errore nel salvataggio. C.F. potrebbe essere già registrato.");
+    }
 };
 
 window.modificaCorsista = function(id) {
@@ -289,8 +280,8 @@ window.modificaCorsista = function(id) {
 };
 
 window.eliminaCorsistaData = async function(id) {
-    if(confirm("Sicuro di voler eliminare questo corsista? I suoi attestati verranno persi.")) {
-        if(await window.deleteCorsistaData(id)) await window.loadCorsistiTable();
+    if(confirm("Sicuro di voler eliminare questo corsista?")) {
+        if(await window.deleteDocente(id)) await window.loadCorsistiTable();
     }
 };
 
@@ -299,13 +290,78 @@ window.resetFormCorsista = function() {
     document.getElementById('form-corsista').reset();
 };
 
-window.filtraCorsisti = function() {
-    const filter = document.getElementById('search-corsisti').value.toLowerCase();
-    const rows = document.getElementById('tabella-corsisti').getElementsByTagName('tr');
-    for (let i = 0; i < rows.length; i++) {
-        if(rows[i].cells.length === 1) continue; 
-        rows[i].style.display = rows[i].innerText.toLowerCase().includes(filter) ? "" : "none";
+// ==========================================
+// MOTORE DI CALCOLO AUTOMATICO GIORNI FORMATIVI & SCADENZA
+// ==========================================
+window.calcolaDettagliProgetto = function() {
+    const corsoId = document.getElementById('prog-corso').value;
+    const dataInizioRaw = document.getElementById('prog-inizio').value;
+    if (!corsoId || !dataInizioRaw) return;
+
+    const c = window.DB_CORSI[corsoId];
+    if (!c || !c.prog) return;
+
+    let currentDay = new Date(dataInizioRaw);
+    let calendarioTesto = "";
+    let dailyHours = 0;
+    let syllabusHtml = "";
+
+    // Salta i weekend in partenza
+    if(currentDay.getDay() === 6) currentDay.setDate(currentDay.getDate() + 2); 
+    if(currentDay.getDay() === 0) currentDay.setDate(currentDay.getDate() + 1);
+
+    c.prog.forEach((ud) => {
+        let remainingUDHours = ud.ore;
+        let udDates = [];
+
+        while(remainingUDHours > 0) {
+            if(dailyHours >= 8) { // Max 8 ore al giorno
+                currentDay.setDate(currentDay.getDate() + 1);
+                if(currentDay.getDay() === 6) currentDay.setDate(currentDay.getDate() + 2);
+                if(currentDay.getDay() === 0) currentDay.setDate(currentDay.getDate() + 1);
+                dailyHours = 0;
+            }
+            let availableToday = 8 - dailyHours;
+            let hoursToAllocate = Math.min(remainingUDHours, availableToday);
+            let dateStr = currentDay.toLocaleDateString('it-IT');
+
+            if (!udDates.includes(dateStr)) udDates.push(dateStr);
+            if (!calendarioTesto.includes(dateStr)) {
+                calendarioTesto += (calendarioTesto ? "\n" : "") + dateStr;
+            }
+            dailyHours += hoursToAllocate;
+            remainingUDHours -= hoursToAllocate;
+        }
+        
+        syllabusHtml += `
+            <div class="text-[11px] border-b border-slate-200 pb-1 mb-1 text-slate-700">
+                <span class="font-bold text-blue-700">${ud.ud}</span> (${ud.ore} Ore)<br>
+                <span class="text-[10px] text-slate-800 font-semibold uppercase">${ud.m}</span><br>
+                <span class="text-[9px] text-slate-500 font-mono">${udDates.join(' &bull; ')}</span>
+            </div>
+        `;
+    });
+
+    // Imposta la data di emissione/esame (ultimo giorno di corso)
+    const offsetDate = new Date(currentDay.getTime() - (currentDay.getTimezoneOffset() * 60000));
+    document.getElementById('prog-esame').value = offsetDate.toISOString().split('T')[0];
+
+    // Scrive i giorni rilevati nella textarea
+    document.getElementById('prog-calendario-testo').value = calendarioTesto;
+
+    // Calcola e visualizza la validità dell'attestato
+    let scadTesto = "";
+    if (c.scad === 99) {
+        scadTesto = "Permanente (Senza Scadenza)";
+    } else {
+        let dScad = new Date(currentDay.getTime());
+        dScad.setFullYear(dScad.getFullYear() + c.scad);
+        scadTesto = dScad.toLocaleDateString('it-IT') + ` (Valido ${c.scad} Anni)`;
     }
+    document.getElementById('lbl-prog-scadenza').innerText = scadTesto;
+
+    // Inietta l'anteprima del Progetto Formativo
+    document.getElementById('prog-syllabus-preview').innerHTML = syllabusHtml;
 };
 
 // ==========================================
@@ -339,13 +395,13 @@ window.loadProgettiTable = async function() {
     window.progettiList = await window.getProgetti();
 
     if (window.progettiList.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-slate-500 italic">Nessun progetto formativo registrato.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-slate-500 italic">Nessun corso registrato.</td></tr>';
         return;
     }
 
     let html = '';
     window.progettiList.forEach(p => {
-        const nomeAzienda = p.aziende ? p.aziende.ragione_sociale : 'Azienda Sconosciuta';
+        const nomeAzienda = p.aziende ? p.aziende.ragione_sociale : 'Privato';
         const nomeCorso = window.DB_CORSI[p.corso_id] ? window.DB_CORSI[p.corso_id].t : p.corso_id;
         
         html += `
@@ -370,28 +426,22 @@ window.loadProgettiTable = async function() {
 
 window.salvaProgettoDB = async function() {
     const id = document.getElementById('prog-id').value;
-    
-    let cod = document.getElementById('prog-codice').value.trim();
-    if(!cod) {
-        const d = new Date();
-        cod = `PRG-${d.getFullYear()}-${Math.floor(Math.random()*10000)}`;
-    }
-
     const record = {
         azienda_id: document.getElementById('prog-azienda').value,
         corso_id: document.getElementById('prog-corso').value,
-        codice: cod,
+        codice: document.getElementById('prog-codice').value.trim(),
         modalita: document.getElementById('prog-modalita').value,
-        data_inizio: document.getElementById('prog-inizio').value || null,
+        data_inizio: document.getElementById('prog-inizio').value,
         data_esame: document.getElementById('prog-esame').value,
-        docente_principale: document.getElementById('prog-docente').value 
+        docente_principale: document.getElementById('prog-docente').value,
+        calendario: document.getElementById('prog-calendario-testo').value // Salva i giorni calcolati nel DB!
     };
     if (id && id !== "") record.id = id;
 
     if (await window.saveProgetto(record)) {
         window.resetFormProgetto();
         await window.loadProgettiTable();
-    } else alert("Errore. Verifica che il Codice Progetto non esista già.");
+    } else alert("Errore nel salvataggio del progetto formativo.");
 };
 
 window.modificaProgetto = function(id) {
@@ -401,30 +451,30 @@ window.modificaProgetto = function(id) {
     document.getElementById('prog-azienda').value = p.azienda_id;
     document.getElementById('prog-corso').value = p.corso_id;
     document.getElementById('prog-codice').value = p.codice;
-    document.getElementById('prog-modalita').value = p.modalita || "In Presenza Fisica";
+    document.getElementById('prog-modalita').value = p.modalita;
     document.getElementById('prog-inizio').value = p.data_inizio || "";
     document.getElementById('prog-esame').value = p.data_esame || "";
     document.getElementById('prog-docente').value = p.docente_principale || "";
+    window.calcolaDettagliProgetto(); // Ricalcola al volo l'anteprima
 };
 
 window.eliminaProgetto = async function(id) {
-    if(confirm("Eliminare il progetto? Eliminerà anche le iscrizioni collegate.")) {
-        if(await window.deleteProgetto(id)) {
-            if(window.currentProgettoId === id) window.chiudiPannelloIscrizioni();
-            await window.loadProgettiTable();
-        }
+    if(confirm("Sei sicuro di voler cancellare questo corso?")) {
+        if(await window.deleteProgetto(id)) await window.loadProgettiTable();
     }
 };
 
 window.resetFormProgetto = function() {
     document.getElementById('prog-id').value = "";
     document.getElementById('form-progetto').reset();
+    document.getElementById('prog-syllabus-preview').innerHTML = '<span class="text-xs text-slate-400 italic">Seleziona corso e data d\'inizio...</span>';
 };
 
+// --- GESTIONE DELLE ISCRIZIONI E DELLE SCADENZE REALI ---
 window.apriIscrizioni = async function(progetto_id) {
-    window.currentProgettoId = progetto_id;
+    window.currentProgettoId = proyecto_id;
     const p = window.progettiList.find(x => x.id === progetto_id);
-    const aziendaName = p.aziende ? p.aziende.ragione_sociale : '';
+    const aziendaName = p.aziende ? p.aziende.ragione_sociale : 'Privato';
     
     document.getElementById('lbl-progetto-attivo').innerHTML = `Cod: <span class="text-white">${p.codice}</span> | Azienda: <span class="text-white">${aziendaName}</span>`;
     document.getElementById('panel-iscrizioni').classList.remove('hidden');
@@ -454,19 +504,16 @@ window.loadIscrittiTable = async function() {
     const iscritti = await window.getIscrizioni(window.currentProgettoId);
     
     if(iscritti.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-slate-500 italic">Nessun corsista iscritto a questo progetto.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-slate-500 italic">Nessun allievo iscritto.</td></tr>';
         return;
     }
 
     let html = '';
     iscritti.forEach(isc => {
-        const cNome = isc.corsisti ? isc.corsisti.nome_cognome : 'Sconosciuto';
-        const cCF = isc.corsisti ? isc.corsisti.cf : '---';
-        
         html += `
             <tr class="hover:bg-slate-600 transition-colors">
-                <td class="p-2 border-b border-slate-600 text-sm font-bold text-blue-300">${cNome}</td>
-                <td class="p-2 border-b border-slate-600 font-mono text-[10px] text-slate-300">${cCF}</td>
+                <td class="p-2 border-b border-slate-600 text-sm font-bold text-blue-300">${isc.corsisti.nome_cognome}</td>
+                <td class="p-2 border-b border-slate-600 font-mono text-[10px] text-slate-300">${isc.corsisti.cf}</td>
                 <td class="p-2 border-b border-slate-600 font-mono text-[9px] text-amber-200">${isc.id_certificato}</td>
                 <td class="p-2 border-b border-slate-600 text-center">
                     <button onclick="window.rimuoviIscrizione('${isc.id}')" class="text-red-400 hover:text-white hover:bg-red-500 p-1 rounded transition"><i data-lucide="user-minus" class="w-4 h-4"></i></button>
@@ -484,24 +531,36 @@ window.aggiungiIscrizione = async function() {
 
     const p = window.progettiList.find(x => x.id === window.currentProgettoId);
     const c = window.corsistiList.find(x => x.id === corsista_id);
+    const corsoInfo = window.DB_CORSI[p.corso_id];
+
+    // CALCOLO DATA SCADENZA REALE DA REGISTRARE SUL CORSISTA
+    let dataScadenzaISO = null;
+    if (corsoInfo && corsoInfo.scad !== 99) {
+        let dScad = new Date(p.data_esame);
+        dScad.setFullYear(dScad.getFullYear() + corsoInfo.scad);
+        const offsetDate = new Date(dScad.getTime() - (dScad.getTimezoneOffset() * 60000));
+        dataScadenzaISO = offsetDate.toISOString().split('T')[0];
+    }
+
     const id_cert = `C26-${p.codice}-${c.cf.substring(0,6)}-${Math.floor(Math.random()*999)}`;
 
     const record = {
         progetto_id: window.currentProgettoId,
         corsista_id: corsista_id,
         id_certificato: id_cert,
-        esito: "Idoneo"
+        esito: "Idoneo",
+        data_scadenza: dataScadenzaISO // Registra la scadenza esatta su Supabase!
     };
 
     if(await window.saveIscrizione(record)) {
         await window.loadIscrittiTable();
     } else {
-        alert("Errore. Il corsista potrebbe essere già iscritto a questo corso.");
+        alert("Errore. L'allievo potrebbe essere già iscritto.");
     }
 };
 
 window.rimuoviIscrizione = async function(id) {
-    if(confirm("Rimuovere il corsista da questo progetto?")) {
+    if(confirm("Rimuovere l'allievo dal corso?")) {
         if(await window.deleteIscrizione(id)) await window.loadIscrittiTable();
     }
 };
@@ -560,11 +619,11 @@ window.initStampe = async function() {
     const sel = document.getElementById('stampa-progetto');
     if(!sel) return;
     
-    if(window.progettiList.length === 0) window.progettiList = await window.getProgetti();
+    window.progettiList = await window.getProgetti();
     
     let html = '<option value="">-- Seleziona un progetto --</option>';
     window.progettiList.forEach(p => {
-        const azName = p.aziende ? p.aziende.ragione_sociale : '';
+        const azName = p.aziende ? p.aziende.ragione_sociale : 'Privato';
         html += `<option value="${p.id}">${p.codice} - ${azName}</option>`;
     });
     sel.innerHTML = html;
@@ -594,6 +653,7 @@ window.caricaDatiStampa = async function() {
     window.AppState['cfg-azienda-indirizzo'] = p.aziende ? p.aziende.indirizzo : "";
     window.AppState['cfg-docente'] = doc ? doc.nome_cognome : "Docente";
     window.AppState['cfg-req-docente'] = doc ? doc.qualifica : "Formatore Qualificato";
+    window.AppState['cfg-calendario'] = p.calendario || ""; // Travasa i giorni reali calcolati!
 
     window.currentSessionCorsisti = iscritti.map(isc => ({
         nome: isc.corsisti.nome_cognome,
@@ -621,7 +681,6 @@ window.loadPrintPreview = async function(modulo) {
         const html = await response.text();
         
         container.innerHTML = html;
-        
         container.querySelectorAll('.doc-page').forEach(doc => {
             doc.style.margin = "0";
             doc.classList.add('scale-[0.8]', 'origin-top'); 
@@ -630,7 +689,6 @@ window.loadPrintPreview = async function(modulo) {
         if (typeof window.updateAll === 'function') {
             window.updateAll();
         }
-
     } catch (error) {
         container.innerHTML = `<p class="text-red-500 font-bold">${error.message}</p>`;
     }
@@ -638,17 +696,11 @@ window.loadPrintPreview = async function(modulo) {
 
 window.stampaSezioneAttuale = function() {
     if(!window.currentPrintModule) return alert("Seleziona un documento da stampare.");
-    
     const printArea = document.getElementById('print-area-temp');
     printArea.innerHTML = '';
     
     const docOriginale = document.querySelector('#print-preview-container .doc-page');
     if(!docOriginale) return;
-
-    if(window.currentPrintModule === 'attestato' && window.currentSessionCorsisti.length > 0) {
-        window.preparaEStampaMassiva(window.currentPrintModule);
-        return;
-    }
 
     const clone = docOriginale.cloneNode(true);
     clone.classList.remove('scale-[0.8]', 'origin-top');
@@ -667,53 +719,16 @@ window.stampaSezioneAttuale = function() {
 };
 
 // ==========================================
-// FUNZIONI DI RENDER (UPDATE ALL & TEST)
+// TRASFERIMENTO VALORI NELLE VIEW DI STAMPA
 // ==========================================
 window.updateAll = function() {
     const courseId = window.getVal('cfg-corso', 'lav_basso');
     const c = window.DB_CORSI[courseId];
     if(!c || !c.prog) return;
 
-    const dataInizioRaw = window.getVal('cfg-data-inizio');
-    let dInizio = dataInizioRaw ? new Date(dataInizioRaw.split('-')[0], dataInizioRaw.split('-')[1] - 1, dataInizioRaw.split('-')[2]) : new Date();
-
-    const dEsameRaw = window.getVal('cfg-data-esame');
-    let dataEsameStrFormatted = dEsameRaw ? window.formatDataToItalian(dEsameRaw) : "___/___/2025";
+    const dataEsameRaw = window.getVal('cfg-data-esame');
+    let dataEsameStrFormatted = dataEsameRaw ? window.formatDataToItalian(dataEsameRaw) : "___/___/2025";
     
-    let currentDay = new Date(dInizio.getTime()); 
-    let docentePrincipale = window.getVal('cfg-docente', 'Mario Rossi'); 
-    let dailyHours = 0;
-    
-    if(currentDay.getDay() === 6) currentDay.setDate(currentDay.getDate() + 2); 
-    if(currentDay.getDay() === 0) currentDay.setDate(currentDay.getDate() + 1);
-
-    let dateSummaryArr = [];
-
-    c.prog.forEach((ud, index) => {
-        const docName = window.getVal('docente_ud_' + index, docentePrincipale);
-        if (index === 0) docentePrincipale = docName; 
-
-        let remainingUDHours = ud.ore;
-        let udDates = []; 
-
-        while(remainingUDHours > 0) {
-            if(dailyHours >= 8) {
-                currentDay.setDate(currentDay.getDate() + 1);
-                if(currentDay.getDay() === 6) currentDay.setDate(currentDay.getDate() + 2);
-                if(currentDay.getDay() === 0) currentDay.setDate(currentDay.getDate() + 1);
-                dailyHours = 0;
-            }
-            let availableToday = 8 - dailyHours; 
-            let hoursToAllocate = Math.min(remainingUDHours, availableToday);
-            let dateStr = currentDay.toLocaleDateString('it-IT');
-            
-            if (!udDates.includes(dateStr)) udDates.push(dateStr);
-            dailyHours += hoursToAllocate; 
-            remainingUDHours -= hoursToAllocate;
-        }
-        dateSummaryArr.push('<span class="font-bold text-slate-800">' + ud.ud + '</span>: ' + udDates.join(', '));
-    });
-
     const sedeToDisplay = window.getVal('cfg-sede-corso') || window.getVal('cfg-azienda-indirizzo') || "Sede Aziendale";
 
     document.querySelectorAll('.val-ente').forEach(el => el.innerText = window.getVal('cfg-ente'));
@@ -723,14 +738,16 @@ window.updateAll = function() {
     document.querySelectorAll('.val-ore-corso').forEach(el => el.innerText = c.ore + " ORE");
     document.querySelectorAll('.val-codice').forEach(el => el.innerText = window.getVal('cfg-codice'));
     document.querySelectorAll('.val-sede-corso').forEach(el => el.innerText = sedeToDisplay); 
-    document.querySelectorAll('.val-docente-main').forEach(el => el.innerText = docentePrincipale); 
+    document.querySelectorAll('.val-docente-main').forEach(el => el.innerText = window.getVal('cfg-docente')); 
     document.querySelectorAll('.val-resp-progetto').forEach(el => el.innerText = window.getVal('cfg-resp-progetto'));
     document.querySelectorAll('.val-luogo-emissione').forEach(el => el.innerText = window.getVal('cfg-luogo-emissione'));
     document.querySelectorAll('.val-legale-nome').forEach(el => el.innerText = window.getVal('cfg-legale-nome'));
     document.querySelectorAll('.val-legale-nascita').forEach(el => el.innerText = window.getVal('cfg-legale-nascita'));
-    
-    document.querySelectorAll('.val-date-ud').forEach(el => el.innerHTML = dateSummaryArr.join(' &bull; '));
     document.querySelectorAll('.val-data-esame').forEach(el => el.innerText = dataEsameStrFormatted);
+    document.querySelectorAll('.val-modalita').forEach(el => el.innerText = window.getVal('cfg-modalita', 'In Presenza Fisica'));
+    
+    // Inietta il calendario dei giorni REALI calcolati dal CRM relazionale
+    document.querySelectorAll('.val-calendario').forEach(el => el.innerText = window.getVal('cfg-calendario'));
 
     document.querySelectorAll('.val-data-inizio').forEach(el => {
         const di = window.getVal('cfg-data-inizio');
@@ -740,18 +757,17 @@ window.updateAll = function() {
         } else el.innerText = "___/___/2025";
     });
 
-    document.querySelectorAll('.val-modalita').forEach(el => el.innerText = window.getVal('cfg-modalita', 'In Presenza Fisica'));
-
     const logoUrl = window.getVal('cfg-logo');
     document.querySelectorAll('.logo-img').forEach(img => { 
         if(logoUrl){ img.src=logoUrl; img.classList.remove('hidden'); } 
         else img.classList.add('hidden'); 
     });
 
+    // Iniezione automatica delle righe nelle tabelle
     if (window.currentSessionCorsisti && window.currentSessionCorsisti.length > 0) {
-        if(typeof window.aggiornaTabelleSessione === 'function') window.aggiornaTabelleSessione();
+        window.aggiornaTabelleSessione();
     }
-}
+};
 
 window.aggiornaTabelleSessione = function() {
     if (!window.currentSessionCorsisti || window.currentSessionCorsisti.length === 0) return;
@@ -775,4 +791,4 @@ window.aggiornaTabelleSessione = function() {
 
     if(document.getElementById('r-rows')) document.getElementById('r-rows').innerHTML = rRows;
     if(document.getElementById('v-rows')) document.getElementById('v-rows').innerHTML = vRows;
-}
+};
