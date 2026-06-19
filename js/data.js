@@ -1,3 +1,8 @@
+// js/data.js
+
+// ==========================================
+// DATABASE CORSI E SYLLABUS ANALITICO
+// ==========================================
 window.DB_CORSI = {
     lav_basso: { t: "Formazione Lavoratori - Rischio Basso", ore: 8, scad: 5, risk: "RB", code: "FL", prog: [
         { ud: "UD1", ore: 4, m: "Modulo Formazione Generale", d: "<ul class='syllabus-list list-outside list-disc ml-3 space-y-0.5 text-left'><li>Normativa generale SSL (D.Lgs. 81/08).</li><li>I concetti di rischio, danno, prevenzione, protezione.</li><li>Organizzazione della prevenzione aziendale.</li><li>Diritti, doveri e sanzioni per i vari soggetti aziendali (Art. 20).</li><li>Gli organi di vigilanza, controllo e assistenza.</li></ul>" },
@@ -145,6 +150,9 @@ window.DB_CORSI = {
     ]}
 };
 
+// ==========================================
+// POOL DOMANDE
+// ==========================================
 window.POOL_GENERALE = [
     { q: "Qual è il principale riferimento normativo per la sicurezza sul lavoro?", a: ["D.Lgs 81/08", "D.Lgs 231/01", "D.Lgs 106/09"], correct: 0 },
     { q: "Chi è responsabile della valutazione dei rischi in modo indelegabile?", a: ["Il Medico Competente", "Il Datore di Lavoro", "Il RSPP"], correct: 1 },
