@@ -676,8 +676,9 @@ window.caricaDatiStampa = async function() {
         nome: isc.corsisti.nome_cognome,
         cf: isc.corsisti.cf,
         nascita: isc.corsisti.luogo_data_nascita,
-        mansione: isc.mansione_storica || "",
-        id_certificato: isc.id_certificato
+        mansione: isc.mansione_storica || "Addetto/a", // Mappatura mansione
+        id_certificato: isc.id_certificato,
+        data_scadenza: isc.data_scadenza // Mappatura scadenza esatta
     }));
 
     if(window.currentPrintModule) {
