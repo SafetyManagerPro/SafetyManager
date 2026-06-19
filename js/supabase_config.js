@@ -29,15 +29,29 @@ window.getAziende = async function() {
 // Crea o aggiorna un'azienda
 window.saveAzienda = async function(record) {
     try {
-        const { data, error } = await supabaseClient
-            .from('aziende')
-            .upsert(record)
-            .select();
+        let result;
+        if (record.id) {
+            // Se c'è un ID, fa un UPDATE (Modifica)
+            result = await supabaseClient
+                .from('aziende')
+                .update(record)
+                .eq('id', record.id)
+                .select();
+        } else {
+            // Se NON c'è un ID, fa un INSERT (Creazione nuovo)
+            result = await supabaseClient
+                .from('aziende')
+                .insert(record)
+                .select();
+        }
             
-        if (error) throw error;
-        return data;
+        if (result.error) throw result.error;
+        return result.data;
+        
     } catch (err) {
         console.error("Errore salvataggio Azienda:", err);
+        // Questo Alert ci dirà ESATTAMENTE qual è il problema se fallisce!
+        alert("ERRORE DATABASE: " + err.message); 
         return false;
     }
 };
