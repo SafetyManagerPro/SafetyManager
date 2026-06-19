@@ -831,8 +831,8 @@ window.updateAll = function() {
         </tr>`;
     });
 
-    const retroTable = document.getElementById('retro-programma');
-    if(retroTable) retroTable.innerHTML = scheduleHtml;
+    // Inietta il syllabus ovunque serva (Retro Attestato e Progetto Formativo)
+    document.querySelectorAll('.val-syllabus-table').forEach(el => el.innerHTML = scheduleHtml);
 
     const sedeToDisplay = window.getVal('cfg-sede-corso') || window.getVal('cfg-azienda-indirizzo') || "Sede Aziendale";
 
@@ -846,16 +846,16 @@ window.updateAll = function() {
     document.querySelectorAll('.val-codice').forEach(el => el.innerText = window.getVal('cfg-codice'));
     document.querySelectorAll('.val-sede-corso').forEach(el => el.innerText = sedeToDisplay); 
     document.querySelectorAll('.val-docente-main').forEach(el => el.innerText = window.getVal('cfg-docente')); 
-    document.querySelectorAll('.val-resp-progetto').forEach(el => el.innerText = window.getVal('cfg-resp-progetto'));
+    document.querySelectorAll('.val-resp-progetto').forEach(el => el.innerText = window.getVal('cfg-resp-progetto') || window.getVal('cfg-legale-nome'));
     document.querySelectorAll('.val-luogo-emissione').forEach(el => el.innerText = window.getVal('cfg-luogo-emissione'));
     document.querySelectorAll('.val-legale-nome').forEach(el => el.innerText = window.getVal('cfg-legale-nome'));
     document.querySelectorAll('.val-legale-nascita').forEach(el => el.innerText = window.getVal('cfg-legale-nascita'));
     document.querySelectorAll('.val-data-esame').forEach(el => el.innerText = dataEsameStrFormatted);
     document.querySelectorAll('.val-modalita').forEach(el => el.innerText = window.getVal('cfg-modalita', 'In Presenza Fisica'));
-    document.querySelectorAll('.val-calendario').forEach(el => el.innerText = window.getVal('cfg-calendario'));
-    document.querySelectorAll('.val-date-ud').forEach(el => el.innerHTML = dateSummaryArr.join(' &bull; '));
+    document.querySelectorAll('.val-req-docente').forEach(el => el.innerText = window.getVal('cfg-req-docente', 'Formatore Qualificato (D.I. 6/3/2013)'));
+    document.querySelectorAll('.val-date-ud').forEach(el => el.innerHTML = dateSummaryArr.join('<br>'));
 
-    document.querySelectorAll('.val-dicitura-legale').forEach(el => el.innerHTML = "Corso erogato in conformità al <strong>" + (c.norma || "D.Lgs. 81/08 e Accordi Stato Regioni vigenti") + "</strong>. Qualifica della Docenza Registrata: " + window.getVal('cfg-req-docente') + ".");
+    document.querySelectorAll('.val-dicitura-legale').forEach(el => el.innerHTML = "Corso erogato in conformità a: <strong>" + (c.norma || "D.Lgs. 81/08 e Accordi Stato Regioni") + "</strong>");
 
     document.querySelectorAll('.val-data-inizio').forEach(el => {
         const di = window.getVal('cfg-data-inizio');
@@ -871,18 +871,20 @@ window.updateAll = function() {
         else img.classList.add('hidden'); 
     });
 
-    // Inietta i dati del singolo allievo se siamo su attestato.html o nei registri
     if (window.currentSessionCorsisti && window.currentSessionCorsisti.length > 0) {
         const c1 = window.currentSessionCorsisti[0];
         document.querySelectorAll('.val-nome').forEach(el => el.innerText = c1.nome || "---");
         document.querySelectorAll('.val-nascita').forEach(el => el.innerText = c1.nascita || "---");
         document.querySelectorAll('.val-cf').forEach(el => el.innerText = c1.cf || "---");
         document.querySelectorAll('.val-cert-id').forEach(el => el.innerText = c1.id_certificato || "---");
+        document.querySelectorAll('.val-mansione').forEach(el => el.innerText = c1.mansione || "N/D");
         
+        let stringaScadenza = c.scad === 99 ? "Permanente" : window.formatDataToItalian(c1.data_scadenza) + " (Agg. " + c.scad + " Anni)";
+        document.querySelectorAll('.val-scadenza').forEach(el => el.innerText = stringaScadenza);
+
         window.aggiornaTabelleSessione();
     }
 };
-
 window.aggiornaTabelleSessione = function() {
     if (!window.currentSessionCorsisti || window.currentSessionCorsisti.length === 0) return;
     let rRows = ""; let vRows = "";
@@ -904,4 +906,35 @@ window.aggiornaTabelleSessione = function() {
 
     if(document.getElementById('r-rows')) document.getElementById('r-rows').innerHTML = rRows;
     if(document.getElementById('v-rows')) document.getElementById('v-rows').innerHTML = vRows;
+};
+// ==========================================
+// LOGICA DASHBOARD
+// ==========================================
+window.loadDashboardStats = async function() {
+    try {
+        const fetchCount = async (table) => {
+            const { count, error } = await supabaseClient.from(table).select('*', { count: 'exact', head: true });
+            if(error) return 0;
+            return count;
+        };
+
+        const [az, cor, doc, prog] = await Promise.all([
+            fetchCount('aziende'),
+            fetchCount('corsisti'),
+            fetchCount('docenti'),
+            fetchCount('progetti')
+        ]);
+
+        const elAz = document.getElementById('dash-aziende');
+        if(elAz) elAz.innerText = az;
+        const elCor = document.getElementById('dash-corsisti');
+        if(elCor) elCor.innerText = cor;
+        const elDoc = document.getElementById('dash-docenti');
+        if(elDoc) elDoc.innerText = doc;
+        const elProg = document.getElementById('dash-progetti');
+        if(elProg) elProg.innerText = prog;
+
+    } catch (e) {
+        console.error("Errore caricamento statistiche", e);
+    }
 };
