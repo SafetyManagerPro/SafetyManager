@@ -907,8 +907,8 @@ window.updateAll = function() {
     document.querySelectorAll('.val-calendario').forEach(el => el.innerText = window.getVal('cfg-calendario'));
     document.querySelectorAll('.val-date-ud').forEach(el => el.innerHTML = dateSummaryArr.join('<br>'));
 
-    // Nuova dicitura legale ASR 2025
-    document.querySelectorAll('.val-dicitura-legale').forEach(el => el.innerHTML = "Corso erogato in conformità a: <strong>" + (c.norma || "D.Lgs. 81/08 e Accordo Stato Regioni del 17 Aprile 2025") + "</strong>");
+    // INIEZIONE DICITURA LEGALE ESATTA E COMPLETA DA DATA.JS
+    document.querySelectorAll('.val-dicitura-legale').forEach(el => el.innerHTML = "Corso erogato in conformità a:<br><strong>" + (c.norma || "D.Lgs. 81/08 e Accordo Stato Regioni del 17 Aprile 2025") + "</strong>");
 
     document.querySelectorAll('.val-data-inizio').forEach(el => {
         const di = window.getVal('cfg-data-inizio');
@@ -932,32 +932,14 @@ window.updateAll = function() {
         document.querySelectorAll('.val-cert-id').forEach(el => el.innerText = c1.id_certificato || "---");
         document.querySelectorAll('.val-mansione').forEach(el => el.innerText = c1.mansione || "N/D");
         
-        let stringaScadenza = c.scad === 99 ? "Permanente (Senza Scadenza)" : window.formatDataToItalian(c1.data_scadenza) + " (Agg. ogni " + c.scad + " Anni)";
+        let stringaScadenza = "Permanente (Senza Scadenza)";
+        if (c.scad !== 99 && dataEsameRaw) {
+            let dEsame = new Date(dataEsameRaw);
+            dEsame.setFullYear(dEsame.getFullYear() + c.scad);
+            stringaScadenza = dEsame.toLocaleDateString('it-IT') + " (Agg. ogni " + c.scad + " Anni)";
+        }
         document.querySelectorAll('.val-scadenza').forEach(el => el.innerText = stringaScadenza);
 
         window.aggiornaTabelleSessione();
     }
-};
-
-window.aggiornaTabelleSessione = function() {
-    if (!window.currentSessionCorsisti || window.currentSessionCorsisti.length === 0) return;
-    let rRows = ""; let vRows = "";
-    
-    window.currentSessionCorsisti.forEach((c, idx) => {
-        rRows += '<tr><td class="border border-slate-800 py-0.5 px-1 text-center font-bold">' + (idx + 1) + '</td><td class="border border-slate-800 py-0.5 px-1 bg-white leading-none"><span class="font-bold">' + c.nome + '</span><br><span class="text-[6px] text-slate-500 uppercase">' + (c.mansione || '') + '</span></td><td class="border border-slate-800 py-0.5 px-1 text-center font-mono">' + c.cf + '</td><td class="border border-slate-800 py-0.5 px-1 text-center">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1 text-center">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td></tr>';
-        vRows += '<tr><td class="border border-slate-900 py-0.5 px-1 leading-tight"><span class="font-bold">' + c.nome + '</span><br><span class="text-[6.5px] text-slate-500 uppercase">' + (c.mansione || '') + '</span></td><td class="border border-slate-900 py-0.5 px-1 text-center font-bold text-emerald-700">SI</td><td class="border border-slate-900 py-0.5 px-1 text-center italic">__ / 30</td><td class="border border-slate-900 py-0.5 px-1 text-center">Positivo</td><td class="border border-slate-900 py-0.5 px-1 text-center font-black uppercase text-blue-700">Idoneo</td></tr>';
-    });
-
-    const remainingR = Math.max(0, 30 - window.currentSessionCorsisti.length);
-    for(let i=0; i<remainingR; i++){
-        rRows += '<tr><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td></tr>';
-    }
-    
-    const remainingV = Math.max(0, 30 - window.currentSessionCorsisti.length);
-    for(let i=0; i<remainingV; i++){
-        vRows += '<tr><td class="border border-slate-900 py-0.5 px-1">&nbsp;</td><td class="border border-slate-900 py-0.5 px-1">&nbsp;</td><td class="border border-slate-900 py-0.5 px-1">&nbsp;</td><td class="border border-slate-900 py-0.5 px-1">&nbsp;</td><td class="border border-slate-900 py-0.5 px-1">&nbsp;</td></tr>';
-    }
-
-    if(document.getElementById('r-rows')) document.getElementById('r-rows').innerHTML = rRows;
-    if(document.getElementById('v-rows')) document.getElementById('v-rows').innerHTML = vRows;
 };
