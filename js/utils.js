@@ -336,7 +336,7 @@ window.filtraCorsisti = function() {
 };
 
 // ==========================================
-// MOTORE DI CALCOLO AUTOMATICO GIORNI E DOCENTI
+// MOTORE DI CALCOLO AUTOMATICO GIORNI, DOCENTI E CODICE
 // ==========================================
 window.calcolaDettagliProgetto = function() {
     const corsoId = document.getElementById('prog-corso').value;
@@ -351,7 +351,7 @@ window.calcolaDettagliProgetto = function() {
     let dailyHours = 0;
     
     let docentiHtml = "";
-    let docentiOptions = '<option value="">-- Scegli Docente --</option>' + window.docentiList.map(d => `<option value="${d.id}">${d.nome_cognome}</option>`).join('');
+    let docentiOptions = '<option value="">-- Scegli Docente --</option>' + (window.docentiList || []).map(d => `<option value="${d.id}">${d.nome_cognome}</option>`).join('');
 
     if(currentDay.getDay() === 6) currentDay.setDate(currentDay.getDate() + 2); 
     if(currentDay.getDay() === 0) currentDay.setDate(currentDay.getDate() + 1);
@@ -391,9 +391,49 @@ window.calcolaDettagliProgetto = function() {
     });
 
     const offsetDate = new Date(currentDay.getTime() - (currentDay.getTimezoneOffset() * 60000));
-    document.getElementById('prog-esame').value = offsetDate.toISOString().split('T')[0];
+    const finalDateStr = offsetDate.toISOString().split('T')[0];
+    document.getElementById('prog-esame').value = finalDateStr;
     document.getElementById('prog-calendario-testo').value = calendarioTesto;
     document.getElementById('prog-docenti-container').innerHTML = docentiHtml;
+
+    // --- NUOVA LOGICA GENERAZIONE CODICE PROGETTO ---
+    const mapSigleCorsi = {
+        'lav_basso': 'FLRB', 'lav_medio': 'FLRM', 'lav_alto': 'FLRA', 'agg_lav': 'AGGFL',
+        'preposto': 'PREP', 'agg_prep': 'AGGPREP', 'dirigente': 'DIR', 'agg_dir': 'AGGDIR',
+        'dl_base': 'DL', 'dl_spp_comune': 'RSPPDL', 'dl_spp_agri': 'RSPPDL-A', 'dl_spp_pesca': 'RSPPDL-P',
+        'dl_spp_costruzioni': 'RSPPDL-C', 'dl_spp_chimico': 'RSPPDL-I', 'rls': 'RLS',
+        'amb_confinati': 'SC', 'attr_ple': 'PLE', 'attr_carrelli_ind': 'CE', 'attr_carrelli_all': 'CEA',
+        'attr_mmt_esc': 'MMT', 'attr_mmt_all': 'MMTA', 'attr_gru_autocarro': 'GRU', 'attr_gru_torre': 'GRUT',
+        'attr_pompe': 'CLS', 'attr_trattori': 'TRA', 'lav_quota': 'QUO', 'primo_soccorso_12h': 'PS',
+        'antincendio_liv2': 'AI2', 'agg_dl': 'AGGDL', 'agg_dl_spp': 'AGGRSPPDL', 'agg_pratico_4h': 'AGGPRAT',
+        'agg_primo_soccorso_4h': 'AGGPS', 'agg_antincendio_liv2_5h': 'AGGAI2', 'agg_rls_4h': 'AGGRLS', 'agg_rls_8h': 'AGGRLS',
+        'mod_cantieri': 'MC'
+    };
+    const siglaCorso = mapSigleCorsi[corsoId] || 'CRS';
+
+    let siglaAzienda = "ENT";
+    const azId = document.getElementById('prog-azienda').value;
+    if (azId && window.aziendeList) {
+        const az = window.aziendeList.find(a => a.id === azId);
+        if (az && az.ragione_sociale) {
+            siglaAzienda = az.ragione_sociale.split(' ').map(w => w.charAt(0)).join('').toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0,4);
+        }
+    }
+
+    const dataEsameFormattata = finalDateStr.split('-').reverse().join(''); 
+
+    let inputCodice = document.getElementById('prog-codice');
+    let randCode = Math.floor(1000 + Math.random() * 9000); 
+    
+    if (inputCodice.value && inputCodice.value.includes('-')) {
+        const parts = inputCodice.value.split('-');
+        const lastPart = parts[parts.length - 1];
+        if (!isNaN(lastPart) && lastPart.length === 4) {
+            randCode = lastPart;
+        }
+    }
+    inputCodice.value = `${siglaCorso}-${siglaAzienda}-${dataEsameFormattata}-${randCode}`;
+    // --------------------------------------------------
 
     let scadTesto = "";
     if (c.scad === 99) {
