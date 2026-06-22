@@ -1,10 +1,12 @@
+<!-- modules/admin.html -->
 <div id="view-admin" class="w-full max-w-7xl mx-auto mt-4 mb-10">
     <div class="border-b-2 border-slate-900 pb-3 mb-6">
         <h1 class="text-3xl font-black uppercase text-slate-900 tracking-tighter">Dashboard Operativa</h1>
-        <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Panoramica del CRM Formazione</p>
+        <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Statistiche e Panoramica CRM</p>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <!-- STATISTICHE -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
         <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex items-center gap-4 border-l-4 border-l-blue-500">
             <div class="bg-blue-100 p-3 rounded-lg text-blue-600"><i data-lucide="briefcase" class="w-8 h-8"></i></div>
             <div><p class="text-xs text-slate-500 font-bold uppercase">Aziende Clienti</p><h3 id="dash-aziende" class="text-3xl font-black text-slate-800">--</h3></div>
@@ -15,11 +17,26 @@
         </div>
         <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex items-center gap-4 border-l-4 border-l-purple-500">
             <div class="bg-purple-100 p-3 rounded-lg text-purple-600"><i data-lucide="graduation-cap" class="w-8 h-8"></i></div>
-            <div><p class="text-xs text-slate-500 font-bold uppercase">Docenti Qualificati</p><h3 id="dash-docenti" class="text-3xl font-black text-slate-800">--</h3></div>
+            <div><p class="text-xs text-slate-500 font-bold uppercase">Docenti</p><h3 id="dash-docenti" class="text-3xl font-black text-slate-800">--</h3></div>
         </div>
         <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex items-center gap-4 border-l-4 border-l-amber-500">
             <div class="bg-amber-100 p-3 rounded-lg text-amber-600"><i data-lucide="layout-template" class="w-8 h-8"></i></div>
-            <div><p class="text-xs text-slate-500 font-bold uppercase">Corsi Erogati</p><h3 id="dash-progetti" class="text-3xl font-black text-slate-800">--</h3></div>
+            <div><p class="text-xs text-slate-500 font-bold uppercase">Progetti/Corsi</p><h3 id="dash-progetti" class="text-3xl font-black text-slate-800">--</h3></div>
+        </div>
+    </div>
+
+    <!-- PANNELLO IMPORTAZIONE DATI STORICI -->
+    <div class="bg-slate-800 p-6 rounded-xl shadow-lg border border-slate-700">
+        <div class="border-b border-slate-600 pb-3 mb-4">
+            <h2 class="text-xl font-black uppercase text-white flex items-center gap-2"><i data-lucide="database-zap" class="w-6 h-6 text-emerald-400"></i> Migrazione Archivi Precedenti</h2>
+            <p class="text-xs text-slate-400 mt-1">Carica il file di backup JSON del vecchio gestionale. Il sistema estrarrà automaticamente Aziende, Docenti, Corsisti e Progetti, salvandoli nel nuovo CRM relazionale su Supabase.</p>
+        </div>
+        
+        <div class="flex items-center gap-4">
+            <input type="file" id="import-file" accept=".json" class="block w-full text-sm text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-slate-700 file:text-white hover:file:bg-slate-600 cursor-pointer border border-slate-600 rounded-lg p-1 bg-slate-900">
+            <button id="btn-import" onclick="window.importaBackupStorico()" class="bg-emerald-500 hover:bg-emerald-400 text-white py-2 px-6 rounded-lg text-sm font-black uppercase tracking-widest flex items-center gap-2 transition shadow shrink-0">
+                <i data-lucide="upload-cloud" class="w-5 h-5"></i> Avvia Importazione
+            </button>
         </div>
     </div>
 </div>
