@@ -3,72 +3,141 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SafetyManager CRM - Cloud Edition</title>
+    <title>SafetyManager PRO 2025</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/lucide.min.js"></script>
+    
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
-    <link rel="stylesheet" href="css/style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+
     <style>
-        /* Stili Avanzati per il Menu Attivo */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800;900&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        
+        /* Margine per non far finire il contenuto sotto la Navbar fissa */
+        #app-content { margin-top: 6rem; padding-bottom: 3rem; }
+
+        /* Stili Pulsanti Navbar */
+        .btn-tab {
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        
+        /* STATO ATTIVO: Colori e Glow */
         .btn-tab.active {
             background-color: #1e293b !important; /* bg-slate-800 */
             color: #ffffff !important;
         }
-        .btn-tab.active .icon-box.admin { background-color: #3b82f6; box-shadow: 0 10px 15px -3px rgb(59 130 246 / 0.4); }
-        .btn-tab.active .icon-box.aziende { background-color: #f59e0b; box-shadow: 0 10px 15px -3px rgb(245 158 11 / 0.4); }
-        .btn-tab.active .icon-box.corsisti { background-color: #10b981; box-shadow: 0 10px 15px -3px rgb(16 185 129 / 0.4); }
-        .btn-tab.active .icon-box.docenti { background-color: #a855f7; box-shadow: 0 10px 15px -3px rgb(168 85 247 / 0.4); }
-        .btn-tab.active .icon-box.progetti { background-color: #f43f5e; box-shadow: 0 10px 15px -3px rgb(244 63 94 / 0.4); }
-        .btn-tab.active .icon-box.stampe { background-color: #6366f1; box-shadow: 0 10px 15px -3px rgb(99 102 241 / 0.4); }
+        
+        /* I colori individuali dei pulsanti attivi */
+        .btn-tab.active .icon-box.admin { background-color: #3b82f6; box-shadow: 0 0 15px rgb(59 130 246 / 0.6); }
+        .btn-tab.active .icon-box.aziende { background-color: #f59e0b; box-shadow: 0 0 15px rgb(245 158 11 / 0.6); }
+        .btn-tab.active .icon-box.corsisti { background-color: #10b981; box-shadow: 0 0 15px rgb(16 185 129 / 0.6); }
+        .btn-tab.active .icon-box.docenti { background-color: #a855f7; box-shadow: 0 0 15px rgb(168 85 247 / 0.6); }
+        .btn-tab.active .icon-box.progetti { background-color: #f43f5e; box-shadow: 0 0 15px rgb(244 63 94 / 0.6); }
+        .btn-tab.active .icon-box.stampe { background-color: #6366f1; box-shadow: 0 0 15px rgb(99 102 241 / 0.6); }
+        .btn-tab.active .icon-box.ente { background-color: #64748b; box-shadow: 0 0 15px rgb(100 116 139 / 0.6); }
+        
         .btn-tab.active .icon-svg { color: #ffffff; }
+
+        /* Linea colorata animata sotto il pulsante attivo */
+        .btn-tab::after {
+            content: ''; position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%);
+            width: 0; height: 3px; background-color: transparent; transition: all 0.3s ease; border-radius: 4px 4px 0 0;
+        }
+        .btn-tab.active::after { width: 80%; }
+        .btn-tab.active[id="nav-admin"]::after { background-color: #3b82f6; }
+        .btn-tab.active[id="nav-aziende"]::after { background-color: #f59e0b; }
+        .btn-tab.active[id="nav-corsisti"]::after { background-color: #10b981; }
+        .btn-tab.active[id="nav-docenti"]::after { background-color: #a855f7; }
+        .btn-tab.active[id="nav-progetti"]::after { background-color: #f43f5e; }
+        .btn-tab.active[id="nav-stampe"]::after { background-color: #6366f1; }
+        .btn-tab.active[id="nav-ente"]::after { background-color: #64748b; }
+
+        /* Rimozione elementi durante la stampa PDF */
+        @media print {
+            nav { display: none !important; }
+            #app-content { display: none !important; margin: 0 !important; padding: 0 !important; }
+            body { background: white !important; margin: 0; padding: 0; }
+            .print-show { display: block !important; }
+            .doc-page { box-shadow: none !important; border: none !important; page-break-after: always; margin: 0 !important; width: 210mm !important; min-height: 297mm !important; }
+            @page { size: A4 portrait; margin: 0mm; }
+            .landscape-force { transform: rotate(-90deg) translate(-297mm, 0); transform-origin: top left; width: 297mm !important; height: 210mm !important; position: absolute; top: 0; left: 0; }
+        }
     </style>
 </head>
-<body class="bg-slate-100 flex flex-col min-h-screen h-screen overflow-hidden">
+<body class="bg-slate-50 text-slate-800">
 
-    <div id="print-area-temp"></div>
-
-    <header class="no-print bg-slate-900 text-white flex-shrink-0 shadow-md z-50">
-        <div class="max-w-[1500px] mx-auto px-4 py-3 flex justify-between items-center">
+    <nav class="w-full bg-slate-900/95 backdrop-blur-md border-b border-slate-800 shadow-xl fixed top-0 left-0 z-50">
+        <div class="max-w-[1400px] mx-auto px-6 h-20 flex items-center justify-between">
             
-            <div class="flex items-center gap-4">
-                <div class="bg-emerald-600 p-2 rounded-lg font-black tracking-widest text-lg shadow-inner flex items-center gap-2">
-                    <i data-lucide="layers" class="w-5 h-5 text-emerald-100"></i> S|M CRM
+            <div class="flex items-center gap-3 cursor-pointer" onclick="window.loadModule('admin')">
+                <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-emerald-400 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/30 shrink-0">
+                    <i data-lucide="shield-check" class="w-6 h-6 text-white"></i>
                 </div>
-                <div>
-                    <h1 class="font-bold text-lg leading-tight">Safety Management PRO</h1>
-                    <p class="text-[10px] text-emerald-300 uppercase tracking-widest">Relational Cloud Database</p>
+                <div class="flex flex-col">
+                    <h1 class="font-black text-2xl tracking-tighter text-white leading-none">Safety<span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">PRO</span></h1>
+                    <p class="text-[8px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Management System</p>
                 </div>
             </div>
-            
-            <div class="flex gap-1.5 bg-slate-800 p-1 rounded-xl items-center overflow-x-auto">
+
+            <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
                 
-                <div onclick="window.loadModule('admin')" id="nav-admin" class="btn-tab active text-white hover:text-slate-900"><i data-lucide="bar-chart-3" class="w-4 h-4"></i><span class="text-[8px] font-bold mt-1">Dashboard</span></div>
-                <div class="w-px bg-slate-700 h-6 mx-1"></div>
-                <div onclick="window.loadModule('ente')" id="nav-ente" class="btn-tab text-white hover:text-slate-900"><i data-lucide="building-2" class="w-4 h-4"></i><span class="text-[8px] font-bold mt-1">Mio Ente</span></div>
-                <div onclick="window.loadModule('aziende')" id="nav-aziende" class="btn-tab text-white hover:text-slate-900"><i data-lucide="briefcase" class="w-4 h-4"></i><span class="text-[8px] font-bold mt-1">Aziende</span></div>
-                <div onclick="window.loadModule('docenti')" id="nav-docenti" class="btn-tab text-white hover:text-slate-900"><i data-lucide="graduation-cap" class="w-4 h-4"></i><span class="text-[8px] font-bold mt-1">Docenti</span></div>
-                <div onclick="window.loadModule('corsisti')" id="nav-corsisti" class="btn-tab text-white hover:text-slate-900"><i data-lucide="users" class="w-4 h-4"></i><span class="text-[8px] font-bold mt-1">Corsisti</span></div>
-                
-                <div class="w-px bg-slate-700 h-6 mx-1"></div>
-                
-                <div onclick="window.loadModule('progetti')" id="nav-progetti" class="btn-tab text-amber-400 hover:text-amber-900 hover:bg-amber-100 border-amber-800/30"><i data-lucide="layout-template" class="w-4 h-4"></i><span class="text-[8px] font-bold mt-1">Progetti (Corsi)</span></div>
-                
-                <div class="w-px bg-slate-700 h-6 mx-1"></div>
-                
-                <div onclick="window.loadModule('stampe')" id="nav-stampe" class="btn-tab bg-blue-900 text-blue-100 hover:bg-blue-800 border-blue-700 shadow-inner px-4"><i data-lucide="printer" class="w-4 h-4"></i><span class="text-[8px] font-bold mt-1">Area Stampe</span></div>
+                <button onclick="window.loadModule('admin')" id="nav-admin" class="btn-tab flex items-center gap-2 px-3 py-2 rounded-xl font-bold text-xs transition-all duration-300 hover:text-white hover:bg-slate-800 group text-slate-400">
+                    <div class="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center group-hover:bg-blue-500 group-hover:shadow-lg group-hover:shadow-blue-500/40 transition-all icon-box admin"><i data-lucide="layout-dashboard" class="w-3.5 h-3.5 group-hover:text-white icon-svg transition-colors"></i></div>
+                    <span class="hidden xl:block">Dashboard</span>
+                </button>
+
+                <button onclick="window.loadModule('aziende')" id="nav-aziende" class="btn-tab flex items-center gap-2 px-3 py-2 rounded-xl font-bold text-xs transition-all duration-300 hover:text-white hover:bg-slate-800 group text-slate-400">
+                    <div class="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center group-hover:bg-amber-500 group-hover:shadow-lg group-hover:shadow-amber-500/40 transition-all icon-box aziende"><i data-lucide="briefcase" class="w-3.5 h-3.5 group-hover:text-white icon-svg transition-colors"></i></div>
+                    <span class="hidden xl:block">Aziende</span>
+                </button>
+
+                <button onclick="window.loadModule('corsisti')" id="nav-corsisti" class="btn-tab flex items-center gap-2 px-3 py-2 rounded-xl font-bold text-xs transition-all duration-300 hover:text-white hover:bg-slate-800 group text-slate-400">
+                    <div class="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center group-hover:bg-emerald-500 group-hover:shadow-lg group-hover:shadow-emerald-500/40 transition-all icon-box corsisti"><i data-lucide="users" class="w-3.5 h-3.5 group-hover:text-white icon-svg transition-colors"></i></div>
+                    <span class="hidden xl:block">Corsisti</span>
+                </button>
+
+                <button onclick="window.loadModule('docenti')" id="nav-docenti" class="btn-tab flex items-center gap-2 px-3 py-2 rounded-xl font-bold text-xs transition-all duration-300 hover:text-white hover:bg-slate-800 group text-slate-400">
+                    <div class="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center group-hover:bg-purple-500 group-hover:shadow-lg group-hover:shadow-purple-500/40 transition-all icon-box docenti"><i data-lucide="graduation-cap" class="w-3.5 h-3.5 group-hover:text-white icon-svg transition-colors"></i></div>
+                    <span class="hidden xl:block">Docenti</span>
+                </button>
+
+                <button onclick="window.loadModule('progetti')" id="nav-progetti" class="btn-tab flex items-center gap-2 px-3 py-2 rounded-xl font-bold text-xs transition-all duration-300 hover:text-white hover:bg-slate-800 group text-slate-400">
+                    <div class="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center group-hover:bg-rose-500 group-hover:shadow-lg group-hover:shadow-rose-500/40 transition-all icon-box progetti"><i data-lucide="layout-template" class="w-3.5 h-3.5 group-hover:text-white icon-svg transition-colors"></i></div>
+                    <span class="hidden xl:block">Progetti</span>
+                </button>
+
+                <button onclick="window.loadModule('stampe')" id="nav-stampe" class="btn-tab flex items-center gap-2 px-3 py-2 rounded-xl font-bold text-xs transition-all duration-300 hover:text-white hover:bg-slate-800 group text-slate-400">
+                    <div class="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center group-hover:bg-indigo-500 group-hover:shadow-lg group-hover:shadow-indigo-500/40 transition-all icon-box stampe"><i data-lucide="printer" class="w-3.5 h-3.5 group-hover:text-white icon-svg transition-colors"></i></div>
+                    <span class="hidden xl:block">Stampe</span>
+                </button>
+
+                <div class="h-6 w-px bg-slate-700 mx-1"></div>
+
+                <button onclick="window.loadModule('ente')" id="nav-ente" class="btn-tab flex items-center gap-2 px-3 py-2 rounded-xl font-bold text-xs transition-all duration-300 hover:text-white hover:bg-slate-800 group text-slate-400">
+                    <div class="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center group-hover:bg-slate-500 transition-all icon-box ente"><i data-lucide="settings" class="w-3.5 h-3.5 group-hover:rotate-90 transition-transform duration-500 group-hover:text-white icon-svg"></i></div>
+                    <span class="hidden xl:block">Ente</span>
+                </button>
+            </div>
+
+        </div>
+    </nav>
+
+    <main id="app-content" class="px-4 transition-all duration-300">
+        <div class="flex items-center justify-center h-64 mt-20">
+            <div class="text-center text-slate-500">
+                <i data-lucide="loader-2" class="w-10 h-10 animate-spin mx-auto mb-4"></i>
+                <p class="font-bold uppercase tracking-widest text-sm">Caricamento sistema...</p>
             </div>
         </div>
-    </header>
+    </main>
 
-    <div class="flex-1 flex max-w-[1500px] mx-auto w-full gap-6 p-4 overflow-hidden">
-        <main class="flex-1 w-full relative overflow-y-auto pb-10" id="app-content">
-            </main>
-    </div>
+    <div id="print-area-temp" class="hidden"></div>
 
-    <script src="js/data.js"></script>
     <script src="js/supabase_config.js"></script>
+    <script src="js/data.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/app.js"></script>
 </body>
