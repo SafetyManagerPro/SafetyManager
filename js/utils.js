@@ -336,7 +336,7 @@ window.filtraCorsisti = function() {
 };
 
 // ==========================================
-// MOTORE DI CALCOLO AUTOMATICO GIORNI, DOCENTI E CODICE
+// MOTORE DI CALCOLO AUTOMATICO GIORNI E DOCENTI
 // ==========================================
 window.calcolaDettagliProgetto = function() {
     const corsoId = document.getElementById('prog-corso').value;
@@ -396,7 +396,6 @@ window.calcolaDettagliProgetto = function() {
     document.getElementById('prog-calendario-testo').value = calendarioTesto;
     document.getElementById('prog-docenti-container').innerHTML = docentiHtml;
 
-    // --- NUOVA LOGICA GENERAZIONE CODICE PROGETTO ---
     const mapSigleCorsi = {
         'lav_basso': 'FLRB', 'lav_medio': 'FLRM', 'lav_alto': 'FLRA', 'agg_lav': 'AGGFL',
         'preposto': 'PREP', 'agg_prep': 'AGGPREP', 'dirigente': 'DIR', 'agg_dir': 'AGGDIR',
@@ -433,7 +432,6 @@ window.calcolaDettagliProgetto = function() {
         }
     }
     inputCodice.value = `${siglaCorso}-${siglaAzienda}-${dataEsameFormattata}-${randCode}`;
-    // --------------------------------------------------
 
     let scadTesto = "";
     if (c.scad === 99) {
@@ -1021,6 +1019,178 @@ window.aggiornaTabelleSessione = function() {
 };
 
 // ==========================================
+// IMPORTAZIONE DATI STORICI DA BACKUP JSON
+// ==========================================
+window.importaBackupStorico = async function() {
+    const fileInput = document.getElementById('import-file');
+    if (!fileInput.files.length) return alert("Seleziona un file JSON di backup.");
+    const file = fileInput.files[0];
+    const reader = new FileReader();
+
+    const btn = document.getElementById('btn-import');
+    btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Importazione in corso...';
+    btn.disabled = true;
+    if(typeof lucide !== 'undefined') lucide.createIcons();
+
+    reader.onload = async function(e) {
+        try {
+            const dati = JSON.parse(e.target.result);
+            if (!Array.isArray(dati)) throw new Error("Il file deve contenere un array di oggetti validi.");
+
+            const mapAziende = {}; 
+            const mapDocenti = {}; 
+            const mapCorsisti = {}; 
+            const mapProgetti = {}; 
+
+            const { data: exAz } = await supabaseClient.from('aziende').select('id, ragione_sociale');
+            if(exAz) exAz.forEach(a => mapAziende[a.ragione_sociale] = a.id);
+
+            const { data: exDoc } = await supabaseClient.from('docenti').select('id, nome_cognome');
+            if(exDoc) exDoc.forEach(d => mapDocenti[d.nome_cognome] = d.id);
+
+            const { data: exCor } = await supabaseClient.from('corsisti').select('id, cf');
+            if(exCor) exCor.forEach(c => mapCorsisti[c.cf] = c.id);
+
+            const { data: exProg } = await supabaseClient.from('progetti').select('id, codice');
+            if(exProg) exProg.forEach(p => mapProgetti[p.codice] = p.id);
+
+            let contatori = { aziende: 0, docenti: 0, corsisti: 0, progetti: 0, iscrizioni: 0 };
+
+            for (const row of dati) {
+                let nomeAz = row.azienda && row.azienda.trim() !== "" ? row.azienda.trim() : "Privato";
+                if (nomeAz !== "Privato" && !mapAziende[nomeAz]) {
+                    const { data } = await supabaseClient.from('aziende').insert([{
+                        ragione_sociale: nomeAz,
+                        ateco: row.ateco || "",
+                        indirizzo: row.indirizzo_azienda || ""
+                    }]).select();
+                    if (data && data.length > 0) { mapAziende[nomeAz] = data[0].id; contatori.aziende++; }
+                }
+
+                let docsToProcess = [row.docente, row.resp_corso, row.resp_progetto];
+                if (row.docenti_ud) docsToProcess = docsToProcess.concat(row.docenti_ud);
+                
+                for (const dName of docsToProcess) {
+                    if (dName && dName.trim() !== "" && !mapDocenti[dName.trim()]) {
+                        const { data } = await supabaseClient.from('docenti').insert([{
+                            nome_cognome: dName.trim(),
+                            qualifica: row.req_docente || "Formatore Qualificato (D.I. 6/3/2013)"
+                        }]).select();
+                        if (data && data.length > 0) { mapDocenti[dName.trim()] = data[0].id; contatori.docenti++; }
+                    }
+                }
+
+                if (row.cf && !mapCorsisti[row.cf.toUpperCase()]) {
+                    const azId = mapAziende[nomeAz] || null;
+                    const { data } = await supabaseClient.from('corsisti').insert([{
+                        cf: row.cf.toUpperCase(),
+                        nome_cognome: row.nome.trim(),
+                        luogo_data_nascita: row.nascita || "",
+                        mansione_storica: row.mansione || "",
+                        azienda_id: azId
+                    }]).select();
+                    if (data && data.length > 0) { mapCorsisti[row.cf.toUpperCase()] = data[0].id; contatori.corsisti++; }
+                }
+            }
+
+            for (const row of dati) {
+                if (row.codice && !mapProgetti[row.codice]) {
+                    let azKey = row.azienda && row.azienda.trim() !== "" ? row.azienda.trim() : "Privato";
+                    const azId = mapAziende[azKey] || null;
+                    
+                    let corsoId = 'lav_basso';
+                    const nC = row.corso ? row.corso.toLowerCase() : "";
+                    if (nC.includes('alto')) corsoId = 'lav_alto';
+                    else if (nC.includes('medio')) corsoId = 'lav_medio';
+                    else if (nC.includes('rls')) corsoId = 'rls';
+                    else if (nC.includes('cantieri')) corsoId = 'mod_cantieri';
+                    else if (nC.includes('preposto') && nC.includes('agg')) corsoId = 'agg_prep';
+                    else if (nC.includes('preposto')) corsoId = 'preposto';
+                    else if (nC.includes('dl spp') || nC.includes('rspp')) corsoId = 'dl_spp_comune';
+                    else if (nC.includes('dirigente')) corsoId = 'dirigente';
+
+                    let docJson = {};
+                    if (row.docenti_ud && Array.isArray(row.docenti_ud)) {
+                        row.docenti_ud.forEach((dName, idx) => {
+                            docJson["UD" + (idx + 1)] = mapDocenti[dName.trim()] || "";
+                        });
+                    } else if (row.docente) {
+                        docJson["UD1"] = mapDocenti[row.docente.trim()] || "";
+                    }
+
+                    const { data } = await supabaseClient.from('progetti').insert([{
+                        codice: row.codice,
+                        azienda_id: azId,
+                        corso_id: corsoId,
+                        modalita: row.modalita || "In Presenza Fisica",
+                        data_inizio: row.data_inizio || null,
+                        data_esame: row.data_esame || null,
+                        ente_erogatore: row.ente && row.ente.includes("Azienda") ? "azienda" : "ente",
+                        docente_principale: JSON.stringify(docJson),
+                        calendario: row.calendario || ""
+                    }]).select();
+
+                    if (data && data.length > 0) { mapProgetti[row.codice] = data[0].id; contatori.progetti++; }
+                }
+            }
+
+            for (const row of dati) {
+                if (row.id_certificato) {
+                    const progId = mapProgetti[row.codice];
+                    const corId = mapCorsisti[row.cf ? row.cf.toUpperCase() : ""];
+                    
+                    if (progId && corId) {
+                        const { data: exIsc } = await supabaseClient.from('iscrizioni').select('id').eq('id_certificato', row.id_certificato);
+                        if (!exIsc || exIsc.length === 0) {
+                            let dScadISO = null;
+                            let corsoId = 'lav_basso';
+                            const nC = row.corso ? row.corso.toLowerCase() : "";
+                            if (nC.includes('alto')) corsoId = 'lav_alto';
+                            else if (nC.includes('medio')) corsoId = 'lav_medio';
+                            else if (nC.includes('rls')) corsoId = 'rls';
+                            else if (nC.includes('cantieri')) corsoId = 'mod_cantieri';
+                            else if (nC.includes('preposto') && nC.includes('agg')) corsoId = 'agg_prep';
+                            else if (nC.includes('preposto')) corsoId = 'preposto';
+                            else if (nC.includes('dl spp') || nC.includes('rspp')) corsoId = 'dl_spp_comune';
+                            else if (nC.includes('dirigente')) corsoId = 'dirigente';
+                            
+                            const dbCorso = window.DB_CORSI ? window.DB_CORSI[corsoId] : null;
+                            if (dbCorso && dbCorso.scad !== 99 && row.data_esame) {
+                                let dEsame = new Date(row.data_esame);
+                                dEsame.setFullYear(dEsame.getFullYear() + dbCorso.scad);
+                                dScadISO = dEsame.toISOString().split('T')[0];
+                            }
+
+                            const { error } = await supabaseClient.from('iscrizioni').insert([{
+                                progetto_id: progId,
+                                corsista_id: corId,
+                                id_certificato: row.id_certificato,
+                                esito: "Idoneo",
+                                data_scadenza: dScadISO
+                            }]);
+                            if (!error) contatori.iscrizioni++;
+                        }
+                    }
+                }
+            }
+
+            alert(`Importazione completata con successo!\n\nSono stati importati e riallineati:\n- ${contatori.aziende} Aziende\n- ${contatori.docenti} Docenti\n- ${contatori.corsisti} Corsisti\n- ${contatori.progetti} Progetti Formativi\n- ${contatori.iscrizioni} Iscrizioni ed Attestati`);
+            if(typeof window.loadDashboardStats === 'function') window.loadDashboardStats();
+
+        } catch (err) {
+            console.error(err);
+            alert("Errore critico durante l'importazione: " + err.message);
+        } finally {
+            btn.innerHTML = '<i data-lucide="upload-cloud" class="w-5 h-5"></i> Avvia Importazione';
+            btn.disabled = false;
+            if(typeof lucide !== 'undefined') lucide.createIcons();
+            fileInput.value = "";
+        }
+    };
+    reader.readAsText(file);
+};
+
+// ==========================================
 // GENERATORE DEI TEST E CORRETTORE
 // ==========================================
 window.generaTest = function(courseId) {
@@ -1033,7 +1203,6 @@ window.generaTest = function(courseId) {
     else if(courseId.includes('soccorso')) pool = pool.concat(window.POOL_PS || []);
     else if(courseId.includes('antincendio')) pool = pool.concat(window.POOL_AI || []);
 
-    // Mischia e pesca fino a un massimo di 30 domande per pagina
     pool = pool.sort(() => 0.5 - Math.random()).slice(0, 30);
     window.currentTestQuestions = pool;
     window.renderTest();
