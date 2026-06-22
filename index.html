@@ -11,7 +11,7 @@
     
     <script src="https://unpkg.com/lucide@latest"></script>
 
-   <style>
+  <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800;900&display=swap');
         body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
         
@@ -42,14 +42,11 @@
         .btn-tab.active[id="nav-stampe"]::after { background-color: #6366f1; }
         .btn-tab.active[id="nav-ente"]::after { background-color: #64748b; }
 
-        /* --- GESTIONE MOTORE DI STAMPA (Risolve il problema pagine bianche) --- */
-        
-        /* Quando Javascript avvia la stampa, scopre il div nascosto e nasconde l'interfaccia */
+        /* --- MOTORE DI STAMPA PDF (Risolve Spaginazioni e Pagine Bianche) --- */
         body.is-printing-temp #print-area-temp {
             display: block !important;
             position: absolute;
-            top: 0;
-            left: 0;
+            top: 0; left: 0;
             width: 100%;
             background: white;
             z-index: 99999;
@@ -60,14 +57,37 @@
             display: none !important;
         }
 
-        /* Regole lette fisicamente dalla Stampante/Generatore PDF */
         @media print {
-            body { background: white !important; margin: 0; padding: 0; }
+            body { background: white !important; margin: 0 !important; padding: 0 !important; }
             nav, aside, main { display: none !important; }
             #print-area-temp { display: block !important; position: absolute; left: 0; top: 0; width: 100%; }
-            .doc-page { box-shadow: none !important; border: none !important; page-break-after: always; margin: 0 auto !important; width: 210mm !important; min-height: 297mm !important; }
-            @page { size: A4 portrait; margin: 0; }
-            .landscape-force { transform: rotate(-90deg) translate(-297mm, 0); transform-origin: top left; width: 297mm !important; height: 210mm !important; position: absolute; top: 0; left: 0; }
+            
+            /* Costringe ogni pagina ad essere esattamente un A4 senza debordare */
+            .doc-page { 
+                box-sizing: border-box !important;
+                box-shadow: none !important; 
+                border: none !important; 
+                margin: 0 auto !important; 
+                width: 210mm !important; 
+                height: 296mm !important; /* 1mm in meno evita la pagina bianca in Chrome/Edge */
+                max-height: 296mm !important;
+                padding: 15mm !important; 
+                page-break-after: always !important; 
+                break-after: page !important;
+                overflow: hidden !important; 
+                position: relative;
+            }
+            
+            /* Azzera i margini della stampante del sistema operativo */
+            @page { size: A4 portrait; margin: 0mm; }
+            
+            .landscape-force { 
+                transform: rotate(-90deg) translate(-296mm, 0); 
+                transform-origin: top left; 
+                width: 296mm !important; 
+                height: 210mm !important; 
+                position: absolute; top: 0; left: 0; 
+            }
             .print-show { display: block !important; }
         }
     </style>
