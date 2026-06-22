@@ -19,7 +19,6 @@
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
 
-    <!-- STILI GRAFICI PREMIUM E GESTIONE STAMPA PDF MILLIMETRICA -->
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800;900&display=swap');
         body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
@@ -34,6 +33,7 @@
         .btn-tab.active .icon-box.corsisti { background-color: #10b981; box-shadow: 0 0 15px rgb(16 185 129 / 0.6); }
         .btn-tab.active .icon-box.docenti { background-color: #a855f7; box-shadow: 0 0 15px rgb(168 85 247 / 0.6); }
         .btn-tab.active .icon-box.progetti { background-color: #f43f5e; box-shadow: 0 0 15px rgb(244 63 94 / 0.6); }
+        .btn-tab.active .icon-box.scadenze { background-color: #ef4444; box-shadow: 0 0 15px rgb(239 68 68 / 0.6); }
         .btn-tab.active .icon-box.stampe { background-color: #6366f1; box-shadow: 0 0 15px rgb(99 102 241 / 0.6); }
         .btn-tab.active .icon-box.ente { background-color: #64748b; box-shadow: 0 0 15px rgb(100 116 139 / 0.6); }
         .btn-tab.active .icon-svg { color: #ffffff; }
@@ -48,52 +48,30 @@
         .btn-tab.active[id="nav-corsisti"]::after { background-color: #10b981; }
         .btn-tab.active[id="nav-docenti"]::after { background-color: #a855f7; }
         .btn-tab.active[id="nav-progetti"]::after { background-color: #f43f5e; }
+        .btn-tab.active[id="nav-scadenze"]::after { background-color: #ef4444; }
         .btn-tab.active[id="nav-stampe"]::after { background-color: #6366f1; }
         .btn-tab.active[id="nav-ente"]::after { background-color: #64748b; }
 
         /* --- MOTORE DI STAMPA PDF (Risolve Spaginazioni e Pagine Bianche) --- */
         body.is-printing-temp #print-area-temp {
-            display: block !important;
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%;
-            background: white;
-            z-index: 99999;
+            display: block !important; position: absolute; top: 0; left: 0; width: 100%; background: white; z-index: 99999;
         }
-        body.is-printing-temp nav,
-        body.is-printing-temp aside,
-        body.is-printing-temp main {
-            display: none !important;
-        }
+        body.is-printing-temp nav, body.is-printing-temp aside, body.is-printing-temp main { display: none !important; }
 
         @media print {
             body { background: white !important; margin: 0 !important; padding: 0 !important; }
             nav, aside, main { display: none !important; }
             #print-area-temp { display: block !important; position: absolute; left: 0; top: 0; width: 100%; }
-            
             .doc-page { 
-                box-sizing: border-box !important;
-                box-shadow: none !important; 
-                border: none !important; 
-                margin: 0 auto !important; 
-                width: 210mm !important; 
-                height: 296mm !important; 
-                max-height: 296mm !important;
-                padding: 15mm !important; 
-                page-break-after: always !important; 
-                break-after: page !important;
-                overflow: hidden !important; 
-                position: relative;
+                box-sizing: border-box !important; box-shadow: none !important; border: none !important; 
+                margin: 0 auto !important; width: 210mm !important; height: 296mm !important; 
+                max-height: 296mm !important; padding: 15mm !important; 
+                page-break-after: always !important; break-after: page !important; overflow: hidden !important; position: relative;
             }
-            
             @page { size: A4 portrait; margin: 0mm; }
-            
             .landscape-force { 
-                transform: rotate(-90deg) translate(-296mm, 0); 
-                transform-origin: top left; 
-                width: 296mm !important; 
-                height: 210mm !important; 
-                position: absolute; top: 0; left: 0; 
+                transform: rotate(-90deg) translate(-296mm, 0); transform-origin: top left; 
+                width: 296mm !important; height: 210mm !important; position: absolute; top: 0; left: 0; 
             }
             .print-show { display: block !important; }
         }
@@ -101,11 +79,9 @@
 </head>
 <body class="bg-slate-50 text-slate-800">
 
-    <!-- NAVBAR SUPERIORE PREMIUM (GLASSMORPHISM) -->
     <nav class="w-full bg-slate-900/95 backdrop-blur-md border-b border-slate-800 shadow-xl fixed top-0 left-0 z-50">
         <div class="max-w-[1400px] mx-auto px-6 h-20 flex items-center justify-between">
             
-            <!-- LOGO A SINISTRA -->
             <div class="flex items-center gap-3 cursor-pointer" onclick="window.loadModule('admin')">
                 <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-emerald-400 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/30 shrink-0">
                     <i data-lucide="shield-check" class="w-6 h-6 text-white"></i>
@@ -116,10 +92,8 @@
                 </div>
             </div>
 
-            <!-- BOTTONI DI NAVIGAZIONE AL CENTRO/DESTRA -->
             <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
                 
-                <!-- BOTTONE INSTALLA WEBAPP PWA (Nascosto di default, appare solo se installabile) -->
                 <button id="btn-install-app" class="hidden flex items-center gap-2 px-3 py-2 rounded-xl font-bold text-xs transition-all duration-300 text-emerald-400 hover:text-white hover:bg-slate-800 group mr-2 border border-emerald-500/30 bg-emerald-500/10">
                     <div class="w-7 h-7 rounded-lg bg-emerald-500/20 flex items-center justify-center group-hover:bg-emerald-500 group-hover:shadow-lg group-hover:shadow-emerald-500/40 transition-all"><i data-lucide="monitor-smartphone" class="w-3.5 h-3.5 group-hover:text-white transition-colors text-emerald-400"></i></div>
                     <span class="hidden xl:block">Installa App</span>
@@ -150,12 +124,17 @@
                     <span class="hidden xl:block">Progetti</span>
                 </button>
 
+                <!-- NUOVO PULSANTE SCADENZE -->
+                <button onclick="window.loadModule('scadenze')" id="nav-scadenze" class="btn-tab flex items-center gap-2 px-3 py-2 rounded-xl font-bold text-xs transition-all duration-300 hover:text-white hover:bg-slate-800 group text-slate-400">
+                    <div class="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center group-hover:bg-red-500 group-hover:shadow-lg group-hover:shadow-red-500/40 transition-all icon-box scadenze"><i data-lucide="bell-ring" class="w-3.5 h-3.5 group-hover:text-white icon-svg transition-colors"></i></div>
+                    <span class="hidden xl:block text-red-200">Scadenze</span>
+                </button>
+
                 <button onclick="window.loadModule('stampe')" id="nav-stampe" class="btn-tab flex items-center gap-2 px-3 py-2 rounded-xl font-bold text-xs transition-all duration-300 hover:text-white hover:bg-slate-800 group text-slate-400">
                     <div class="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center group-hover:bg-indigo-500 group-hover:shadow-lg group-hover:shadow-indigo-500/40 transition-all icon-box stampe"><i data-lucide="printer" class="w-3.5 h-3.5 group-hover:text-white icon-svg transition-colors"></i></div>
                     <span class="hidden xl:block">Stampe</span>
                 </button>
 
-                <!-- Divisore Verticale -->
                 <div class="h-6 w-px bg-slate-700 mx-1"></div>
 
                 <button onclick="window.loadModule('ente')" id="nav-ente" class="btn-tab flex items-center gap-2 px-3 py-2 rounded-xl font-bold text-xs transition-all duration-300 hover:text-white hover:bg-slate-800 group text-slate-400">
@@ -167,7 +146,6 @@
         </div>
     </nav>
 
-    <!-- SPAZIO CONTENUTI -->
     <main id="app-content" class="px-4 transition-all duration-300">
         <div class="flex items-center justify-center h-64 mt-20">
             <div class="text-center text-slate-500">
@@ -177,10 +155,8 @@
         </div>
     </main>
 
-    <!-- Area Nascosta per la Stampa PDF -->
     <div id="print-area-temp" class="hidden"></div>
 
-    <!-- SCRIPT -->
     <script src="js/supabase_config.js"></script>
     <script src="js/data.js"></script>
     <script src="js/utils.js"></script>
