@@ -29,6 +29,7 @@ window.loadModule = async function(moduleId) {
         if (moduleId === 'docenti' && typeof window.loadDocentiTable === 'function') window.loadDocentiTable();
         if (moduleId === 'corsisti' && typeof window.loadCorsistiTable === 'function') window.loadCorsistiTable();
         if (moduleId === 'progetti' && typeof window.loadProgettiTable === 'function') window.loadProgettiTable();
+        if (moduleId === 'scadenze' && typeof window.loadScadenzeTable === 'function') window.loadScadenzeTable();
         if (moduleId === 'ente' && typeof window.loadEnteData === 'function') window.loadEnteData();
         if (moduleId === 'stampe' && typeof window.initStampe === 'function') window.initStampe();
 
@@ -38,43 +39,28 @@ window.loadModule = async function(moduleId) {
     }
 };
 
-// ==========================================
-// REGISTRAZIONE SERVICE WORKER E LOGICA PWA
-// ==========================================
 let deferredPrompt;
 
 document.addEventListener("DOMContentLoaded", async () => {
-    
-    // Registrazione del Service Worker (Essenziale per la PWA)
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('sw.js').then((reg) => {
-            console.log('Service Worker registrato con successo.', reg);
+            console.log('Service Worker registrato.');
         }).catch((err) => {
-            console.log('Errore nella registrazione del Service Worker', err);
+            console.log('Errore Service Worker', err);
         });
     }
 
-    // Intercetta l'evento di installazione da parte del browser (es. Chrome, Edge, Android)
     window.addEventListener('beforeinstallprompt', (e) => {
-        // Previene il mini-infobar standard su mobile
         e.preventDefault();
-        // Salva l'evento
         deferredPrompt = e;
-        
-        // Mostra il pulsante magico "Installa App" nella barra superiore
         const installBtn = document.getElementById('btn-install-app');
         if (installBtn) {
             installBtn.classList.remove('hidden');
-            
-            // Logica al click
             installBtn.addEventListener('click', async () => {
                 if (!deferredPrompt) return;
-                // Mostra il prompt nativo del sistema operativo
                 deferredPrompt.prompt();
-                // Aspetta la scelta dell'utente
                 const { outcome } = await deferredPrompt.userChoice;
                 if (outcome === 'accepted') {
-                    console.log('Utente ha accettato di installare la WebApp');
                     installBtn.classList.add('hidden');
                 }
                 deferredPrompt = null;
@@ -82,13 +68,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
     });
 
-    // Se l'app viene effettivamente installata
     window.addEventListener('appinstalled', () => {
         const installBtn = document.getElementById('btn-install-app');
         if (installBtn) installBtn.classList.add('hidden');
-        console.log('PWA installata correttamente sul dispositivo');
     });
 
-    // Avvia l'applicazione
     await window.loadModule('admin'); 
 });
