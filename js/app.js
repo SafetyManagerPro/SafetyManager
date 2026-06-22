@@ -3,20 +3,32 @@
 window.loadModule = async function(moduleId) {
     const contentDiv = document.getElementById('app-content');
     
-    document.querySelectorAll('.btn-tab').forEach(b => b.classList.remove('active', 'bg-blue-50', 'text-blue-900'));
+    // 1. Spegne tutti i pulsanti (rimuove la classe 'active')
+    document.querySelectorAll('.btn-tab').forEach(b => {
+        b.classList.remove('active');
+    });
+
+    // 2. Accende solo il pulsante cliccato (attiva i colori e l'ombra)
     const activeBtn = document.getElementById('nav-' + moduleId);
-    if(activeBtn) activeBtn.classList.add('active', 'bg-blue-50', 'text-blue-900');
+    if(activeBtn) {
+        activeBtn.classList.add('active');
+    }
 
     try {
+        // Mostra il caricamento visivo
+        contentDiv.innerHTML = `<div class="flex items-center justify-center h-64 mt-20"><div class="text-center text-slate-500"><i data-lucide="loader-2" class="w-10 h-10 animate-spin mx-auto mb-4"></i><p class="font-bold uppercase tracking-widest text-sm">Caricamento modulo...</p></div></div>`;
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+
+        // Carica la schermata selezionata
         const response = await fetch(`modules/${moduleId}.html`);
-        if (!response.ok) throw new Error("Modulo non trovato");
+        if (!response.ok) throw new Error("File del modulo non trovato.");
         
         const html = await response.text();
         contentDiv.innerHTML = html;
         
         if (typeof lucide !== 'undefined') lucide.createIcons();
         
-        // --- ROUTER TRIGGERS ---
+        // --- TRIGGER DI AVVIO DEL DATABASE IN BASE AL MODULO ---
         if (moduleId === 'admin' && typeof window.loadDashboardStats === 'function') {
             window.loadDashboardStats();
         }
@@ -40,11 +52,12 @@ window.loadModule = async function(moduleId) {
         }
 
     } catch (error) {
-        contentDiv.innerHTML = `<div class="p-10 text-center text-red-500 font-bold flex flex-col items-center"><i data-lucide="alert-triangle" class="w-10 h-10 mb-2"></i> Errore caricamento modulo: ${error.message}</div>`;
+        contentDiv.innerHTML = `<div class="p-10 text-center text-red-500 font-bold flex flex-col items-center mt-20"><i data-lucide="alert-triangle" class="w-10 h-10 mb-2"></i> Errore: ${error.message}</div>`;
         if (typeof lucide !== 'undefined') lucide.createIcons();
     }
 };
 
+// Quando l'app parte per la prima volta, apri automaticamente la Dashboard
 document.addEventListener("DOMContentLoaded", async () => {
     await window.loadModule('admin'); 
 });
