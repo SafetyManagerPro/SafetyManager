@@ -11,26 +11,15 @@
     
     <script src="https://unpkg.com/lucide@latest"></script>
 
-    <style>
+   <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800;900&display=swap');
         body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
         
-        /* Margine per non far finire il contenuto sotto la Navbar fissa */
         #app-content { margin-top: 6rem; padding-bottom: 3rem; }
 
-        /* Stili Pulsanti Navbar */
-        .btn-tab {
-            position: relative;
-            transition: all 0.3s ease;
-        }
-        
-        /* STATO ATTIVO: Colori e Glow */
-        .btn-tab.active {
-            background-color: #1e293b !important; /* bg-slate-800 */
-            color: #ffffff !important;
-        }
-        
-        /* I colori individuali dei pulsanti attivi */
+        /* --- Stili Pulsanti Navbar --- */
+        .btn-tab { position: relative; transition: all 0.3s ease; }
+        .btn-tab.active { background-color: #1e293b !important; color: #ffffff !important; }
         .btn-tab.active .icon-box.admin { background-color: #3b82f6; box-shadow: 0 0 15px rgb(59 130 246 / 0.6); }
         .btn-tab.active .icon-box.aziende { background-color: #f59e0b; box-shadow: 0 0 15px rgb(245 158 11 / 0.6); }
         .btn-tab.active .icon-box.corsisti { background-color: #10b981; box-shadow: 0 0 15px rgb(16 185 129 / 0.6); }
@@ -38,10 +27,8 @@
         .btn-tab.active .icon-box.progetti { background-color: #f43f5e; box-shadow: 0 0 15px rgb(244 63 94 / 0.6); }
         .btn-tab.active .icon-box.stampe { background-color: #6366f1; box-shadow: 0 0 15px rgb(99 102 241 / 0.6); }
         .btn-tab.active .icon-box.ente { background-color: #64748b; box-shadow: 0 0 15px rgb(100 116 139 / 0.6); }
-        
         .btn-tab.active .icon-svg { color: #ffffff; }
 
-        /* Linea colorata animata sotto il pulsante attivo */
         .btn-tab::after {
             content: ''; position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%);
             width: 0; height: 3px; background-color: transparent; transition: all 0.3s ease; border-radius: 4px 4px 0 0;
@@ -55,15 +42,33 @@
         .btn-tab.active[id="nav-stampe"]::after { background-color: #6366f1; }
         .btn-tab.active[id="nav-ente"]::after { background-color: #64748b; }
 
-        /* Rimozione elementi durante la stampa PDF */
+        /* --- GESTIONE MOTORE DI STAMPA (Risolve il problema pagine bianche) --- */
+        
+        /* Quando Javascript avvia la stampa, scopre il div nascosto e nasconde l'interfaccia */
+        body.is-printing-temp #print-area-temp {
+            display: block !important;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: white;
+            z-index: 99999;
+        }
+        body.is-printing-temp nav,
+        body.is-printing-temp aside,
+        body.is-printing-temp main {
+            display: none !important;
+        }
+
+        /* Regole lette fisicamente dalla Stampante/Generatore PDF */
         @media print {
-            nav { display: none !important; }
-            #app-content { display: none !important; margin: 0 !important; padding: 0 !important; }
             body { background: white !important; margin: 0; padding: 0; }
-            .print-show { display: block !important; }
-            .doc-page { box-shadow: none !important; border: none !important; page-break-after: always; margin: 0 !important; width: 210mm !important; min-height: 297mm !important; }
-            @page { size: A4 portrait; margin: 0mm; }
+            nav, aside, main { display: none !important; }
+            #print-area-temp { display: block !important; position: absolute; left: 0; top: 0; width: 100%; }
+            .doc-page { box-shadow: none !important; border: none !important; page-break-after: always; margin: 0 auto !important; width: 210mm !important; min-height: 297mm !important; }
+            @page { size: A4 portrait; margin: 0; }
             .landscape-force { transform: rotate(-90deg) translate(-297mm, 0); transform-origin: top left; width: 297mm !important; height: 210mm !important; position: absolute; top: 0; left: 0; }
+            .print-show { display: block !important; }
         }
     </style>
 </head>
