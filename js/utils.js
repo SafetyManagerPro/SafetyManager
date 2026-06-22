@@ -336,7 +336,7 @@ window.filtraCorsisti = function() {
 };
 
 // ==========================================
-// MOTORE DI CALCOLO AUTOMATICO GIORNI E DOCENTI
+// MOTORE DI CALCOLO AUTOMATICO GIORNI, DOCENTI E CODICE
 // ==========================================
 window.calcolaDettagliProgetto = function() {
     const corsoId = document.getElementById('prog-corso').value;
