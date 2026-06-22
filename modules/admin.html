@@ -1,11 +1,9 @@
-<!-- modules/admin.html -->
 <div id="view-admin" class="w-full max-w-7xl mx-auto mt-4 mb-10">
     <div class="border-b-2 border-slate-900 pb-3 mb-6">
         <h1 class="text-3xl font-black uppercase text-slate-900 tracking-tighter">Dashboard Operativa</h1>
         <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Statistiche e Panoramica CRM</p>
     </div>
 
-    <!-- STATISTICHE -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
         <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex items-center gap-4 border-l-4 border-l-blue-500">
             <div class="bg-blue-100 p-3 rounded-lg text-blue-600"><i data-lucide="briefcase" class="w-8 h-8"></i></div>
@@ -25,11 +23,10 @@
         </div>
     </div>
 
-    <!-- PANNELLO IMPORTAZIONE DATI STORICI -->
     <div class="bg-slate-800 p-6 rounded-xl shadow-lg border border-slate-700">
         <div class="border-b border-slate-600 pb-3 mb-4">
             <h2 class="text-xl font-black uppercase text-white flex items-center gap-2"><i data-lucide="database-zap" class="w-6 h-6 text-emerald-400"></i> Migrazione Archivi Precedenti</h2>
-            <p class="text-xs text-slate-400 mt-1">Carica il file di backup JSON del vecchio gestionale. Il sistema estrarrà automaticamente Aziende, Docenti, Corsisti e Progetti, salvandoli nel nuovo CRM relazionale su Supabase.</p>
+            <p class="text-xs text-slate-400 mt-1">Carica il file di backup JSON della versione precedente. Il sistema estrarrà automaticamente Aziende, Docenti, Corsisti, Progetti e Iscrizioni, smistandoli nel nuovo CRM relazionale su Supabase.</p>
         </div>
         
         <div class="flex items-center gap-4">
