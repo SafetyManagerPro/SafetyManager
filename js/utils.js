@@ -502,6 +502,9 @@ window.calcolaDettagliProgetto = function() {
 // ==========================================
 // LOGICA CRM: PROGETTI E ISCRIZIONI
 // ==========================================
+// ==========================================
+// LOGICA CRM: PROGETTI E ISCRIZIONI
+// ==========================================
 window.progettiList = [];
 window.currentProgettoId = null;
 
@@ -512,10 +515,23 @@ window.loadProgettiTable = async function() {
     if(window.aziendeList.length === 0) window.aziendeList = await window.getAziende();
     if(window.docentiList.length === 0) window.docentiList = await window.getDocenti();
     
+    // Popola select azienda nel form
     const selAzienda = document.getElementById('prog-azienda');
     if(selAzienda) {
         selAzienda.innerHTML = '<option value="">-- Seleziona Azienda --</option>' + 
             window.aziendeList.map(a => `<option value="${a.id}">${a.ragione_sociale}</option>`).join('');
+    }
+
+    // Popola Menu a Tendina Filtro Sigle (NUOVO)
+    const filterSelect = document.getElementById('filter-corso-tipo');
+    if(filterSelect) {
+        let optHtml = '<option value="">-- Mostra tutti i corsi --</option>';
+        for(const key in window.DB_CORSI) {
+            const c = window.DB_CORSI[key];
+            // Esempio visivo: [RSPPDL] DL SPP - Modulo Comune (8h)
+            optHtml += `<option value="${key}">[${c.code}] ${c.t}</option>`;
+        }
+        filterSelect.innerHTML = optHtml;
     }
 
     tbody.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-slate-400 italic"><i data-lucide="loader-2" class="w-5 h-5 animate-spin mx-auto mb-2"></i> Caricamento progetti...</td></tr>';
@@ -532,13 +548,15 @@ window.loadProgettiTable = async function() {
     window.progettiList.forEach(p => {
         const nomeAzienda = p.aziende ? p.aziende.ragione_sociale : 'Privato';
         const nomeCorso = window.DB_CORSI[p.corso_id] ? window.DB_CORSI[p.corso_id].t : p.corso_id;
+        const siglaCorso = window.DB_CORSI[p.corso_id] ? window.DB_CORSI[p.corso_id].code : '';
         
+        // Aggiunto l'attributo data-corso per il filtraggio dinamico
         html += `
-            <tr class="hover:bg-amber-50 transition-colors">
+            <tr class="hover:bg-amber-50 transition-colors" data-corso="${p.corso_id}">
                 <td class="p-3 border-b font-mono font-bold text-[10px] text-slate-800">${p.codice}</td>
                 <td class="p-3 border-b">
-                    <p class="font-bold text-xs text-blue-900">${nomeCorso}</p>
-                    <p class="text-[9px] text-slate-500 uppercase">${nomeAzienda}</p>
+                    <p class="font-bold text-xs text-blue-900"><span class="text-slate-400 font-mono text-[9px]">[${siglaCorso}]</span> ${nomeCorso}</p>
+                    <p class="text-[9px] text-slate-500 uppercase mt-0.5">${nomeAzienda}</p>
                 </td>
                 <td class="p-3 border-b font-bold text-center text-slate-700">${window.formatDataToItalian(p.data_esame)}</td>
                 <td class="p-3 border-b text-center whitespace-nowrap">
@@ -553,7 +571,31 @@ window.loadProgettiTable = async function() {
     if(typeof lucide !== 'undefined') lucide.createIcons();
 };
 
+window.filtraProgetti = function() {
+    const textFilter = document.getElementById('search-progetti').value.toLowerCase();
+    const typeFilter = document.getElementById('filter-corso-tipo').value;
+    const rows = document.getElementById('tabella-progetti').getElementsByTagName('tr');
+
+    for (let i = 0; i < rows.length; i++) {
+        // Salta le righe di caricamento o "nessun corso"
+        if (rows[i].cells.length === 1) continue; 
+        
+        const rowText = rows[i].innerText.toLowerCase();
+        const rowCorsoId = rows[i].getAttribute('data-corso') || "";
+
+        const matchText = rowText.includes(textFilter);
+        const matchType = typeFilter === "" || rowCorsoId === typeFilter;
+
+        if (matchText && matchType) {
+            rows[i].style.display = "";
+        } else {
+            rows[i].style.display = "none";
+        }
+    }
+};
+
 window.salvaProgettoDB = async function() {
+// ... [Il resto del file rimane invariato]
     const id = document.getElementById('prog-id').value;
     let cod = document.getElementById('prog-codice').value.trim();
     if(!cod) {
