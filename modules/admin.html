@@ -1,38 +1,61 @@
-<div id="view-admin" class="w-full max-w-7xl mx-auto mt-4 mb-10">
+<div class="w-full max-w-7xl mx-auto mt-4 mb-10">
     <div class="border-b-2 border-slate-900 pb-3 mb-6">
-        <h1 class="text-3xl font-black uppercase text-slate-900 tracking-tighter">Dashboard Operativa</h1>
-        <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Statistiche e Panoramica CRM</p>
+        <h1 class="text-3xl font-black uppercase text-slate-900 tracking-tighter flex items-center gap-3">
+            <i data-lucide="layout-dashboard" class="w-8 h-8 text-blue-600"></i> Dashboard
+        </h1>
+        <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Pannello di controllo principale</p>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex items-center gap-4 border-l-4 border-l-blue-500">
-            <div class="bg-blue-100 p-3 rounded-lg text-blue-600"><i data-lucide="briefcase" class="w-8 h-8"></i></div>
-            <div><p class="text-xs text-slate-500 font-bold uppercase">Aziende Clienti</p><h3 id="dash-aziende" class="text-3xl font-black text-slate-800">--</h3></div>
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center gap-4 cursor-pointer hover:shadow-md transition" onclick="window.loadModule('aziende')">
+            <div class="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center"><i data-lucide="briefcase"></i></div>
+            <div>
+                <p class="text-[10px] font-bold text-slate-500 uppercase">Aziende</p>
+                <p class="text-2xl font-black text-slate-800" id="dash-aziende">0</p>
+            </div>
         </div>
-        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex items-center gap-4 border-l-4 border-l-emerald-500">
-            <div class="bg-emerald-100 p-3 rounded-lg text-emerald-600"><i data-lucide="users" class="w-8 h-8"></i></div>
-            <div><p class="text-xs text-slate-500 font-bold uppercase">Allievi Registrati</p><h3 id="dash-corsisti" class="text-3xl font-black text-slate-800">--</h3></div>
+        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center gap-4 cursor-pointer hover:shadow-md transition" onclick="window.loadModule('corsisti')">
+            <div class="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center"><i data-lucide="users"></i></div>
+            <div>
+                <p class="text-[10px] font-bold text-slate-500 uppercase">Corsisti</p>
+                <p class="text-2xl font-black text-slate-800" id="dash-corsisti">0</p>
+            </div>
         </div>
-        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex items-center gap-4 border-l-4 border-l-purple-500">
-            <div class="bg-purple-100 p-3 rounded-lg text-purple-600"><i data-lucide="graduation-cap" class="w-8 h-8"></i></div>
-            <div><p class="text-xs text-slate-500 font-bold uppercase">Docenti</p><h3 id="dash-docenti" class="text-3xl font-black text-slate-800">--</h3></div>
+        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center gap-4 cursor-pointer hover:shadow-md transition" onclick="window.loadModule('docenti')">
+            <div class="w-12 h-12 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center"><i data-lucide="graduation-cap"></i></div>
+            <div>
+                <p class="text-[10px] font-bold text-slate-500 uppercase">Docenti</p>
+                <p class="text-2xl font-black text-slate-800" id="dash-docenti">0</p>
+            </div>
         </div>
-        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex items-center gap-4 border-l-4 border-l-amber-500">
-            <div class="bg-amber-100 p-3 rounded-lg text-amber-600"><i data-lucide="layout-template" class="w-8 h-8"></i></div>
-            <div><p class="text-xs text-slate-500 font-bold uppercase">Progetti/Corsi</p><h3 id="dash-progetti" class="text-3xl font-black text-slate-800">--</h3></div>
+        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center gap-4 cursor-pointer hover:shadow-md transition" onclick="window.loadModule('progetti')">
+            <div class="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center"><i data-lucide="layout-template"></i></div>
+            <div>
+                <p class="text-[10px] font-bold text-slate-500 uppercase">Progetti Formativi</p>
+                <p class="text-2xl font-black text-slate-800" id="dash-progetti">0</p>
+            </div>
         </div>
     </div>
 
-    <div class="bg-slate-800 p-6 rounded-xl shadow-lg border border-slate-700">
-        <div class="border-b border-slate-600 pb-3 mb-4">
-            <h2 class="text-xl font-black uppercase text-white flex items-center gap-2"><i data-lucide="database-zap" class="w-6 h-6 text-emerald-400"></i> Migrazione Archivi Precedenti</h2>
-            <p class="text-xs text-slate-400 mt-1">Carica il file di backup JSON della versione precedente. Il sistema estrarrà automaticamente Aziende, Docenti, Corsisti, Progetti e Iscrizioni, smistandoli nel nuovo CRM relazionale su Supabase.</p>
-        </div>
-        
-        <div class="flex items-center gap-4">
-            <input type="file" id="import-file" accept=".json" class="block w-full text-sm text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-slate-700 file:text-white hover:file:bg-slate-600 cursor-pointer border border-slate-600 rounded-lg p-1 bg-slate-900">
-            <button id="btn-import" onclick="window.importaBackupStorico()" class="bg-emerald-500 hover:bg-emerald-400 text-white py-2 px-6 rounded-lg text-sm font-black uppercase tracking-widest flex items-center gap-2 transition shadow shrink-0">
-                <i data-lucide="upload-cloud" class="w-5 h-5"></i> Avvia Importazione
+    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+        <h2 class="font-black text-sm uppercase text-slate-800 mb-4 border-b border-slate-100 pb-2">Azioni Rapide</h2>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <button onclick="window.loadModule('progetti')" class="p-4 border border-slate-200 rounded-lg hover:bg-slate-50 transition text-center group">
+                <i data-lucide="plus-circle" class="w-8 h-8 mx-auto mb-2 text-slate-400 group-hover:text-rose-500 transition-colors"></i>
+                <span class="text-xs font-bold text-slate-700 uppercase">Nuovo Corso</span>
+            </button>
+            <button onclick="window.loadModule('corsisti')" class="p-4 border border-slate-200 rounded-lg hover:bg-slate-50 transition text-center group">
+                <i data-lucide="user-plus" class="w-8 h-8 mx-auto mb-2 text-slate-400 group-hover:text-emerald-500 transition-colors"></i>
+                <span class="text-xs font-bold text-slate-700 uppercase">Nuovo Allievo</span>
+            </button>
+            <button onclick="window.loadModule('scadenze')" class="p-4 border border-slate-200 rounded-lg hover:bg-slate-50 transition text-center group">
+                <i data-lucide="bell-ring" class="w-8 h-8 mx-auto mb-2 text-slate-400 group-hover:text-red-500 transition-colors"></i>
+                <span class="text-xs font-bold text-slate-700 uppercase">Vedi Scadenze</span>
+            </button>
+            
+            <button onclick="window.loadModule('migrazione')" class="p-4 border border-amber-200 bg-amber-50 rounded-lg hover:bg-amber-100 transition text-center group shadow-sm">
+                <i data-lucide="database-zap" class="w-8 h-8 mx-auto mb-2 text-amber-500 group-hover:text-amber-600 transition-colors"></i>
+                <span class="text-xs font-bold text-amber-800 uppercase">Migrazione Dati</span>
             </button>
         </div>
     </div>
