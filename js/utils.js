@@ -243,16 +243,16 @@ window.filtraDocenti = function() {
 };
 
 // ==========================================
-// LOGICA CRM: CORSISTI
+// LOGICA CRM: CORSISTI (CON DETTAGLIO CORSI IN LINEA)
 // ==========================================
 window.corsistiList = [];
 
 window.loadCorsistiTable = async function() {
     const tbody = document.getElementById('tabella-corsisti');
     if(!tbody) return;
-    tbody.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-slate-400 italic"><i data-lucide="loader-2" class="w-5 h-5 animate-spin mx-auto mb-2"></i> Caricamento...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="p-6 text-center text-slate-400 italic"><i data-lucide="loader-2" class="w-5 h-5 animate-spin mx-auto mb-2"></i> Caricamento...</td></tr>';
+    if(typeof lucide !== 'undefined') lucide.createIcons();
     
-    window.corsistiList = await window.getCorsisti();
     window.aziendeList = await window.getAziende(); 
 
     const selectAzienda = document.getElementById('cor-azienda');
@@ -262,23 +262,79 @@ window.loadCorsistiTable = async function() {
         selectAzienda.innerHTML = optHtml;
     }
 
+    // Query unificata per caricare i corsi e le date collegate a ciascun corsista
+    const { data, error } = await supabaseClient
+        .from('corsisti')
+        .select(`
+            id,
+            cf,
+            nome_cognome,
+            luogo_data_nascita,
+            mansione_storica,
+            azienda_id,
+            aziende ( ragione_sociale ),
+            iscrizioni (
+                id_certificato,
+                progetti (
+                    corso_id,
+                    data_esame
+                )
+            )
+        `)
+        .order('nome_cognome', { ascending: true });
+
+    if (error) {
+        console.error("Errore relazionale corsisti:", error);
+        tbody.innerHTML = '<tr><td colspan="6" class="p-6 text-center text-red-500 italic">Impossibile connettersi agli archivi.</td></tr>';
+        return;
+    }
+
+    window.corsistiList = data || [];
+
     if (window.corsistiList.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-slate-500 italic">Nessun corsista registrato.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="p-6 text-center text-slate-500 italic">Nessun corsista registrato.</td></tr>';
         return;
     }
 
     let html = '';
     window.corsistiList.forEach(cor => {
         const nomeAzienda = cor.aziende ? cor.aziende.ragione_sociale : '<span class="text-slate-400">Privato</span>';
+        
+        // Raccolta dinamica e formattazione strutturata dei corsi svolti
+        let corsiHtml = '<span class="text-slate-400 italic text-[10px]">Nessun corso</span>';
+        let dateHtml = '<span class="text-slate-400 italic text-center text-[10px]">-</span>';
+        
+        if (cor.iscrizioni && cor.iscrizioni.length > 0) {
+            let cArr = [];
+            let dArr = [];
+            cor.iscrizioni.forEach(isc => {
+                if (isc.progetti) {
+                    const cInfo = window.DB_CORSI[isc.progetti.corso_id];
+                    const tCorso = cInfo ? cInfo.t : isc.progetti.corso_id;
+                    const dFine = window.formatDataToItalian(isc.progetti.data_esame);
+                    cArr.push(`<div class="font-medium text-slate-800 text-[11px] truncate max-w-[220px]" title="${tCorso}">&bull; ${tCorso}</div>`);
+                    dArr.push(`<div class="font-mono text-slate-600 text-[10px]">${dFine}</div>`);
+                }
+            });
+            if (cArr.length > 0) {
+                corsiHtml = `<div class="space-y-1">${cArr.join('')}</div>`;
+                dateHtml = `<div class="space-y-1">${dArr.join('')}</div>`;
+            }
+        }
+
         html += `
             <tr class="hover:bg-slate-50 transition-colors">
-                <td class="p-3 border-b font-bold text-slate-800">${cor.nome_cognome}</td>
+                <td class="p-3 border-b font-bold text-slate-800 text-xs">${cor.nome_cognome}</td>
                 <td class="p-3 border-b font-mono text-[10px] text-slate-600">${cor.cf}</td>
-                <td class="p-3 border-b text-[10px] text-slate-600">${cor.mansione_storica || '-'}</td>
-                <td class="p-3 border-b text-xs text-blue-800 font-semibold">${nomeAzienda}</td>
+                <td class="p-3 border-b text-[10px] text-slate-600">
+                    <p class="font-bold text-slate-700">${cor.mansione_storica || '-'}</p>
+                    <p class="text-[9px] text-blue-700 uppercase font-black mt-0.5 tracking-wider">${nomeAzienda}</p>
+                </td>
+                <td class="p-3 border-b">${corsiHtml}</td>
+                <td class="p-3 border-b text-center">${dateHtml}</td>
                 <td class="p-3 border-b text-center whitespace-nowrap">
-                    <button onclick="window.modificaCorsista('${cor.id}')" class="text-blue-600 hover:bg-blue-200 bg-blue-100 p-1.5 rounded transition shadow-sm"><i data-lucide="edit" class="w-4 h-4"></i></button>
-                    <button onclick="window.eliminaCorsistaData('${cor.id}')" class="text-red-600 hover:bg-red-200 bg-red-100 p-1.5 rounded transition shadow-sm ml-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                    <button onclick="window.modificaCorsista('${cor.id}')" class="text-blue-600 hover:bg-blue-200 bg-blue-100 p-1.5 rounded transition shadow-sm"><i data-lucide="edit" class="w-3.5 h-3.5"></i></button>
+                    <button onclick="window.eliminaCorsistaData('${cor.id}')" class="text-red-600 hover:bg-red-200 bg-red-100 p-1.5 rounded transition shadow-sm ml-1"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
                 </td>
             </tr>
         `;
@@ -570,7 +626,7 @@ window.resetFormProgetto = function() {
 };
 
 window.apriIscrizioni = async function(progetto_id) {
-    window.currentProgettoId = progetto_id;
+    window.currentProgettoId = proyecto_id;
     const p = window.progettiList.find(x => x.id === progetto_id);
     const aziendaName = p.aziende ? p.aziende.ragione_sociale : 'Privato';
     
@@ -953,6 +1009,7 @@ window.updateAll = function() {
     const isAzienda = window.getVal('cfg-ente-erogatore') === 'azienda';
     const nomeErogatore = isAzienda ? window.getVal('cfg-azienda') : window.getVal('cfg-ente');
     
+    // Algoritmo calcolo Città di Emissione
     let luogoEmissione = window.getVal('cfg-luogo-emissione');
     if (isAzienda) {
         let indAz = window.getVal('cfg-azienda-indirizzo');
@@ -1153,7 +1210,7 @@ window.renderScadenzeTable = function() {
     }
 
     if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="p-6 text-center text-slate-500 italic">Nessuna scadenza trovata per il periodo selezionato.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="p-6 text-center text-slate-500 italic">Nessuna scadenza trouvata per il periodo selezionato.</td></tr>';
         return;
     }
 
@@ -1206,271 +1263,12 @@ window.refreshScadenze = async function() {
 };
 
 // ==========================================
-// DATA MIGRATION WIZARD (CSV / JSON ETL)
+// IMPORTAZIONE DATI SORGENTE (MIGRATION ETL)
 // ==========================================
-window.migParsedData = [];
-window.migHeaders = [];
-
-window.DB_TARGETS = [
-    { id: 'az_ragione', label: 'Azienda: Ragione Sociale', aliases: ['azienda', 'ragione sociale', 'impresa', 'cliente'] },
-    { id: 'az_piva', label: 'Azienda: P.IVA / C.F.', aliases: ['piva', 'partita iva', 'cf azienda', 'c.f. azienda'] },
-    { id: 'az_ind', label: 'Azienda: Indirizzo Sede', aliases: ['indirizzo', 'sede', 'indirizzo azienda'] },
-    { id: 'cor_nome', label: 'Allievo: Nome e Cognome', aliases: ['nome', 'cognome', 'allevo', 'corsista', 'dipendente', 'lavoratore'] },
-    { id: 'cor_cf', label: 'Allievo: Codice Fiscale', aliases: ['cf', 'codice fiscale', 'c.f.'] },
-    { id: 'cor_nascita', label: 'Allievo: Luogo/Data Nascita', aliases: ['nascita', 'nato a', 'data di nascita', 'luogo di nascita'] },
-    { id: 'cor_mans', label: 'Allievo: Mansione', aliases: ['mansione', 'qualifica', 'ruolo', 'lavoro'] },
-    { id: 'doc_nome', label: 'Docente Formatore', aliases: ['docente', 'formatore', 'insegnante'] },
-    { id: 'prg_codice', label: 'Corso: Codice Riferimento', aliases: ['codice', 'codice corso', 'id corso', 'rif'] },
-    { id: 'prg_corso', label: 'Corso: Tipologia (es. RLS, Basso, ecc)', aliases: ['corso', 'tipo corso', 'titolo', 'tipologia'] },
-    { id: 'prg_data', label: 'Corso: Data Esame / Fine', aliases: ['data', 'data esame', 'data fine', 'data attestato'] },
-    { id: 'isc_cert', label: 'Attestato: ID Protocollo', aliases: ['certificato', 'numero attestato', 'id', 'protocollo'] },
-    { id: 'isc_scad', label: 'Attestato: Data Scadenza', aliases: ['scadenza', 'data scadenza', 'valido fino'] }
-];
-
-window.initMigrazione = function() {
-    window.migParsedData = [];
-    window.migHeaders = [];
-    document.getElementById('mig-step-2').classList.add('hidden');
-    document.getElementById('mig-log').innerHTML = '[System] Modulo Migrazione Dati attivato. In attesa di file .csv o .json...';
+window.importaBackupStorico = async function() {
+    // Deprecata in favore del Data Import Wizard dedicato
 };
 
-window.logMig = function(msg, isError = false) {
-    const logBox = document.getElementById('mig-log');
-    const color = isError ? 'text-red-400' : 'text-emerald-400';
-    logBox.innerHTML += `<br><span class="${color}">> ${msg}</span>`;
-    logBox.scrollTop = logBox.scrollHeight;
-};
-
-window.handleFileSelect = function() {
-    const fileInput = document.getElementById('mig-file');
-    if (!fileInput.files.length) return alert("Seleziona un file prima di procedere.");
-    
-    const file = fileInput.files[0];
-    window.logMig(`Lettura del file: ${file.name}...`);
-
-    const reader = new FileReader();
-
-    if (file.name.endsWith('.csv')) {
-        Papa.parse(file, {
-            header: true,
-            skipEmptyLines: true,
-            complete: function(results) {
-                window.migParsedData = results.data;
-                window.migHeaders = results.meta.fields;
-                window.logMig(`Rilevate ${window.migParsedData.length} righe valide nel CSV.`);
-                window.buildMappingUI();
-            },
-            error: function(err) {
-                window.logMig(`Errore parsing CSV: ${err}`, true);
-            }
-        });
-    } else if (file.name.endsWith('.json')) {
-        reader.onload = function(e) {
-            try {
-                window.migParsedData = JSON.parse(e.target.result);
-                if (!Array.isArray(window.migParsedData)) throw new Error("Il JSON deve essere un Array di oggetti.");
-                if (window.migParsedData.length > 0) window.migHeaders = Object.keys(window.migParsedData[0]);
-                window.logMig(`Rilevate ${window.migParsedData.length} righe nel JSON.`);
-                window.buildMappingUI();
-            } catch (err) {
-                window.logMig(`Errore JSON: ${err.message}`, true);
-            }
-        };
-        reader.readAsText(file);
-    } else {
-        window.logMig(`Formato file non supportato. Usare .csv o .json`, true);
-    }
-};
-
-window.buildMappingUI = function() {
-    const container = document.getElementById('mig-mapping-container');
-    let html = '';
-
-    let optionsHtml = '<option value="">-- Ignora / Non Importare --</option>';
-    window.migHeaders.forEach(h => {
-        optionsHtml += `<option value="${h}">${h}</option>`;
-    });
-
-    window.DB_TARGETS.forEach(target => {
-        // Auto-detect intuitivo basato sugli alias
-        let autoSelected = "";
-        for (let h of window.migHeaders) {
-            let hClean = h.toLowerCase().trim();
-            if (target.aliases.some(alias => hClean.includes(alias))) {
-                autoSelected = h;
-                break;
-            }
-        }
-
-        let dynamicOptions = optionsHtml.replace(`value="${autoSelected}"`, `value="${autoSelected}" selected`);
-
-        html += `
-        <div class="flex items-center justify-between border-b border-slate-100 pb-2">
-            <div class="w-1/2">
-                <span class="text-[10px] font-bold text-slate-800 uppercase block">${target.label}</span>
-            </div>
-            <div class="w-1/2 pl-4">
-                <select id="map_${target.id}" class="w-full text-xs p-1.5 border border-slate-300 rounded bg-slate-50 focus:border-blue-500 focus:bg-white transition outline-none">
-                    ${dynamicOptions}
-                </select>
-            </div>
-        </div>`;
-    });
-
-    container.innerHTML = html;
-    document.getElementById('mig-step-2').classList.remove('hidden');
-    window.logMig("Interfaccia di Mappatura Colonne generata. Controlla e premi Avvia Importazione.");
-};
-
-window.startImportProcess = async function() {
-    const btn = document.getElementById('btn-start-import');
-    btn.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Elaborazione in corso...';
-    btn.disabled = true;
-    if(typeof lucide !== 'undefined') lucide.createIcons();
-
-    // 1. Recupero la Mappatura
-    let mapConfig = {};
-    window.DB_TARGETS.forEach(t => {
-        mapConfig[t.id] = document.getElementById(`map_${t.id}`).value;
-    });
-
-    window.logMig("Inizio procedura di elaborazione dati Relazionali (Upsert)...");
-
-    try {
-        // Cache DB per evitare chiamate ridondanti o duplicati
-        const mapAziende = {}; 
-        const mapDocenti = {}; 
-        const mapCorsisti = {}; 
-        const mapProgetti = {}; 
-
-        const { data: exAz } = await supabaseClient.from('aziende').select('id, ragione_sociale');
-        if(exAz) exAz.forEach(a => mapAziende[a.ragione_sociale.toLowerCase().trim()] = a.id);
-
-        const { data: exDoc } = await supabaseClient.from('docenti').select('id, nome_cognome');
-        if(exDoc) exDoc.forEach(d => mapDocenti[d.nome_cognome.toLowerCase().trim()] = d.id);
-
-        const { data: exCor } = await supabaseClient.from('corsisti').select('id, cf');
-        if(exCor) exCor.forEach(c => mapCorsisti[c.cf] = c.id);
-
-        const { data: exProg } = await supabaseClient.from('progetti').select('id, codice');
-        if(exProg) exProg.forEach(p => mapProgetti[p.codice] = p.id);
-
-        let cAz = 0, cDoc = 0, cCor = 0, cPrg = 0, cIsc = 0;
-
-        for (const row of window.migParsedData) {
-            // Estrazione Dati via Mappatura Dinamica
-            const azName = mapConfig.az_ragione && row[mapConfig.az_ragione] ? row[mapConfig.az_ragione].trim() : "Privato";
-            const azPiva = mapConfig.az_piva && row[mapConfig.az_piva] ? row[mapConfig.az_piva].trim() : "";
-            const azInd = mapConfig.az_ind && row[mapConfig.az_ind] ? row[mapConfig.az_ind].trim() : "";
-
-            const corNome = mapConfig.cor_nome && row[mapConfig.cor_nome] ? row[mapConfig.cor_nome].trim() : "";
-            const corCf = mapConfig.cor_cf && row[mapConfig.cor_cf] ? row[mapConfig.cor_cf].trim().toUpperCase() : "";
-            const corNascita = mapConfig.cor_nascita && row[mapConfig.cor_nascita] ? row[mapConfig.cor_nascita].trim() : "";
-            const corMans = mapConfig.cor_mans && row[mapConfig.cor_mans] ? row[mapConfig.cor_mans].trim() : "";
-
-            const docNome = mapConfig.doc_nome && row[mapConfig.doc_nome] ? row[mapConfig.doc_nome].trim() : "";
-
-            const prgCod = mapConfig.prg_codice && row[mapConfig.prg_codice] ? row[mapConfig.prg_codice].trim() : "";
-            const prgCorsoStr = mapConfig.prg_corso && row[mapConfig.prg_corso] ? row[mapConfig.prg_corso].toLowerCase().trim() : "";
-            const prgDataRaw = mapConfig.prg_data && row[mapConfig.prg_data] ? row[mapConfig.prg_data].trim() : "";
-
-            const iscCert = mapConfig.isc_cert && row[mapConfig.isc_cert] ? row[mapConfig.isc_cert].trim() : "";
-            const iscScadRaw = mapConfig.isc_scad && row[mapConfig.isc_scad] ? row[mapConfig.isc_scad].trim() : "";
-
-            if (!corCf) continue; // Se manca il CF saltiamo la riga (impossibile associare un corsista)
-
-            // --- AZIENDE ---
-            let azKey = azName.toLowerCase();
-            if (azName !== "Privato" && !mapAziende[azKey]) {
-                const { data } = await supabaseClient.from('aziende').insert([{ ragione_sociale: azName, piva_cf: azPiva, indirizzo: azInd }]).select();
-                if (data && data.length > 0) { mapAziende[azKey] = data[0].id; cAz++; }
-            }
-
-            // --- DOCENTI ---
-            if (docNome && !mapDocenti[docNome.toLowerCase()]) {
-                const { data } = await supabaseClient.from('docenti').insert([{ nome_cognome: docNome, qualifica: "Formatore Qualificato (D.I. 6/3/2013)" }]).select();
-                if (data && data.length > 0) { mapDocenti[docNome.toLowerCase()] = data[0].id; cDoc++; }
-            }
-
-            // --- CORSISTI ---
-            if (!mapCorsisti[corCf]) {
-                const { data } = await supabaseClient.from('corsisti').insert([{
-                    cf: corCf, nome_cognome: corNome, luogo_data_nascita: corNascita, mansione_storica: corMans, azienda_id: mapAziende[azKey] || null
-                }]).select();
-                if (data && data.length > 0) { mapCorsisti[corCf] = data[0].id; cCor++; }
-            }
-
-            // --- PROGETTI ---
-            let finalProgId = null;
-            if (prgCod) {
-                if (!mapProgetti[prgCod]) {
-                    // Fuzzy match del corso
-                    let corsoId = 'lav_basso';
-                    if (prgCorsoStr.includes('alto')) corsoId = 'lav_alto';
-                    else if (prgCorsoStr.includes('medio')) corsoId = 'lav_medio';
-                    else if (prgCorsoStr.includes('rls')) corsoId = 'rls';
-                    else if (prgCorsoStr.includes('preposto')) corsoId = 'preposto';
-                    else if (prgCorsoStr.includes('antincendio')) corsoId = 'antincendio_liv2';
-                    else if (prgCorsoStr.includes('primo soccorso')) corsoId = 'primo_soccorso_12h';
-                    else if (prgCorsoStr.includes('carrell') || prgCorsoStr.includes('mulett')) corsoId = 'attr_carrelli_ind';
-
-                    let docJson = {};
-                    if(docNome) docJson["UD1"] = mapDocenti[docNome.toLowerCase()] || "";
-
-                    const { data } = await supabaseClient.from('progetti').insert([{
-                        codice: prgCod,
-                        azienda_id: mapAziende[azKey] || null,
-                        corso_id: corsoId,
-                        modalita: "In Presenza Fisica",
-                        data_inizio: window.formatDataToISODate(prgDataRaw),
-                        data_esame: window.formatDataToISODate(prgDataRaw),
-                        ente_erogatore: "ente",
-                        docente_principale: JSON.stringify(docJson)
-                    }]).select();
-
-                    if (data && data.length > 0) { 
-                        mapProgetti[prgCod] = data[0].id; 
-                        finalProgId = data[0].id;
-                        cPrg++; 
-                    }
-                } else {
-                    finalProgId = mapProgetti[prgCod];
-                }
-
-                // --- ISCRIZIONI ---
-                if (finalProgId && iscCert) {
-                    const { data: exIsc } = await supabaseClient.from('iscrizioni').select('id').eq('id_certificato', iscCert);
-                    if (!exIsc || exIsc.length === 0) {
-                        const { error } = await supabaseClient.from('iscrizioni').insert([{
-                            progetto_id: finalProgId,
-                            corsista_id: mapCorsisti[corCf],
-                            id_certificato: iscCert,
-                            esito: "Idoneo",
-                            data_scadenza: window.formatDataToISODate(iscScadRaw)
-                        }]);
-                        if (!error) cIsc++;
-                    }
-                }
-            }
-        }
-
-        window.logMig(`<strong>MIGRAZIONE COMPLETATA CON SUCCESSO!</strong>`);
-        window.logMig(`- Aziende generate: ${cAz}`);
-        window.logMig(`- Docenti generati: ${cDoc}`);
-        window.logMig(`- Corsisti importati: ${cCor}`);
-        window.logMig(`- Progetti formativi ricreati: ${cPrg}`);
-        window.logMig(`- Attestati e Scadenze registrate: ${cIsc}`);
-        
-        if(typeof window.loadDashboardStats === 'function') window.loadDashboardStats();
-
-    } catch (err) {
-        window.logMig(`ERRORE CRITICO DB: ${err.message}`, true);
-    } finally {
-        btn.innerHTML = '<i data-lucide="play-circle" class="w-5 h-5"></i> Avvia Importazione';
-        btn.disabled = false;
-        if(typeof lucide !== 'undefined') lucide.createIcons();
-    }
-};
 // ==========================================
 // GENERATORE DEI TEST E CORRETTORE
 // ==========================================
