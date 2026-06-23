@@ -1,5 +1,25 @@
 // js/app.js
 
+// =======================================================================
+// PATCH GLOBALE LUCIDE: EVITA IL BLOCCO DEL SISTEMA PER ICONE MANCANTI
+// =======================================================================
+if (typeof lucide !== 'undefined') {
+    const originalCreateIcons = lucide.createIcons;
+    lucide.createIcons = function(options) {
+        // Sostituisce automaticamente l'icona rotta con una valida
+        document.querySelectorAll('[data-lucide="first-aid"]').forEach(el => {
+            el.setAttribute('data-lucide', 'heart-pulse');
+        });
+        
+        try {
+            // Tenta di disegnare le icone, se fallisce non blocca il database
+            originalCreateIcons.apply(lucide, [options]);
+        } catch(e) {
+            console.warn("Errore grafico bypassato in Lucide:", e);
+        }
+    };
+}
+
 window.loadModule = async function(moduleId) {
     const contentDiv = document.getElementById('app-content');
     
@@ -34,7 +54,7 @@ window.loadModule = async function(moduleId) {
         if (moduleId === 'stampe' && typeof window.initStampe === 'function') window.initStampe();
 
     } catch (error) {
-        contentDiv.innerHTML = `<div class="p-10 text-center text-red-500 font-bold flex flex-col items-center mt-20"><i data-lucide="alert-triangle" class="w-10 h-10 mb-2"></i> Errore: ${error.message}</div>`;
+        contentDiv.innerHTML = `<div class="p-10 text-center text-red-500 font-bold flex flex-col items-center mt-20"><i data-lucide="alert-triangle" class="w-10 h-10 mb-2"></i> Errore Modulo: ${error.message}</div>`;
         if (typeof lucide !== 'undefined') lucide.createIcons();
     }
 };
@@ -42,14 +62,16 @@ window.loadModule = async function(moduleId) {
 let deferredPrompt;
 
 document.addEventListener("DOMContentLoaded", async () => {
+    // Registrazione Service Worker per PWA
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('sw.js').then((reg) => {
-            console.log('Service Worker registrato.');
+            console.log('Service Worker registrato per PWA.');
         }).catch((err) => {
             console.log('Errore Service Worker', err);
         });
     }
 
+    // Intercettazione evento di Installazione WebApp
     window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
         deferredPrompt = e;
@@ -73,5 +95,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (installBtn) installBtn.classList.add('hidden');
     });
 
+    // Avvio Sistema
     await window.loadModule('admin'); 
 });
