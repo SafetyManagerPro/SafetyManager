@@ -1206,177 +1206,271 @@ window.refreshScadenze = async function() {
 };
 
 // ==========================================
-// IMPORTAZIONE DATI STORICI DA BACKUP JSON
+// DATA MIGRATION WIZARD (CSV / JSON ETL)
 // ==========================================
-window.importaBackupStorico = async function() {
-    const fileInput = document.getElementById('import-file');
-    if (!fileInput.files.length) return alert("Seleziona un file JSON di backup.");
+window.migParsedData = [];
+window.migHeaders = [];
+
+window.DB_TARGETS = [
+    { id: 'az_ragione', label: 'Azienda: Ragione Sociale', aliases: ['azienda', 'ragione sociale', 'impresa', 'cliente'] },
+    { id: 'az_piva', label: 'Azienda: P.IVA / C.F.', aliases: ['piva', 'partita iva', 'cf azienda', 'c.f. azienda'] },
+    { id: 'az_ind', label: 'Azienda: Indirizzo Sede', aliases: ['indirizzo', 'sede', 'indirizzo azienda'] },
+    { id: 'cor_nome', label: 'Allievo: Nome e Cognome', aliases: ['nome', 'cognome', 'allevo', 'corsista', 'dipendente', 'lavoratore'] },
+    { id: 'cor_cf', label: 'Allievo: Codice Fiscale', aliases: ['cf', 'codice fiscale', 'c.f.'] },
+    { id: 'cor_nascita', label: 'Allievo: Luogo/Data Nascita', aliases: ['nascita', 'nato a', 'data di nascita', 'luogo di nascita'] },
+    { id: 'cor_mans', label: 'Allievo: Mansione', aliases: ['mansione', 'qualifica', 'ruolo', 'lavoro'] },
+    { id: 'doc_nome', label: 'Docente Formatore', aliases: ['docente', 'formatore', 'insegnante'] },
+    { id: 'prg_codice', label: 'Corso: Codice Riferimento', aliases: ['codice', 'codice corso', 'id corso', 'rif'] },
+    { id: 'prg_corso', label: 'Corso: Tipologia (es. RLS, Basso, ecc)', aliases: ['corso', 'tipo corso', 'titolo', 'tipologia'] },
+    { id: 'prg_data', label: 'Corso: Data Esame / Fine', aliases: ['data', 'data esame', 'data fine', 'data attestato'] },
+    { id: 'isc_cert', label: 'Attestato: ID Protocollo', aliases: ['certificato', 'numero attestato', 'id', 'protocollo'] },
+    { id: 'isc_scad', label: 'Attestato: Data Scadenza', aliases: ['scadenza', 'data scadenza', 'valido fino'] }
+];
+
+window.initMigrazione = function() {
+    window.migParsedData = [];
+    window.migHeaders = [];
+    document.getElementById('mig-step-2').classList.add('hidden');
+    document.getElementById('mig-log').innerHTML = '[System] Modulo Migrazione Dati attivato. In attesa di file .csv o .json...';
+};
+
+window.logMig = function(msg, isError = false) {
+    const logBox = document.getElementById('mig-log');
+    const color = isError ? 'text-red-400' : 'text-emerald-400';
+    logBox.innerHTML += `<br><span class="${color}">> ${msg}</span>`;
+    logBox.scrollTop = logBox.scrollHeight;
+};
+
+window.handleFileSelect = function() {
+    const fileInput = document.getElementById('mig-file');
+    if (!fileInput.files.length) return alert("Seleziona un file prima di procedere.");
+    
     const file = fileInput.files[0];
+    window.logMig(`Lettura del file: ${file.name}...`);
+
     const reader = new FileReader();
 
-    const btn = document.getElementById('btn-import');
-    btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Importazione in corso...';
+    if (file.name.endsWith('.csv')) {
+        Papa.parse(file, {
+            header: true,
+            skipEmptyLines: true,
+            complete: function(results) {
+                window.migParsedData = results.data;
+                window.migHeaders = results.meta.fields;
+                window.logMig(`Rilevate ${window.migParsedData.length} righe valide nel CSV.`);
+                window.buildMappingUI();
+            },
+            error: function(err) {
+                window.logMig(`Errore parsing CSV: ${err}`, true);
+            }
+        });
+    } else if (file.name.endsWith('.json')) {
+        reader.onload = function(e) {
+            try {
+                window.migParsedData = JSON.parse(e.target.result);
+                if (!Array.isArray(window.migParsedData)) throw new Error("Il JSON deve essere un Array di oggetti.");
+                if (window.migParsedData.length > 0) window.migHeaders = Object.keys(window.migParsedData[0]);
+                window.logMig(`Rilevate ${window.migParsedData.length} righe nel JSON.`);
+                window.buildMappingUI();
+            } catch (err) {
+                window.logMig(`Errore JSON: ${err.message}`, true);
+            }
+        };
+        reader.readAsText(file);
+    } else {
+        window.logMig(`Formato file non supportato. Usare .csv o .json`, true);
+    }
+};
+
+window.buildMappingUI = function() {
+    const container = document.getElementById('mig-mapping-container');
+    let html = '';
+
+    let optionsHtml = '<option value="">-- Ignora / Non Importare --</option>';
+    window.migHeaders.forEach(h => {
+        optionsHtml += `<option value="${h}">${h}</option>`;
+    });
+
+    window.DB_TARGETS.forEach(target => {
+        // Auto-detect intuitivo basato sugli alias
+        let autoSelected = "";
+        for (let h of window.migHeaders) {
+            let hClean = h.toLowerCase().trim();
+            if (target.aliases.some(alias => hClean.includes(alias))) {
+                autoSelected = h;
+                break;
+            }
+        }
+
+        let dynamicOptions = optionsHtml.replace(`value="${autoSelected}"`, `value="${autoSelected}" selected`);
+
+        html += `
+        <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+            <div class="w-1/2">
+                <span class="text-[10px] font-bold text-slate-800 uppercase block">${target.label}</span>
+            </div>
+            <div class="w-1/2 pl-4">
+                <select id="map_${target.id}" class="w-full text-xs p-1.5 border border-slate-300 rounded bg-slate-50 focus:border-blue-500 focus:bg-white transition outline-none">
+                    ${dynamicOptions}
+                </select>
+            </div>
+        </div>`;
+    });
+
+    container.innerHTML = html;
+    document.getElementById('mig-step-2').classList.remove('hidden');
+    window.logMig("Interfaccia di Mappatura Colonne generata. Controlla e premi Avvia Importazione.");
+};
+
+window.startImportProcess = async function() {
+    const btn = document.getElementById('btn-start-import');
+    btn.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Elaborazione in corso...';
     btn.disabled = true;
     if(typeof lucide !== 'undefined') lucide.createIcons();
 
-    reader.onload = async function(e) {
-        try {
-            const dati = JSON.parse(e.target.result);
-            if (!Array.isArray(dati)) throw new Error("Il file deve contenere un array di oggetti validi.");
+    // 1. Recupero la Mappatura
+    let mapConfig = {};
+    window.DB_TARGETS.forEach(t => {
+        mapConfig[t.id] = document.getElementById(`map_${t.id}`).value;
+    });
 
-            const mapAziende = {}; 
-            const mapDocenti = {}; 
-            const mapCorsisti = {}; 
-            const mapProgetti = {}; 
+    window.logMig("Inizio procedura di elaborazione dati Relazionali (Upsert)...");
 
-            const { data: exAz } = await supabaseClient.from('aziende').select('id, ragione_sociale');
-            if(exAz) exAz.forEach(a => mapAziende[a.ragione_sociale] = a.id);
+    try {
+        // Cache DB per evitare chiamate ridondanti o duplicati
+        const mapAziende = {}; 
+        const mapDocenti = {}; 
+        const mapCorsisti = {}; 
+        const mapProgetti = {}; 
 
-            const { data: exDoc } = await supabaseClient.from('docenti').select('id, nome_cognome');
-            if(exDoc) exDoc.forEach(d => mapDocenti[d.nome_cognome] = d.id);
+        const { data: exAz } = await supabaseClient.from('aziende').select('id, ragione_sociale');
+        if(exAz) exAz.forEach(a => mapAziende[a.ragione_sociale.toLowerCase().trim()] = a.id);
 
-            const { data: exCor } = await supabaseClient.from('corsisti').select('id, cf');
-            if(exCor) exCor.forEach(c => mapCorsisti[c.cf] = c.id);
+        const { data: exDoc } = await supabaseClient.from('docenti').select('id, nome_cognome');
+        if(exDoc) exDoc.forEach(d => mapDocenti[d.nome_cognome.toLowerCase().trim()] = d.id);
 
-            const { data: exProg } = await supabaseClient.from('progetti').select('id, codice');
-            if(exProg) exProg.forEach(p => mapProgetti[p.codice] = p.id);
+        const { data: exCor } = await supabaseClient.from('corsisti').select('id, cf');
+        if(exCor) exCor.forEach(c => mapCorsisti[c.cf] = c.id);
 
-            let contatori = { aziende: 0, docenti: 0, corsisti: 0, progetti: 0, iscrizioni: 0 };
+        const { data: exProg } = await supabaseClient.from('progetti').select('id, codice');
+        if(exProg) exProg.forEach(p => mapProgetti[p.codice] = p.id);
 
-            for (const row of dati) {
-                let nomeAz = row.azienda && row.azienda.trim() !== "" ? row.azienda.trim() : "Privato";
-                if (nomeAz !== "Privato" && !mapAziende[nomeAz]) {
-                    const { data } = await supabaseClient.from('aziende').insert([{
-                        ragione_sociale: nomeAz,
-                        ateco: row.ateco || "",
-                        indirizzo: row.indirizzo_azienda || ""
-                    }]).select();
-                    if (data && data.length > 0) { mapAziende[nomeAz] = data[0].id; contatori.aziende++; }
-                }
+        let cAz = 0, cDoc = 0, cCor = 0, cPrg = 0, cIsc = 0;
 
-                let docsToProcess = [row.docente, row.resp_corso, row.resp_progetto];
-                if (row.docenti_ud) docsToProcess = docsToProcess.concat(row.docenti_ud);
-                
-                for (const dName of docsToProcess) {
-                    if (dName && dName.trim() !== "" && !mapDocenti[dName.trim()]) {
-                        const { data } = await supabaseClient.from('docenti').insert([{
-                            nome_cognome: dName.trim(),
-                            qualifica: row.req_docente || "Formatore Qualificato (D.I. 6/3/2013)"
-                        }]).select();
-                        if (data && data.length > 0) { mapDocenti[dName.trim()] = data[0].id; contatori.docenti++; }
-                    }
-                }
+        for (const row of window.migParsedData) {
+            // Estrazione Dati via Mappatura Dinamica
+            const azName = mapConfig.az_ragione && row[mapConfig.az_ragione] ? row[mapConfig.az_ragione].trim() : "Privato";
+            const azPiva = mapConfig.az_piva && row[mapConfig.az_piva] ? row[mapConfig.az_piva].trim() : "";
+            const azInd = mapConfig.az_ind && row[mapConfig.az_ind] ? row[mapConfig.az_ind].trim() : "";
 
-                if (row.cf && !mapCorsisti[row.cf.toUpperCase()]) {
-                    const azId = mapAziende[nomeAz] || null;
-                    const { data } = await supabaseClient.from('corsisti').insert([{
-                        cf: row.cf.toUpperCase(),
-                        nome_cognome: row.nome.trim(),
-                        luogo_data_nascita: row.nascita || "",
-                        mansione_storica: row.mansione || "",
-                        azienda_id: azId
-                    }]).select();
-                    if (data && data.length > 0) { mapCorsisti[row.cf.toUpperCase()] = data[0].id; contatori.corsisti++; }
-                }
+            const corNome = mapConfig.cor_nome && row[mapConfig.cor_nome] ? row[mapConfig.cor_nome].trim() : "";
+            const corCf = mapConfig.cor_cf && row[mapConfig.cor_cf] ? row[mapConfig.cor_cf].trim().toUpperCase() : "";
+            const corNascita = mapConfig.cor_nascita && row[mapConfig.cor_nascita] ? row[mapConfig.cor_nascita].trim() : "";
+            const corMans = mapConfig.cor_mans && row[mapConfig.cor_mans] ? row[mapConfig.cor_mans].trim() : "";
+
+            const docNome = mapConfig.doc_nome && row[mapConfig.doc_nome] ? row[mapConfig.doc_nome].trim() : "";
+
+            const prgCod = mapConfig.prg_codice && row[mapConfig.prg_codice] ? row[mapConfig.prg_codice].trim() : "";
+            const prgCorsoStr = mapConfig.prg_corso && row[mapConfig.prg_corso] ? row[mapConfig.prg_corso].toLowerCase().trim() : "";
+            const prgDataRaw = mapConfig.prg_data && row[mapConfig.prg_data] ? row[mapConfig.prg_data].trim() : "";
+
+            const iscCert = mapConfig.isc_cert && row[mapConfig.isc_cert] ? row[mapConfig.isc_cert].trim() : "";
+            const iscScadRaw = mapConfig.isc_scad && row[mapConfig.isc_scad] ? row[mapConfig.isc_scad].trim() : "";
+
+            if (!corCf) continue; // Se manca il CF saltiamo la riga (impossibile associare un corsista)
+
+            // --- AZIENDE ---
+            let azKey = azName.toLowerCase();
+            if (azName !== "Privato" && !mapAziende[azKey]) {
+                const { data } = await supabaseClient.from('aziende').insert([{ ragione_sociale: azName, piva_cf: azPiva, indirizzo: azInd }]).select();
+                if (data && data.length > 0) { mapAziende[azKey] = data[0].id; cAz++; }
             }
 
-            for (const row of dati) {
-                if (row.codice && !mapProgetti[row.codice]) {
-                    let azKey = row.azienda && row.azienda.trim() !== "" ? row.azienda.trim() : "Privato";
-                    const azId = mapAziende[azKey] || null;
-                    
+            // --- DOCENTI ---
+            if (docNome && !mapDocenti[docNome.toLowerCase()]) {
+                const { data } = await supabaseClient.from('docenti').insert([{ nome_cognome: docNome, qualifica: "Formatore Qualificato (D.I. 6/3/2013)" }]).select();
+                if (data && data.length > 0) { mapDocenti[docNome.toLowerCase()] = data[0].id; cDoc++; }
+            }
+
+            // --- CORSISTI ---
+            if (!mapCorsisti[corCf]) {
+                const { data } = await supabaseClient.from('corsisti').insert([{
+                    cf: corCf, nome_cognome: corNome, luogo_data_nascita: corNascita, mansione_storica: corMans, azienda_id: mapAziende[azKey] || null
+                }]).select();
+                if (data && data.length > 0) { mapCorsisti[corCf] = data[0].id; cCor++; }
+            }
+
+            // --- PROGETTI ---
+            let finalProgId = null;
+            if (prgCod) {
+                if (!mapProgetti[prgCod]) {
+                    // Fuzzy match del corso
                     let corsoId = 'lav_basso';
-                    const nC = row.corso ? row.corso.toLowerCase() : "";
-                    if (nC.includes('alto')) corsoId = 'lav_alto';
-                    else if (nC.includes('medio')) corsoId = 'lav_medio';
-                    else if (nC.includes('rls')) corsoId = 'rls';
-                    else if (nC.includes('cantieri')) corsoId = 'mod_cantieri';
-                    else if (nC.includes('preposto') && nC.includes('agg')) corsoId = 'agg_prep';
-                    else if (nC.includes('preposto')) corsoId = 'preposto';
-                    else if (nC.includes('dl spp') || nC.includes('rspp')) corsoId = 'dl_spp_comune';
-                    else if (nC.includes('dirigente')) corsoId = 'dirigente';
+                    if (prgCorsoStr.includes('alto')) corsoId = 'lav_alto';
+                    else if (prgCorsoStr.includes('medio')) corsoId = 'lav_medio';
+                    else if (prgCorsoStr.includes('rls')) corsoId = 'rls';
+                    else if (prgCorsoStr.includes('preposto')) corsoId = 'preposto';
+                    else if (prgCorsoStr.includes('antincendio')) corsoId = 'antincendio_liv2';
+                    else if (prgCorsoStr.includes('primo soccorso')) corsoId = 'primo_soccorso_12h';
+                    else if (prgCorsoStr.includes('carrell') || prgCorsoStr.includes('mulett')) corsoId = 'attr_carrelli_ind';
 
                     let docJson = {};
-                    if (row.docenti_ud && Array.isArray(row.docenti_ud)) {
-                        row.docenti_ud.forEach((dName, idx) => {
-                            docJson["UD" + (idx + 1)] = mapDocenti[dName.trim()] || "";
-                        });
-                    } else if (row.docente) {
-                        docJson["UD1"] = mapDocenti[row.docente.trim()] || "";
-                    }
+                    if(docNome) docJson["UD1"] = mapDocenti[docNome.toLowerCase()] || "";
 
                     const { data } = await supabaseClient.from('progetti').insert([{
-                        codice: row.codice,
-                        azienda_id: azId,
+                        codice: prgCod,
+                        azienda_id: mapAziende[azKey] || null,
                         corso_id: corsoId,
-                        modalita: row.modalita || "In Presenza Fisica",
-                        data_inizio: row.data_inizio || null,
-                        data_esame: row.data_esame || null,
-                        ente_erogatore: row.ente && row.ente.includes("Azienda") ? "azienda" : "ente",
-                        docente_principale: JSON.stringify(docJson),
-                        calendario: row.calendario || ""
+                        modalita: "In Presenza Fisica",
+                        data_inizio: window.formatDataToISODate(prgDataRaw),
+                        data_esame: window.formatDataToISODate(prgDataRaw),
+                        ente_erogatore: "ente",
+                        docente_principale: JSON.stringify(docJson)
                     }]).select();
 
-                    if (data && data.length > 0) { mapProgetti[row.codice] = data[0].id; contatori.progetti++; }
+                    if (data && data.length > 0) { 
+                        mapProgetti[prgCod] = data[0].id; 
+                        finalProgId = data[0].id;
+                        cPrg++; 
+                    }
+                } else {
+                    finalProgId = mapProgetti[prgCod];
                 }
-            }
 
-            for (const row of dati) {
-                if (row.id_certificato) {
-                    const progId = mapProgetti[row.codice];
-                    const corId = mapCorsisti[row.cf ? row.cf.toUpperCase() : ""];
-                    
-                    if (progId && corId) {
-                        const { data: exIsc } = await supabaseClient.from('iscrizioni').select('id').eq('id_certificato', row.id_certificato);
-                        if (!exIsc || exIsc.length === 0) {
-                            let dScadISO = null;
-                            let corsoId = 'lav_basso';
-                            const nC = row.corso ? row.corso.toLowerCase() : "";
-                            if (nC.includes('alto')) corsoId = 'lav_alto';
-                            else if (nC.includes('medio')) corsoId = 'lav_medio';
-                            else if (nC.includes('rls')) corsoId = 'rls';
-                            else if (nC.includes('cantieri')) corsoId = 'mod_cantieri';
-                            else if (nC.includes('preposto') && nC.includes('agg')) corsoId = 'agg_prep';
-                            else if (nC.includes('preposto')) corsoId = 'preposto';
-                            else if (nC.includes('dl spp') || nC.includes('rspp')) corsoId = 'dl_spp_comune';
-                            else if (nC.includes('dirigente')) corsoId = 'dirigente';
-                            
-                            const dbCorso = window.DB_CORSI ? window.DB_CORSI[corsoId] : null;
-                            if (dbCorso && dbCorso.scad !== 99 && row.data_esame) {
-                                let dEsame = new Date(row.data_esame);
-                                dEsame.setFullYear(dEsame.getFullYear() + dbCorso.scad);
-                                dScadISO = dEsame.toISOString().split('T')[0];
-                            }
-
-                            const { error } = await supabaseClient.from('iscrizioni').insert([{
-                                progetto_id: progId,
-                                corsista_id: corId,
-                                id_certificato: row.id_certificato,
-                                esito: "Idoneo",
-                                data_scadenza: dScadISO
-                            }]);
-                            if (!error) contatori.iscrizioni++;
-                        }
+                // --- ISCRIZIONI ---
+                if (finalProgId && iscCert) {
+                    const { data: exIsc } = await supabaseClient.from('iscrizioni').select('id').eq('id_certificato', iscCert);
+                    if (!exIsc || exIsc.length === 0) {
+                        const { error } = await supabaseClient.from('iscrizioni').insert([{
+                            progetto_id: finalProgId,
+                            corsista_id: mapCorsisti[corCf],
+                            id_certificato: iscCert,
+                            esito: "Idoneo",
+                            data_scadenza: window.formatDataToISODate(iscScadRaw)
+                        }]);
+                        if (!error) cIsc++;
                     }
                 }
             }
-
-            alert(`Importazione completata con successo!\n\nSono stati importati e riallineati:\n- ${contatori.aziende} Aziende\n- ${contatori.docenti} Docenti\n- ${contatori.corsisti} Corsisti\n- ${contatori.progetti} Progetti Formativi\n- ${contatori.iscrizioni} Iscrizioni ed Attestati`);
-            if(typeof window.loadDashboardStats === 'function') window.loadDashboardStats();
-
-        } catch (err) {
-            console.error(err);
-            alert("Errore critico durante l'importazione: " + err.message);
-        } finally {
-            btn.innerHTML = '<i data-lucide="upload-cloud" class="w-5 h-5"></i> Avvia Importazione';
-            btn.disabled = false;
-            if(typeof lucide !== 'undefined') lucide.createIcons();
-            fileInput.value = "";
         }
-    };
-    reader.readAsText(file);
-};
 
+        window.logMig(`<strong>MIGRAZIONE COMPLETATA CON SUCCESSO!</strong>`);
+        window.logMig(`- Aziende generate: ${cAz}`);
+        window.logMig(`- Docenti generati: ${cDoc}`);
+        window.logMig(`- Corsisti importati: ${cCor}`);
+        window.logMig(`- Progetti formativi ricreati: ${cPrg}`);
+        window.logMig(`- Attestati e Scadenze registrate: ${cIsc}`);
+        
+        if(typeof window.loadDashboardStats === 'function') window.loadDashboardStats();
+
+    } catch (err) {
+        window.logMig(`ERRORE CRITICO DB: ${err.message}`, true);
+    } finally {
+        btn.innerHTML = '<i data-lucide="play-circle" class="w-5 h-5"></i> Avvia Importazione';
+        btn.disabled = false;
+        if(typeof lucide !== 'undefined') lucide.createIcons();
+    }
+};
 // ==========================================
 // GENERATORE DEI TEST E CORRETTORE
 // ==========================================
