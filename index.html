@@ -5,18 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SafetyManager PRO 2025</title>
     
-    <!-- PWA Manifest -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0f172a">
     <link rel="apple-touch-icon" href="icon.png">
 
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
-    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <style>
@@ -52,7 +48,7 @@
         .btn-tab.active[id="nav-stampe"]::after { background-color: #6366f1; }
         .btn-tab.active[id="nav-ente"]::after { background-color: #64748b; }
 
-        /* --- MOTORE DI STAMPA PDF (Risolve Spaginazioni e Pagine Bianche) --- */
+        /* --- MOTORE DI STAMPA PDF --- */
         body.is-printing-temp #print-area-temp {
             display: block !important; position: absolute; top: 0; left: 0; width: 100%; background: white; z-index: 99999;
         }
@@ -124,10 +120,9 @@
                     <span class="hidden xl:block">Progetti</span>
                 </button>
 
-                <!-- NUOVO PULSANTE SCADENZE -->
                 <button onclick="window.loadModule('scadenze')" id="nav-scadenze" class="btn-tab flex items-center gap-2 px-3 py-2 rounded-xl font-bold text-xs transition-all duration-300 hover:text-white hover:bg-slate-800 group text-slate-400">
                     <div class="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center group-hover:bg-red-500 group-hover:shadow-lg group-hover:shadow-red-500/40 transition-all icon-box scadenze"><i data-lucide="bell-ring" class="w-3.5 h-3.5 group-hover:text-white icon-svg transition-colors"></i></div>
-                    <span class="hidden xl:block text-red-200">Scadenze</span>
+                    <span class="hidden xl:block">Scadenze</span>
                 </button>
 
                 <button onclick="window.loadModule('stampe')" id="nav-stampe" class="btn-tab flex items-center gap-2 px-3 py-2 rounded-xl font-bold text-xs transition-all duration-300 hover:text-white hover:bg-slate-800 group text-slate-400">
