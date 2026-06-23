@@ -985,7 +985,7 @@ window.updateAll = function() {
     // INIEZIONE DICITURA HEADER TOP (SOLO ATTESTATO)
     let headerLegaleHtml = "";
     if (isAzienda) {
-        headerLegaleHtml = "<p>Formazione erogata dal datore di lavoro ai propri lavoratori come da accordo Stato Regioni del 2025 rep. N° ... del .....</p>";
+        headerLegaleHtml = "<p>Formazione erogata dal datore di lavoro ai propri lavoratori come da accordo Stato Regioni del 2025 rep. N° 59 del 17 Aprile 2025</p>";
     } else {
         headerLegaleHtml = "<p>Soggetto formatore ai sensi dell'Accordo Stato Regioni del 17 aprile 2025 (Rep. Atti n. 59/CSR)</p><p>Erogazione Diretta o tramite struttura di diretta emanazione</p>";
     }
