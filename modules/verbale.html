@@ -1,55 +1,46 @@
-<!-- modules/verbale.html -->
-<div class="doc-page flex flex-col print-as-block" style="padding: 15mm !important; max-height: 297mm;">
+<div class="doc-page portrait flex flex-col print-as-block relative bg-white" style="padding: 15mm !important; max-height: 296mm; height: 296mm;">
     
-    <!-- Redesign Header -->
-    <div class="flex justify-between items-center border-b border-slate-300 pb-4 shrink-0 mb-6">
-        <div class="flex items-center gap-4">
-            <img src="" alt="Logo" class="logo-img h-12 object-contain hidden">
-            <h1 class="text-2xl font-black uppercase text-slate-900 tracking-tighter logo-text val-ente">---</h1>
+    <div class="text-center border-b-2 border-slate-800 pb-4 mb-6 shrink-0">
+        <h1 class="text-2xl font-black uppercase text-slate-900 tracking-widest">Verbale Esame Finale</h1>
+        <h2 class="text-sm font-bold uppercase text-slate-600 mt-1">Valutazione dell'apprendimento e prove di verifica</h2>
+    </div>
+
+    <div class="mb-6 shrink-0 text-xs leading-relaxed text-justify">
+        <p class="mb-2">In data <span class="font-bold border-b border-slate-400 px-2 val-data-esame text-sm"></span> presso la sede <span class="font-bold border-b border-slate-400 px-2 val-sede-corso uppercase"></span> si è regolarmente concluso il progetto formativo denominato:</p>
+        
+        <div class="bg-slate-50 border border-slate-300 p-3 text-center my-3 rounded">
+            <h3 class="font-black text-sm text-blue-900 uppercase val-titolo-corso">---</h3>
+            <p class="text-[10px] font-mono font-bold text-slate-600 mt-1">ID Prog: <span class="val-codice"></span> - Erogatore: <span class="val-erogatore"></span></p>
         </div>
+
+        <p>I discenti indicati in calce, in possesso del requisito di presenza minima obbligatoria ex ASR 17/04/2025, sono stati sottoposti a verifica dell'apprendimento tramite somministrazione di <strong>Test a Risposta Multipla</strong> (soglia superamento minima 70%) e, ove previsto dalla tipologia del corso, a valutazione di <strong>Prova Pratica e Colloquio</strong> da parte del Docente/Commissione.</p>
     </div>
 
-    <!-- Titolo Verbale -->
-    <div class="text-center mb-6 shrink-0">
-        <h2 class="text-lg font-black uppercase tracking-widest text-slate-800 border-b-2 border-slate-900 inline-block pb-1">Verbale Verifica di Apprendimento</h2>
-    </div>
-
-    <!-- Redesign Info Grid -->
-    <div class="grid grid-cols-2 gap-x-6 gap-y-3 text-[10px] mb-6 p-4 bg-slate-50 border border-slate-200 rounded shrink-0">
-        <p><strong class="uppercase text-slate-500 tracking-wide">ID Progetto:</strong> <span class="val-codice font-mono font-bold text-slate-800 ml-1">---</span></p>
-        <p><strong class="uppercase text-slate-500 tracking-wide">Azienda Committente:</strong> <span class="val-azienda font-bold text-slate-800 ml-1 uppercase">---</span></p>
-        <p class="col-span-2"><strong class="uppercase text-slate-500 tracking-wide">Corso Erogato:</strong> <span class="val-titolo-corso font-black text-blue-800 ml-1 text-xs uppercase">---</span></p>
-        <p class="border-t border-slate-200 pt-3 mt-1"><strong class="uppercase text-slate-500 tracking-wide">Sede Corso:</strong> <span class="val-sede-corso font-bold uppercase ml-1">---</span></p>
-        <p class="border-t border-slate-200 pt-3 mt-1 text-right"><strong class="uppercase text-blue-700 tracking-wide">Data Verifica:</strong> <span class="val-data-esame font-black text-sm ml-1">---</span></p>
-    </div>
-    
-    <!-- Tabella Verbale -->
-    <div class="flex-1 flex flex-col overflow-hidden mb-6">
-        <table class="table-bordered text-[9px] h-full table-fixed">
-            <thead class="bg-slate-100 text-slate-700">
+    <div class="flex-1 flex flex-col min-h-0 w-full mb-6">
+        <table class="w-full text-[9px] border-collapse border border-slate-900 h-full">
+            <thead class="bg-slate-200">
                 <tr>
-                    <th class="py-1.5 px-2 text-left uppercase tracking-wide">Candidato</th>
-                    <th class="py-1.5 text-center w-16 uppercase tracking-wide text-[7px]">Freq. ≥ 90%</th>
-                    <th class="py-1.5 text-center w-20 uppercase tracking-wide">Test Scritto</th>
-                    <th class="py-1.5 text-center w-20 uppercase tracking-wide">Colloquio</th>
-                    <th class="py-1.5 text-center w-20 uppercase tracking-wide">Esito Finale</th>
+                    <th class="border border-slate-900 p-1 text-left pl-2">Nominativo Allievo e Mansione</th>
+                    <th class="border border-slate-900 p-1 w-16 text-center">Presenza Idonea</th>
+                    <th class="border border-slate-900 p-1 w-20 text-center bg-indigo-50">Voto Test</th>
+                    <th class="border border-slate-900 p-1 w-20 text-center bg-indigo-50">Prova Pratica</th>
+                    <th class="border border-slate-900 p-1 w-24 text-center font-black">ESITO FINALE</th>
                 </tr>
             </thead>
-            <tbody id="v-rows" class="bg-white"></tbody>
+            <tbody id="v-rows" class="bg-white text-slate-800 align-middle"></tbody>
         </table>
     </div>
-    
-    <!-- Firme -->
-    <div class="mt-auto shrink-0 flex flex-nowrap justify-around px-8 text-[10px] font-bold uppercase text-center pt-4 pb-2">
-        <div class="w-2/5 px-4">
-            <div class="w-full border-t border-slate-500 mb-1.5"></div>
-            <span class="text-[8px] font-bold text-slate-500 block tracking-widest">La Commissione Esaminatrice</span>
-            <span class="val-docente-main text-slate-800 font-black text-[10px] block mt-1">---</span>
+
+    <div class="mt-auto shrink-0 flex justify-between text-center pt-6 text-[10px]">
+        <div class="w-1/2 px-4">
+            <span class="text-[8px] font-bold text-slate-500 block uppercase tracking-widest">Il Docente / Commissione Esaminatrice</span>
+            <span class="border-b border-slate-400 block w-4/5 mx-auto mt-8 mb-2"></span>
+            <span class="val-docente-main font-black uppercase text-slate-900">---</span>
         </div>
-        <div class="w-2/5 px-4">
-            <div class="w-full border-t border-slate-500 mb-1.5"></div>
-            <span class="text-[8px] font-bold text-slate-500 block tracking-widest">Il Responsabile del Progetto</span>
-            <span class="val-resp-progetto text-slate-800 font-black text-[10px] block mt-1">---</span>
+        <div class="w-1/2 px-4">
+            <span class="val-ruolo-firma-3 text-[8px] font-bold text-slate-500 block uppercase tracking-widest">Il Responsabile del Progetto Formativo</span>
+            <span class="border-b border-slate-400 block w-4/5 mx-auto mt-8 mb-2"></span>
+            <span class="val-firma-3-nome font-black uppercase text-slate-900">---</span>
         </div>
     </div>
 </div>
