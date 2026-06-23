@@ -493,7 +493,7 @@ window.loadProgettiTable = async function() {
                     <button onclick="window.eliminaProgetto('${p.id}')" class="text-red-600 hover:bg-red-200 bg-red-100 p-1.5 rounded transition shadow-sm ml-1"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
                 </td>
             </tr>
-        `;
+        });
     });
     tbody.innerHTML = html;
     if(typeof lucide !== 'undefined') lucide.createIcons();
@@ -923,16 +923,28 @@ window.updateAll = function() {
         }
         dateSummaryArr.push('<span class="font-bold text-slate-800">' + ud.ud + '</span>: ' + udDates.join(', '));
         
+        // --- LOGICA AUTO-ADATTAMENTO TESTO SU UNA RIGA ---
+        let dateStr = udDates.join(', '); // Unisce le date con una virgola
+        let dl = dateStr.length;
+        // Calcolo decrescente: più è lungo, più il font si restringe
+        let dSize = dl > 45 ? '3.5px' : (dl > 35 ? '4.5px' : (dl > 25 ? '5.5px' : (dl > 15 ? '6.5px' : '8px')));
+
+        let docL = nomeDocente.length;
+        let docSize = docL > 45 ? '3.5px' : (docL > 35 ? '4.5px' : (docL > 25 ? '5.5px' : (docL > 15 ? '6.5px' : '8px')));
+
+        let udL = ud.ud.length;
+        let udSize = udL > 12 ? '5.5px' : '8px';
+
         scheduleHtml += `
         <tr>
-            <td class="text-center font-bold p-1 border-b border-r border-slate-300 align-top break-words whitespace-normal" style="word-break: break-word;">${udDates.join('<br>')}</td>
-            <td class="text-center p-1 border-b border-r border-slate-300 align-top font-bold text-slate-500 break-words">${ud.ud}</td>
+            <td class="text-center font-bold p-1 border-b border-r border-slate-300 align-middle whitespace-nowrap overflow-hidden" style="font-size: ${dSize}; letter-spacing: -0.2px;">${dateStr}</td>
+            <td class="text-center p-1 border-b border-r border-slate-300 align-middle font-bold text-slate-500 whitespace-nowrap overflow-hidden" style="font-size: ${udSize}; letter-spacing: -0.2px;">${ud.ud}</td>
             <td class="p-1 border-b border-r border-slate-300 align-top break-words whitespace-normal">
-                <p class="font-bold text-slate-800 uppercase mb-0.5">${ud.m}</p>
-                <div class="text-slate-700 leading-tight text-justify italic opacity-90">${ud.d}</div>
+                <p class="font-bold text-slate-800 uppercase mb-0.5" style="font-size: 8px;">${ud.m}</p>
+                <div class="text-slate-700 leading-tight text-justify italic opacity-90" style="font-size: 7.5px;">${ud.d}</div>
             </td>
-            <td class="text-center p-1 border-b border-r border-slate-300 font-bold text-blue-700 align-middle uppercase break-words whitespace-normal" style="word-break: break-word;">${nomeDocente}</td>
-            <td class="text-center font-bold p-1 border-b border-slate-300 align-middle break-words">${ud.ore} h</td>
+            <td class="text-center p-1 border-b border-r border-slate-300 font-bold text-blue-700 align-middle uppercase whitespace-nowrap overflow-hidden" style="font-size: ${docSize}; letter-spacing: -0.2px;">${nomeDocente}</td>
+            <td class="text-center font-bold p-1 border-b border-slate-300 align-middle break-words text-[8px]">${ud.ore} h</td>
         </tr>`;
     });
 
