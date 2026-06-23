@@ -938,21 +938,12 @@ window.updateAll = function() {
 
     document.querySelectorAll('.val-syllabus-table').forEach(el => el.innerHTML = scheduleHtml);
 
-    // DEVIATORE LOGICO: ENTE O AZIENDA
+    // DEVIATORE LOGICO EROGATORE DIRETTO
     const isAzienda = window.getVal('cfg-ente-erogatore') === 'azienda';
     const nomeErogatore = isAzienda ? window.getVal('cfg-azienda') : window.getVal('cfg-ente');
-    const indirizzoErogatore = isAzienda ? window.getVal('cfg-azienda-indirizzo') : window.getVal('cfg-ente-indirizzo');
     
-    let headerLegaleHtml = "";
-    if (isAzienda) {
-        headerLegaleHtml = "<p>Formazione erogata dal datore di lavoro ai propri lavoratori</p><p>come da Accordo Stato Regioni del 17 aprile 2025 (Rep. Atti n. 59/CSR)</p>";
-    } else {
-        headerLegaleHtml = "<p>Soggetto formatore ai sensi dell'Accordo Stato Regioni del 17 aprile 2025 (Rep. Atti n. 59/CSR)</p><p>Erogazione Diretta o tramite struttura di diretta emanazione</p>";
-    }
-    
-    document.querySelectorAll('.val-header-legale').forEach(el => el.innerHTML = headerLegaleHtml);
     document.querySelectorAll('.val-erogatore').forEach(el => el.innerText = nomeErogatore || "---");
-    document.querySelectorAll('.val-ente-indirizzo-dinamico').forEach(el => el.innerText = indirizzoErogatore || "---");
+    document.querySelectorAll('.val-ente-indirizzo-dinamico').forEach(el => el.innerText = isAzienda ? window.getVal('cfg-azienda-indirizzo') : window.getVal('cfg-ente-indirizzo'));
     document.querySelectorAll('.val-ente-contatti-dinamico').forEach(el => el.innerText = isAzienda ? "Ateco: " + window.getVal('cfg-ateco') : window.getVal('cfg-ente-contatti'));
     
     document.querySelectorAll('.val-ruolo-firma-3').forEach(el => el.innerText = isAzienda ? "Il Datore di Lavoro" : "Il Legale Rappresentante dell'Ente");
@@ -962,8 +953,10 @@ window.updateAll = function() {
 
 
     const sedeToDisplay = window.getVal('cfg-sede-corso') || window.getVal('cfg-azienda-indirizzo') || "Sede Aziendale";
+
     document.querySelectorAll('.val-ente').forEach(el => el.innerText = window.getVal('cfg-ente'));
     document.querySelectorAll('.val-ente-indirizzo').forEach(el => el.innerText = window.getVal('cfg-ente-indirizzo'));
+    document.querySelectorAll('.val-ente-contatti').forEach(el => el.innerText = window.getVal('cfg-ente-contatti'));
     document.querySelectorAll('.val-azienda').forEach(el => el.innerText = window.getVal('cfg-azienda'));
     document.querySelectorAll('.val-ateco').forEach(el => el.innerText = window.getVal('cfg-ateco'));
     document.querySelectorAll('.val-titolo-corso').forEach(el => el.innerText = c.t);
@@ -974,12 +967,20 @@ window.updateAll = function() {
     document.querySelectorAll('.val-resp-progetto').forEach(el => el.innerText = window.getVal('cfg-legale-nome') || "Legale Rappresentante");
     document.querySelectorAll('.val-luogo-emissione').forEach(el => el.innerText = window.getVal('cfg-luogo-emissione'));
     document.querySelectorAll('.val-legale-nome').forEach(el => el.innerText = window.getVal('cfg-legale-nome'));
+    document.querySelectorAll('.val-legale-nascita').forEach(el => el.innerText = window.getVal('cfg-legale-nascita'));
     document.querySelectorAll('.val-data-esame').forEach(el => el.innerText = dataEsameStrFormatted);
     document.querySelectorAll('.val-modalita').forEach(el => el.innerText = window.getVal('cfg-modalita', 'In Presenza Fisica'));
     document.querySelectorAll('.val-calendario').forEach(el => el.innerText = window.getVal('cfg-calendario'));
     document.querySelectorAll('.val-date-ud').forEach(el => el.innerHTML = dateSummaryArr.join('<br>'));
 
-    document.querySelectorAll('.val-dicitura-legale').forEach(el => el.innerHTML = "Corso erogato in conformità a:<br><strong>" + c.norma + "</strong>");
+    // INIEZIONE DICITURA LEGALE DEDICATA A SECONDA DELL'EROGATORE
+    document.querySelectorAll('.val-dicitura-legale').forEach(el => {
+        if(isAzienda) {
+            el.innerHTML = "Corso erogato in conformità a:<br><strong>" + (c.norma || "D.Lgs. 81/08 e Accordo Stato Regioni del 17 Aprile 2025") + "</strong><br><span class='text-blue-700 italic block mt-1'>Formazione erogata dal datore di lavoro ai propri lavoratori come da Accordo Stato Regioni del 17 aprile 2025 (Rep. Atti n. 59/CSR)</span>";
+        } else {
+            el.innerHTML = "Corso erogato in conformità a:<br><strong>" + (c.norma || "D.Lgs. 81/08 e Accordo Stato Regioni del 17 Aprile 2025") + "</strong>";
+        }
+    });
 
     document.querySelectorAll('.val-data-inizio').forEach(el => {
         const di = window.getVal('cfg-data-inizio');
@@ -991,7 +992,6 @@ window.updateAll = function() {
 
     const logoUrl = window.getVal('cfg-logo');
     document.querySelectorAll('.logo-img').forEach(img => { 
-        // L'Azienda di solito non ha il logo salvato nel DB, quindi nascondiamo il logo se isAzienda
         if(logoUrl && !isAzienda){ img.src=logoUrl; img.classList.remove('hidden'); } 
         else img.classList.add('hidden'); 
     });
