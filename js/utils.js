@@ -965,6 +965,9 @@ window.preparaEStampaMassiva = function(tabId) {
 // ==========================================
 // RENDER DOCUMENTI E SYLLABUS MULTIDOCENTE
 // ==========================================
+// ==========================================
+// RENDER DOCUMENTI E SYLLABUS MULTIDOCENTE
+// ==========================================
 window.updateAll = function() {
     const courseId = window.getVal('cfg-corso', 'lav_basso');
     const c = window.DB_CORSI[courseId];
@@ -1019,7 +1022,6 @@ window.updateAll = function() {
         }
         dateSummaryArr.push('<span class="font-bold text-slate-800">' + ud.ud + '</span>: ' + udDates.join(', '));
         
-        // --- LOGICA AUTO-ADATTAMENTO TESTO SU UNA RIGA ---
         let dateStr = udDates.join(', ');
         let dl = dateStr.length;
         let dSize = dl > 45 ? '3.5px' : (dl > 35 ? '4.5px' : (dl > 25 ? '5.5px' : (dl > 15 ? '6.5px' : '8px')));
@@ -1045,11 +1047,9 @@ window.updateAll = function() {
 
     document.querySelectorAll('.val-syllabus-table').forEach(el => el.innerHTML = scheduleHtml);
 
-    // DEVIATORE LOGICO EROGATORE DIRETTO E LUOGO DI EMISSIONE
     const isAzienda = window.getVal('cfg-ente-erogatore') === 'azienda';
     const nomeErogatore = isAzienda ? window.getVal('cfg-azienda') : window.getVal('cfg-ente');
     
-    // Algoritmo calcolo Città di Emissione
     let luogoEmissione = window.getVal('cfg-luogo-emissione');
     if (isAzienda) {
         let indAz = window.getVal('cfg-azienda-indirizzo');
@@ -1070,14 +1070,10 @@ window.updateAll = function() {
     
     document.querySelectorAll('.val-ruolo-firma-3').forEach(el => el.innerText = isAzienda ? "Il Datore di Lavoro" : "Il Legale Rappresentante dell'Ente");
     document.querySelectorAll('.val-firma-3-nome').forEach(el => el.innerText = isAzienda ? window.getVal('cfg-azienda-referente') : window.getVal('cfg-legale-nome'));
-    
     document.querySelectorAll('.val-testo-timbro').forEach(el => el.innerHTML = isAzienda ? "TIMBRO<br>AZIENDA" : "TIMBRO<br>EROGATORE");
 
     const sedeToDisplay = window.getVal('cfg-sede-corso') || window.getVal('cfg-azienda-indirizzo') || "Sede Aziendale";
-
     document.querySelectorAll('.val-ente').forEach(el => el.innerText = window.getVal('cfg-ente'));
-    document.querySelectorAll('.val-ente-indirizzo').forEach(el => el.innerText = window.getVal('cfg-ente-indirizzo'));
-    document.querySelectorAll('.val-ente-contatti').forEach(el => el.innerText = window.getVal('cfg-ente-contatti'));
     document.querySelectorAll('.val-azienda').forEach(el => el.innerText = window.getVal('cfg-azienda'));
     document.querySelectorAll('.val-ateco').forEach(el => el.innerText = window.getVal('cfg-ateco'));
     document.querySelectorAll('.val-titolo-corso').forEach(el => el.innerText = c.t);
@@ -1086,7 +1082,6 @@ window.updateAll = function() {
     document.querySelectorAll('.val-sede-corso').forEach(el => el.innerText = sedeToDisplay); 
     document.querySelectorAll('.val-docente-main').forEach(el => el.innerText = primoDocenteNome); 
     document.querySelectorAll('.val-resp-progetto').forEach(el => el.innerText = window.getVal('cfg-legale-nome') || "Legale Rappresentante");
-    document.querySelectorAll('.val-legale-nome').forEach(el => el.innerText = window.getVal('cfg-legale-nome'));
     document.querySelectorAll('.val-data-esame').forEach(el => el.innerText = dataEsameStrFormatted);
     document.querySelectorAll('.val-modalita').forEach(el => el.innerText = window.getVal('cfg-modalita', 'In Presenza Fisica'));
     document.querySelectorAll('.val-calendario').forEach(el => el.innerText = window.getVal('cfg-calendario'));
@@ -1122,28 +1117,62 @@ window.updateAll = function() {
         else img.classList.add('hidden'); 
     });
 
-    if (window.currentSessionCorsisti && window.currentSessionCorsisti.length > 0) {
-        const c1 = window.currentSessionCorsisti[0];
-        document.querySelectorAll('.val-nome').forEach(el => el.innerText = c1.nome || "---");
-        document.querySelectorAll('.val-nascita').forEach(el => el.innerText = c1.nascita || "---");
-        document.querySelectorAll('.val-cf').forEach(el => el.innerText = c1.cf || "---");
-        document.querySelectorAll('.val-cert-id').forEach(el => el.innerText = c1.id_certificato || "---");
-        document.querySelectorAll('.val-mansione').forEach(el => el.innerText = c1.mansione || "N/D");
-        
-        let stringaScadenza = "Permanente (Senza Scadenza)";
-        if (c.scad !== 99) {
-            if (c1.data_scadenza) {
-                let ds = new Date(c1.data_scadenza);
-                stringaScadenza = ds.toLocaleDateString('it-IT') + " (Agg. ogni " + c.scad + " Anni)";
-            } else if (dataEsameRaw) {
-                let dEsame = new Date(dataEsameRaw);
-                dEsame.setFullYear(dEsame.getFullYear() + c.scad);
-                stringaScadenza = dEsame.toLocaleDateString('it-IT') + " (Agg. ogni " + c.scad + " Anni)";
+
+    // =========================================================================
+    // MOTORE INIEZIONE DATI - BIFORCAZIONE TRA CORSISTI E DOCENTI
+    // =========================================================================
+    
+    // CASO 1: STAMPA DELLA DICHIARAZIONE DEL DOCENTE (Niente Corsisti!)
+    if (window.currentPrintModule === 'dichiarazione_docenza') {
+        const chkDL = document.getElementById('check-box-dl');
+        const chkDoc = document.getElementById('check-box-docente');
+
+        if (isAzienda) {
+            // Erogatore Azienda -> Compila i dati del Datore di Lavoro (DL) e Spunta Opzione A
+            if(chkDL) chkDL.innerHTML = "X";
+            if(chkDoc) chkDoc.innerHTML = "";
+            document.querySelectorAll('.val-nome').forEach(el => el.innerText = window.getVal('cfg-legale-nome') || "---");
+            document.querySelectorAll('.val-cf').forEach(el => el.innerText = "________________"); // Il CF Azienda è P.IVA, il CF del DL non lo abbiamo a DB
+            document.querySelectorAll('.val-nascita').forEach(el => el.innerText = window.getVal('cfg-legale-nascita') || "________________");
+        } else {
+            // Erogatore Ente -> Compila i dati del Docente Formatore principale e Spunta Opzione B
+            if(chkDL) chkDL.innerHTML = "";
+            if(chkDoc) chkDoc.innerHTML = "X";
+            
+            let firstUdKey = Object.keys(docenti_ud)[0];
+            let docObj = window.docentiList.find(d => d.id === docenti_ud[firstUdKey]);
+            if(docObj) {
+                document.querySelectorAll('.val-nome').forEach(el => el.innerText = docObj.nome_cognome || "---");
+                document.querySelectorAll('.val-cf').forEach(el => el.innerText = docObj.cf || "---");
+                document.querySelectorAll('.val-nascita').forEach(el => el.innerText = "________________"); // Nascita Docente non tracciata a DB
             }
         }
-        document.querySelectorAll('.val-scadenza').forEach(el => el.innerText = stringaScadenza);
+    } 
+    // CASO 2: STAMPA ATTESTATI O ESAMI (Elaborazione Corsisti)
+    else {
+        if (window.currentSessionCorsisti && window.currentSessionCorsisti.length > 0) {
+            const c1 = window.currentSessionCorsisti[0];
+            document.querySelectorAll('.val-nome').forEach(el => el.innerText = c1.nome || "---");
+            document.querySelectorAll('.val-nascita').forEach(el => el.innerText = c1.nascita || "---");
+            document.querySelectorAll('.val-cf').forEach(el => el.innerText = c1.cf || "---");
+            document.querySelectorAll('.val-cert-id').forEach(el => el.innerText = c1.id_certificato || "---");
+            document.querySelectorAll('.val-mansione').forEach(el => el.innerText = c1.mansione || "N/D");
+            
+            let stringaScadenza = "Permanente (Senza Scadenza)";
+            if (c.scad !== 99) {
+                if (c1.data_scadenza) {
+                    let ds = new Date(c1.data_scadenza);
+                    stringaScadenza = ds.toLocaleDateString('it-IT') + " (Agg. ogni " + c.scad + " Anni)";
+                } else if (dataEsameRaw) {
+                    let dEsame = new Date(dataEsameRaw);
+                    dEsame.setFullYear(dEsame.getFullYear() + c.scad);
+                    stringaScadenza = dEsame.toLocaleDateString('it-IT') + " (Agg. ogni " + c.scad + " Anni)";
+                }
+            }
+            document.querySelectorAll('.val-scadenza').forEach(el => el.innerText = stringaScadenza);
 
-        window.aggiornaTabelleSessione();
+            window.aggiornaTabelleSessione();
+        }
     }
 };
 
