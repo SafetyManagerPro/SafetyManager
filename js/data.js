@@ -152,7 +152,7 @@ window.DB_CORSI = {
 };
 
 // ==========================================
-// POOL DOMANDE
+// POOL DOMANDE ESTESO (30 DOMANDE GARANTITE)
 // ==========================================
 window.POOL_GENERALE = [
     { q: "Qual è il principale riferimento normativo per la sicurezza sul lavoro?", a: ["D.Lgs 81/08", "D.Lgs 231/01", "D.Lgs 106/09"], correct: 0 },
@@ -169,7 +169,22 @@ window.POOL_GENERALE = [
     { q: "Qual è la durata minima della Formazione Generale per i lavoratori?", a: ["2 ore", "4 ore", "8 ore"], correct: 1 },
     { q: "L'ultimo Accordo Stato Regioni sulla formazione citato nel corso è del:", a: ["2011", "2016", "2025"], correct: 2 },
     { q: "I Dispositivi di Protezione Individuale devono obbligatoriamente avere:", a: ["La marcatura CE", "Il nome del lavoratore inciso", "Un colore ad alta visibilità"], correct: 0 },
-    { q: "La Riunione Periodica di Sicurezza è obbligatoria per le aziende:", a: ["Con più di 15 lavoratori", "Di qualsiasi dimensione", "Solo nei cantieri edili"], correct: 0 }
+    { q: "La Riunione Periodica di Sicurezza è obbligatoria per le aziende:", a: ["Con più di 15 lavoratori", "Di qualsiasi dimensione", "Solo nei cantieri edili"], correct: 0 },
+    { q: "Cosa indica la segnaletica di colore ROSSO?", a: ["Divieto e Antincendio", "Obbligo", "Salvtaggio"], correct: 0 },
+    { q: "Cosa indica la segnaletica di colore GIALLO?", a: ["Avvertimento / Attenzione", "Divieto", "Obbligo"], correct: 0 },
+    { q: "Cosa indica la segnaletica di colore AZZURRO?", a: ["Obbligo", "Divieto", "Pericolo"], correct: 0 },
+    { q: "Cosa indica la segnaletica di colore VERDE?", a: ["Salvataggio / Vie di esodo", "Attenzione", "Obbligo"], correct: 0 },
+    { q: "La formazione sulla sicurezza deve essere svolta:", a: ["Durante l'orario di lavoro", "Fuori dall'orario di lavoro", "Solo se il lavoratore lo richiede"], correct: 0 },
+    { q: "Il costo dei Dispositivi di Protezione Individuale (DPI) è a carico di:", a: ["Datore di Lavoro", "Lavoratore", "Diviso a metà"], correct: 0 },
+    { q: "Il lavoratore può rifiutarsi di usare i DPI forniti?", a: ["No, mai", "Sì, se gli danno fastidio", "Sì, se lavora all'aperto"], correct: 0 },
+    { q: "Cosa si intende per Rischio?", a: ["Probabilità che si verifichi un danno x Gravità", "Un pericolo intrinseco", "Una malattia professionale"], correct: 0 },
+    { q: "Il Rappresentante dei Lavoratori per la Sicurezza (RLS) è obbligatorio?", a: ["Sì, in tutte le aziende", "Solo oltre i 15 dipendenti", "No, è facoltativo"], correct: 0 },
+    { q: "Le uscite di emergenza devono essere:", a: ["Sempre libere da ostacoli", "Chiuse a chiave", "Nascoste per non allarmare"], correct: 0 },
+    { q: "Il preposto ha il compito di:", a: ["Vigilare sull'osservanza delle regole di sicurezza", "Valutare i rischi", "Nominare il medico competente"], correct: 0 },
+    { q: "Cosa deve fare il lavoratore se si accorge che una macchina è guasta?", a: ["Spegnere la macchina e avvisare il preposto/datore", "Provare a ripararla", "Continuare a lavorare facendo attenzione"], correct: 0 },
+    { q: "La gravidanza prevede limitazioni lavorative?", a: ["Sì, divieto di esposizione a rischi specifici", "No, nessuna", "Solo su richiesta del ginecologo"], correct: 0 },
+    { q: "L'utilizzo dell'ascensore in caso di incendio è:", a: ["Severamente vietato", "Consigliato per fare prima", "A discrezione del lavoratore"], correct: 0 },
+    { q: "L'addetto al primo soccorso può somministrare farmaci?", a: ["No, mai", "Sì, qualsiasi farmaco", "Sì, ma solo antibiotici"], correct: 0 }
 ];
 
 window.POOL_BASSO = [
