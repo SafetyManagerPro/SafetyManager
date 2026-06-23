@@ -809,17 +809,48 @@ window.salvaEnteDB = async function() {
 };
 
 window.initStampe = async function() {
-    const sel = document.getElementById('stampa-progetto');
-    if(!sel) return;
+    const filterSelect = document.getElementById('filter-stampe-corso');
+    if(!filterSelect) return;
     
     window.progettiList = await window.getProgetti();
     
-    let html = '<option value="">-- Seleziona un progetto --</option>';
-    window.progettiList.forEach(p => {
-        const azName = p.aziende ? p.aziende.ragione_sociale : 'Privato';
-        html += `<option value="${p.id}">${p.codice} - ${azName}</option>`;
+    // ORDINE DISCENDENTE PER DATA ESAME
+    window.progettiList.sort((a, b) => {
+        let da = new Date(a.data_esame || '1970-01-01').getTime();
+        let db = new Date(b.data_esame || '1970-01-01').getTime();
+        return db - da; 
     });
-    sel.innerHTML = html;
+    
+    // POPOLA MENU A TENDINA FILTRO SIGLE
+    let optHtml = '<option value="">-- Mostra tutti i corsi --</option>';
+    for(const key in window.DB_CORSI) {
+        const c = window.DB_CORSI[key];
+        optHtml += `<option value="${key}">[${c.code}] ${c.t}</option>`;
+    }
+    filterSelect.innerHTML = optHtml;
+
+    // Richiama il filtro per generare la tendina dei progetti
+    window.filtraStampe();
+};
+
+window.filtraStampe = function() {
+    const selProg = document.getElementById('stampa-progetto');
+    const filterVal = document.getElementById('filter-stampe-corso').value;
+    
+    if(!selProg) return;
+
+    let html = '<option value="">-- Seleziona un progetto --</option>';
+    
+    window.progettiList.forEach(p => {
+        // Se c'è un filtro attivo e il corso non corrisponde, salta la riga
+        if (filterVal !== "" && p.corso_id !== filterVal) return; 
+
+        const azName = p.aziende ? p.aziende.ragione_sociale : 'Privato';
+        const dateStr = window.formatDataToItalian(p.data_esame);
+        html += `<option value="${p.id}">${p.codice} - ${azName} (${dateStr})</option>`;
+    });
+    
+    selProg.innerHTML = html;
 };
 
 window.currentPrintModule = "";
