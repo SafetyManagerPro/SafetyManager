@@ -15,6 +15,8 @@
     
     <script src="https://unpkg.com/lucide@latest"></script>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800;900&display=swap');
         body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
@@ -32,6 +34,7 @@
         .btn-tab.active .icon-box.scadenze { background-color: #ef4444; box-shadow: 0 0 15px rgb(239 68 68 / 0.6); }
         .btn-tab.active .icon-box.stampe { background-color: #6366f1; box-shadow: 0 0 15px rgb(99 102 241 / 0.6); }
         .btn-tab.active .icon-box.ente { background-color: #64748b; box-shadow: 0 0 15px rgb(100 116 139 / 0.6); }
+        .btn-tab.active .icon-box.migrazione { background-color: #d97706; box-shadow: 0 0 15px rgb(217 119 6 / 0.6); }
         .btn-tab.active .icon-svg { color: #ffffff; }
 
         .btn-tab::after {
@@ -47,11 +50,10 @@
         .btn-tab.active[id="nav-scadenze"]::after { background-color: #ef4444; }
         .btn-tab.active[id="nav-stampe"]::after { background-color: #6366f1; }
         .btn-tab.active[id="nav-ente"]::after { background-color: #64748b; }
+        .btn-tab.active[id="nav-migrazione"]::after { background-color: #d97706; }
 
         /* --- MOTORE DI STAMPA PDF --- */
-        body.is-printing-temp #print-area-temp {
-            display: block !important; position: absolute; top: 0; left: 0; width: 100%; background: white; z-index: 99999;
-        }
+        body.is-printing-temp #print-area-temp { display: block !important; position: absolute; top: 0; left: 0; width: 100%; background: white; z-index: 99999; }
         body.is-printing-temp nav, body.is-printing-temp aside, body.is-printing-temp main { display: none !important; }
 
         @media print {
@@ -65,10 +67,7 @@
                 page-break-after: always !important; break-after: page !important; overflow: hidden !important; position: relative;
             }
             @page { size: A4 portrait; margin: 0mm; }
-            .landscape-force { 
-                transform: rotate(-90deg) translate(-296mm, 0); transform-origin: top left; 
-                width: 296mm !important; height: 210mm !important; position: absolute; top: 0; left: 0; 
-            }
+            .landscape-force { transform: rotate(-90deg) translate(-296mm, 0); transform-origin: top left; width: 296mm !important; height: 210mm !important; position: absolute; top: 0; left: 0; }
             .print-show { display: block !important; }
         }
     </style>
@@ -89,52 +88,55 @@
             </div>
 
             <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-                
                 <button id="btn-install-app" class="hidden flex items-center gap-2 px-3 py-2 rounded-xl font-bold text-xs transition-all duration-300 text-emerald-400 hover:text-white hover:bg-slate-800 group mr-2 border border-emerald-500/30 bg-emerald-500/10">
                     <div class="w-7 h-7 rounded-lg bg-emerald-500/20 flex items-center justify-center group-hover:bg-emerald-500 group-hover:shadow-lg group-hover:shadow-emerald-500/40 transition-all"><i data-lucide="monitor-smartphone" class="w-3.5 h-3.5 group-hover:text-white transition-colors text-emerald-400"></i></div>
                     <span class="hidden xl:block">Installa App</span>
                 </button>
 
                 <button onclick="window.loadModule('admin')" id="nav-admin" class="btn-tab flex items-center gap-2 px-3 py-2 rounded-xl font-bold text-xs transition-all duration-300 hover:text-white hover:bg-slate-800 group text-slate-400">
-                    <div class="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center group-hover:bg-blue-500 group-hover:shadow-lg group-hover:shadow-blue-500/40 transition-all icon-box admin"><i data-lucide="layout-dashboard" class="w-3.5 h-3.5 group-hover:text-white icon-svg transition-colors"></i></div>
+                    <div class="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center group-hover:bg-blue-500 transition-all icon-box admin"><i data-lucide="layout-dashboard" class="w-3.5 h-3.5 group-hover:text-white icon-svg transition-colors"></i></div>
                     <span class="hidden xl:block">Dashboard</span>
                 </button>
 
                 <button onclick="window.loadModule('aziende')" id="nav-aziende" class="btn-tab flex items-center gap-2 px-3 py-2 rounded-xl font-bold text-xs transition-all duration-300 hover:text-white hover:bg-slate-800 group text-slate-400">
-                    <div class="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center group-hover:bg-amber-500 group-hover:shadow-lg group-hover:shadow-amber-500/40 transition-all icon-box aziende"><i data-lucide="briefcase" class="w-3.5 h-3.5 group-hover:text-white icon-svg transition-colors"></i></div>
+                    <div class="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center group-hover:bg-amber-500 transition-all icon-box aziende"><i data-lucide="briefcase" class="w-3.5 h-3.5 group-hover:text-white icon-svg transition-colors"></i></div>
                     <span class="hidden xl:block">Aziende</span>
                 </button>
 
                 <button onclick="window.loadModule('corsisti')" id="nav-corsisti" class="btn-tab flex items-center gap-2 px-3 py-2 rounded-xl font-bold text-xs transition-all duration-300 hover:text-white hover:bg-slate-800 group text-slate-400">
-                    <div class="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center group-hover:bg-emerald-500 group-hover:shadow-lg group-hover:shadow-emerald-500/40 transition-all icon-box corsisti"><i data-lucide="users" class="w-3.5 h-3.5 group-hover:text-white icon-svg transition-colors"></i></div>
+                    <div class="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center group-hover:bg-emerald-500 transition-all icon-box corsisti"><i data-lucide="users" class="w-3.5 h-3.5 group-hover:text-white icon-svg transition-colors"></i></div>
                     <span class="hidden xl:block">Corsisti</span>
                 </button>
 
                 <button onclick="window.loadModule('docenti')" id="nav-docenti" class="btn-tab flex items-center gap-2 px-3 py-2 rounded-xl font-bold text-xs transition-all duration-300 hover:text-white hover:bg-slate-800 group text-slate-400">
-                    <div class="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center group-hover:bg-purple-500 group-hover:shadow-lg group-hover:shadow-purple-500/40 transition-all icon-box docenti"><i data-lucide="graduation-cap" class="w-3.5 h-3.5 group-hover:text-white icon-svg transition-colors"></i></div>
+                    <div class="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center group-hover:bg-purple-500 transition-all icon-box docenti"><i data-lucide="graduation-cap" class="w-3.5 h-3.5 group-hover:text-white icon-svg transition-colors"></i></div>
                     <span class="hidden xl:block">Docenti</span>
                 </button>
 
                 <button onclick="window.loadModule('progetti')" id="nav-progetti" class="btn-tab flex items-center gap-2 px-3 py-2 rounded-xl font-bold text-xs transition-all duration-300 hover:text-white hover:bg-slate-800 group text-slate-400">
-                    <div class="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center group-hover:bg-rose-500 group-hover:shadow-lg group-hover:shadow-rose-500/40 transition-all icon-box progetti"><i data-lucide="layout-template" class="w-3.5 h-3.5 group-hover:text-white icon-svg transition-colors"></i></div>
+                    <div class="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center group-hover:bg-rose-500 transition-all icon-box progetti"><i data-lucide="layout-template" class="w-3.5 h-3.5 group-hover:text-white icon-svg transition-colors"></i></div>
                     <span class="hidden xl:block">Progetti</span>
                 </button>
 
                 <button onclick="window.loadModule('scadenze')" id="nav-scadenze" class="btn-tab flex items-center gap-2 px-3 py-2 rounded-xl font-bold text-xs transition-all duration-300 hover:text-white hover:bg-slate-800 group text-slate-400">
-                    <div class="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center group-hover:bg-red-500 group-hover:shadow-lg group-hover:shadow-red-500/40 transition-all icon-box scadenze"><i data-lucide="bell-ring" class="w-3.5 h-3.5 group-hover:text-white icon-svg transition-colors"></i></div>
+                    <div class="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center group-hover:bg-red-500 transition-all icon-box scadenze"><i data-lucide="bell-ring" class="w-3.5 h-3.5 group-hover:text-white icon-svg transition-colors"></i></div>
                     <span class="hidden xl:block">Scadenze</span>
                 </button>
 
                 <button onclick="window.loadModule('stampe')" id="nav-stampe" class="btn-tab flex items-center gap-2 px-3 py-2 rounded-xl font-bold text-xs transition-all duration-300 hover:text-white hover:bg-slate-800 group text-slate-400">
-                    <div class="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center group-hover:bg-indigo-500 group-hover:shadow-lg group-hover:shadow-indigo-500/40 transition-all icon-box stampe"><i data-lucide="printer" class="w-3.5 h-3.5 group-hover:text-white icon-svg transition-colors"></i></div>
+                    <div class="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center group-hover:bg-indigo-500 transition-all icon-box stampe"><i data-lucide="printer" class="w-3.5 h-3.5 group-hover:text-white icon-svg transition-colors"></i></div>
                     <span class="hidden xl:block">Stampe</span>
                 </button>
 
                 <div class="h-6 w-px bg-slate-700 mx-1"></div>
 
+                <button onclick="window.loadModule('migrazione')" id="nav-migrazione" class="btn-tab flex items-center gap-2 px-3 py-2 rounded-xl font-bold text-xs transition-all duration-300 hover:text-white hover:bg-slate-800 group text-slate-400">
+                    <div class="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center group-hover:bg-amber-600 transition-all icon-box migrazione"><i data-lucide="database-zap" class="w-3.5 h-3.5 group-hover:text-white icon-svg transition-colors"></i></div>
+                    <span class="hidden xl:block">Migrazione</span>
+                </button>
+
                 <button onclick="window.loadModule('ente')" id="nav-ente" class="btn-tab flex items-center gap-2 px-3 py-2 rounded-xl font-bold text-xs transition-all duration-300 hover:text-white hover:bg-slate-800 group text-slate-400">
                     <div class="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center group-hover:bg-slate-500 transition-all icon-box ente"><i data-lucide="settings" class="w-3.5 h-3.5 group-hover:rotate-90 transition-transform duration-500 group-hover:text-white icon-svg"></i></div>
-                    <span class="hidden xl:block">Ente</span>
                 </button>
             </div>
 
