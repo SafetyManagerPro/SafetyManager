@@ -925,14 +925,14 @@ window.updateAll = function() {
         
         scheduleHtml += `
         <tr>
-            <td class="text-center font-bold p-1.5 border-b-2 border-r border-slate-400 align-top">${udDates.join('<br>')}</td>
-            <td class="text-center p-1.5 border-b-2 border-r border-slate-400 align-top font-bold text-slate-500">${ud.ud}</td>
-            <td class="p-1.5 border-b-2 border-r border-slate-400 align-top">
+            <td class="text-center font-bold p-1 border-b border-r border-slate-300 align-top break-words whitespace-normal" style="word-break: break-word;">${udDates.join('<br>')}</td>
+            <td class="text-center p-1 border-b border-r border-slate-300 align-top font-bold text-slate-500 break-words">${ud.ud}</td>
+            <td class="p-1 border-b border-r border-slate-300 align-top break-words whitespace-normal">
                 <p class="font-bold text-slate-800 uppercase mb-0.5">${ud.m}</p>
                 <div class="text-slate-700 leading-tight text-justify italic opacity-90">${ud.d}</div>
             </td>
-            <td class="text-center p-1.5 border-b-2 border-r border-slate-400 font-bold text-blue-700 align-middle uppercase">${nomeDocente}</td>
-            <td class="text-center font-bold p-1.5 border-b-2 border-slate-400 align-middle">${ud.ore} h</td>
+            <td class="text-center p-1 border-b border-r border-slate-300 font-bold text-blue-700 align-middle uppercase break-words whitespace-normal" style="word-break: break-word;">${nomeDocente}</td>
+            <td class="text-center font-bold p-1 border-b border-slate-300 align-middle break-words">${ud.ore} h</td>
         </tr>`;
     });
 
@@ -949,10 +949,8 @@ window.updateAll = function() {
     if (isAzienda) {
         let indAz = window.getVal('cfg-azienda-indirizzo');
         if (indAz) {
-            // Divide la stringa in blocchi tramite virgola o trattino e prende l'ultima parte
             let p = indAz.split(/,| - | -/);
             let rawCity = p[p.length - 1];
-            // Elimina i numeri (CAP) e le sigle di provincia fra parentesi es. (RM)
             luogoEmissione = rawCity.replace(/[0-9]/g, '').replace(/\([A-Za-z]{2}\)/g, '').trim();
         } else {
             luogoEmissione = "Sede Aziendale";
@@ -995,7 +993,7 @@ window.updateAll = function() {
     // INIEZIONE DICITURA LEGALE DEDICATA A SECONDA DELL'EROGATORE (ATT.TO E PROGETTO FORMATIVO)
     document.querySelectorAll('.val-dicitura-legale').forEach(el => {
         if(isAzienda) {
-            el.innerHTML = "Corso erogato in conformità a:<br><strong>" + (c.norma || "D.Lgs. 81/08 e Accordo Stato Regioni del 17 Aprile 2025") + "</strong><br><span class='text-blue-700 italic block mt-1'>Formazione erogata dal datore di lavoro ai propri lavoratori come da Accordo Stato Regioni del 17 aprile 2025 (Rep. Atti n. 59/CSR)</span>";
+            el.innerHTML = "Corso erogato in conformità a:<br><strong>" + (c.norma || "D.Lgs. 81/08 e Accordo Stato Regioni del 17 Aprile 2025") + "</strong><br><span class='text-blue-700 italic block mt-1'>Formazione erogata dal datore di lavoro ai propri lavoratori come da accordo Stato Regioni del 2025 rep. CSR N° 59 del 17 aprile 2025</span>";
         } else {
             el.innerHTML = "Corso erogato in conformità a:<br><strong>" + (c.norma || "D.Lgs. 81/08 e Accordo Stato Regioni del 17 Aprile 2025") + "</strong>";
         }
@@ -1004,7 +1002,7 @@ window.updateAll = function() {
     // INIEZIONE DICITURA HEADER TOP (SOLO ATTESTATO)
     let headerLegaleHtml = "";
     if (isAzienda) {
-        headerLegaleHtml = "<p>Formazione erogata dal datore di lavoro ai propri lavoratori come da accordo Stato Regioni del 2025 rep. CSR N° 59 del 17 Aprile 2025</p>";
+        headerLegaleHtml = "<p>Formazione erogata dal datore di lavoro ai propri lavoratori come da accordo Stato Regioni del 2025 rep. CSR N° 59 del 17 aprile 2025</p>";
     } else {
         headerLegaleHtml = "<p>Soggetto formatore ai sensi dell'Accordo Stato Regioni del 17 aprile 2025 (Rep. Atti n. 59/CSR)</p><p>Erogazione Diretta o tramite struttura di diretta emanazione</p>";
     }
@@ -1038,11 +1036,9 @@ window.updateAll = function() {
         let stringaScadenza = "Permanente (Senza Scadenza)";
         if (c.scad !== 99) {
             if (c1.data_scadenza) {
-                // Se la scadenza è stata recuperata e salvata nel DB per questo corsista
                 let ds = new Date(c1.data_scadenza);
                 stringaScadenza = ds.toLocaleDateString('it-IT') + " (Agg. ogni " + c.scad + " Anni)";
             } else if (dataEsameRaw) {
-                // Se non c'è nel db (es. preview in fase di creazione), si calcola
                 let dEsame = new Date(dataEsameRaw);
                 dEsame.setFullYear(dEsame.getFullYear() + c.scad);
                 stringaScadenza = dEsame.toLocaleDateString('it-IT') + " (Agg. ogni " + c.scad + " Anni)";
