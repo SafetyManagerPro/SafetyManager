@@ -973,7 +973,7 @@ window.updateAll = function() {
     document.querySelectorAll('.val-calendario').forEach(el => el.innerText = window.getVal('cfg-calendario'));
     document.querySelectorAll('.val-date-ud').forEach(el => el.innerHTML = dateSummaryArr.join('<br>'));
 
-    // INIEZIONE DICITURA LEGALE DEDICATA A SECONDA DELL'EROGATORE
+    // INIEZIONE DICITURA LEGALE DEDICATA A SECONDA DELL'EROGATORE (ATT.TO E PROGETTO FORMATIVO)
     document.querySelectorAll('.val-dicitura-legale').forEach(el => {
         if(isAzienda) {
             el.innerHTML = "Corso erogato in conformità a:<br><strong>" + (c.norma || "D.Lgs. 81/08 e Accordo Stato Regioni del 17 Aprile 2025") + "</strong><br><span class='text-blue-700 italic block mt-1'>Formazione erogata dal datore di lavoro ai propri lavoratori come da Accordo Stato Regioni del 17 aprile 2025 (Rep. Atti n. 59/CSR)</span>";
@@ -981,6 +981,15 @@ window.updateAll = function() {
             el.innerHTML = "Corso erogato in conformità a:<br><strong>" + (c.norma || "D.Lgs. 81/08 e Accordo Stato Regioni del 17 Aprile 2025") + "</strong>";
         }
     });
+
+    // INIEZIONE DICITURA HEADER TOP (SOLO ATTESTATO)
+    let headerLegaleHtml = "";
+    if (isAzienda) {
+        headerLegaleHtml = "<p>Formazione erogata dal datore di lavoro ai propri lavoratori come da accordo Stato Regioni del 2025 rep. N° ... del .....</p>";
+    } else {
+        headerLegaleHtml = "<p>Soggetto formatore ai sensi dell'Accordo Stato Regioni del 17 aprile 2025 (Rep. Atti n. 59/CSR)</p><p>Erogazione Diretta o tramite struttura di diretta emanazione</p>";
+    }
+    document.querySelectorAll('.val-header-legale').forEach(el => el.innerHTML = headerLegaleHtml);
 
     document.querySelectorAll('.val-data-inizio').forEach(el => {
         const di = window.getVal('cfg-data-inizio');
@@ -992,6 +1001,7 @@ window.updateAll = function() {
 
     const logoUrl = window.getVal('cfg-logo');
     document.querySelectorAll('.logo-img').forEach(img => { 
+        // L'Azienda di solito non ha il logo salvato nel DB, quindi nascondiamo il logo se isAzienda
         if(logoUrl && !isAzienda){ img.src=logoUrl; img.classList.remove('hidden'); } 
         else img.classList.add('hidden'); 
     });
