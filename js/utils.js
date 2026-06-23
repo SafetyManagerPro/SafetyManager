@@ -938,10 +938,31 @@ window.updateAll = function() {
 
     document.querySelectorAll('.val-syllabus-table').forEach(el => el.innerHTML = scheduleHtml);
 
-    // DEVIATORE LOGICO EROGATORE DIRETTO
+    // ========================================================
+    // DEVIATORE LOGICO EROGATORE DIRETTO E LUOGO DI EMISSIONE
+    // ========================================================
     const isAzienda = window.getVal('cfg-ente-erogatore') === 'azienda';
     const nomeErogatore = isAzienda ? window.getVal('cfg-azienda') : window.getVal('cfg-ente');
     
+    // Algoritmo calcolo Città di Emissione
+    let luogoEmissione = window.getVal('cfg-luogo-emissione');
+    if (isAzienda) {
+        let indAz = window.getVal('cfg-azienda-indirizzo');
+        if (indAz) {
+            // Divide la stringa in blocchi tramite virgola o trattino e prende l'ultima parte
+            let p = indAz.split(/,| - | -/);
+            let rawCity = p[p.length - 1];
+            // Elimina i numeri (CAP) e le sigle di provincia fra parentesi es. (RM)
+            luogoEmissione = rawCity.replace(/[0-9]/g, '').replace(/\([A-Za-z]{2}\)/g, '').trim();
+        } else {
+            luogoEmissione = "Sede Aziendale";
+        }
+    }
+    if (!luogoEmissione) luogoEmissione = "---";
+    document.querySelectorAll('.val-luogo-emissione').forEach(el => el.innerText = luogoEmissione);
+
+    // ========================================================
+
     document.querySelectorAll('.val-erogatore').forEach(el => el.innerText = nomeErogatore || "---");
     document.querySelectorAll('.val-ente-indirizzo-dinamico').forEach(el => el.innerText = isAzienda ? window.getVal('cfg-azienda-indirizzo') : window.getVal('cfg-ente-indirizzo'));
     document.querySelectorAll('.val-ente-contatti-dinamico').forEach(el => el.innerText = isAzienda ? "Ateco: " + window.getVal('cfg-ateco') : window.getVal('cfg-ente-contatti'));
@@ -949,7 +970,7 @@ window.updateAll = function() {
     document.querySelectorAll('.val-ruolo-firma-3').forEach(el => el.innerText = isAzienda ? "Il Datore di Lavoro" : "Il Legale Rappresentante dell'Ente");
     document.querySelectorAll('.val-firma-3-nome').forEach(el => el.innerText = isAzienda ? window.getVal('cfg-azienda-referente') : window.getVal('cfg-legale-nome'));
     
-    document.querySelectorAll('.val-testo-timbro').forEach(el => el.innerText = isAzienda ? "TIMBRO AZIENDA" : "TIMBRO EROGATORE");
+    document.querySelectorAll('.val-testo-timbro').forEach(el => el.innerHTML = isAzienda ? "TIMBRO<br>AZIENDA" : "TIMBRO<br>EROGATORE");
 
 
     const sedeToDisplay = window.getVal('cfg-sede-corso') || window.getVal('cfg-azienda-indirizzo') || "Sede Aziendale";
@@ -965,9 +986,7 @@ window.updateAll = function() {
     document.querySelectorAll('.val-sede-corso').forEach(el => el.innerText = sedeToDisplay); 
     document.querySelectorAll('.val-docente-main').forEach(el => el.innerText = primoDocenteNome); 
     document.querySelectorAll('.val-resp-progetto').forEach(el => el.innerText = window.getVal('cfg-legale-nome') || "Legale Rappresentante");
-    document.querySelectorAll('.val-luogo-emissione').forEach(el => el.innerText = window.getVal('cfg-luogo-emissione'));
     document.querySelectorAll('.val-legale-nome').forEach(el => el.innerText = window.getVal('cfg-legale-nome'));
-    document.querySelectorAll('.val-legale-nascita').forEach(el => el.innerText = window.getVal('cfg-legale-nascita'));
     document.querySelectorAll('.val-data-esame').forEach(el => el.innerText = dataEsameStrFormatted);
     document.querySelectorAll('.val-modalita').forEach(el => el.innerText = window.getVal('cfg-modalita', 'In Presenza Fisica'));
     document.querySelectorAll('.val-calendario').forEach(el => el.innerText = window.getVal('cfg-calendario'));
@@ -985,7 +1004,7 @@ window.updateAll = function() {
     // INIEZIONE DICITURA HEADER TOP (SOLO ATTESTATO)
     let headerLegaleHtml = "";
     if (isAzienda) {
-        headerLegaleHtml = "<p>Formazione erogata dal datore di lavoro ai propri lavoratori come da accordo Stato Regioni del 2025 rep. N° 59 del 17 Aprile 2025</p>";
+        headerLegaleHtml = "<p>Formazione erogata dal datore di lavoro ai propri lavoratori come da accordo Stato Regioni del 2025 rep. N° ... del .....</p>";
     } else {
         headerLegaleHtml = "<p>Soggetto formatore ai sensi dell'Accordo Stato Regioni del 17 aprile 2025 (Rep. Atti n. 59/CSR)</p><p>Erogazione Diretta o tramite struttura di diretta emanazione</p>";
     }
@@ -1001,11 +1020,13 @@ window.updateAll = function() {
 
     const logoUrl = window.getVal('cfg-logo');
     document.querySelectorAll('.logo-img').forEach(img => { 
-        // L'Azienda di solito non ha il logo salvato nel DB, quindi nascondiamo il logo se isAzienda
         if(logoUrl && !isAzienda){ img.src=logoUrl; img.classList.remove('hidden'); } 
         else img.classList.add('hidden'); 
     });
 
+    // ========================================================
+    // LOGICA SCADENZA DINAMICA (DAL DB O CALCOLATA)
+    // ========================================================
     if (window.currentSessionCorsisti && window.currentSessionCorsisti.length > 0) {
         const c1 = window.currentSessionCorsisti[0];
         document.querySelectorAll('.val-nome').forEach(el => el.innerText = c1.nome || "---");
@@ -1015,10 +1036,17 @@ window.updateAll = function() {
         document.querySelectorAll('.val-mansione').forEach(el => el.innerText = c1.mansione || "N/D");
         
         let stringaScadenza = "Permanente (Senza Scadenza)";
-        if (c.scad !== 99 && dataEsameRaw) {
-            let dEsame = new Date(dataEsameRaw);
-            dEsame.setFullYear(dEsame.getFullYear() + c.scad);
-            stringaScadenza = dEsame.toLocaleDateString('it-IT') + " (Agg. ogni " + c.scad + " Anni)";
+        if (c.scad !== 99) {
+            if (c1.data_scadenza) {
+                // Se la scadenza è stata recuperata e salvata nel DB per questo corsista
+                let ds = new Date(c1.data_scadenza);
+                stringaScadenza = ds.toLocaleDateString('it-IT') + " (Agg. ogni " + c.scad + " Anni)";
+            } else if (dataEsameRaw) {
+                // Se non c'è nel db (es. preview in fase di creazione), si calcola
+                let dEsame = new Date(dataEsameRaw);
+                dEsame.setFullYear(dEsame.getFullYear() + c.scad);
+                stringaScadenza = dEsame.toLocaleDateString('it-IT') + " (Agg. ogni " + c.scad + " Anni)";
+            }
         }
         document.querySelectorAll('.val-scadenza').forEach(el => el.innerText = stringaScadenza);
 
