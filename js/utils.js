@@ -493,7 +493,7 @@ window.loadProgettiTable = async function() {
                     <button onclick="window.eliminaProgetto('${p.id}')" class="text-red-600 hover:bg-red-200 bg-red-100 p-1.5 rounded transition shadow-sm ml-1"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
                 </td>
             </tr>
-        });
+        `;
     });
     tbody.innerHTML = html;
     if(typeof lucide !== 'undefined') lucide.createIcons();
@@ -924,9 +924,8 @@ window.updateAll = function() {
         dateSummaryArr.push('<span class="font-bold text-slate-800">' + ud.ud + '</span>: ' + udDates.join(', '));
         
         // --- LOGICA AUTO-ADATTAMENTO TESTO SU UNA RIGA ---
-        let dateStr = udDates.join(', '); // Unisce le date con una virgola
+        let dateStr = udDates.join(', ');
         let dl = dateStr.length;
-        // Calcolo decrescente: più è lungo, più il font si restringe
         let dSize = dl > 45 ? '3.5px' : (dl > 35 ? '4.5px' : (dl > 25 ? '5.5px' : (dl > 15 ? '6.5px' : '8px')));
 
         let docL = nomeDocente.length;
@@ -950,13 +949,10 @@ window.updateAll = function() {
 
     document.querySelectorAll('.val-syllabus-table').forEach(el => el.innerHTML = scheduleHtml);
 
-    // ========================================================
     // DEVIATORE LOGICO EROGATORE DIRETTO E LUOGO DI EMISSIONE
-    // ========================================================
     const isAzienda = window.getVal('cfg-ente-erogatore') === 'azienda';
     const nomeErogatore = isAzienda ? window.getVal('cfg-azienda') : window.getVal('cfg-ente');
     
-    // Algoritmo calcolo Città di Emissione
     let luogoEmissione = window.getVal('cfg-luogo-emissione');
     if (isAzienda) {
         let indAz = window.getVal('cfg-azienda-indirizzo');
@@ -971,8 +967,6 @@ window.updateAll = function() {
     if (!luogoEmissione) luogoEmissione = "---";
     document.querySelectorAll('.val-luogo-emissione').forEach(el => el.innerText = luogoEmissione);
 
-    // ========================================================
-
     document.querySelectorAll('.val-erogatore').forEach(el => el.innerText = nomeErogatore || "---");
     document.querySelectorAll('.val-ente-indirizzo-dinamico').forEach(el => el.innerText = isAzienda ? window.getVal('cfg-azienda-indirizzo') : window.getVal('cfg-ente-indirizzo'));
     document.querySelectorAll('.val-ente-contatti-dinamico').forEach(el => el.innerText = isAzienda ? "Ateco: " + window.getVal('cfg-ateco') : window.getVal('cfg-ente-contatti'));
@@ -981,7 +975,6 @@ window.updateAll = function() {
     document.querySelectorAll('.val-firma-3-nome').forEach(el => el.innerText = isAzienda ? window.getVal('cfg-azienda-referente') : window.getVal('cfg-legale-nome'));
     
     document.querySelectorAll('.val-testo-timbro').forEach(el => el.innerHTML = isAzienda ? "TIMBRO<br>AZIENDA" : "TIMBRO<br>EROGATORE");
-
 
     const sedeToDisplay = window.getVal('cfg-sede-corso') || window.getVal('cfg-azienda-indirizzo') || "Sede Aziendale";
 
@@ -1002,7 +995,6 @@ window.updateAll = function() {
     document.querySelectorAll('.val-calendario').forEach(el => el.innerText = window.getVal('cfg-calendario'));
     document.querySelectorAll('.val-date-ud').forEach(el => el.innerHTML = dateSummaryArr.join('<br>'));
 
-    // INIEZIONE DICITURA LEGALE DEDICATA A SECONDA DELL'EROGATORE (ATT.TO E PROGETTO FORMATIVO)
     document.querySelectorAll('.val-dicitura-legale').forEach(el => {
         if(isAzienda) {
             el.innerHTML = "Corso erogato in conformità a:<br><strong>" + (c.norma || "D.Lgs. 81/08 e Accordo Stato Regioni del 17 Aprile 2025") + "</strong><br><span class='text-blue-700 italic block mt-1'>Formazione erogata dal datore di lavoro ai propri lavoratori come da accordo Stato Regioni del 2025 rep. CSR N° 59 del 17 aprile 2025</span>";
@@ -1011,7 +1003,6 @@ window.updateAll = function() {
         }
     });
 
-    // INIEZIONE DICITURA HEADER TOP (SOLO ATTESTATO)
     let headerLegaleHtml = "";
     if (isAzienda) {
         headerLegaleHtml = "<p>Formazione erogata dal datore di lavoro ai propri lavoratori come da accordo Stato Regioni del 2025 rep. CSR N° 59 del 17 aprile 2025</p>";
@@ -1034,9 +1025,6 @@ window.updateAll = function() {
         else img.classList.add('hidden'); 
     });
 
-    // ========================================================
-    // LOGICA SCADENZA DINAMICA (DAL DB O CALCOLATA)
-    // ========================================================
     if (window.currentSessionCorsisti && window.currentSessionCorsisti.length > 0) {
         const c1 = window.currentSessionCorsisti[0];
         document.querySelectorAll('.val-nome').forEach(el => el.innerText = c1.nome || "---");
