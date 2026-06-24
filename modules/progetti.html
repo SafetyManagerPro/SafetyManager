@@ -1,5 +1,7 @@
+<!-- modules/progetti.html -->
 <div class="w-full max-w-7xl mx-auto mt-4 mb-10 flex flex-col lg:flex-row gap-6 relative">
     
+    <!-- SEZIONE SINISTRA: FORM DI INSERIMENTO / MODIFICA -->
     <div class="w-full lg:w-[400px] shrink-0">
         <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 sticky top-24">
             <h2 class="font-black text-sm uppercase text-slate-800 mb-4 border-b border-slate-100 pb-2 flex items-center gap-2">
@@ -11,7 +13,8 @@
                 <div>
                     <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Azienda Committente</label>
                     <select id="prog-azienda" onchange="window.calcolaDettagliProgetto()" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded outline-none focus:border-rose-500 transition font-bold text-slate-800">
-                        </select>
+                        <!-- Popolato via JS -->
+                    </select>
                 </div>
 
                 <div>
@@ -26,33 +29,56 @@
                     <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Tipologia Corso</label>
                     <select id="prog-corso" onchange="window.calcolaDettagliProgetto()" required class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded outline-none focus:border-rose-500 transition text-blue-900 font-bold">
                         <option value="">-- Seleziona il corso --</option>
+                        
                         <optgroup label="Lavoratori e Preposti">
-                            <option value="lav_basso">Lavoratori Rischio Basso (8h)</option>
-                            <option value="lav_medio">Lavoratori Rischio Medio (12h)</option>
-                            <option value="lav_alto">Lavoratori Rischio Alto (16h)</option>
-                            <option value="preposto">Preposto (12h)</option>
+                            <option value="lav_basso">Formazione Lavoratori - Rischio Basso (8h)</option>
+                            <option value="lav_medio">Formazione Lavoratori - Rischio Medio (12h)</option>
+                            <option value="lav_alto">Formazione Lavoratori - Rischio Alto (16h)</option>
+                            <option value="preposto">Preposto Vigilanza Attiva (12h)</option>
                         </optgroup>
+                        
                         <optgroup label="Datori di Lavoro e Dirigenti">
-                            <option value="dl_base">DL - Modulo Base (16h)</option>
-                            <option value="dl_spp_comune">DL SPP - Rischio Basso/Comune (8h)</option>
-                            <option value="dl_spp_costruzioni">DL SPP - Costruzioni (24h)</option>
-                            <option value="dirigente">Dirigente (12h)</option>
+                            <option value="dl_base">Datore di Lavoro - Corso Base Universale (16h)</option>
+                            <option value="dl_spp_comune">DL SPP - Modulo Comune (Senza Rischio Specifico) (8h)</option>
+                            <option value="dl_spp_agri">DL SPP - Modulo Comune + Agricoltura/Zootecnica (24h)</option>
+                            <option value="dl_spp_pesca">DL SPP - Modulo Comune + Pesca (20h)</option>
+                            <option value="dl_spp_costruzioni">DL SPP - Modulo Comune + Costruzioni (24h)</option>
+                            <option value="dl_spp_chimico">DL SPP - Modulo Comune + Chimico-Petrolchimico (24h)</option>
+                            <option value="dirigente">Dirigente Sicurezza (12h)</option>
                         </optgroup>
-                        <optgroup label="Specializzazioni e Attrezzature">
-                            <option value="rls">R.L.S. (32h)</option>
-                            <option value="primo_soccorso_12h">Primo Soccorso Gruppo B/C (12h)</option>
-                            <option value="antincendio_liv2">Antincendio Livello 2 (8h)</option>
-                            <option value="attr_ple">PLE (10h)</option>
-                            <option value="attr_carrelli_ind">Carrelli Elevatori (12h)</option>
-                            <option value="amb_confinati">Spazi Confinati (12h)</option>
-                            <option value="mod_cantieri">Modulo Aggiuntivo Cantieri (6h)</option>
+                        
+                        <optgroup label="Rappresentanti, Cantieri ed Emergenze">
+                            <option value="rls">Rappresentante Lavoratori Sicurezza RLS (32h)</option>
+                            <option value="mod_cantieri">Modulo Aggiuntivo Cantieri (DL/Dirigente) (6h)</option>
+                            <option value="primo_soccorso_12h">Addetto al Primo Soccorso (Gruppo B/C) (12h)</option>
+                            <option value="antincendio_liv2">Addetto Emergenze e Antincendio (Livello 2) (8h)</option>
                         </optgroup>
+
+                        <optgroup label="Attrezzature e Lavori Specifici">
+                            <option value="amb_confinati">Ambienti Sospetti Inquinamento o Confinati (12h)</option>
+                            <option value="lav_quota">Lavori in Quota e DPI 3° Categoria (8h)</option>
+                            <option value="attr_carrelli_ind">Carrelli Elevatori Industriali Semoventi (12h)</option>
+                            <option value="attr_carrelli_all">Carrelli Elev. Ind + Telescopici + Rotativi (16h)</option>
+                            <option value="attr_ple">Piattaforme Lavoro Elevabili PLE (10h)</option>
+                            <option value="attr_mmt_esc">Macchine Movimento Terra/Escavatori Idraulici (10h)</option>
+                            <option value="attr_mmt_all">Macchine Movimento Terra (Esc+Pale+Terne) (16h)</option>
+                            <option value="attr_gru_autocarro">Gru per Autocarro (12h)</option>
+                            <option value="attr_gru_torre">Gru a Torre rotazione basso e alto (14h)</option>
+                            <option value="attr_pompe">Pompe per Calcestruzzo (14h)</option>
+                            <option value="attr_trattori">Trattori Agricoli o Forestali (8h)</option>
+                        </optgroup>
+                        
                         <optgroup label="Aggiornamenti">
-                            <option value="agg_lav">Agg. Lavoratori (6h)</option>
-                            <option value="agg_prep">Agg. Preposto (6h)</option>
-                            <option value="agg_dl">Agg. Datore di Lavoro (6h)</option>
-                            <option value="agg_primo_soccorso_4h">Agg. Primo Soccorso (4h)</option>
-                            <option value="agg_antincendio_liv2_5h">Agg. Antincendio Liv. 2 (5h)</option>
+                            <option value="agg_lav">Aggiornamento Lavoratori (6h)</option>
+                            <option value="agg_prep">Aggiornamento Preposto (6h) - Biennale</option>
+                            <option value="agg_dir">Aggiornamento Dirigente (6h)</option>
+                            <option value="agg_dl">Aggiornamento Datore di Lavoro (6h)</option>
+                            <option value="agg_dl_spp">Aggiornamento DL SPP (Ex RSPP) (8h)</option>
+                            <option value="agg_rls_4h">Aggiornamento RLS (4h - Imprese 15-50 dip.)</option>
+                            <option value="agg_rls_8h">Aggiornamento RLS (8h - Imprese >50 dip.)</option>
+                            <option value="agg_primo_soccorso_4h">Aggiornamento Primo Soccorso (Gr. B/C) - 4h (Triennale)</option>
+                            <option value="agg_antincendio_liv2_5h">Aggiornamento Antincendio (Livello 2) - 5h</option>
+                            <option value="agg_pratico_4h">Agg. Pratico Attrezzature / Spazi Confinati (4h)</option>
                         </optgroup>
                     </select>
                 </div>
@@ -99,12 +125,15 @@
         </div>
     </div>
 
+    <!-- SEZIONE DESTRA: FILTRI E TABELLA -->
     <div class="flex-1 w-full flex flex-col gap-6">
         
+        <!-- HEADER E FILTRI -->
         <div class="border-b-2 border-slate-900 pb-3">
             <h1 class="text-3xl font-black uppercase text-slate-900 tracking-tighter">Progetti Attivi</h1>
             <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Archivio corsi erogati, iscritti e stampe</p>
             
+            <!-- BARRA DI RICERCA E FILTRO SIGLA -->
             <div class="flex flex-col sm:flex-row gap-3 mt-4">
                 <div class="relative flex-1">
                     <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-slate-400"></i>
@@ -112,11 +141,13 @@
                 </div>
                 <div class="w-full sm:w-80">
                     <select id="filter-corso-tipo" onchange="window.filtraProgetti()" class="w-full px-3 py-2 bg-white border border-slate-300 rounded text-xs outline-none focus:border-rose-500 shadow-sm transition font-bold text-slate-700">
-                        </select>
+                        <!-- Popolato via JS con tutte le Sigle dei corsi -->
+                    </select>
                 </div>
             </div>
         </div>
 
+        <!-- TABELLA -->
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden relative">
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-xs border-collapse">
@@ -129,10 +160,12 @@
                         </tr>
                     </thead>
                     <tbody id="tabella-progetti" class="divide-y divide-slate-100">
-                        </tbody>
+                        <!-- Iniettato via JS -->
+                    </tbody>
                 </table>
             </div>
 
+            <!-- PANNELLO ISCRIZIONI (OVERLAY) -->
             <div id="panel-iscrizioni" class="hidden absolute inset-0 bg-slate-900/95 backdrop-blur-sm z-10 flex flex-col p-6 overflow-hidden">
                 <div class="flex justify-between items-start border-b border-slate-700 pb-3 mb-4 shrink-0">
                     <div>
@@ -146,7 +179,8 @@
 
                 <div class="flex gap-3 mb-4 shrink-0">
                     <select id="sel-iscrivi-corsista" class="flex-1 px-3 py-2 bg-slate-800 border border-slate-700 rounded text-xs text-white outline-none focus:border-amber-500">
-                        </select>
+                        <!-- Popolato via JS -->
+                    </select>
                     <button onclick="window.aggiungiIscrizione()" class="bg-amber-600 hover:bg-amber-700 text-white font-bold px-4 py-2 rounded text-xs uppercase transition shadow flex items-center gap-2">
                         <i data-lucide="user-plus" class="w-4 h-4"></i> Aggiungi
                     </button>
@@ -163,10 +197,12 @@
                             </tr>
                         </thead>
                         <tbody id="tabella-iscritti" class="divide-y divide-slate-700/50">
-                            </tbody>
+                            <!-- Iniettato via JS -->
+                        </tbody>
                     </table>
                 </div>
             </div>
         </div>
     </div>
 </div>
+```eof
