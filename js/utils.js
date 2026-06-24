@@ -139,8 +139,11 @@ window.modificaAzienda = function(id) {
 
 window.eliminaAzienda = async function(id) {
     if(confirm("Sei sicuro di voler eliminare questa azienda? \n\nTutti i progetti ad essa collegati verranno eliminati.")) {
-        if(await window.deleteAzienda(id)) await window.loadAziendeTable();
-        else alert("Errore durante l'eliminazione.");
+        if(await window.deleteAzienda(id)) {
+            await window.loadAziendeTable();
+        } else {
+            alert("Errore durante l'eliminazione.");
+        }
     }
 };
 
@@ -166,6 +169,7 @@ window.docentiList = [];
 window.loadDocentiTable = async function() {
     const tbody = document.getElementById('tabella-docenti');
     if(!tbody) return;
+    
     tbody.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-slate-400 italic"><i data-lucide="loader-2" class="w-5 h-5 animate-spin mx-auto mb-2"></i> Caricamento...</td></tr>';
     if(typeof lucide !== 'undefined') lucide.createIcons();
 
@@ -208,7 +212,9 @@ window.salvaDocenteDB = async function() {
     if (await window.saveDocente(record)) {
         window.resetFormDocente();
         await window.loadDocentiTable();
-    } else alert("Errore nel salvataggio del docente.");
+    } else {
+        alert("Errore nel salvataggio del docente.");
+    }
 };
 
 window.modificaDocente = function(id) {
@@ -223,8 +229,10 @@ window.modificaDocente = function(id) {
 };
 
 window.eliminaDocente = async function(id) {
-    if(confirm("Sicuro di voler eliminare questo docente?")) {
-        if(await window.deleteDocente(id)) await window.loadDocentiTable();
+    if(confirm("Sei sicuro di voler eliminare questo docente?")) {
+        if(await window.deleteDocente(id)) {
+            await window.loadDocentiTable();
+        }
     }
 };
 
@@ -243,13 +251,14 @@ window.filtraDocenti = function() {
 };
 
 // ==========================================
-// LOGICA CRM: CORSISTI
+// LOGICA CRM: CORSISTI E ISCRIZIONI
 // ==========================================
 window.corsistiList = [];
 
 window.loadCorsistiTable = async function() {
     const tbody = document.getElementById('tabella-corsisti');
     if(!tbody) return;
+    
     tbody.innerHTML = '<tr><td colspan="6" class="p-6 text-center text-slate-400 italic"><i data-lucide="loader-2" class="w-5 h-5 animate-spin mx-auto mb-2"></i> Caricamento...</td></tr>';
     if(typeof lucide !== 'undefined') lucide.createIcons();
     
@@ -258,7 +267,9 @@ window.loadCorsistiTable = async function() {
     const selectAzienda = document.getElementById('cor-azienda');
     if (selectAzienda) {
         let optHtml = '<option value="">-- Nessuna Azienda / Privato --</option>';
-        window.aziendeList.forEach(az => { optHtml += `<option value="${az.id}">${az.ragione_sociale}</option>`; });
+        window.aziendeList.forEach(az => { 
+            optHtml += `<option value="${az.id}">${az.ragione_sociale}</option>`; 
+        });
         selectAzienda.innerHTML = optHtml;
     }
 
@@ -355,23 +366,30 @@ window.salvaCorsistaDB = async function() {
     if (await window.saveCorsistaData(record)) {
         window.resetFormCorsista();
         await window.loadCorsistiTable();
-    } else alert("Errore nel salvataggio. C.F. potrebbe essere già registrato.");
+    } else {
+        alert("Errore nel salvataggio. Assicurati che il Codice Fiscale non sia già registrato.");
+    }
 };
 
 window.modificaCorsista = function(id) {
     const cor = window.corsistiList.find(c => c.id === id);
     if(!cor) return;
+    
     document.getElementById('cor-id').value = cor.id;
     document.getElementById('cor-nome').value = cor.nome_cognome;
     document.getElementById('cor-cf').value = cor.cf;
     document.getElementById('cor-nascita').value = cor.luogo_data_nascita;
-    if(document.getElementById('cor-mansione')) document.getElementById('cor-mansione').value = cor.mansione_storica || "";
+    if(document.getElementById('cor-mansione')) {
+        document.getElementById('cor-mansione').value = cor.mansione_storica || "";
+    }
     document.getElementById('cor-azienda').value = cor.azienda_id || "";
 };
 
 window.eliminaCorsistaData = async function(id) {
-    if(confirm("Sicuro di voler eliminare questo corsista? I suoi attestati verranno persi.")) {
-        if(await window.deleteCorsistaData(id)) await window.loadCorsistiTable();
+    if(confirm("Sicuro di voler eliminare questo corsista? Tutti i suoi attestati e le iscrizioni verranno perse irreversibilmente.")) {
+        if(await window.deleteCorsistaData(id)) {
+            await window.loadCorsistiTable();
+        }
     }
 };
 
@@ -388,6 +406,140 @@ window.filtraCorsisti = function() {
         rows[i].style.display = rows[i].innerText.toLowerCase().includes(filter) ? "" : "none";
     }
 };
+
+
+// ==========================================
+// POPUPS (QUICK ADD) LOGIC
+// ==========================================
+
+// QUICK ADD AZIENDA
+window.apriQAAzienda = function() {
+    document.getElementById('qa-modal-azienda').classList.remove('hidden');
+    document.getElementById('qa-az-rag').focus();
+};
+
+window.chiudiQAAzienda = function() {
+    document.getElementById('qa-modal-azienda').classList.add('hidden');
+    document.getElementById('qa-az-rag').value = '';
+    document.getElementById('qa-az-piva').value = '';
+};
+
+window.salvaQAAzienda = async function() {
+    const rag = document.getElementById('qa-az-rag').value.trim();
+    const piva = document.getElementById('qa-az-piva').value.trim();
+    if (!rag) return alert("Inserisci la Ragione Sociale.");
+    
+    const { data, error } = await supabaseClient
+        .from('aziende')
+        .insert([{ ragione_sociale: rag, piva_cf: piva }])
+        .select();
+        
+    if (error) return alert("Errore nel salvataggio azienda: " + error.message);
+    
+    window.aziendeList = await window.getAziende();
+    
+    const selAzienda = document.getElementById('prog-azienda');
+    if(selAzienda) {
+        let optHtml = '<option value="">-- Seleziona Azienda --</option>';
+        window.aziendeList.forEach(a => { 
+            optHtml += `<option value="${a.id}">${a.ragione_sociale}</option>`; 
+        });
+        selAzienda.innerHTML = optHtml;
+        selAzienda.value = data[0].id; 
+        window.calcolaDettagliProgetto();
+    }
+    window.chiudiQAAzienda();
+};
+
+// QUICK ADD CORSO CUSTOM
+window.apriQACorso = function() {
+    document.getElementById('qa-modal-corso').classList.remove('hidden');
+    document.getElementById('qa-co-titolo').focus();
+};
+
+window.chiudiQACorso = function() {
+    document.getElementById('qa-modal-corso').classList.add('hidden');
+    document.getElementById('qa-co-titolo').value = '';
+};
+
+window.salvaQACorso = function() {
+    const tit = document.getElementById('qa-co-titolo').value.trim();
+    const ore = parseInt(document.getElementById('qa-co-ore').value);
+    const scad = parseInt(document.getElementById('qa-co-scad').value);
+    
+    if(!tit || isNaN(ore)) return alert("Compila i campi obbligatori del corso.");
+    
+    const customId = 'custom_' + Date.now();
+    
+    // Inietta il corso nella memoria DB_CORSI
+    window.DB_CORSI[customId] = {
+        t: tit, ore: ore, scad: scad, risk: "CUSTOM", code: "CST", norma: "Progetto Formativo Personalizzato Aziendale",
+        prog: [{ ud: "UD1", ore: ore, m: "Modulo Formativo Dedicato", d: "Contenuti definiti dal Docente Formatore in relazione allo specifico fabbisogno formativo ed ai rischi identificati nel DVR." }]
+    };
+    
+    const selCorso = document.getElementById('prog-corso');
+    if(selCorso) {
+        const opt = document.createElement('option');
+        opt.value = customId;
+        opt.innerHTML = `*NUOVO* ${tit} (${ore}h)`;
+        opt.style.fontWeight = "bold";
+        opt.style.color = "#d97706";
+        selCorso.appendChild(opt);
+        selCorso.value = customId; 
+        window.calcolaDettagliProgetto();
+    }
+    window.chiudiQACorso();
+};
+
+// QUICK ADD CORSISTA 
+window.apriQACorsista = function() {
+    document.getElementById('qa-modal-corsista').classList.remove('hidden');
+    const p = window.progettiList.find(x => x.id === window.currentProgettoId);
+    if(p && p.azienda_id) {
+        document.getElementById('qa-cor-azienda-id').value = p.azienda_id;
+    } else {
+        document.getElementById('qa-cor-azienda-id').value = "";
+    }
+    document.getElementById('qa-cor-nome').focus();
+};
+
+window.chiudiQACorsista = function() {
+    document.getElementById('qa-modal-corsista').classList.add('hidden');
+    document.getElementById('qa-cor-nome').value = '';
+    document.getElementById('qa-cor-cf').value = '';
+    document.getElementById('qa-cor-nascita').value = '';
+};
+
+window.salvaQACorsista = async function() {
+    const nome = document.getElementById('qa-cor-nome').value.trim();
+    const cf = document.getElementById('qa-cor-cf').value.trim().toUpperCase();
+    const nascita = document.getElementById('qa-cor-nascita').value.trim();
+    const az_id = document.getElementById('qa-cor-azienda-id').value || null;
+    
+    if(!nome || !cf) return alert("Inserisci Nome e CF.");
+    
+    const { data, error } = await supabaseClient.from('corsisti').insert([{
+        nome_cognome: nome, cf: cf, luogo_data_nascita: nascita, azienda_id: az_id
+    }]).select();
+    
+    if (error) return alert("Errore: " + error.message + " (CF già esistente?)");
+    
+    window.corsistiList = await window.getCorsisti();
+    
+    const p = window.progettiList.find(x => x.id === window.currentProgettoId);
+    const sel = document.getElementById('sel-iscrivi-corsista');
+    if(sel && p) {
+        let opts = '<option value="">-- Seleziona Corsista da aggiungere --</option>';
+        window.corsistiList.forEach(c => {
+            const marker = c.azienda_id === p.azienda_id ? "📌 " : "";
+            opts += `<option value="${c.id}">${marker}${c.nome_cognome} (${c.cf})</option>`;
+        });
+        sel.innerHTML = opts;
+        sel.value = data[0].id; 
+    }
+    window.chiudiQACorsista();
+};
+
 
 // ==========================================
 // MOTORE DI CALCOLO AUTOMATICO GIORNI E DOCENTI
@@ -450,19 +602,7 @@ window.calcolaDettagliProgetto = function() {
     document.getElementById('prog-calendario-testo').value = calendarioTesto;
     document.getElementById('prog-docenti-container').innerHTML = docentiHtml;
 
-    const mapSigleCorsi = {
-        'lav_basso': 'FLRB', 'lav_medio': 'FLRM', 'lav_alto': 'FLRA', 'agg_lav': 'AGGFL',
-        'preposto': 'PREP', 'agg_prep': 'AGGPREP', 'dirigente': 'DIR', 'agg_dir': 'AGGDIR',
-        'dl_base': 'DL', 'dl_spp_comune': 'RSPPDL', 'dl_spp_agri': 'RSPPDL-A', 'dl_spp_pesca': 'RSPPDL-P',
-        'dl_spp_costruzioni': 'RSPPDL-C', 'dl_spp_chimico': 'RSPPDL-I', 'rls': 'RLS',
-        'amb_confinati': 'SC', 'attr_ple': 'PLE', 'attr_carrelli_ind': 'CE', 'attr_carrelli_all': 'CEA',
-        'attr_mmt_esc': 'MMT', 'attr_mmt_all': 'MMTA', 'attr_gru_autocarro': 'GRU', 'attr_gru_torre': 'GRUT',
-        'attr_pompe': 'CLS', 'attr_trattori': 'TRA', 'lav_quota': 'QUO', 'primo_soccorso_12h': 'PS',
-        'antincendio_liv2': 'AI2', 'agg_dl': 'AGGDL', 'agg_dl_spp': 'AGGRSPPDL', 'agg_pratico_4h': 'AGGPRAT',
-        'agg_primo_soccorso_4h': 'AGGPS', 'agg_antincendio_liv2_5h': 'AGGAI2', 'agg_rls_4h': 'AGGRLS', 'agg_rls_8h': 'AGGRLS',
-        'mod_cantieri': 'MC'
-    };
-    const siglaCorso = mapSigleCorsi[corsoId] || 'CRS';
+    const siglaCorso = c.code || 'CRS';
 
     let siglaAzienda = "ENT";
     const azId = document.getElementById('prog-azienda').value;
@@ -499,9 +639,7 @@ window.calcolaDettagliProgetto = function() {
     if(lblScadenza) lblScadenza.innerText = scadTesto;
 };
 
-// ==========================================
-// LOGICA CRM: PROGETTI E ISCRIZIONI
-// ==========================================
+
 // ==========================================
 // LOGICA CRM: PROGETTI E ISCRIZIONI
 // ==========================================
@@ -515,20 +653,17 @@ window.loadProgettiTable = async function() {
     if(window.aziendeList.length === 0) window.aziendeList = await window.getAziende();
     if(window.docentiList.length === 0) window.docentiList = await window.getDocenti();
     
-    // Popola select azienda nel form
     const selAzienda = document.getElementById('prog-azienda');
     if(selAzienda) {
         selAzienda.innerHTML = '<option value="">-- Seleziona Azienda --</option>' + 
             window.aziendeList.map(a => `<option value="${a.id}">${a.ragione_sociale}</option>`).join('');
     }
 
-    // Popola Menu a Tendina Filtro Sigle (NUOVO)
     const filterSelect = document.getElementById('filter-corso-tipo');
     if(filterSelect) {
         let optHtml = '<option value="">-- Mostra tutti i corsi --</option>';
         for(const key in window.DB_CORSI) {
             const c = window.DB_CORSI[key];
-            // Esempio visivo: [RSPPDL] DL SPP - Modulo Comune (8h)
             optHtml += `<option value="${key}">[${c.code}] ${c.t}</option>`;
         }
         filterSelect.innerHTML = optHtml;
@@ -550,7 +685,6 @@ window.loadProgettiTable = async function() {
         const nomeCorso = window.DB_CORSI[p.corso_id] ? window.DB_CORSI[p.corso_id].t : p.corso_id;
         const siglaCorso = window.DB_CORSI[p.corso_id] ? window.DB_CORSI[p.corso_id].code : '';
         
-        // Aggiunto l'attributo data-corso per il filtraggio dinamico
         html += `
             <tr class="hover:bg-amber-50 transition-colors" data-corso="${p.corso_id}">
                 <td class="p-3 border-b font-mono font-bold text-[10px] text-slate-800">${p.codice}</td>
@@ -577,7 +711,6 @@ window.filtraProgetti = function() {
     const rows = document.getElementById('tabella-progetti').getElementsByTagName('tr');
 
     for (let i = 0; i < rows.length; i++) {
-        // Salta le righe di caricamento o "nessun corso"
         if (rows[i].cells.length === 1) continue; 
         
         const rowText = rows[i].innerText.toLowerCase();
@@ -595,7 +728,6 @@ window.filtraProgetti = function() {
 };
 
 window.salvaProgettoDB = async function() {
-// ... [Il resto del file rimane invariato]
     const id = document.getElementById('prog-id').value;
     let cod = document.getElementById('prog-codice').value.trim();
     if(!cod) {
@@ -654,7 +786,9 @@ window.modificaProgetto = function(id) {
 
 window.eliminaProgetto = async function(id) {
     if(confirm("Sei sicuro di voler cancellare questo corso?")) {
-        if(await window.deleteProgetto(id)) await window.loadProgettiTable();
+        if(await window.deleteProgetto(id)) {
+            await window.loadProgettiTable();
+        }
     }
 };
 
@@ -666,7 +800,7 @@ window.resetFormProgetto = function() {
 };
 
 window.apriIscrizioni = async function(progetto_id) {
-    window.currentProgettoId = progetto_id; // <-- ERRORE DI BATTITURA CORRETTO QUI!
+    window.currentProgettoId = progetto_id;
     const p = window.progettiList.find(x => x.id === progetto_id);
     const aziendaName = p.aziende ? p.aziende.ragione_sociale : 'Privato';
     
@@ -754,7 +888,9 @@ window.aggiungiIscrizione = async function() {
 
 window.rimuoviIscrizione = async function(id) {
     if(confirm("Rimuovere l'allievo dal corso?")) {
-        if(await window.deleteIscrizione(id)) await window.loadIscrittiTable();
+        if(await window.deleteIscrizione(id)) {
+            await window.loadIscrittiTable();
+        }
     }
 };
 
@@ -814,14 +950,12 @@ window.initStampe = async function() {
     
     window.progettiList = await window.getProgetti();
     
-    // ORDINE DISCENDENTE PER DATA ESAME
     window.progettiList.sort((a, b) => {
         let da = new Date(a.data_esame || '1970-01-01').getTime();
         let db = new Date(b.data_esame || '1970-01-01').getTime();
         return db - da; 
     });
     
-    // POPOLA MENU A TENDINA FILTRO SIGLE
     let optHtml = '<option value="">-- Mostra tutti i corsi --</option>';
     for(const key in window.DB_CORSI) {
         const c = window.DB_CORSI[key];
@@ -829,7 +963,6 @@ window.initStampe = async function() {
     }
     filterSelect.innerHTML = optHtml;
 
-    // Richiama il filtro per generare la tendina dei progetti
     window.filtraStampe();
 };
 
@@ -842,7 +975,6 @@ window.filtraStampe = function() {
     let html = '<option value="">-- Seleziona un progetto --</option>';
     
     window.progettiList.forEach(p => {
-        // Se c'è un filtro attivo e il corso non corrisponde, salta la riga
         if (filterVal !== "" && p.corso_id !== filterVal) return; 
 
         const azName = p.aziende ? p.aziende.ragione_sociale : 'Privato';
@@ -996,9 +1128,6 @@ window.preparaEStampaMassiva = function(tabId) {
 // ==========================================
 // RENDER DOCUMENTI E SYLLABUS MULTIDOCENTE
 // ==========================================
-// ==========================================
-// RENDER DOCUMENTI E SYLLABUS MULTIDOCENTE
-// ==========================================
 window.updateAll = function() {
     const courseId = window.getVal('cfg-corso', 'lav_basso');
     const c = window.DB_CORSI[courseId];
@@ -1148,25 +1277,17 @@ window.updateAll = function() {
         else img.classList.add('hidden'); 
     });
 
-
-    // =========================================================================
-    // MOTORE INIEZIONE DATI - BIFORCAZIONE TRA CORSISTI E DOCENTI
-    // =========================================================================
-    
-    // CASO 1: STAMPA DELLA DICHIARAZIONE DEL DOCENTE (Niente Corsisti!)
     if (window.currentPrintModule === 'dichiarazione_docenza') {
         const chkDL = document.getElementById('check-box-dl');
         const chkDoc = document.getElementById('check-box-docente');
 
         if (isAzienda) {
-            // Erogatore Azienda -> Compila i dati del Datore di Lavoro (DL) e Spunta Opzione A
             if(chkDL) chkDL.innerHTML = "X";
             if(chkDoc) chkDoc.innerHTML = "";
             document.querySelectorAll('.val-nome').forEach(el => el.innerText = window.getVal('cfg-legale-nome') || "---");
-            document.querySelectorAll('.val-cf').forEach(el => el.innerText = "________________"); // Il CF Azienda è P.IVA, il CF del DL non lo abbiamo a DB
+            document.querySelectorAll('.val-cf').forEach(el => el.innerText = "________________");
             document.querySelectorAll('.val-nascita').forEach(el => el.innerText = window.getVal('cfg-legale-nascita') || "________________");
         } else {
-            // Erogatore Ente -> Compila i dati del Docente Formatore principale e Spunta Opzione B
             if(chkDL) chkDL.innerHTML = "";
             if(chkDoc) chkDoc.innerHTML = "X";
             
@@ -1175,12 +1296,10 @@ window.updateAll = function() {
             if(docObj) {
                 document.querySelectorAll('.val-nome').forEach(el => el.innerText = docObj.nome_cognome || "---");
                 document.querySelectorAll('.val-cf').forEach(el => el.innerText = docObj.cf || "---");
-                document.querySelectorAll('.val-nascita').forEach(el => el.innerText = "________________"); // Nascita Docente non tracciata a DB
+                document.querySelectorAll('.val-nascita').forEach(el => el.innerText = "________________");
             }
         }
-    } 
-    // CASO 2: STAMPA ATTESTATI O ESAMI (Elaborazione Corsisti)
-    else {
+    } else {
         if (window.currentSessionCorsisti && window.currentSessionCorsisti.length > 0) {
             const c1 = window.currentSessionCorsisti[0];
             document.querySelectorAll('.val-nome').forEach(el => el.innerText = c1.nome || "---");
@@ -1267,6 +1386,7 @@ window.fetchScadenzeData = async function() {
 window.loadScadenzeTable = async function() {
     const tbody = document.getElementById('tabella-scadenze');
     if(!tbody) return;
+    
     tbody.innerHTML = '<tr><td colspan="6" class="p-6 text-center text-slate-400 italic"><i data-lucide="loader-2" class="w-5 h-5 animate-spin mx-auto mb-2"></i> Caricamento scadenze in corso...</td></tr>';
     if(typeof lucide !== 'undefined') lucide.createIcons();
 
