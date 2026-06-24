@@ -541,11 +541,69 @@ window.salvaQACorsista = async function() {
 };
 
 
+
+// ==========================================
+// HELPERS COMPLIANCE E NORMALIZZAZIONE DATI
+// ==========================================
+window.parseJSONSafe = function(value, fallback = {}) {
+    if (!value) return fallback;
+    if (typeof value === 'object') return value;
+    try { return JSON.parse(value); } catch(e) { return fallback; }
+};
+
+window.getDocentiUdFromForm = function() {
+    const docenti_ud = {};
+    document.querySelectorAll('.prog-docente-ud').forEach(sel => {
+        docenti_ud[sel.getAttribute('data-ud')] = sel.value;
+    });
+    return docenti_ud;
+};
+
+window.renderComplianceProgetto = function(corsoId) {
+    const box = document.getElementById('prog-compliance-list');
+    if (!box) return;
+    const erogatore = document.getElementById('prog-erogatore') ? document.getElementById('prog-erogatore').value : 'ente';
+    const policy = window.ASR2025_POLICY || {};
+    const info = window.getCourseCompliance ? window.getCourseCompliance(corsoId) : { note: [] };
+    let notes = [...(info.note || [])];
+    if (erogatore === 'azienda') {
+        notes.unshift(policy.notaAzienda || 'Erogazione diretta aziendale: ammessa solo per propri lavoratori, preposti e dirigenti.');
+    } else {
+        notes.unshift(policy.notaEnte || 'Verificare requisiti del soggetto formatore / diretta emanazione.');
+    }
+    box.innerHTML = notes.map(n => `<li>${n}</li>`).join('');
+
+    const erogatoreNote = document.getElementById('prog-erogatore-note');
+    if (erogatoreNote) {
+        erogatoreNote.innerText = erogatore === 'azienda'
+            ? 'Erogazione diretta: il datore di lavoro è soggetto formatore e può iscrivere solo persone della propria azienda.'
+            : 'Erogazione da associazione/ente: conservare requisiti, eventuale autocertificazione DPR 445/2000 e catena di diretta emanazione.';
+    }
+};
+
+window.getComplianceNotaDocumento = function(courseId, isAzienda) {
+    const c = window.DB_CORSI[courseId] || {};
+    const info = window.getCourseCompliance ? window.getCourseCompliance(courseId) : { note: [] };
+    const erogazione = isAzienda
+        ? 'Il corso è organizzato dal datore di lavoro come soggetto formatore esclusivamente per i propri lavoratori/preposti/dirigenti; restano obbligatori docenti qualificati, richiesta agli Organismi Paritetici ove presenti, registro presenze, verifica finale e fascicolo.'
+        : 'Il corso è erogato da associazione sindacale di categoria/struttura di diretta emanazione in qualità di soggetto formatore; conservare evidenza dei requisiti di rappresentatività o relativa autocertificazione DPR 445/2000.';
+    const base = [
+        erogazione,
+        'Per il corso è individuato un unico soggetto formatore responsabile.',
+        'Organizzazione: max 30 discenti salvo e-learning, frequenza minima 90% per ammissione alla verifica finale, verbale finale e attestato univoco.',
+        'Fascicolo: conservazione presso il soggetto formatore per almeno 10 anni con dati partecipanti, registro firme, docenti, progetto/programma e verbale finale.'
+    ];
+    if (info.pratico) base.push('Per le parti pratiche: rapporto docente/discente non superiore a 1:6 e verifica di idoneità di area, attrezzature e DPI.');
+    if (c && c.scad && c.scad !== 99) base.push('Aggiornamento/scadenza gestita sul profilo corso: ' + c.scad + ' anni dalla verifica finale, salvo modifiche di mansione/rischio o norme speciali.');
+    return base.join(' ');
+};
+
 // ==========================================
 // MOTORE DI CALCOLO AUTOMATICO GIORNI E DOCENTI
 // ==========================================
 window.calcolaDettagliProgetto = function() {
     const corsoId = document.getElementById('prog-corso').value;
+    window.renderComplianceProgetto(corsoId);
     const dataInizioRaw = document.getElementById('prog-inizio').value;
     if (!corsoId || !dataInizioRaw) return;
 
@@ -684,13 +742,16 @@ window.loadProgettiTable = async function() {
         const nomeAzienda = p.aziende ? p.aziende.ragione_sociale : 'Privato';
         const nomeCorso = window.DB_CORSI[p.corso_id] ? window.DB_CORSI[p.corso_id].t : p.corso_id;
         const siglaCorso = window.DB_CORSI[p.corso_id] ? window.DB_CORSI[p.corso_id].code : '';
+        const erogatoreBadge = (p.ente_erogatore === 'azienda')
+            ? '<span class="inline-block mt-1 px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 font-black text-[8px] uppercase">DL soggetto formatore</span>'
+            : '<span class="inline-block mt-1 px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-black text-[8px] uppercase">Associazione / ente</span>';
         
         html += `
             <tr class="hover:bg-amber-50 transition-colors" data-corso="${p.corso_id}">
                 <td class="p-3 border-b font-mono font-bold text-[10px] text-slate-800">${p.codice}</td>
                 <td class="p-3 border-b">
                     <p class="font-bold text-xs text-blue-900"><span class="text-slate-400 font-mono text-[9px]">[${siglaCorso}]</span> ${nomeCorso}</p>
-                    <p class="text-[9px] text-slate-500 uppercase mt-0.5">${nomeAzienda}</p>
+                    <p class="text-[9px] text-slate-500 uppercase mt-0.5">${nomeAzienda}</p>${erogatoreBadge}
                 </td>
                 <td class="p-3 border-b font-bold text-center text-slate-700">${window.formatDataToItalian(p.data_esame)}</td>
                 <td class="p-3 border-b text-center whitespace-nowrap">
@@ -729,26 +790,41 @@ window.filtraProgetti = function() {
 
 window.salvaProgettoDB = async function() {
     const id = document.getElementById('prog-id').value;
+    const aziendaId = document.getElementById('prog-azienda').value;
+    const corsoId = document.getElementById('prog-corso').value;
+    const erogatore = document.getElementById('prog-erogatore') ? document.getElementById('prog-erogatore').value : 'ente';
+    const sede = (document.getElementById('prog-sede')?.value || '').trim();
+
+    if (!aziendaId) return alert("Seleziona l\'azienda committente prima di salvare il progetto.");
+    if (!corsoId) return alert('Seleziona una tipologia di corso.');
+    if (!document.getElementById('prog-inizio').value) return alert('Inserisci la data di inizio.');
+    if (!sede) return alert('Inserisci la sede del corso/aula/campo prova: è necessaria per verbale, registro e attestati.');
+
     let cod = document.getElementById('prog-codice').value.trim();
     if(!cod) {
         const d = new Date();
-        cod = `PRG-${d.getFullYear()}-${Math.floor(Math.random()*10000)}`;
+        cod = `PRG-${d.getFullYear()}-${Math.floor(1000 + Math.random()*9000)}`;
     }
 
-    let docenti_ud = {};
-    document.querySelectorAll('.prog-docente-ud').forEach(sel => {
-        docenti_ud[sel.getAttribute('data-ud')] = sel.value;
-    });
+    const docenti_ud = window.getDocentiUdFromForm();
+    const missingDocenti = Object.keys(docenti_ud).filter(ud => !docenti_ud[ud]);
+    if (missingDocenti.length > 0) {
+        return alert('Assegna un docente qualificato a tutte le unità didattiche: ' + missingDocenti.join(', '));
+    }
 
     const record = {
-        azienda_id: document.getElementById('prog-azienda').value,
-        corso_id: document.getElementById('prog-corso').value,
+        azienda_id: aziendaId,
+        corso_id: corsoId,
         codice: cod,
         modalita: document.getElementById('prog-modalita').value,
         data_inizio: document.getElementById('prog-inizio').value,
         data_esame: document.getElementById('prog-esame').value,
-        ente_erogatore: document.getElementById('prog-erogatore') ? document.getElementById('prog-erogatore').value : 'ente',
-        docente_principale: JSON.stringify(docenti_ud),
+        sede: sede,
+        resp_progetto: (document.getElementById('prog-resp-progetto')?.value || '').trim(),
+        resp_corso: (document.getElementById('prog-resp-corso')?.value || '').trim(),
+        ente_erogatore: erogatore,
+        docente_principale: JSON.stringify(docenti_ud), // retrocompatibilità con i template esistenti
+        docenti_ud: docenti_ud,
         calendario: document.getElementById('prog-calendario-testo').value
     };
     if (id && id !== "") record.id = id;
@@ -756,31 +832,32 @@ window.salvaProgettoDB = async function() {
     if (await window.saveProgetto(record)) {
         window.resetFormProgetto();
         await window.loadProgettiTable();
-    } else alert("Errore nel salvataggio del progetto formativo.");
+    } else alert("Errore nel salvataggio del progetto formativo. Verifica che lo schema Supabase abbia le colonne sede, resp_progetto, resp_corso e docenti_ud.");
 };
 
 window.modificaProgetto = function(id) {
     const p = window.progettiList.find(x => x.id === id);
     if(!p) return;
     document.getElementById('prog-id').value = p.id;
-    document.getElementById('prog-azienda').value = p.azienda_id;
+    document.getElementById('prog-azienda').value = p.azienda_id || '';
     if(document.getElementById('prog-erogatore')) document.getElementById('prog-erogatore').value = p.ente_erogatore || 'ente';
-    document.getElementById('prog-corso').value = p.corso_id;
-    document.getElementById('prog-codice').value = p.codice;
-    document.getElementById('prog-modalita').value = p.modalita;
-    document.getElementById('prog-inizio').value = p.data_inizio || "";
-    document.getElementById('prog-esame').value = p.data_esame || "";
-    
+    document.getElementById('prog-corso').value = p.corso_id || '';
+    document.getElementById('prog-codice').value = p.codice || '';
+    document.getElementById('prog-modalita').value = p.modalita || 'In Presenza Fisica';
+    document.getElementById('prog-inizio').value = p.data_inizio || '';
+    document.getElementById('prog-esame').value = p.data_esame || '';
+    if(document.getElementById('prog-sede')) document.getElementById('prog-sede').value = p.sede || '';
+    if(document.getElementById('prog-resp-progetto')) document.getElementById('prog-resp-progetto').value = p.resp_progetto || '';
+    if(document.getElementById('prog-resp-corso')) document.getElementById('prog-resp-corso').value = p.resp_corso || '';
+
     window.calcolaDettagliProgetto(); 
     
     setTimeout(() => {
-        try {
-            let parsedDocs = JSON.parse(p.docente_principale || '{}');
-            document.querySelectorAll('.prog-docente-ud').forEach(sel => {
-                let ud = sel.getAttribute('data-ud');
-                if(parsedDocs[ud]) sel.value = parsedDocs[ud];
-            });
-        } catch(e) {}
+        const parsedDocs = window.parseJSONSafe(p.docenti_ud || p.docente_principale || '{}', {});
+        document.querySelectorAll('.prog-docente-ud').forEach(sel => {
+            let ud = sel.getAttribute('data-ud');
+            if(parsedDocs[ud]) sel.value = parsedDocs[ud];
+        });
     }, 100);
 };
 
@@ -797,6 +874,10 @@ window.resetFormProgetto = function() {
     document.getElementById('form-progetto').reset();
     const prev = document.getElementById('prog-docenti-container');
     if(prev) prev.innerHTML = '<span class="text-xs text-slate-400 italic">Seleziona un corso per caricare le unità didattiche...</span>';
+    const comp = document.getElementById('prog-compliance-list');
+    if(comp) comp.innerHTML = '<li>Seleziona corso e data per generare calendario, scadenza e vincoli.</li>';
+    const lbl = document.getElementById('lbl-prog-scadenza');
+    if(lbl) lbl.innerText = '---';
 };
 
 window.apriIscrizioni = async function(progetto_id) {
@@ -859,7 +940,23 @@ window.aggiungiIscrizione = async function() {
 
     const p = window.progettiList.find(x => x.id === window.currentProgettoId);
     const c = window.corsistiList.find(x => x.id === corsista_id);
+    if (!p || !c) return alert('Dati progetto/corsista non disponibili. Ricarica la pagina.');
+
     const corsoInfo = window.DB_CORSI[p.corso_id];
+    const iscrittiEsistenti = await window.getIscrizioni(window.currentProgettoId);
+
+    if (iscrittiEsistenti.some(isc => isc.corsista_id === corsista_id)) {
+        return alert("L'allievo è già iscritto a questo progetto.");
+    }
+
+    const isELearning = (p.modalita || '').toLowerCase().includes('learning');
+    if (!isELearning && iscrittiEsistenti.length >= (window.ASR2025_POLICY?.maxDiscentiAula || 30)) {
+        return alert('Limite massimo di 30 discenti raggiunto per corsi non e-learning. Crea un nuovo progetto/corso.');
+    }
+
+    if (p.ente_erogatore === 'azienda' && c.azienda_id !== p.azienda_id) {
+        return alert('Erogazione diretta aziendale: puoi iscrivere solo corsisti appartenenti alla stessa azienda del progetto.');
+    }
 
     let dataScadenzaISO = null;
     if (corsoInfo && corsoInfo.scad !== 99) {
@@ -869,12 +966,16 @@ window.aggiungiIscrizione = async function() {
         dataScadenzaISO = offsetDate.toISOString().split('T')[0];
     }
 
-    const id_cert = `C26-${p.codice}-${c.cf.substring(0,6)}-${Math.floor(Math.random()*999)}`;
+    const annoCert = new Date(p.data_esame || Date.now()).getFullYear().toString().slice(-2);
+    const cfPart = (c.cf || 'XXXXXX').replace(/[^A-Z0-9]/gi, '').toUpperCase().substring(0,6).padEnd(6, 'X');
+    const seriale = String(Math.floor(Math.random() * 1000)).padStart(3, '0');
+    const id_cert = `C${annoCert}-${p.codice}-${cfPart}-${seriale}`;
 
     const record = {
         progetto_id: window.currentProgettoId,
         corsista_id: corsista_id,
         id_certificato: id_cert,
+        mansione_storica: c.mansione_storica || null,
         esito: "Idoneo",
         data_scadenza: dataScadenzaISO 
     };
@@ -882,7 +983,7 @@ window.aggiungiIscrizione = async function() {
     if(await window.saveIscrizione(record)) {
         await window.loadIscrittiTable();
     } else {
-        alert("Errore. L'allievo potrebbe essere già iscritto.");
+        alert("Errore. L'allievo potrebbe essere già iscritto o il numero certificato potrebbe essere duplicato.");
     }
 };
 
@@ -1010,8 +1111,10 @@ window.caricaDatiStampa = async function() {
     window.AppState['cfg-azienda-referente'] = p.aziende ? p.aziende.referente : "";
 
     window.AppState['cfg-ente-erogatore'] = p.ente_erogatore || 'ente';
-    window.AppState['cfg-docenti-ud'] = p.docente_principale || '{}';
+    window.AppState['cfg-docenti-ud'] = JSON.stringify(window.parseJSONSafe(p.docenti_ud || p.docente_principale || '{}', {}));
     window.AppState['cfg-calendario'] = p.calendario || ""; 
+    window.AppState['cfg-resp-progetto'] = p.resp_progetto || "";
+    window.AppState['cfg-resp-corso'] = p.resp_corso || "";
 
     window.currentSessionCorsisti = iscritti.map(isc => ({
         nome: isc.corsisti.nome_cognome,
@@ -1152,8 +1255,7 @@ window.updateAll = function() {
     let dateSummaryArr = [];
     let scheduleHtml = "";
 
-    let docenti_ud = {};
-    try { docenti_ud = JSON.parse(window.getVal('cfg-docenti-ud', '{}')); } catch(e) {}
+    let docenti_ud = window.parseJSONSafe(window.getVal('cfg-docenti-ud', '{}'), {});
 
     let primoDocenteNome = "Docente Formatore";
 
@@ -1209,6 +1311,9 @@ window.updateAll = function() {
 
     const isAzienda = window.getVal('cfg-ente-erogatore') === 'azienda';
     const nomeErogatore = isAzienda ? window.getVal('cfg-azienda') : window.getVal('cfg-ente');
+    const respProgetto = window.getVal('cfg-resp-progetto') || window.getVal('cfg-legale-nome') || (isAzienda ? window.getVal('cfg-azienda-referente') : 'Responsabile del progetto formativo');
+    const respCorso = window.getVal('cfg-resp-corso') || respProgetto;
+    const complianceNota = window.getComplianceNotaDocumento(courseId, isAzienda);
     
     let luogoEmissione = window.getVal('cfg-luogo-emissione');
     if (isAzienda) {
@@ -1229,7 +1334,7 @@ window.updateAll = function() {
     document.querySelectorAll('.val-ente-contatti-dinamico').forEach(el => el.innerText = isAzienda ? "Ateco: " + window.getVal('cfg-ateco') : window.getVal('cfg-ente-contatti'));
     
     document.querySelectorAll('.val-ruolo-firma-3').forEach(el => el.innerText = isAzienda ? "Il Datore di Lavoro" : "Il Legale Rappresentante dell'Ente");
-    document.querySelectorAll('.val-firma-3-nome').forEach(el => el.innerText = isAzienda ? window.getVal('cfg-azienda-referente') : window.getVal('cfg-legale-nome'));
+    document.querySelectorAll('.val-firma-3-nome').forEach(el => el.innerText = isAzienda ? (window.getVal('cfg-azienda-referente') || respProgetto) : (window.getVal('cfg-legale-nome') || respProgetto));
     document.querySelectorAll('.val-testo-timbro').forEach(el => el.innerHTML = isAzienda ? "TIMBRO<br>AZIENDA" : "TIMBRO<br>EROGATORE");
 
     const sedeToDisplay = window.getVal('cfg-sede-corso') || window.getVal('cfg-azienda-indirizzo') || "Sede Aziendale";
@@ -1241,7 +1346,9 @@ window.updateAll = function() {
     document.querySelectorAll('.val-codice').forEach(el => el.innerText = window.getVal('cfg-codice'));
     document.querySelectorAll('.val-sede-corso').forEach(el => el.innerText = sedeToDisplay); 
     document.querySelectorAll('.val-docente-main').forEach(el => el.innerText = primoDocenteNome); 
-    document.querySelectorAll('.val-resp-progetto').forEach(el => el.innerText = window.getVal('cfg-legale-nome') || "Legale Rappresentante");
+    document.querySelectorAll('.val-resp-progetto').forEach(el => el.innerText = respProgetto);
+    document.querySelectorAll('.val-resp-corso').forEach(el => el.innerText = respCorso);
+    document.querySelectorAll('.val-compliance-note').forEach(el => el.innerText = complianceNota);
     document.querySelectorAll('.val-data-esame').forEach(el => el.innerText = dataEsameStrFormatted);
     document.querySelectorAll('.val-modalita').forEach(el => el.innerText = window.getVal('cfg-modalita', 'In Presenza Fisica'));
     document.querySelectorAll('.val-calendario').forEach(el => el.innerText = window.getVal('cfg-calendario'));
@@ -1249,17 +1356,17 @@ window.updateAll = function() {
 
     document.querySelectorAll('.val-dicitura-legale').forEach(el => {
         if(isAzienda) {
-            el.innerHTML = "Corso erogato in conformità a:<br><strong>" + (c.norma || "D.Lgs. 81/08 e Accordo Stato Regioni del 17 Aprile 2025") + "</strong><br><span class='text-blue-700 italic block mt-1'>Formazione erogata dal datore di lavoro ai propri lavoratori come da accordo Stato Regioni del 2025 rep. CSR N° 59 del 17 aprile 2025</span>";
+            el.innerHTML = "Corso erogato in conformità a:<br><strong>" + (c.norma || "D.Lgs. 81/08 e Accordo Stato Regioni del 17 Aprile 2025") + "</strong><br><span class='text-blue-700 italic block mt-1'>Datore di lavoro soggetto formatore: formazione diretta per propri lavoratori/preposti/dirigenti.</span>";
         } else {
-            el.innerHTML = "Corso erogato in conformità a:<br><strong>" + (c.norma || "D.Lgs. 81/08 e Accordo Stato Regioni del 17 Aprile 2025") + "</strong>";
+            el.innerHTML = "Corso erogato in conformità a:<br><strong>" + (c.norma || "D.Lgs. 81/08 e Accordo Stato Regioni del 17 Aprile 2025") + "</strong><br><span class='text-emerald-700 italic block mt-1'>Associazione sindacale di categoria / struttura di diretta emanazione quale soggetto formatore.</span>";
         }
     });
 
     let headerLegaleHtml = "";
     if (isAzienda) {
-        headerLegaleHtml = "<p>Formazione erogata dal datore di lavoro ai propri lavoratori come da accordo Stato Regioni del 2025 rep. CSR N° 59 del 17 aprile 2025</p>";
+        headerLegaleHtml = "<p>Datore di lavoro quale soggetto formatore ex Accordo Stato-Regioni 17/04/2025, Rep. atti n. 59/CSR</p><p>Formazione diretta esclusivamente per propri lavoratori, preposti e dirigenti</p>";
     } else {
-        headerLegaleHtml = "<p>Soggetto formatore ai sensi dell'Accordo Stato Regioni del 17 aprile 2025 (Rep. Atti n. 59/CSR)</p><p>Erogazione Diretta o tramite struttura di diretta emanazione</p>";
+        headerLegaleHtml = "<p>Associazione sindacale di categoria / struttura di diretta emanazione quale soggetto formatore</p><p>Accordo Stato-Regioni 17/04/2025, Rep. atti n. 59/CSR - requisiti da conservare/autocertificare ove applicabile</p>";
     }
     document.querySelectorAll('.val-header-legale').forEach(el => el.innerHTML = headerLegaleHtml);
 

@@ -3,6 +3,37 @@
 // ==========================================
 // DATABASE CORSI E SYLLABUS ANALITICO (INTEGRATO CON D.LGS 81/08 E NUOVO ASR 2025)
 // ==========================================
+// ==========================================
+// REGOLE DI COMPLIANCE ASR 17/04/2025
+// ==========================================
+window.ASR2025_POLICY = {
+    riferimento: 'Accordo Stato-Regioni 17 aprile 2025, Rep. atti n. 59/CSR',
+    riferimentoDlgs: 'D.Lgs. 81/08, artt. 37, 32, 34 e 73 ove applicabili',
+    frequenzaMinimaPercentuale: 90,
+    maxDiscentiAula: 30,
+    rapportoDocentePratico: '1 docente ogni 6 discenti nelle attività pratiche',
+    conservazioneFascicoloAnni: 10,
+    modalitaAmmesse: ['Presenza fisica', 'Videoconferenza sincrona', 'E-learning', 'Mista'],
+    notaEnte: 'Associazione sindacale di categoria / struttura di diretta emanazione: verificare e conservare autocertificazione dei requisiti di rappresentatività ex DPR 445/2000 fino alla piena operatività del repertorio.',
+    notaAzienda: 'Il datore di lavoro può organizzare direttamente la formazione solo per propri lavoratori, preposti e dirigenti, con docenti qualificati e richiesta agli Organismi Paritetici ove presenti.'
+};
+
+window.getCourseCompliance = function(corsoId) {
+    const corso = window.DB_CORSI && window.DB_CORSI[corsoId] ? window.DB_CORSI[corsoId] : null;
+    const id = corsoId || '';
+    const pratico = id.startsWith('attr_') || id.includes('quota') || id.includes('confinati') || id.includes('pratico') || id.includes('pompe') || id.includes('gru') || id.includes('trattori');
+    const updateBiennale = id === 'agg_prep';
+    const updateQuinquennale = id.startsWith('agg_lav') || id === 'agg_dir' || id === 'agg_dl' || id === 'agg_dl_spp' || id === 'agg_pratico_4h';
+    const note = [];
+    note.push('Frequenza minima per ammissione alla verifica finale: 90% del monte ore.');
+    note.push('Numero massimo discenti: 30 per corso, salvo e-learning.');
+    if (pratico) note.push('Modulo con componente pratica: rispettare rapporto docente/discente non superiore a 1:6 e conservare dichiarazione di idoneità area/attrezzature/DPI.');
+    if (updateBiennale) note.push('Aggiornamento preposto: cadenza biennale, durata minima 6 ore.');
+    else if (updateQuinquennale) note.push('Aggiornamento: verificare la periodicità specifica prevista dal profilo formativo.');
+    if (corso && corso.scad && corso.scad !== 99) note.push('Scadenza attestato calcolata automaticamente su ' + corso.scad + ' anni dalla data di verifica finale.');
+    return { pratico, updateBiennale, updateQuinquennale, note };
+};
+
 window.DB_CORSI = {
     lav_basso: { t: "Formazione Lavoratori - Rischio Basso", ore: 8, scad: 5, risk: "RB", code: "FL", norma: "D.Lgs. 81/08 Art. 37 commi 1 e 3 e Accordo Stato Regioni del 17 Aprile 2025 (Rep. Atti n. 59/CSR)", prog: [
         { ud: "UD1", ore: 4, m: "Modulo Formazione Generale", d: "<ul class='syllabus-list list-outside list-disc ml-3 space-y-0.5 text-left'><li>Concetti di pericolo, rischio e danno.</li><li>Prevenzione e protezione.</li><li>Organizzazione della prevenzione aziendale e il sistema di partecipazione dei lavoratori e dei loro rappresentanti previsto dal D. Lgs. 81 del 2008.</li><li>Diritti, doveri e sanzioni per i vari soggetti aziendali.</li><li>Organi di vigilanza, controllo e assistenza.</li></ul>" },

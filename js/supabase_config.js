@@ -1,10 +1,29 @@
 // js/supabase_config.js
 
-// ⚠️ INSERISCI QUI LE TUE CHIAVI
-const SUPABASE_URL = 'https://gblcedkfnasqlnrxupzx.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdibGNlZGtmbmFzcWxucnh1cHp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3NDU3NzksImV4cCI6MjA5NzMyMTc3OX0.KKt8nVCPnYsdHBITY0w901CvLweIVdmxJWVgEVCPDNs';
+// Configurazione Supabase lato client.
+// In produzione su Vercel è preferibile valorizzare queste variabili tramite un file
+// pubblico generato in build, ad esempio window.SAFETY_SUPABASE_URL e
+// window.SAFETY_SUPABASE_ANON_KEY, oppure salvarle da pannello admin in localStorage.
+// L'anon key non è una chiave segreta: la sicurezza reale deve essere garantita da RLS
+// e policy Supabase coerenti con ente/azienda/ruolo utente.
+const SUPABASE_URL =
+    window.SAFETY_SUPABASE_URL ||
+    localStorage.getItem('SAFETY_SUPABASE_URL') ||
+    'https://gblcedkfnasqlnrxupzx.supabase.co';
 
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const SUPABASE_ANON_KEY =
+    window.SAFETY_SUPABASE_ANON_KEY ||
+    localStorage.getItem('SAFETY_SUPABASE_ANON_KEY') ||
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdibGNlZGtmbmFzcWxucnh1cHp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3NDU3NzksImV4cCI6MjA5NzMyMTc3OX0.KKt8nVCPnYsdHBITY0w901CvLweIVdmxJWVgEVCPDNs';
+
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    console.warn('Configurazione Supabase mancante: impostare URL e anon key prima del deploy.');
+}
+
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: { persistSession: true, autoRefreshToken: true }
+});
+window.supabaseClient = supabaseClient;
 
 // ==========================================
 // API AZIENDE (CRM)
