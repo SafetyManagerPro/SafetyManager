@@ -1,35 +1,79 @@
 <!-- modules/fascicolo_corso.html -->
-<div class="doc-page portrait flex flex-col p-12 print-as-block text-center border-4 border-slate-900" style="padding: 20mm !important; max-height: 297mm; height: 297mm; justify-content: center;">
-    
-    <div class="mb-10">
-        <img src="" alt="Logo" class="logo-img h-24 object-contain mx-auto mb-4 hidden">
-        <h1 class="text-3xl font-black uppercase tracking-widest text-slate-900 val-ente">---</h1>
-        <p class="text-sm font-bold text-slate-600 uppercase mt-2">Ente di Formazione / Soggetto Erogatore</p>
+<div class="doc-page portrait flex flex-col print-as-block bg-white border-4 border-slate-900" style="padding: 14mm !important; max-height: 297mm; height: 297mm;">
+    <div class="text-center border-b-4 border-blue-900 pb-5 mb-6 shrink-0">
+        <img src="" alt="Logo" class="logo-img h-16 object-contain mx-auto mb-3 hidden">
+        <h1 class="text-2xl font-black uppercase tracking-widest text-slate-900 val-erogatore">---</h1>
+        <p class="text-[9px] font-bold text-slate-600 uppercase tracking-widest mt-2 val-header-legale">Soggetto formatore</p>
+        <h2 class="mt-5 text-4xl font-black uppercase text-blue-900 tracking-tighter leading-tight">Fascicolo del Corso</h2>
+        <p class="text-[10px] font-black uppercase text-slate-700 bg-yellow-200 inline-block px-4 py-1 rounded mt-2">Conservazione minima 10 anni presso il soggetto formatore</p>
     </div>
 
-    <div class="border-t-4 border-b-4 border-blue-900 py-10 my-10 bg-slate-50">
-        <p class="text-xl font-bold uppercase tracking-widest text-slate-500 mb-4">Archivio e Conservazione Documentale</p>
-        <h2 class="text-5xl font-black uppercase text-blue-900 tracking-tighter leading-tight mb-2">Fascicolo del Corso</h2>
-        <p class="text-sm font-bold uppercase text-slate-700 bg-yellow-200 inline-block px-4 py-1 rounded">Da conservare per 10 anni (Accordo Stato-Regioni 17 aprile 2025)</p>
+    <div class="grid grid-cols-2 gap-4 mb-5 text-[10px] shrink-0">
+        <div class="border border-slate-300 p-3 rounded bg-slate-50">
+            <p class="font-black uppercase text-slate-500 border-b border-slate-200 pb-1 mb-2">Dati progetto</p>
+            <p><strong>Codice:</strong> <span class="val-codice font-mono font-black">---</span></p>
+            <p><strong>Corso:</strong> <span class="val-titolo-corso uppercase font-bold">---</span></p>
+            <p><strong>Ore:</strong> <span class="val-ore-corso font-bold">---</span></p>
+            <p><strong>Modalità:</strong> <span class="val-modalita font-bold uppercase">---</span></p>
+        </div>
+        <div class="border border-slate-300 p-3 rounded bg-slate-50">
+            <p class="font-black uppercase text-slate-500 border-b border-slate-200 pb-1 mb-2">Committente e sede</p>
+            <p><strong>Azienda:</strong> <span class="val-azienda uppercase font-bold text-blue-900">---</span></p>
+            <p><strong>Sede:</strong> <span class="val-sede-corso uppercase font-bold">---</span></p>
+            <p><strong>Periodo:</strong> <span class="val-data-inizio font-bold">---</span> - <span class="val-data-esame font-bold">---</span></p>
+            <p><strong>Resp. progetto:</strong> <span class="val-resp-progetto uppercase font-bold">---</span></p>
+        </div>
     </div>
 
-    <div class="text-left bg-white border-2 border-slate-300 p-8 rounded-xl shadow-sm mx-auto w-full max-w-lg mb-10">
-        <p class="text-xs font-bold text-slate-500 uppercase border-b border-slate-200 pb-2 mb-4">Dati Identificativi del Progetto</p>
-        <p class="text-sm mb-2"><span class="font-bold w-32 inline-block">Codice Progetto:</span> <span class="val-codice font-mono font-black text-lg">---</span></p>
-        <p class="text-sm mb-2"><span class="font-bold w-32 inline-block">Azienda Cliente:</span> <span class="val-azienda uppercase font-bold text-blue-800">---</span></p>
-        <p class="text-sm mb-2"><span class="font-bold w-32 inline-block">Titolo Corso:</span> <span class="val-titolo-corso uppercase font-bold">---</span></p>
-        <p class="text-sm mb-2"><span class="font-bold w-32 inline-block">Svolto in data:</span> <span class="val-data-inizio font-bold text-slate-700">---</span> al <span class="val-data-esame font-bold text-slate-700">---</span></p>
+    <div class="border-l-4 border-amber-500 bg-amber-50 p-3 mb-5 text-[9px] text-amber-950 leading-snug shrink-0">
+        <p class="font-black uppercase text-amber-900 mb-1">Nota compliance</p>
+        <p class="val-compliance-note">---</p>
     </div>
 
-    <div class="text-left mx-auto w-full max-w-lg text-[10px] text-slate-500">
-        <p class="font-bold uppercase mb-2 text-black">Contenuto obbligatorio del fascicolo (Spuntare):</p>
-        <div class="grid grid-cols-2 gap-2">
-            <p>[ ] Dati anagrafici dei partecipanti</p>
-            <p>[ ] Registro presenze con firme</p>
-            <p>[ ] Elenco dei docenti con firme</p>
-            <p>[ ] Progetto formativo e programma</p>
-            <p>[ ] Verbale di verifica finale</p>
-            <p>[ ] Copie test/colloqui di valutazione</p>
+    <div class="flex-1 grid grid-cols-2 gap-4 text-[10px] leading-snug">
+        <div class="border-2 border-slate-300 rounded p-4">
+            <p class="font-black uppercase text-slate-900 border-b border-slate-300 pb-2 mb-3">Contenuto minimo obbligatorio ASR 2025</p>
+            <div class="space-y-2">
+                <p>[ ] Dati anagrafici dei partecipanti</p>
+                <p>[ ] Registro presenze partecipanti con firme</p>
+                <p>[ ] Elenco docenti con firme</p>
+                <p>[ ] Progetto formativo</p>
+                <p>[ ] Programma / syllabus del corso</p>
+                <p>[ ] Verbale della verifica finale</p>
+                <p>[ ] Esiti documentati dei risultati</p>
+                <p>[ ] Copia attestati rilasciati / ID certificati</p>
+            </div>
+        </div>
+        <div class="border-2 border-slate-300 rounded p-4">
+            <p class="font-black uppercase text-slate-900 border-b border-slate-300 pb-2 mb-3">Allegati di controllo consigliati</p>
+            <div class="space-y-2">
+                <p>[ ] Requisiti docente / CV / autocertificazione DM 6/3/2013</p>
+                <p>[ ] Autocertificazione requisiti associazione/diretta emanazione, se ente</p>
+                <p>[ ] Richiesta collaborazione Organismo Paritetico, se erogazione diretta aziendale</p>
+                <p>[ ] Eventuale riscontro OP o decorrenza 15 giorni</p>
+                <p>[ ] Dichiarazione idoneità area, attrezzature e DPI per parti pratiche</p>
+                <p>[ ] Copia test, griglie colloquio e prove pratiche</p>
+                <p>[ ] Questionario gradimento / monitoraggio efficacia</p>
+                <p>[ ] Informativa privacy e gestione documenti digitali</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-6 pt-5 border-t-2 border-slate-900 grid grid-cols-3 gap-4 text-center text-[9px] shrink-0">
+        <div>
+            <p class="font-black uppercase text-slate-500">Responsabile progetto</p>
+            <p class="val-resp-progetto font-black uppercase mt-2 mb-6">---</p>
+            <span class="border-b border-slate-500 block w-36 mx-auto"></span>
+            <p class="text-[7px] text-slate-400 mt-1">Firma</p>
+        </div>
+        <div class="flex items-center justify-center">
+            <div class="border-2 border-dashed border-slate-400 px-8 py-4 rounded text-slate-400 font-black uppercase">Timbro</div>
+        </div>
+        <div>
+            <p class="val-ruolo-firma-3 font-black uppercase text-slate-500">Legale rappresentante</p>
+            <p class="val-firma-3-nome font-black uppercase mt-2 mb-6">---</p>
+            <span class="border-b border-slate-500 block w-36 mx-auto"></span>
+            <p class="text-[7px] text-slate-400 mt-1">Firma</p>
         </div>
     </div>
 </div>

@@ -21,11 +21,12 @@
                 </div>
 
                 <div>
-                    <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Soggetto Erogatore</label>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Soggetto Formatore / Erogatore</label>
                     <select id="prog-erogatore" onchange="window.calcolaDettagliProgetto()" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded outline-none focus:border-rose-500 transition font-bold text-slate-800">
-                        <option value="ente">Ente Formatore Esterno</option>
-                        <option value="azienda">Erogazione Diretta (Datore di Lavoro)</option>
+                        <option value="ente">Associazione sindacale / ente di diretta emanazione</option>
+                        <option value="azienda">Datore di lavoro - solo propri dipendenti</option>
                     </select>
+                    <p id="prog-erogatore-note" class="mt-1 text-[9px] leading-snug text-slate-500">Se l'erogatore è l'azienda, il corso è ammesso solo per lavoratori, preposti e dirigenti della stessa azienda.</p>
                 </div>
 
                 <div>
@@ -101,6 +102,22 @@
                 </div>
 
                 <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Sede corso / aula / campo prova</label>
+                    <input type="text" id="prog-sede" required placeholder="Es. sede aziendale, aula ente, campo prove..." class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded outline-none focus:border-rose-500 transition">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Resp. progetto formativo</label>
+                        <input type="text" id="prog-resp-progetto" placeholder="Nome responsabile" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded outline-none focus:border-rose-500 transition">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Resp. corso / tutor</label>
+                        <input type="text" id="prog-resp-corso" placeholder="Opzionale" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded outline-none focus:border-rose-500 transition">
+                    </div>
+                </div>
+
+                <div>
                     <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Modalità Svolgimento</label>
                     <select id="prog-modalita" required class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded outline-none focus:border-rose-500 transition">
                         <option value="In Presenza Fisica">In Presenza Fisica</option>
@@ -108,6 +125,14 @@
                         <option value="E-Learning (Asincrona)">F.A.D. (Asincrona)</option>
                         <option value="Mista (Blended)">Mista (Blended)</option>
                     </select>
+                </div>
+
+                <div id="prog-compliance-box" class="bg-amber-50 border border-amber-200 p-3 rounded text-[10px] leading-snug text-amber-900">
+                    <p class="font-black uppercase tracking-wider text-amber-800 mb-1">Check compliance ASR 17/04/2025</p>
+                    <ul id="prog-compliance-list" class="list-disc ml-4 space-y-0.5">
+                        <li>Seleziona corso e data per generare calendario, scadenza e vincoli.</li>
+                    </ul>
+                    <p class="mt-2 text-[9px] text-amber-800">Limiti generali: max 30 discenti salvo e-learning, frequenza minima 90%, rapporto pratiche 1:6 ove previsto.</p>
                 </div>
 
                 <div class="bg-rose-50 border border-rose-200 p-3 rounded">
@@ -121,6 +146,7 @@
                 <div>
                     <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Codice ID Univoco (Auto)</label>
                     <input type="text" id="prog-codice" class="w-full px-3 py-2 bg-slate-100 border border-slate-300 rounded font-mono text-center font-bold tracking-widest" readonly>
+                    <p class="mt-1 text-[9px] text-slate-500">Scadenza stimata: <span id="lbl-prog-scadenza" class="font-black text-slate-800">---</span></p>
                 </div>
 
                 <div class="pt-2 flex gap-2">
