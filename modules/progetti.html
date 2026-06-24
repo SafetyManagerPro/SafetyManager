@@ -12,9 +12,12 @@
 
                 <div>
                     <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Azienda Committente</label>
-                    <select id="prog-azienda" onchange="window.calcolaDettagliProgetto()" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded outline-none focus:border-rose-500 transition font-bold text-slate-800">
-                        <!-- Popolato via JS -->
-                    </select>
+                    <div class="flex items-center gap-2">
+                        <select id="prog-azienda" onchange="window.calcolaDettagliProgetto()" class="flex-1 w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded outline-none focus:border-rose-500 transition font-bold text-slate-800">
+                            <!-- Popolato via JS -->
+                        </select>
+                        <button type="button" onclick="window.apriQAAzienda()" class="bg-rose-100 hover:bg-rose-200 text-rose-700 p-2 rounded transition shadow-sm border border-rose-200" title="Aggiungi Nuova Azienda Rapida"><i data-lucide="plus" class="w-4 h-4"></i></button>
+                    </div>
                 </div>
 
                 <div>
@@ -27,60 +30,63 @@
 
                 <div>
                     <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Tipologia Corso</label>
-                    <select id="prog-corso" onchange="window.calcolaDettagliProgetto()" required class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded outline-none focus:border-rose-500 transition text-blue-900 font-bold">
-                        <option value="">-- Seleziona il corso --</option>
-                        
-                        <optgroup label="Lavoratori e Preposti">
-                            <option value="lav_basso">Formazione Lavoratori - Rischio Basso (8h)</option>
-                            <option value="lav_medio">Formazione Lavoratori - Rischio Medio (12h)</option>
-                            <option value="lav_alto">Formazione Lavoratori - Rischio Alto (16h)</option>
-                            <option value="preposto">Preposto Vigilanza Attiva (12h)</option>
-                        </optgroup>
-                        
-                        <optgroup label="Datori di Lavoro e Dirigenti">
-                            <option value="dl_base">Datore di Lavoro - Corso Base Universale (16h)</option>
-                            <option value="dl_spp_comune">DL SPP - Modulo Comune (Senza Rischio Specifico) (8h)</option>
-                            <option value="dl_spp_agri">DL SPP - Modulo Comune + Agricoltura/Zootecnica (24h)</option>
-                            <option value="dl_spp_pesca">DL SPP - Modulo Comune + Pesca (20h)</option>
-                            <option value="dl_spp_costruzioni">DL SPP - Modulo Comune + Costruzioni (24h)</option>
-                            <option value="dl_spp_chimico">DL SPP - Modulo Comune + Chimico-Petrolchimico (24h)</option>
-                            <option value="dirigente">Dirigente Sicurezza (12h)</option>
-                        </optgroup>
-                        
-                        <optgroup label="Rappresentanti, Cantieri ed Emergenze">
-                            <option value="rls">Rappresentante Lavoratori Sicurezza RLS (32h)</option>
-                            <option value="mod_cantieri">Modulo Aggiuntivo Cantieri (DL/Dirigente) (6h)</option>
-                            <option value="primo_soccorso_12h">Addetto al Primo Soccorso (Gruppo B/C) (12h)</option>
-                            <option value="antincendio_liv2">Addetto Emergenze e Antincendio (Livello 2) (8h)</option>
-                        </optgroup>
+                    <div class="flex items-center gap-2">
+                        <select id="prog-corso" onchange="window.calcolaDettagliProgetto()" required class="flex-1 w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded outline-none focus:border-rose-500 transition text-blue-900 font-bold truncate">
+                            <option value="">-- Seleziona il corso --</option>
+                            
+                            <optgroup label="Lavoratori e Preposti">
+                                <option value="lav_basso">Formazione Lavoratori - Rischio Basso (8h)</option>
+                                <option value="lav_medio">Formazione Lavoratori - Rischio Medio (12h)</option>
+                                <option value="lav_alto">Formazione Lavoratori - Rischio Alto (16h)</option>
+                                <option value="preposto">Preposto Vigilanza Attiva (12h)</option>
+                            </optgroup>
+                            
+                            <optgroup label="Datori di Lavoro e Dirigenti">
+                                <option value="dl_base">Datore di Lavoro - Corso Base Universale (16h)</option>
+                                <option value="dl_spp_comune">DL SPP - Modulo Comune (Senza Rischio Specifico) (8h)</option>
+                                <option value="dl_spp_agri">DL SPP - Modulo Comune + Agricoltura/Zootecnica (24h)</option>
+                                <option value="dl_spp_pesca">DL SPP - Modulo Comune + Pesca (20h)</option>
+                                <option value="dl_spp_costruzioni">DL SPP - Modulo Comune + Costruzioni (24h)</option>
+                                <option value="dl_spp_chimico">DL SPP - Modulo Comune + Chimico-Petrolchimico (24h)</option>
+                                <option value="dirigente">Dirigente Sicurezza (12h)</option>
+                            </optgroup>
+                            
+                            <optgroup label="Rappresentanti, Cantieri ed Emergenze">
+                                <option value="rls">Rappresentante Lavoratori Sicurezza RLS (32h)</option>
+                                <option value="mod_cantieri">Modulo Aggiuntivo Cantieri (DL/Dirigente) (6h)</option>
+                                <option value="primo_soccorso_12h">Addetto al Primo Soccorso (Gruppo B/C) (12h)</option>
+                                <option value="antincendio_liv2">Addetto Emergenze e Antincendio (Livello 2) (8h)</option>
+                            </optgroup>
 
-                        <optgroup label="Attrezzature e Lavori Specifici">
-                            <option value="amb_confinati">Ambienti Sospetti Inquinamento o Confinati (12h)</option>
-                            <option value="lav_quota">Lavori in Quota e DPI 3° Categoria (8h)</option>
-                            <option value="attr_carrelli_ind">Carrelli Elevatori Industriali Semoventi (12h)</option>
-                            <option value="attr_carrelli_all">Carrelli Elev. Ind + Telescopici + Rotativi (16h)</option>
-                            <option value="attr_ple">Piattaforme Lavoro Elevabili PLE (10h)</option>
-                            <option value="attr_mmt_esc">Macchine Movimento Terra/Escavatori Idraulici (10h)</option>
-                            <option value="attr_mmt_all">Macchine Movimento Terra (Esc+Pale+Terne) (16h)</option>
-                            <option value="attr_gru_autocarro">Gru per Autocarro (12h)</option>
-                            <option value="attr_gru_torre">Gru a Torre rotazione basso e alto (14h)</option>
-                            <option value="attr_pompe">Pompe per Calcestruzzo (14h)</option>
-                            <option value="attr_trattori">Trattori Agricoli o Forestali (8h)</option>
-                        </optgroup>
-                        
-                        <optgroup label="Aggiornamenti">
-                            <option value="agg_lav">Aggiornamento Lavoratori (6h)</option>
-                            <option value="agg_prep">Aggiornamento Preposto (6h) - Biennale</option>
-                            <option value="agg_dir">Aggiornamento Dirigente (6h)</option>
-                            <option value="agg_dl">Aggiornamento Datore di Lavoro (6h)</option>
-                            <option value="agg_dl_spp">Aggiornamento DL SPP (Ex RSPP) (8h)</option>
-                            <option value="agg_rls_4h">Aggiornamento RLS (4h - Imprese 15-50 dip.)</option>
-                            <option value="agg_rls_8h">Aggiornamento RLS (8h - Imprese >50 dip.)</option>
-                            <option value="agg_primo_soccorso_4h">Aggiornamento Primo Soccorso (Gr. B/C) - 4h (Triennale)</option>
-                            <option value="agg_antincendio_liv2_5h">Aggiornamento Antincendio (Livello 2) - 5h</option>
-                            <option value="agg_pratico_4h">Agg. Pratico Attrezzature / Spazi Confinati (4h)</option>
-                        </optgroup>
-                    </select>
+                            <optgroup label="Attrezzature e Lavori Specifici">
+                                <option value="amb_confinati">Ambienti Sospetti Inquinamento o Confinati (12h)</option>
+                                <option value="lav_quota">Lavori in Quota e DPI 3° Categoria (8h)</option>
+                                <option value="attr_carrelli_ind">Carrelli Elevatori Industriali Semoventi (12h)</option>
+                                <option value="attr_carrelli_all">Carrelli Elev. Ind + Telescopici + Rotativi (16h)</option>
+                                <option value="attr_ple">Piattaforme Lavoro Elevabili PLE (10h)</option>
+                                <option value="attr_mmt_esc">Macchine Movimento Terra/Escavatori Idraulici (10h)</option>
+                                <option value="attr_mmt_all">Macchine Movimento Terra (Esc+Pale+Terne) (16h)</option>
+                                <option value="attr_gru_autocarro">Gru per Autocarro (12h)</option>
+                                <option value="attr_gru_torre">Gru a Torre rotazione basso e alto (14h)</option>
+                                <option value="attr_pompe">Pompe per Calcestruzzo (14h)</option>
+                                <option value="attr_trattori">Trattori Agricoli o Forestali (8h)</option>
+                            </optgroup>
+                            
+                            <optgroup label="Aggiornamenti">
+                                <option value="agg_lav">Aggiornamento Lavoratori (6h)</option>
+                                <option value="agg_prep">Aggiornamento Preposto (6h) - Biennale</option>
+                                <option value="agg_dir">Aggiornamento Dirigente (6h)</option>
+                                <option value="agg_dl">Aggiornamento Datore di Lavoro (6h)</option>
+                                <option value="agg_dl_spp">Aggiornamento DL SPP (Ex RSPP) (8h)</option>
+                                <option value="agg_rls_4h">Aggiornamento RLS (4h - Imprese 15-50 dip.)</option>
+                                <option value="agg_rls_8h">Aggiornamento RLS (8h - Imprese >50 dip.)</option>
+                                <option value="agg_primo_soccorso_4h">Aggiornamento Primo Soccorso (Gr. B/C) - 4h (Triennale)</option>
+                                <option value="agg_antincendio_liv2_5h">Aggiornamento Antincendio (Livello 2) - 5h</option>
+                                <option value="agg_pratico_4h">Agg. Pratico Attrezzature / Spazi Confinati (4h)</option>
+                            </optgroup>
+                        </select>
+                        <button type="button" onclick="window.apriQACorso()" class="bg-blue-100 hover:bg-blue-200 text-blue-700 p-2 rounded transition shadow-sm border border-blue-200" title="Aggiungi Corso Personalizzato"><i data-lucide="plus" class="w-4 h-4"></i></button>
+                    </div>
                 </div>
 
                 <div class="grid grid-cols-2 gap-3">
@@ -133,7 +139,6 @@
             <h1 class="text-3xl font-black uppercase text-slate-900 tracking-tighter">Progetti Attivi</h1>
             <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Archivio corsi erogati, iscritti e stampe</p>
             
-            <!-- BARRA DI RICERCA E FILTRO SIGLA -->
             <div class="flex flex-col sm:flex-row gap-3 mt-4">
                 <div class="relative flex-1">
                     <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-slate-400"></i>
@@ -165,7 +170,7 @@
                 </table>
             </div>
 
-            <!-- PANNELLO ISCRIZIONI (OVERLAY) -->
+            <!-- PANNELLO ISCRIZIONI (OVERLAY Z-10) -->
             <div id="panel-iscrizioni" class="hidden absolute inset-0 bg-slate-900/95 backdrop-blur-sm z-10 flex flex-col p-6 overflow-hidden">
                 <div class="flex justify-between items-start border-b border-slate-700 pb-3 mb-4 shrink-0">
                     <div>
@@ -177,11 +182,14 @@
                     <button onclick="window.chiudiPannelloIscrizioni()" class="text-slate-400 hover:text-white bg-slate-800 p-2 rounded-lg transition"><i data-lucide="x" class="w-5 h-5"></i></button>
                 </div>
 
-                <div class="flex gap-3 mb-4 shrink-0">
+                <div class="flex gap-2 mb-4 shrink-0">
                     <select id="sel-iscrivi-corsista" class="flex-1 px-3 py-2 bg-slate-800 border border-slate-700 rounded text-xs text-white outline-none focus:border-amber-500">
                         <!-- Popolato via JS -->
                     </select>
-                    <button onclick="window.aggiungiIscrizione()" class="bg-amber-600 hover:bg-amber-700 text-white font-bold px-4 py-2 rounded text-xs uppercase transition shadow flex items-center gap-2">
+                    <!-- Pulsante Aggiunta Rapida Corsista -->
+                    <button type="button" onclick="window.apriQACorsista()" class="bg-slate-700 hover:bg-slate-600 text-white px-3 rounded transition border border-slate-600" title="Crea Nuovo Allievo"><i data-lucide="plus" class="w-4 h-4"></i></button>
+                    
+                    <button onclick="window.aggiungiIscrizione()" class="bg-amber-600 hover:bg-amber-700 text-white font-bold px-4 py-2 rounded text-xs uppercase transition shadow flex items-center gap-2 ml-2">
                         <i data-lucide="user-plus" class="w-4 h-4"></i> Aggiungi
                     </button>
                 </div>
@@ -205,4 +213,64 @@
         </div>
     </div>
 </div>
-```eof
+
+<!-- ======================================================== -->
+<!-- MODALI QUICK ADD (AGGIUNTA RAPIDA) IN SOVRAIMPRESSIONE   -->
+<!-- ======================================================== -->
+
+<!-- MODALE QUICK ADD: AZIENDA -->
+<div id="qa-modal-azienda" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+        <div class="bg-rose-600 p-4 flex justify-between items-center text-white">
+            <h3 class="font-black uppercase text-sm flex items-center gap-2"><i data-lucide="briefcase" class="w-4 h-4"></i> Nuova Azienda Rapida</h3>
+            <button onclick="window.chiudiQAAzienda()" class="hover:bg-rose-700 p-1 rounded"><i data-lucide="x" class="w-4 h-4"></i></button>
+        </div>
+        <div class="p-6">
+            <form onsubmit="event.preventDefault(); window.salvaQAAzienda();" class="space-y-4 text-xs">
+                <div><label class="font-bold text-slate-500 uppercase block mb-1">Ragione Sociale *</label><input type="text" id="qa-az-rag" required class="w-full p-2 border rounded bg-slate-50 outline-none focus:border-rose-500"></div>
+                <div><label class="font-bold text-slate-500 uppercase block mb-1">Partita IVA / C.F.</label><input type="text" id="qa-az-piva" class="w-full p-2 border rounded bg-slate-50 outline-none focus:border-rose-500 font-mono"></div>
+                <button type="submit" class="w-full mt-4 bg-rose-600 text-white font-bold uppercase py-2.5 rounded shadow hover:bg-rose-700 transition">Salva e Seleziona</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- MODALE QUICK ADD: CORSO PERSONALIZZATO -->
+<div id="qa-modal-corso" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+        <div class="bg-blue-600 p-4 flex justify-between items-center text-white">
+            <h3 class="font-black uppercase text-sm flex items-center gap-2"><i data-lucide="layout-template" class="w-4 h-4"></i> Crea Corso Custom</h3>
+            <button onclick="window.chiudiQACorso()" class="hover:bg-blue-700 p-1 rounded"><i data-lucide="x" class="w-4 h-4"></i></button>
+        </div>
+        <div class="p-6">
+            <p class="text-[10px] text-slate-500 mb-4 leading-tight italic">Questa funzione genera un corso personalizzato temporaneo non presente nel database ASR 2025 standard.</p>
+            <form onsubmit="event.preventDefault(); window.salvaQACorso();" class="space-y-4 text-xs">
+                <div><label class="font-bold text-slate-500 uppercase block mb-1">Titolo del Corso *</label><input type="text" id="qa-co-titolo" required placeholder="Es. Formazione Specifica Macchinario X" class="w-full p-2 border rounded bg-slate-50 outline-none focus:border-blue-500"></div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="font-bold text-slate-500 uppercase block mb-1">Durata (Ore) *</label><input type="number" id="qa-co-ore" required min="1" class="w-full p-2 border rounded bg-slate-50 outline-none focus:border-blue-500"></div>
+                    <div><label class="font-bold text-slate-500 uppercase block mb-1">Scadenza (Anni)</label><input type="number" id="qa-co-scad" value="5" class="w-full p-2 border rounded bg-slate-50 outline-none focus:border-blue-500"></div>
+                </div>
+                <button type="submit" class="w-full mt-4 bg-blue-600 text-white font-bold uppercase py-2.5 rounded shadow hover:bg-blue-700 transition">Genera Corso</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- MODALE QUICK ADD: CORSISTA -->
+<div id="qa-modal-corsista" class="hidden fixed inset-0 bg-slate-900/90 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+        <div class="bg-emerald-600 p-4 flex justify-between items-center text-white">
+            <h3 class="font-black uppercase text-sm flex items-center gap-2"><i data-lucide="user-plus" class="w-4 h-4"></i> Nuovo Allievo Rapido</h3>
+            <button onclick="window.chiudiQACorsista()" class="hover:bg-emerald-700 p-1 rounded"><i data-lucide="x" class="w-4 h-4"></i></button>
+        </div>
+        <div class="p-6">
+            <form onsubmit="event.preventDefault(); window.salvaQACorsista();" class="space-y-4 text-xs">
+                <div><label class="font-bold text-slate-500 uppercase block mb-1">Nome e Cognome *</label><input type="text" id="qa-cor-nome" required class="w-full p-2 border rounded bg-slate-50 outline-none focus:border-emerald-500"></div>
+                <div><label class="font-bold text-slate-500 uppercase block mb-1">Codice Fiscale *</label><input type="text" id="qa-cor-cf" required maxlength="16" class="w-full p-2 border rounded bg-slate-50 outline-none focus:border-emerald-500 font-mono uppercase"></div>
+                <div><label class="font-bold text-slate-500 uppercase block mb-1">Nato a / Il</label><input type="text" id="qa-cor-nascita" class="w-full p-2 border rounded bg-slate-50 outline-none focus:border-emerald-500" placeholder="Es. Roma, 10/05/1990"></div>
+                <input type="hidden" id="qa-cor-azienda-id"> <!-- Inviato in automatico -->
+                <button type="submit" class="w-full mt-4 bg-emerald-600 text-white font-bold uppercase py-2.5 rounded shadow hover:bg-emerald-700 transition">Salva e Iscrivi</button>
+            </form>
+        </div>
+    </div>
+</div>
