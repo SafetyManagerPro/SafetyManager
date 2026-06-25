@@ -563,8 +563,9 @@ window.renderComplianceProgetto = function(corsoId) {
     const box = document.getElementById('prog-compliance-list');
     if (!box) return;
     const erogatore = document.getElementById('prog-erogatore') ? document.getElementById('prog-erogatore').value : 'ente';
+    const modalita = document.getElementById('prog-modalita') ? document.getElementById('prog-modalita').value : '';
     const policy = window.ASR2025_POLICY || {};
-    const info = window.getCourseCompliance ? window.getCourseCompliance(corsoId) : { note: [] };
+    const info = window.getCourseCompliance ? window.getCourseCompliance(corsoId, modalita, erogatore) : { note: [] };
     let notes = [...(info.note || [])];
     if (erogatore === 'azienda') {
         notes.unshift(policy.notaAzienda || 'Erogazione diretta aziendale: ammessa solo per propri lavoratori, preposti e dirigenti.');
@@ -576,14 +577,19 @@ window.renderComplianceProgetto = function(corsoId) {
     const erogatoreNote = document.getElementById('prog-erogatore-note');
     if (erogatoreNote) {
         erogatoreNote.innerText = erogatore === 'azienda'
-            ? 'Erogazione diretta: il datore di lavoro è soggetto formatore e può iscrivere solo persone della propria azienda.'
+            ? 'Erogazione diretta: il datore di lavoro è soggetto formatore e può iscrivere solo persone della propria azienda. Compilare la sezione Organismi Paritetici se pertinente.'
             : 'Erogazione da associazione/ente: conservare requisiti, eventuale autocertificazione DPR 445/2000 e catena di diretta emanazione.';
     }
+
+    const opBox = document.getElementById('prog-op-box');
+    if (opBox) opBox.classList.toggle('ring-2', erogatore === 'azienda');
 };
 
 window.getComplianceNotaDocumento = function(courseId, isAzienda) {
     const c = window.DB_CORSI[courseId] || {};
-    const info = window.getCourseCompliance ? window.getCourseCompliance(courseId) : { note: [] };
+    const modalita = window.AppState ? (window.AppState['cfg-modalita'] || '') : '';
+    const erogatore = isAzienda ? 'azienda' : 'ente';
+    const info = window.getCourseCompliance ? window.getCourseCompliance(courseId, modalita, erogatore) : { note: [] };
     const erogazione = isAzienda
         ? 'Il corso è organizzato dal datore di lavoro come soggetto formatore esclusivamente per i propri lavoratori/preposti/dirigenti; restano obbligatori docenti qualificati, richiesta agli Organismi Paritetici ove presenti, registro presenze, verifica finale e fascicolo.'
         : 'Il corso è erogato da associazione sindacale di categoria/struttura di diretta emanazione in qualità di soggetto formatore; conservare evidenza dei requisiti di rappresentatività o relativa autocertificazione DPR 445/2000.';
@@ -591,7 +597,8 @@ window.getComplianceNotaDocumento = function(courseId, isAzienda) {
         erogazione,
         'Per il corso è individuato un unico soggetto formatore responsabile.',
         'Organizzazione: max 30 discenti salvo e-learning, frequenza minima 90% per ammissione alla verifica finale, verbale finale e attestato univoco.',
-        'Fascicolo: conservazione presso il soggetto formatore per almeno 10 anni con dati partecipanti, registro firme, docenti, progetto/programma e verbale finale.'
+        'Fascicolo: conservazione presso il soggetto formatore per almeno 10 anni con dati partecipanti, registro firme, docenti, progetto/programma e verbale finale.',
+        'Omogeneità aula: verificare coerenza tra mansioni, settore, rischi trattati e contenuti specifici del corso.'
     ];
     if (info.pratico) base.push('Per le parti pratiche: rapporto docente/discente non superiore a 1:6 e verifica di idoneità di area, attrezzature e DPI.');
     if (c && c.scad && c.scad !== 99) base.push('Aggiornamento/scadenza gestita sul profilo corso: ' + c.scad + ' anni dalla verifica finale, salvo modifiche di mansione/rischio o norme speciali.');
@@ -794,11 +801,29 @@ window.salvaProgettoDB = async function() {
     const corsoId = document.getElementById('prog-corso').value;
     const erogatore = document.getElementById('prog-erogatore') ? document.getElementById('prog-erogatore').value : 'ente';
     const sede = (document.getElementById('prog-sede')?.value || '').trim();
+    const modalita = document.getElementById('prog-modalita').value;
+    const opEsito = document.getElementById('prog-op-esito') ? document.getElementById('prog-op-esito').value : '';
+    const opInvio = document.getElementById('prog-op-invio') ? document.getElementById('prog-op-invio').value : null;
+    const opRisposta = document.getElementById('prog-op-risposta') ? document.getElementById('prog-op-risposta').value : null;
+    const omogeneitaAula = document.getElementById('prog-omogeneita-aula') ? document.getElementById('prog-omogeneita-aula').checked : true;
+    const complianceNote = (document.getElementById('prog-compliance-note-free')?.value || '').trim();
 
     if (!aziendaId) return alert("Seleziona l\'azienda committente prima di salvare il progetto.");
     if (!corsoId) return alert('Seleziona una tipologia di corso.');
     if (!document.getElementById('prog-inizio').value) return alert('Inserisci la data di inizio.');
     if (!sede) return alert('Inserisci la sede del corso/aula/campo prova: è necessaria per verbale, registro e attestati.');
+
+    const modalitaCheck = window.getModalitaCompliance ? window.getModalitaCompliance(corsoId, modalita) : { ok: true };
+    if (!modalitaCheck.ok) return alert('Modalità non coerente con il corso selezionato: ' + modalitaCheck.message);
+    if (erogatore === 'azienda' && !opEsito) {
+        return alert('Per erogazione diretta aziendale indica lo stato della richiesta agli Organismi Paritetici oppure seleziona "OP non presente/non applicabile".');
+    }
+    if (erogatore === 'azienda' && opEsito === 'richiesta_inviata' && !opInvio) {
+        return alert('Inserisci la data di invio della richiesta agli Organismi Paritetici.');
+    }
+    if (!omogeneitaAula && !complianceNote) {
+        return alert('Se l’aula non è omogenea, inserisci una nota che spieghi come sono stati adattati contenuti e rischi trattati.');
+    }
 
     let cod = document.getElementById('prog-codice').value.trim();
     if(!cod) {
@@ -816,7 +841,7 @@ window.salvaProgettoDB = async function() {
         azienda_id: aziendaId,
         corso_id: corsoId,
         codice: cod,
-        modalita: document.getElementById('prog-modalita').value,
+        modalita: modalita,
         data_inizio: document.getElementById('prog-inizio').value,
         data_esame: document.getElementById('prog-esame').value,
         sede: sede,
@@ -825,7 +850,14 @@ window.salvaProgettoDB = async function() {
         ente_erogatore: erogatore,
         docente_principale: JSON.stringify(docenti_ud), // retrocompatibilità con i template esistenti
         docenti_ud: docenti_ud,
-        calendario: document.getElementById('prog-calendario-testo').value
+        calendario: document.getElementById('prog-calendario-testo').value,
+        richiesta_op_inviata_at: opInvio || null,
+        risposta_op_at: opRisposta || null,
+        esito_richiesta_op: opEsito || null,
+        compliance_note: complianceNote || null,
+        omogeneita_aula: omogeneitaAula,
+        modalita_verificata: modalitaCheck.ok,
+        versione_normativa: 'ASR 17/04/2025 Rep. 59/CSR'
     };
     if (id && id !== "") record.id = id;
 
@@ -849,6 +881,11 @@ window.modificaProgetto = function(id) {
     if(document.getElementById('prog-sede')) document.getElementById('prog-sede').value = p.sede || '';
     if(document.getElementById('prog-resp-progetto')) document.getElementById('prog-resp-progetto').value = p.resp_progetto || '';
     if(document.getElementById('prog-resp-corso')) document.getElementById('prog-resp-corso').value = p.resp_corso || '';
+    if(document.getElementById('prog-op-invio')) document.getElementById('prog-op-invio').value = p.richiesta_op_inviata_at || '';
+    if(document.getElementById('prog-op-risposta')) document.getElementById('prog-op-risposta').value = p.risposta_op_at || '';
+    if(document.getElementById('prog-op-esito')) document.getElementById('prog-op-esito').value = p.esito_richiesta_op || '';
+    if(document.getElementById('prog-compliance-note-free')) document.getElementById('prog-compliance-note-free').value = p.compliance_note || '';
+    if(document.getElementById('prog-omogeneita-aula')) document.getElementById('prog-omogeneita-aula').checked = p.omogeneita_aula !== false;
 
     window.calcolaDettagliProgetto(); 
     
@@ -1115,14 +1152,25 @@ window.caricaDatiStampa = async function() {
     window.AppState['cfg-calendario'] = p.calendario || ""; 
     window.AppState['cfg-resp-progetto'] = p.resp_progetto || "";
     window.AppState['cfg-resp-corso'] = p.resp_corso || "";
+    window.AppState['cfg-op-invio'] = p.richiesta_op_inviata_at || "";
+    window.AppState['cfg-op-risposta'] = p.risposta_op_at || "";
+    window.AppState['cfg-op-esito'] = p.esito_richiesta_op || "";
+    window.AppState['cfg-compliance-note-free'] = p.compliance_note || "";
+    window.AppState['cfg-omogeneita-aula'] = p.omogeneita_aula === false ? "NO" : "SI";
 
     window.currentSessionCorsisti = iscritti.map(isc => ({
         nome: isc.corsisti.nome_cognome,
         cf: isc.corsisti.cf,
         nascita: isc.corsisti.luogo_data_nascita,
-        mansione: isc.corsisti.mansione_storica || "N/D",
+        mansione: isc.mansione_storica || isc.corsisti.mansione_storica || "N/D",
         id_certificato: isc.id_certificato,
-        data_scadenza: isc.data_scadenza
+        data_scadenza: isc.data_scadenza,
+        ore_frequentate: isc.ore_frequentate,
+        percentuale_frequenza: isc.percentuale_frequenza,
+        voto_test: isc.voto_test,
+        esito_pratica: isc.esito_pratica,
+        note_verifica: isc.note_verifica,
+        esito: isc.esito || "Idoneo"
     }));
 
     if(window.currentPrintModule) {
@@ -1330,6 +1378,16 @@ window.updateAll = function() {
     document.querySelectorAll('.val-luogo-emissione').forEach(el => el.innerText = luogoEmissione);
 
     document.querySelectorAll('.val-erogatore').forEach(el => el.innerText = nomeErogatore || "---");
+    document.querySelectorAll('.val-legale-nome').forEach(el => el.innerText = window.getVal('cfg-legale-nome') || respProgetto || "---");
+    document.querySelectorAll('.val-legale-nascita').forEach(el => el.innerText = window.getVal('cfg-legale-nascita') || "---");
+    document.querySelectorAll('.val-ente-indirizzo').forEach(el => el.innerText = window.getVal('cfg-ente-indirizzo') || "---");
+    document.querySelectorAll('.val-ente-contatti').forEach(el => el.innerText = window.getVal('cfg-ente-contatti') || "---");
+    document.querySelectorAll('.val-azienda-indirizzo').forEach(el => el.innerText = window.getVal('cfg-azienda-indirizzo') || "---");
+    document.querySelectorAll('.val-op-invio').forEach(el => el.innerText = window.formatDataToItalian(window.getVal('cfg-op-invio')) || "---");
+    document.querySelectorAll('.val-op-risposta').forEach(el => el.innerText = window.formatDataToItalian(window.getVal('cfg-op-risposta')) || "---");
+    document.querySelectorAll('.val-op-esito').forEach(el => el.innerText = (window.getVal('cfg-op-esito') || "---").replaceAll('_', ' '));
+    document.querySelectorAll('.val-omogeneita-aula').forEach(el => el.innerText = window.getVal('cfg-omogeneita-aula', 'SI'));
+    document.querySelectorAll('.val-compliance-note-free').forEach(el => el.innerText = window.getVal('cfg-compliance-note-free') || "Nessuna nota aggiuntiva.");
     document.querySelectorAll('.val-ente-indirizzo-dinamico').forEach(el => el.innerText = isAzienda ? window.getVal('cfg-azienda-indirizzo') : window.getVal('cfg-ente-indirizzo'));
     document.querySelectorAll('.val-ente-contatti-dinamico').forEach(el => el.innerText = isAzienda ? "Ateco: " + window.getVal('cfg-ateco') : window.getVal('cfg-ente-contatti'));
     
@@ -1439,7 +1497,13 @@ window.aggiornaTabelleSessione = function() {
     
     window.currentSessionCorsisti.forEach((c, idx) => {
         rRows += '<tr><td class="border border-slate-800 py-0.5 px-1 text-center font-bold">' + (idx + 1) + '</td><td class="border border-slate-800 py-0.5 px-1 bg-white leading-none"><span class="font-bold">' + c.nome + '</span><br><span class="text-[6px] text-slate-500 uppercase">' + (c.mansione || '') + '</span></td><td class="border border-slate-800 py-0.5 px-1 text-center font-mono">' + c.cf + '</td><td class="border border-slate-800 py-0.5 px-1 text-center">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1 text-center">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td></tr>';
-        vRows += '<tr><td class="border border-slate-900 py-0.5 px-1 leading-tight"><span class="font-bold">' + c.nome + '</span><br><span class="text-[6.5px] text-slate-500 uppercase">' + (c.mansione || '') + '</span></td><td class="border border-slate-900 py-0.5 px-1 text-center font-bold text-emerald-700">SI</td><td class="border border-slate-900 py-0.5 px-1 text-center italic">__ / 30</td><td class="border border-slate-900 py-0.5 px-1 text-center">Positivo</td><td class="border border-slate-900 py-0.5 px-1 text-center font-black uppercase text-blue-700">Idoneo</td></tr>';
+        const freq = c.percentuale_frequenza != null ? Number(c.percentuale_frequenza) : 100;
+        const presenzaLabel = freq >= 90 ? 'SI (' + freq + '%)' : 'NO (' + freq + '%)';
+        const presenzaClass = freq >= 90 ? 'text-emerald-700' : 'text-red-700';
+        const voto = c.voto_test != null ? c.voto_test : '__ / 30';
+        const pratica = c.esito_pratica || 'Ove previsto';
+        const esitoFinale = c.esito || (freq >= 90 ? 'Idoneo' : 'Non ammesso');
+        vRows += '<tr><td class="border border-slate-900 py-0.5 px-1 leading-tight"><span class="font-bold">' + c.nome + '</span><br><span class="text-[6.5px] text-slate-500 uppercase">' + (c.mansione || '') + '</span></td><td class="border border-slate-900 py-0.5 px-1 text-center font-bold ' + presenzaClass + '">' + presenzaLabel + '</td><td class="border border-slate-900 py-0.5 px-1 text-center italic">' + voto + '</td><td class="border border-slate-900 py-0.5 px-1 text-center">' + pratica + '</td><td class="border border-slate-900 py-0.5 px-1 text-center font-black uppercase text-blue-700">' + esitoFinale + '</td></tr>';
     });
 
     const remainingR = Math.max(0, 30 - window.currentSessionCorsisti.length);

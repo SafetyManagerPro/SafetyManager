@@ -18,20 +18,84 @@ window.ASR2025_POLICY = {
     notaAzienda: 'Il datore di lavoro può organizzare direttamente la formazione solo per propri lavoratori, preposti e dirigenti, con docenti qualificati e richiesta agli Organismi Paritetici ove presenti.'
 };
 
-window.getCourseCompliance = function(corsoId) {
+// Mappa operativa delle modalità: evita che in fase di progetto vengano scelti canali non coerenti.
+// La piattaforma non sostituisce la verifica legale: per i corsi con prove pratiche o norme speciali
+// viene applicato un criterio prudenziale di presenza fisica.
+window.CORSI_PRESENZA_OBBLIGATORIA = [
+    'amb_confinati', 'lav_quota',
+    'attr_carrelli_ind', 'attr_carrelli_all', 'attr_ple', 'attr_mmt_esc', 'attr_mmt_all',
+    'attr_gru_autocarro', 'attr_gru_torre', 'attr_pompe', 'attr_trattori',
+    'primo_soccorso_12h', 'antincendio_liv2',
+    'agg_primo_soccorso_4h', 'agg_antincendio_liv2_5h', 'agg_pratico_4h'
+];
+
+window.isCorsoPresenzaObbligatoria = function(corsoId) {
+    const id = corsoId || '';
+    return window.CORSI_PRESENZA_OBBLIGATORIA.includes(id) || id.startsWith('attr_');
+};
+
+window.getModalitaCompliance = function(corsoId, modalita) {
+    const mode = (modalita || '').toLowerCase();
+    const presenzaFisica = mode.includes('presenza');
+    const eLearning = mode.includes('learning') || mode.includes('fad');
+    const vcs = mode.includes('videoconferenza');
+    const mista = mode.includes('mista') || mode.includes('blended');
+
+    if (!corsoId) return { ok: true, level: 'info', message: 'Seleziona un corso per verificare la modalità di erogazione.' };
+
+    if (window.isCorsoPresenzaObbligatoria(corsoId) && !presenzaFisica) {
+        return {
+            ok: false,
+            level: 'error',
+            message: 'Per questo corso è impostata una regola prudenziale di presenza fisica obbligatoria, perché sono previste esercitazioni, addestramento, attrezzature, emergenze o verifiche pratiche.'
+        };
+    }
+
+    if (eLearning || vcs || mista) {
+        return {
+            ok: true,
+            level: 'warning',
+            message: 'Modalità ammessa solo se prevista per il percorso specifico e se sono garantiti tracciabilità, identificazione dei partecipanti, interazione, tutoraggio e verifiche secondo l’Accordo.'
+        };
+    }
+
+    return { ok: true, level: 'ok', message: 'Modalità in presenza fisica: compatibile con i limiti generali, salvo requisiti specifici del corso.' };
+};
+
+window.getErogatoreCompliance = function(corsoId, erogatore) {
+    if (erogatore === 'azienda') {
+        return {
+            level: 'warning',
+            message: 'Datore di lavoro soggetto formatore: conservare evidenza che i discenti sono propri lavoratori/preposti/dirigenti e gestire la richiesta agli Organismi Paritetici ove presenti.'
+        };
+    }
+    return {
+        level: 'warning',
+        message: 'Associazione/ente: conservare requisiti, autocertificazione DPR 445/2000 ove applicabile e prova della diretta emanazione se si opera tramite struttura collegata.'
+    };
+};
+
+
+window.getCourseCompliance = function(corsoId, modalita, erogatore) {
     const corso = window.DB_CORSI && window.DB_CORSI[corsoId] ? window.DB_CORSI[corsoId] : null;
     const id = corsoId || '';
-    const pratico = id.startsWith('attr_') || id.includes('quota') || id.includes('confinati') || id.includes('pratico') || id.includes('pompe') || id.includes('gru') || id.includes('trattori');
+    const pratico = window.isCorsoPresenzaObbligatoria ? window.isCorsoPresenzaObbligatoria(id) : (id.startsWith('attr_') || id.includes('quota') || id.includes('confinati'));
     const updateBiennale = id === 'agg_prep';
     const updateQuinquennale = id.startsWith('agg_lav') || id === 'agg_dir' || id === 'agg_dl' || id === 'agg_dl_spp' || id === 'agg_pratico_4h';
     const note = [];
     note.push('Frequenza minima per ammissione alla verifica finale: 90% del monte ore.');
     note.push('Numero massimo discenti: 30 per corso, salvo e-learning.');
-    if (pratico) note.push('Modulo con componente pratica: rispettare rapporto docente/discente non superiore a 1:6 e conservare dichiarazione di idoneità area/attrezzature/DPI.');
+    if (pratico) note.push('Modulo con componente pratica o norma speciale: criterio prudenziale di presenza fisica, rapporto docente/discente 1:6 nelle esercitazioni pratiche e conservazione dichiarazione area/attrezzature/DPI.');
     if (updateBiennale) note.push('Aggiornamento preposto: cadenza biennale, durata minima 6 ore.');
     else if (updateQuinquennale) note.push('Aggiornamento: verificare la periodicità specifica prevista dal profilo formativo.');
     if (corso && corso.scad && corso.scad !== 99) note.push('Scadenza attestato calcolata automaticamente su ' + corso.scad + ' anni dalla data di verifica finale.');
-    return { pratico, updateBiennale, updateQuinquennale, note };
+
+    const modalitaCheck = window.getModalitaCompliance ? window.getModalitaCompliance(corsoId, modalita || '') : { ok: true, message: '' };
+    if (modalitaCheck.message) note.push('Modalità: ' + modalitaCheck.message);
+    const erogatoreCheck = window.getErogatoreCompliance ? window.getErogatoreCompliance(corsoId, erogatore || 'ente') : null;
+    if (erogatoreCheck) note.push('Soggetto formatore: ' + erogatoreCheck.message);
+
+    return { pratico, updateBiennale, updateQuinquennale, modalitaCheck, note };
 };
 
 window.DB_CORSI = {
@@ -201,7 +265,7 @@ window.POOL_GENERALE = [
     { q: "L'ultimo Accordo Stato Regioni sulla formazione citato nel corso è del:", a: ["2011", "2016", "2025"], correct: 2 },
     { q: "I Dispositivi di Protezione Individuale devono obbligatoriamente avere:", a: ["La marcatura CE", "Il nome del lavoratore inciso", "Un colore ad alta visibilità"], correct: 0 },
     { q: "La Riunione Periodica di Sicurezza è obbligatoria per le aziende:", a: ["Con più di 15 lavoratori", "Di qualsiasi dimensione", "Solo nei cantieri edili"], correct: 0 },
-    { q: "Cosa indica la segnaletica di colore ROSSO?", a: ["Divieto e Antincendio", "Obbligo", "Salvtaggio"], correct: 0 },
+    { q: "Cosa indica la segnaletica di colore ROSSO?", a: ["Divieto e Antincendio", "Obbligo", "Salvataggio"], correct: 0 },
     { q: "Cosa indica la segnaletica di colore GIALLO?", a: ["Avvertimento / Attenzione", "Divieto", "Obbligo"], correct: 0 },
     { q: "Cosa indica la segnaletica di colore AZZURRO?", a: ["Obbligo", "Divieto", "Pericolo"], correct: 0 },
     { q: "Cosa indica la segnaletica di colore VERDE?", a: ["Salvataggio / Vie di esodo", "Attenzione", "Obbligo"], correct: 0 },
