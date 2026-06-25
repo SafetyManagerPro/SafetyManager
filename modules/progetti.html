@@ -29,6 +29,31 @@
                     <p id="prog-erogatore-note" class="mt-1 text-[9px] leading-snug text-slate-500">Se l'erogatore è l'azienda, il corso è ammesso solo per lavoratori, preposti e dirigenti della stessa azienda.</p>
                 </div>
 
+                <div id="prog-op-box" class="bg-blue-50 border border-blue-200 p-3 rounded text-[10px] leading-snug">
+                    <label class="font-black text-blue-900 uppercase block mb-2">Organismi Paritetici / art. 37 comma 12</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-[9px] font-bold text-blue-700 uppercase block mb-1">Data richiesta</label>
+                            <input type="date" id="prog-op-invio" class="w-full px-2 py-1.5 bg-white border border-blue-200 rounded outline-none focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="text-[9px] font-bold text-blue-700 uppercase block mb-1">Esito / stato</label>
+                            <select id="prog-op-esito" class="w-full px-2 py-1.5 bg-white border border-blue-200 rounded outline-none focus:border-blue-500 font-bold">
+                                <option value="">-- Da definire --</option>
+                                <option value="op_non_presente">OP non presente / non individuato nel settore-territorio</option>
+                                <option value="richiesta_inviata">Richiesta inviata - in attesa / decorrenza 15 giorni</option>
+                                <option value="riscontro_ricevuto">Riscontro ricevuto - indicazioni recepite</option>
+                                <option value="non_applicabile">Non applicabile al percorso specifico</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <label class="text-[9px] font-bold text-blue-700 uppercase block mb-1">Data eventuale riscontro</label>
+                        <input type="date" id="prog-op-risposta" class="w-full px-2 py-1.5 bg-white border border-blue-200 rounded outline-none focus:border-blue-500">
+                    </div>
+                    <p class="mt-2 text-[9px] text-blue-800">Da compilare soprattutto quando il soggetto formatore è il datore di lavoro. Se non vi sono OP presenti, indicarlo e conservare l’evidenza della verifica.</p>
+                </div>
+
                 <div>
                     <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Tipologia Corso</label>
                     <div class="flex items-center gap-2">
@@ -119,7 +144,7 @@
 
                 <div>
                     <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Modalità Svolgimento</label>
-                    <select id="prog-modalita" required class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded outline-none focus:border-rose-500 transition">
+                    <select id="prog-modalita" onchange="window.calcolaDettagliProgetto()" required class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded outline-none focus:border-rose-500 transition">
                         <option value="In Presenza Fisica">In Presenza Fisica</option>
                         <option value="Videoconferenza Sincrona">Videoconferenza Sincrona</option>
                         <option value="E-Learning (Asincrona)">F.A.D. (Asincrona)</option>
@@ -133,6 +158,15 @@
                         <li>Seleziona corso e data per generare calendario, scadenza e vincoli.</li>
                     </ul>
                     <p class="mt-2 text-[9px] text-amber-800">Limiti generali: max 30 discenti salvo e-learning, frequenza minima 90%, rapporto pratiche 1:6 ove previsto.</p>
+                </div>
+
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Note compliance / omogeneità aula</label>
+                    <textarea id="prog-compliance-note-free" rows="2" placeholder="Es. aula omogenea per mansioni/rischi; indicazioni OP recepite; vincoli specifici del corso..." class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded outline-none focus:border-rose-500 transition text-[11px]"></textarea>
+                    <label class="mt-1 flex items-start gap-2 text-[9px] text-slate-500 leading-snug">
+                        <input type="checkbox" id="prog-omogeneita-aula" class="mt-0.5" checked>
+                        Aula progettata con partecipanti/mansioni/rischi omogenei o comunque con contenuti adattati ai rischi effettivi delle aziende coinvolte.
+                    </label>
                 </div>
 
                 <div class="bg-rose-50 border border-rose-200 p-3 rounded">
