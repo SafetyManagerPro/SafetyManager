@@ -33,3 +33,14 @@ Per corsi con componente pratica, attrezzature, spazi confinati, lavori in quota
 
 ## Limiti residui
 La piattaforma non può stabilire da sola se un’associazione è realmente comparativamente rappresentativa, se un organismo paritetico è presente nel settore/territorio, o se un docente possiede requisiti sufficienti. Questi punti richiedono evidenze documentali e verifica professionale.
+
+---
+
+## Step 4 — separazione aggiornamenti pratici
+
+La voce unica storica “Agg. Pratico Attrezzature / Spazi Confinati (4h)” è stata sostituita da due corsi distinti:
+
+- aggiornamento operatori macchine/attrezzature art. 73, durata 4 ore;
+- aggiornamento ambienti sospetti di inquinamento o confinati, durata 4 ore.
+
+La separazione evita ambiguità nel progetto formativo, nel registro, nel test, nella verifica pratica/colloquio e nell'attestato finale. La vecchia voce resta solo come legacy non selezionabile per non rompere eventuali fascicoli già creati.
