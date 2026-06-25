@@ -1158,7 +1158,10 @@ window.caricaDatiStampa = async function() {
     window.AppState['cfg-compliance-note-free'] = p.compliance_note || "";
     window.AppState['cfg-omogeneita-aula'] = p.omogeneita_aula === false ? "NO" : "SI";
 
+    window.currentProgettoStampaId = progId;
     window.currentSessionCorsisti = iscritti.map(isc => ({
+        iscrizione_id: isc.id,
+        corsista_id: isc.corsista_id,
         nome: isc.corsisti.nome_cognome,
         cf: isc.corsisti.cf,
         nascita: isc.corsisti.luogo_data_nascita,
@@ -1496,7 +1499,12 @@ window.aggiornaTabelleSessione = function() {
     let rRows = ""; let vRows = "";
     
     window.currentSessionCorsisti.forEach((c, idx) => {
-        rRows += '<tr><td class="border border-slate-800 py-0.5 px-1 text-center font-bold">' + (idx + 1) + '</td><td class="border border-slate-800 py-0.5 px-1 bg-white leading-none"><span class="font-bold">' + c.nome + '</span><br><span class="text-[6px] text-slate-500 uppercase">' + (c.mansione || '') + '</span></td><td class="border border-slate-800 py-0.5 px-1 text-center font-mono">' + c.cf + '</td><td class="border border-slate-800 py-0.5 px-1 text-center">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1 text-center">&nbsp;</td><td class="border border-slate-800 py-0.5 px-1">&nbsp;</td></tr>';
+        const progettoFirmaId = window.currentProgettoStampaId || document.getElementById('stampa-progetto')?.value || window.digitalProcedureState?.progetto?.id || '';
+        const firmaCell = (campo) => {
+            const img = (typeof window.getSignatureDataUrl === 'function') ? window.getSignatureDataUrl(progettoFirmaId, c.iscrizione_id, 'registro', campo) : '';
+            return img ? '<img src="' + img + '" style="max-height:28px;max-width:100%;object-fit:contain;display:block;margin:0 auto;" alt="Firma digitale">' : '&nbsp;';
+        };
+        rRows += '<tr><td class="border border-slate-800 py-0.5 px-1 text-center font-bold">' + (idx + 1) + '</td><td class="border border-slate-800 py-0.5 px-1 bg-white leading-none"><span class="font-bold">' + c.nome + '</span><br><span class="text-[6px] text-slate-500 uppercase">' + (c.mansione || '') + '</span></td><td class="border border-slate-800 py-0.5 px-1 text-center font-mono">' + c.cf + '</td><td class="border border-slate-800 py-0.5 px-1 text-center">' + firmaCell('entrata_mattina') + '</td><td class="border border-slate-800 py-0.5 px-1">' + firmaCell('uscita_mattina') + '</td><td class="border border-slate-800 py-0.5 px-1 text-center">' + firmaCell('entrata_pomeriggio') + '</td><td class="border border-slate-800 py-0.5 px-1">' + firmaCell('uscita_pomeriggio') + '</td></tr>';
         const freq = c.percentuale_frequenza != null ? Number(c.percentuale_frequenza) : 100;
         const presenzaLabel = freq >= 90 ? 'SI (' + freq + '%)' : 'NO (' + freq + '%)';
         const presenzaClass = freq >= 90 ? 'text-emerald-700' : 'text-red-700';

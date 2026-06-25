@@ -121,7 +121,7 @@ window.getCorsisti = async function() {
     try {
         const { data, error } = await supabaseClient
             .from('corsisti')
-            .select('*, aziende(ragione_sociale)')
+            .select('*, aziende(ragione_sociale, piva_cf, indirizzo, ateco, referente)')
             .order('nome_cognome');
         if (error) throw error; return data || [];
     } catch (err) { console.error(err); return []; }
@@ -146,7 +146,7 @@ window.getProgetti = async function() {
     try {
         const { data, error } = await supabaseClient
             .from('progetti')
-            .select('*, aziende(ragione_sociale)')
+            .select('*, aziende(ragione_sociale, piva_cf, indirizzo, ateco, referente)')
             .order('data_esame', { ascending: false });
         if (error) throw error; return data || [];
     } catch (err) { console.error(err); return []; }
@@ -173,7 +173,7 @@ window.getIscrizioni = async function(progetto_id) {
     try {
         const { data, error } = await supabaseClient
             .from('iscrizioni')
-            .select('*, corsisti(nome_cognome, cf)')
+            .select('*, corsisti(id, azienda_id, nome_cognome, cf, luogo_data_nascita, mansione_storica)')
             .eq('progetto_id', progetto_id)
             .order('created_at', { ascending: true });
         if (error) throw error; return data || [];
