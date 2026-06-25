@@ -727,8 +727,8 @@ window.loadProgettiTable = async function() {
     const filterSelect = document.getElementById('filter-corso-tipo');
     if(filterSelect) {
         let optHtml = '<option value="">-- Mostra tutti i corsi --</option>';
-        for(const key in window.DB_CORSI) {
-            const c = window.DB_CORSI[key];
+        const corsiEntries = window.getActiveCorsiEntries ? window.getActiveCorsiEntries() : Object.entries(window.DB_CORSI || {}).filter(([_, c]) => !c.deprecated);
+        for(const [key, c] of corsiEntries) {
             optHtml += `<option value="${key}">[${c.code}] ${c.t}</option>`;
         }
         filterSelect.innerHTML = optHtml;
@@ -1095,8 +1095,8 @@ window.initStampe = async function() {
     });
     
     let optHtml = '<option value="">-- Mostra tutti i corsi --</option>';
-    for(const key in window.DB_CORSI) {
-        const c = window.DB_CORSI[key];
+    const corsiEntries = window.getActiveCorsiEntries ? window.getActiveCorsiEntries() : Object.entries(window.DB_CORSI || {}).filter(([_, c]) => !c.deprecated);
+    for(const [key, c] of corsiEntries) {
         optHtml += `<option value="${key}">[${c.code}] ${c.t}</option>`;
     }
     filterSelect.innerHTML = optHtml;
@@ -1925,14 +1925,16 @@ window.startImportProcess = async function() {
 // GENERATORE DEI TEST E CORRETTORE
 // ==========================================
 window.generaTest = function(courseId) {
+    const id = courseId || '';
     let pool = [...(window.POOL_GENERALE || [])];
-    if(courseId.includes('basso')) pool = pool.concat(window.POOL_BASSO || []);
-    else if(courseId.includes('alto') || courseId.includes('medio')) pool = pool.concat(window.POOL_ALTO || []);
-    else if(courseId.includes('dirigente') || courseId.includes('preposto') || courseId.includes('dl_')) pool = pool.concat(window.POOL_DIRIGENTI || []);
-    else if(courseId.includes('cantieri') || courseId.includes('costruzioni')) pool = pool.concat(window.POOL_CANTIERI || []);
-    else if(courseId.includes('attr_')) pool = pool.concat(window.POOL_ATTREZZATURE || []);
-    else if(courseId.includes('soccorso')) pool = pool.concat(window.POOL_PS || []);
-    else if(courseId.includes('antincendio')) pool = pool.concat(window.POOL_AI || []);
+    if(id.includes('basso')) pool = pool.concat(window.POOL_BASSO || []);
+    else if(id.includes('alto') || id.includes('medio')) pool = pool.concat(window.POOL_ALTO || []);
+    else if(id.includes('dirigente') || id.includes('preposto') || id.includes('dl_')) pool = pool.concat(window.POOL_DIRIGENTI || []);
+    else if(id.includes('cantieri') || id.includes('costruzioni')) pool = pool.concat(window.POOL_CANTIERI || []);
+    else if(id.includes('confinati')) pool = pool.concat(window.POOL_CONFINATI || []);
+    else if(id.includes('attr_') || id.includes('attrezzature')) pool = pool.concat(window.POOL_ATTREZZATURE || []);
+    else if(id.includes('soccorso')) pool = pool.concat(window.POOL_PS || []);
+    else if(id.includes('antincendio')) pool = pool.concat(window.POOL_AI || []);
 
     pool = pool.sort(() => 0.5 - Math.random()).slice(0, 30);
     window.currentTestQuestions = pool;

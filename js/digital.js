@@ -48,7 +48,8 @@
     else if(id.includes('alto')||id.includes('medio')) p=p.concat(window.POOL_ALTO||[]);
     else if(id.includes('dirigente')||id.includes('preposto')||id.includes('dl_')) p=p.concat(window.POOL_DIRIGENTI||[]);
     else if(id.includes('cantieri')||id.includes('costruzioni')) p=p.concat(window.POOL_CANTIERI||[]);
-    else if(id.includes('attr_')) p=p.concat(window.POOL_ATTREZZATURE||[]);
+    else if(id.includes('confinati')) p=p.concat(window.POOL_CONFINATI||[]);
+    else if(id.includes('attr_')||id.includes('attrezzature')) p=p.concat(window.POOL_ATTREZZATURE||[]);
     else if(id.includes('soccorso')) p=p.concat(window.POOL_PS||[]);
     else if(id.includes('antincendio')) p=p.concat(window.POOL_AI||[]);
     return p;
@@ -61,7 +62,10 @@
   window.initProcedureDigitali = async function(){
     if(!window.progettiList?.length) window.progettiList = await window.getProgetti();
     const filter=document.getElementById('procedure-filter-corso');
-    if(filter){ filter.innerHTML='<option value="">-- Mostra tutti i corsi --</option>'+Object.keys(window.DB_CORSI||{}).map(k=>`<option value="${esc(k)}">[${esc(DB_CORSI[k].code)}] ${esc(DB_CORSI[k].t)}</option>`).join(''); }
+    if(filter){
+      const entries = window.getActiveCorsiEntries ? window.getActiveCorsiEntries() : Object.entries(window.DB_CORSI||{}).filter(([_,c])=>!c.deprecated);
+      filter.innerHTML='<option value="">-- Mostra tutti i corsi --</option>'+entries.map(([k,c])=>`<option value="${esc(k)}">[${esc(c.code)}] ${esc(c.t)}</option>`).join('');
+    }
     window.filtraProcedureProgetti();
     if(typeof lucide!=='undefined') lucide.createIcons();
   };
@@ -164,7 +168,7 @@
   async function buildZip(){
     const p=window.digitalProcedureState.progetto; if(!p) throw new Error('Seleziona un progetto.'); const iscritti=window.digitalProcedureState.iscritti.length?window.digitalProcedureState.iscritti:await window.getIscrizioni(p.id); if(!window.JSZip) throw new Error('JSZip non caricato.'); await preparePrintState(p,iscritti);
     const zip=new JSZip(), folderName=slug(`${p.codice}_${p.aziende?.ragione_sociale||'azienda'}_${(DB_CORSI[p.corso_id]||{}).code||'corso'}`), root=zip.folder(folderName), fs=signs().filter(s=>s.progetto_id===p.id), ts=tests().filter(t=>t.progetto_id===p.id);
-    root.file('README_FASCICOLO.txt',`Fascicolo corso ${p.codice}\nGenerato: ${new Date().toISOString()}\nContiene dati progetto, iscritti, firme PNG, test digitali e documenti HTML.`); root.file('manifest.json',JSON.stringify({generated_at:new Date().toISOString(),app_version:'SafetyManager ASR2025 step3 digital',progetto:p,corso:DB_CORSI[p.corso_id]||null,iscritti_count:iscritti.length,firme_count:fs.length,test_count:ts.length,conservazione_minima_anni:ASR2025_POLICY?.conservazioneFascicoloAnni||10},null,2));
+    root.file('README_FASCICOLO.txt',`Fascicolo corso ${p.codice}\nGenerato: ${new Date().toISOString()}\nContiene dati progetto, iscritti, firme PNG, test digitali e documenti HTML.`); root.file('manifest.json',JSON.stringify({generated_at:new Date().toISOString(),app_version:'SafetyManager ASR2025 step4 corsi',progetto:p,corso:DB_CORSI[p.corso_id]||null,iscritti_count:iscritti.length,firme_count:fs.length,test_count:ts.length,conservazione_minima_anni:ASR2025_POLICY?.conservazioneFascicoloAnni||10},null,2));
     root.folder('dati').file('progetto.json',JSON.stringify(p,null,2)); root.folder('dati').file('iscritti.json',JSON.stringify(iscritti,null,2)); root.folder('dati').file('firme.json',JSON.stringify(fs.map(f=>({...f,data_url:'[vedi firme_png]'})),null,2)); root.folder('dati').file('test_digitali.json',JSON.stringify(ts,null,2));
     const ff=root.folder('firme_png'); fs.forEach((f,i)=>ff.file(`${String(i+1).padStart(3,'0')}_${slug(f.documento)}_${slug(f.campo_firma)}_${slug(f.firmatario_nome)}.png`,dataUrlToBytes(f.data_url)));
     const df=root.folder('documenti_html'); for(const m of EXPORT_DOCS){ try{df.file(`${m}.html`,await renderDoc(m,null));}catch(e){df.file(`${m}_ERRORE.txt`,String(e.message||e));} }

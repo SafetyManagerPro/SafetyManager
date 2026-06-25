@@ -25,13 +25,18 @@ window.CORSI_PRESENZA_OBBLIGATORIA = [
     'amb_confinati', 'lav_quota',
     'attr_carrelli_ind', 'attr_carrelli_all', 'attr_ple', 'attr_mmt_esc', 'attr_mmt_all',
     'attr_gru_autocarro', 'attr_gru_torre', 'attr_pompe', 'attr_trattori',
+    'attr_crf', 'attr_cmm', 'attr_carroponte_10h', 'attr_carroponte_all_11h',
     'primo_soccorso_12h', 'antincendio_liv2',
-    'agg_primo_soccorso_4h', 'agg_antincendio_liv2_5h', 'agg_pratico_4h'
+    'agg_primo_soccorso_4h', 'agg_antincendio_liv2_5h', 'agg_attrezzature_4h', 'agg_spazi_confinati_4h', 'agg_pratico_4h'
 ];
 
 window.isCorsoPresenzaObbligatoria = function(corsoId) {
     const id = corsoId || '';
     return window.CORSI_PRESENZA_OBBLIGATORIA.includes(id) || id.startsWith('attr_');
+};
+
+window.getActiveCorsiEntries = function() {
+    return Object.entries(window.DB_CORSI || {}).filter(([id, corso]) => !corso.deprecated);
 };
 
 window.getModalitaCompliance = function(corsoId, modalita) {
@@ -81,13 +86,14 @@ window.getCourseCompliance = function(corsoId, modalita, erogatore) {
     const id = corsoId || '';
     const pratico = window.isCorsoPresenzaObbligatoria ? window.isCorsoPresenzaObbligatoria(id) : (id.startsWith('attr_') || id.includes('quota') || id.includes('confinati'));
     const updateBiennale = id === 'agg_prep';
-    const updateQuinquennale = id.startsWith('agg_lav') || id === 'agg_dir' || id === 'agg_dl' || id === 'agg_dl_spp' || id === 'agg_pratico_4h';
+    const updateQuinquennale = id.startsWith('agg_lav') || id === 'agg_dir' || id === 'agg_dl' || id === 'agg_dl_spp' || id === 'agg_attrezzature_4h' || id === 'agg_spazi_confinati_4h' || id === 'agg_pratico_4h';
     const note = [];
     note.push('Frequenza minima per ammissione alla verifica finale: 90% del monte ore.');
     note.push('Numero massimo discenti: 30 per corso, salvo e-learning.');
     if (pratico) note.push('Modulo con componente pratica o norma speciale: criterio prudenziale di presenza fisica, rapporto docente/discente 1:6 nelle esercitazioni pratiche e conservazione dichiarazione area/attrezzature/DPI.');
     if (updateBiennale) note.push('Aggiornamento preposto: cadenza biennale, durata minima 6 ore.');
     else if (updateQuinquennale) note.push('Aggiornamento: verificare la periodicità specifica prevista dal profilo formativo.');
+    if (id === 'agg_pratico_4h') note.push('ATTENZIONE: corso storico combinato da non usare per nuovi progetti. Riclassificare scegliendo Aggiornamento attrezzature art.73 oppure Aggiornamento spazi confinati DPR 177/2011.');
     if (corso && corso.scad && corso.scad !== 99) note.push('Scadenza attestato calcolata automaticamente su ' + corso.scad + ' anni dalla data di verifica finale.');
 
     const modalitaCheck = window.getModalitaCompliance ? window.getModalitaCompliance(corsoId, modalita || '') : { ok: true, message: '' };
@@ -192,6 +198,22 @@ window.DB_CORSI = {
         { ud: "UD1", ore: 3, m: "Modulo Teorico-Tecnico", d: "<ul class='syllabus-list list-outside list-disc ml-3 space-y-0.5 text-left'><li>Categorie di trattori (ruote/cingoli) e componenti principali (struttura, trasmissione, accoppiamento).</li><li>Dispositivi di comando e di sicurezza.</li><li>Controlli da effettuare prima dell'utilizzo.</li><li>DPI specifici da utilizzare (udito, vie respiratorie, indumenti).</li><li>Modalità di utilizzo in sicurezza, valutazione del rischio di capovolgimento, stabilità statica/dinamica e contatti.</li></ul>" },
         { ud: "UD2", ore: 5, m: "Modulo Pratico", d: "<ul class='syllabus-list list-outside list-disc ml-3 space-y-0.5 text-left'><li>Individuazione dei componenti principali e dei dispositivi di comando e sicurezza.</li><li>Controlli pre-utilizzo visivi e funzionali.</li><li>Pianificazione delle operazioni di campo in base a pendenze, ostacoli e terreno.</li><li>Guida del trattore in piano e in campo, con e senza attrezzature, rimorchi o carichi laterali/posteriori.</li><li>Messa a riposo del trattore, parcheggio e rimessaggio.</li></ul>" }
     ]},
+    attr_crf: { t: "Macchina agricola raccoglifrutta CRF (8h)", ore: 8, scad: 5, risk: "SPEC", code: "CRF", norma: "D.Lgs. 81/08 Art. 73 comma 5 e Accordo Stato Regioni del 17 Aprile 2025 (Rep. Atti n. 59/CSR), Parte II punto 8.3.9", prog: [
+        { ud: "UD1", ore: 4, m: "Modulo Teorico-Tecnico CRF", d: "<ul class='syllabus-list list-outside list-disc ml-3 space-y-0.5 text-left'><li>Categorie e caratteristiche dei carri raccogli frutta.</li><li>Nozioni di stabilità, portata, diagrammi e condizioni di equilibrio.</li><li>Componenti strutturali, sistemi di stabilizzazione/livellamento e dispositivi di comando e sicurezza.</li><li>Controlli e manutenzioni giornaliere/periodiche.</li><li>Modalità di utilizzo in sicurezza, viabilità, rischi ambientali e procedure operative di salvataggio.</li></ul>" },
+        { ud: "UD2", ore: 4, m: "Modulo Pratico CRF", d: "<ul class='syllabus-list list-outside list-disc ml-3 space-y-0.5 text-left'><li>Individuazione dei componenti, comandi e dispositivi di sicurezza del CRF.</li><li>Controlli pre-utilizzo, prova dei dispositivi, pianificazione del percorso e area di lavoro.</li><li>Esercitazioni di salita/discesa, spostamento, posizionamento, stabilizzazione e movimentazione.</li><li>Gestione delle anomalie, messa a riposo e simulazione di procedura di emergenza/salvataggio.</li></ul>" }
+    ]},
+    attr_cmm: { t: "Caricatori per movimentazione materiali CMM (8h)", ore: 8, scad: 5, risk: "SPEC", code: "CMM", norma: "D.Lgs. 81/08 Art. 73 comma 5 e Accordo Stato Regioni del 17 Aprile 2025 (Rep. Atti n. 59/CSR), Parte II punto 8.3.10", prog: [
+        { ud: "UD1", ore: 4, m: "Modulo Teorico-Tecnico CMM", d: "<ul class='syllabus-list list-outside list-disc ml-3 space-y-0.5 text-left'><li>Terminologia, caratteristiche e tipologie di caricatori per movimentazione materiali.</li><li>Rischi principali: caduta carico, rovesciamento, ribaltamento, urti, investimento, energia elettrica/idraulica.</li><li>Nozioni di fisica per massa, equilibrio e stabilità statica/dinamica.</li><li>Componenti principali, organi di presa, rotazione, dispositivi di comando/segnalazione e sicurezza.</li><li>Documentazione, targhe, diagrammi/tabelle di carico e segnaletica gestuale.</li></ul>" },
+        { ud: "UD2", ore: 4, m: "Modulo Pratico CMM", d: "<ul class='syllabus-list list-outside list-disc ml-3 space-y-0.5 text-left'><li>Funzionamento comandi e dispositivi di segnalazione/sicurezza.</li><li>Ispezione del caricatore, dei circuiti di alimentazione/comando e dei principali componenti.</li><li>Approntamento per trasporto o spostamento e pianificazione dell'operazione.</li><li>Esercitazioni di posizionamento, sollevamento, movimentazione materiali e messa a riposo.</li></ul>" }
+    ]},
+    attr_carroponte_10h: { t: "Carroponte / Gru a cavalletto - una tipologia comando (10h)", ore: 10, scad: 5, risk: "SPEC", code: "CP", norma: "D.Lgs. 81/08 Art. 73 comma 5 e Accordo Stato Regioni del 17 Aprile 2025 (Rep. Atti n. 59/CSR), Parte II punto 8.3.11", prog: [
+        { ud: "UD1", ore: 4, m: "Modulo Teorico-Tecnico Carroponte", d: "<ul class='syllabus-list list-outside list-disc ml-3 space-y-0.5 text-left'><li>Tipologie di carroponte e gru a cavalletto, movimenti e dispositivi di sollevamento.</li><li>Principi di massa, equilibrio, stabilità e portata.</li><li>Componenti principali, funi/catene, gancio, bozzello, dispositivi di comando e sicurezza.</li><li>Rischi: caduta carico, imbracatura, urti, ostacoli, altri carriponte, tiro obliquo e operazioni vietate.</li><li>Documentazione, targhe, DPI e procedure di imbracatura/movimentazione.</li></ul>" },
+        { ud: "UD2", ore: 6, m: "Modulo Pratico - una tipologia di comando", d: "<ul class='syllabus-list list-outside list-disc ml-3 space-y-0.5 text-left'><li>Individuazione componenti, comandi e dispositivi di sicurezza.</li><li>Controlli pre-utilizzo e prove dei finecorsa, limitatori e dispositivi anticollisione.</li><li>Valutazione massa carico, imbracatura, angoli di lavoro e manovre per limitare oscillazioni.</li><li>Esercitazioni con comando pensile/radiocomando oppure comando in cabina, secondo progetto.</li></ul>" }
+    ]},
+    attr_carroponte_all_11h: { t: "Carroponte / Gru a cavalletto - tutte le tipologie comando (11h)", ore: 11, scad: 5, risk: "SPEC", code: "CP", norma: "D.Lgs. 81/08 Art. 73 comma 5 e Accordo Stato Regioni del 17 Aprile 2025 (Rep. Atti n. 59/CSR), Parte II punto 8.3.11", prog: [
+        { ud: "UD1", ore: 4, m: "Modulo Teorico-Tecnico Carroponte", d: "<ul class='syllabus-list list-outside list-disc ml-3 space-y-0.5 text-left'><li>Tipologie di carroponte e gru a cavalletto, movimenti, dispositivi di sollevamento e documentazione.</li><li>Componenti principali, comandi, dispositivi di sicurezza e indicatori/limitatori.</li><li>Rischi connessi all'impiego, caduta carico, imbracatura, urti, ambiente di lavoro e operazioni vietate.</li><li>DPI, targhe, procedure di corretto imbraco e movimentazione.</li></ul>" },
+        { ud: "UD2", ore: 7, m: "Modulo Pratico - tutte le tipologie di comando", d: "<ul class='syllabus-list list-outside list-disc ml-3 space-y-0.5 text-left'><li>Prove pratiche con comando pensile/radiocomando e comando in cabina.</li><li>Verifica comandi, finecorsa, limitatori, dispositivi anticollisione e sistemi di sicurezza.</li><li>Imbracatura, movimentazione del carico, manovre senza/con carico e controllo oscillazioni.</li><li>Messa a riposo e gestione di anomalie operative.</li></ul>" }
+    ]},
     lav_quota: { t: "Lavori in Quota e DPI 3° Categoria (8h)", ore: 8, scad: 5, risk: "SPEC", code: "QUO", norma: "D.Lgs. 81/08 Titolo IV e Art. 77 comma 5 e Accordo Stato Regioni del 17 Aprile 2025 (Rep. Atti n. 59/CSR)", prog: [
         { ud: "UD1", ore: 4, m: "Modulo Teorico (Fisica e Normativa)", d: "<ul class='syllabus-list list-outside list-disc ml-3 space-y-0.5 text-left'><li>Definizione normativa di lavoro in quota (D.Lgs. 81/08 Titolo IV).</li><li>Gerarchia della prevenzione: precedenza delle misure di protezione collettiva rispetto ai DPI.</li><li>Principi di fisica della caduta (forza di arresto, fattore di caduta, tirante d'aria libero).</li><li>Scelta, uso, manutenzione e criteri di conformità CE dei Dispositivi di Protezione Individuale di Terza Categoria anticaduta.</li></ul>" },
         { ud: "UD2", ore: 4, m: "Modulo Addestramento Pratico", d: "<ul class='syllabus-list list-outside list-disc ml-3 space-y-0.5 text-left'><li>Indossamento corretto dell'imbracatura di sicurezza e regolazione.</li><li>Sistemi di ancoraggio, posizionamento e uso dei cordini con assorbitore di energia.</li><li>Tecniche di progressione in sicurezza e simulazione pratica in quota.</li><li>Procedure d'emergenza e cenni sul recupero di infortunato in sospensione inerte.</li></ul>" }
@@ -227,8 +249,16 @@ window.DB_CORSI = {
     agg_dl_spp: { t: "Aggiornamento DL SPP (Ex RSPP) (8h)", ore: 8, scad: 5, risk: "AGG", code: "DLSPP", norma: "D.Lgs. 81/08 Art. 34 commi 2 e 3 e Accordo Stato Regioni del 17 Aprile 2025 (Rep. Atti n. 59/CSR)", prog: [
         { ud: "UD1", ore: 8, m: "Aggiornamento Valutazione Rischi", d: "<ul class='syllabus-list list-outside list-disc ml-3 space-y-0.5 text-left'><li>Aggiornamento in relazione ai propri compiti operativi di prevenzione e protezione in azienda.</li><li>Evoluzioni tecnico-normative e procedurali sui rischi specifici (es. agricoltura, costruzioni, se applicabili).</li><li>Adeguamento delle metodologie di valutazione dei rischi e stesura documentale.</li></ul>" }
     ]},
-    agg_pratico_4h: { t: "Agg. Pratico Attrezzature / Spazi Confinati (4h)", ore: 4, scad: 5, risk: "AGG", code: "SPEC", norma: "D.Lgs. 81/08 Art. 73 comma 5 e Accordo Stato Regioni del 17 Aprile 2025 (Rep. Atti n. 59/CSR)", prog: [
-        { ud: "UD1", ore: 4, m: "Ripasso Pratico e Addestramento", d: "<ul class='syllabus-list list-outside list-disc ml-3 space-y-0.5 text-left'><li>Aggiornamento teorico-normativo sulle evoluzioni tecniche dell'attrezzatura/ambiente operativo.</li><li>Ripetizione delle prove pratiche per l'esercizio delle manovre operative in sicurezza.</li><li>Illustrazione e prova di reazione ad anomalie o procedure di emergenza aggiornate.</li></ul>" }
+    agg_attrezzature_4h: { t: "Aggiornamento operatori macchine/attrezzature art. 73 (4h)", ore: 4, scad: 5, risk: "AGG", code: "ATT", norma: "D.Lgs. 81/08 Art. 73 comma 5 e Accordo Stato Regioni del 17 Aprile 2025 (Rep. Atti n. 59/CSR), Parte III punto 6", prog: [
+        { ud: "UD1", ore: 1, m: "Aggiornamento tecnico-normativo attrezzatura", d: "<ul class='syllabus-list list-outside list-disc ml-3 space-y-0.5 text-left'><li>Modifiche normative ed evoluzioni tecniche relative all'attrezzatura oggetto dell'abilitazione.</li><li>Richiamo dei rischi specifici: ribaltamento, investimento, schiacciamento, caduta carico, interferenze e manutenzione.</li><li>Controlli pre-utilizzo, dispositivi di comando e sicurezza, documentazione e registri.</li></ul>" },
+        { ud: "UD2", ore: 3, m: "Esercitazioni e verifica pratica attrezzatura", d: "<ul class='syllabus-list list-outside list-disc ml-3 space-y-0.5 text-left'><li>Ripetizione delle manovre operative in sicurezza sull'attrezzatura indicata nel progetto formativo.</li><li>Gestione di anomalie, emergenze, messa a riposo e procedure di segnalazione.</li><li>Verifica finale: prova pratica individuale e colloquio in relazione all'oggetto dell'aggiornamento.</li></ul>" }
+    ]},
+    agg_spazi_confinati_4h: { t: "Aggiornamento ambienti sospetti di inquinamento o confinati (4h)", ore: 4, scad: 5, risk: "AGG", code: "SC", norma: "D.P.R. 177/2011 Art. 2 lett. d), D.Lgs. 81/08 Art. 37 e Accordo Stato Regioni del 17 Aprile 2025 (Rep. Atti n. 59/CSR), Parte III punto 5", prog: [
+        { ud: "UD1", ore: 1, m: "Aggiornamento tecnico-normativo spazi confinati", d: "<ul class='syllabus-list list-outside list-disc ml-3 space-y-0.5 text-left'><li>Richiamo DPR 177/2011, procedure aziendali e modifiche normative/tecniche intervenute.</li><li>Analisi dei principali rischi: asfissia, intossicazione, esplosione/incendio, seppellimento, caduta dall'alto e interferenze.</li><li>Permesso di lavoro, ruoli, comunicazioni, monitoraggio atmosfera e gestione ingresso/uscita.</li></ul>" },
+        { ud: "UD2", ore: 3, m: "Esercitazioni e verifica pratica spazi confinati", d: "<ul class='syllabus-list list-outside list-disc ml-3 space-y-0.5 text-left'><li>Utilizzo pratico di APVR, rilevatori gas, tripode, imbracature, ventilazione e sistemi di comunicazione.</li><li>Simulazione di procedura d'ingresso, sorveglianza esterna, emergenza e recupero infortunato.</li><li>Verifica finale: prova pratica individuale e colloquio in relazione all'oggetto dell'aggiornamento.</li></ul>" }
+    ]},
+    agg_pratico_4h: { t: "LEGACY - Agg. Pratico Attrezzature / Spazi Confinati (4h) - riclassificare", ore: 4, scad: 5, risk: "AGG", code: "OLD", deprecated: true, norma: "Voce storica interna: non usare per nuovi progetti. Riclassificare in agg_attrezzature_4h o agg_spazi_confinati_4h.", prog: [
+        { ud: "UD1", ore: 4, m: "Voce storica da riclassificare", d: "<ul class='syllabus-list list-outside list-disc ml-3 space-y-0.5 text-left'><li>Questa voce era usata nelle versioni precedenti per unire aggiornamento attrezzature e aggiornamento spazi confinati.</li><li>Per nuovi corsi selezionare una delle due voci distinte previste dal catalogo.</li></ul>" }
     ]},
     agg_primo_soccorso_4h: { t: "Aggiornamento Primo Soccorso (Gr. B/C) - 4h", ore: 4, scad: 3, risk: "AGG", code: "PS", norma: "D.Lgs. 81/08 Art. 45 comma 2 e D.M. 388/2003", prog: [
         { ud: "UD1", ore: 4, m: "Modulo Pratico BLS e Traumi", d: "<ul class='syllabus-list list-outside list-disc ml-3 space-y-0.5 text-left'><li>Ripasso delle tecniche generali di primo intervento e attivazione del sistema di soccorso.</li><li>Aggiornamento ed esecuzione pratica delle tecniche di rianimazione cardiopolmonare.</li><li>Esercitazioni pratiche su medicazioni rapide, tamponamento emorragie e disostruzione vie aeree.</li></ul>" }
@@ -339,7 +369,19 @@ window.POOL_ATTREZZATURE = [
     { q: "Cosa bisogna fare prima di usare una PLE?", a: ["Controllare il livello del carburante", "Ispezione visiva e controllo stabilizzatori/terreno", "Indossare occhiali scuri"], correct: 1 },
     { q: "A bordo della cesta della PLE è obbligatorio:", a: ["Agganciare l'imbracatura all'apposito punto di ancoraggio", "Stare seduti", "Usare guanti dielettrici"], correct: 0 },
     { q: "Il diagramma di carico di una gru serve a determinare:", a: ["Il consumo di carburante", "La portata massima in base allo sbraccio", "La velocità del vento"], correct: 1 },
-    { q: "La cintura di sicurezza sul carrello elevatore o trattore serve a:", a: ["Trattenere l'operatore all'interno del posto di guida in caso di ribaltamento", "Evitare multe", "Aumentare la stabilità del mezzo"], correct: 0 }
+    { q: "La cintura di sicurezza sul carrello elevatore o trattore serve a:", a: ["Trattenere l'operatore all'interno del posto di guida in caso di ribaltamento", "Evitare multe", "Aumentare la stabilità del mezzo"], correct: 0 },
+    { q: "Per un aggiornamento attrezzature art. 73 la verifica finale deve prevedere:", a: ["Prova pratica e colloquio sull'oggetto dell'aggiornamento", "Solo test scritto", "Solo firma del registro"], correct: 0 },
+    { q: "Prima di movimentare un carico con carroponte o gru è essenziale:", a: ["Stimare massa, imbraco e traiettoria sicura", "Procedere rapidamente", "Disattivare i dispositivi di allarme"], correct: 0 },
+    { q: "Le operazioni vietate come il tiro obliquo sono pericolose perché:", a: ["Possono generare oscillazioni, sovraccarichi e perdita di controllo", "Riducono la velocità di lavoro", "Consumano più energia"], correct: 0 }
+];
+
+window.POOL_CONFINATI = [
+    { q: "Qual è il rischio principale nei lavori in ambienti confinati o sospetti di inquinamento?", a: ["Asfissia, intossicazione, esplosione o incendio", "Solo rumore", "Solo movimentazione manuale carichi"], correct: 0 },
+    { q: "Prima dell'ingresso in uno spazio confinato occorre di norma:", a: ["Valutare atmosfera, permesso/procedura e misure di emergenza", "Entrare subito per ridurre il tempo", "Affidarsi solo all'odore dell'aria"], correct: 0 },
+    { q: "Il rilevatore gas serve a:", a: ["Monitorare ossigeno, gas tossici/infiammabili secondo procedura", "Misurare solo la temperatura", "Sostituire la ventilazione"], correct: 0 },
+    { q: "La sorveglianza esterna durante lavori in ambiente confinato:", a: ["È parte essenziale della procedura di controllo ed emergenza", "È facoltativa se l'operatore è esperto", "Serve solo a compilare il registro"], correct: 0 },
+    { q: "Per il recupero di un infortunato in spazio confinato è necessario:", a: ["Seguire la procedura di emergenza e usare sistemi/APVR idonei", "Entrare istintivamente senza DPI", "Aspettare la fine del turno"], correct: 0 },
+    { q: "Per un aggiornamento spazi confinati la verifica finale deve prevedere:", a: ["Prova pratica e colloquio sull'oggetto dell'aggiornamento", "Solo test scritto a distanza", "Solo autocertificazione"], correct: 0 }
 ];
 
 window.POOL_PS = [
