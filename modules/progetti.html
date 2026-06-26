@@ -2,11 +2,16 @@
 <div class="w-full max-w-7xl mx-auto mt-4 mb-10 flex flex-col lg:flex-row gap-6 relative">
     
     <!-- SEZIONE SINISTRA: FORM DI INSERIMENTO / MODIFICA -->
-    <div class="w-full lg:w-[400px] shrink-0">
-        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 sticky top-24">
-            <h2 class="font-black text-sm uppercase text-slate-800 mb-4 border-b border-slate-100 pb-2 flex items-center gap-2">
-                <i data-lucide="layout-template" class="w-4 h-4 text-rose-500"></i> Gestione Progetto
-            </h2>
+    <div id="progetto-form-col" class="w-full lg:w-[400px] shrink-0">
+        <div id="progetto-form-card" class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 sticky top-24">
+            <div class="flex items-center justify-between gap-3 mb-4 border-b border-slate-100 pb-2">
+                <h2 id="progetto-form-title" class="font-black text-sm uppercase text-slate-800 flex items-center gap-2">
+                    <i data-lucide="layout-template" class="w-4 h-4 text-rose-500"></i> Gestione Progetto
+                </h2>
+                <button id="btn-close-project-popup" type="button" onclick="window.chiudiPopupProgetto()" class="hidden bg-slate-100 hover:bg-slate-200 text-slate-700 p-2 rounded-lg transition" title="Chiudi popup">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
             <form id="form-progetto" onsubmit="event.preventDefault(); window.salvaProgettoDB();" class="space-y-4 text-xs">
                 <input type="hidden" id="prog-id" value="">
 

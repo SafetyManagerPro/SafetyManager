@@ -158,17 +158,9 @@ window.apriCorrezioneDashboard = async function(projectId, target) {
         setTimeout(() => row.classList.remove('ring-2','ring-red-400','bg-red-50'), 3000);
     }
 
-    if (typeof window.modificaProgetto === 'function') {
-        window.modificaProgetto(projectId);
-        const form = document.getElementById('form-progetto');
-        if (form) form.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-
-    if (target === 'corsi_svolti' && typeof window.apriIscrizioni === 'function') {
-        await new Promise(resolve => setTimeout(resolve, 200));
-        await window.apriIscrizioni(projectId);
-        const panel = document.getElementById('panel-iscrizioni');
-        if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (typeof window.apriPopupProgettoById === 'function') {
+        await window.apriPopupProgettoById(projectId, target);
+        return;
     }
 };
 
@@ -1047,6 +1039,88 @@ window.calcolaDettagliProgetto = function() {
 window.progettiList = [];
 window.currentProgettoId = null;
 
+
+window.waitForElement = async function(selector, timeoutMs = 2500) {
+    const start = Date.now();
+    while (Date.now() - start < timeoutMs) {
+        const el = document.querySelector(selector);
+        if (el) return el;
+        await new Promise(resolve => setTimeout(resolve, 80));
+    }
+    return null;
+};
+
+window.apriPopupProgettoById = async function(projectId, target = 'progetti') {
+    if (!projectId) return;
+
+    if (!document.getElementById('form-progetto')) {
+        await window.loadModule('progetti');
+        await window.waitForElement('#form-progetto');
+    }
+
+    if (!window.progettiList || !window.progettiList.find(p => p.id === projectId)) {
+        window.progettiList = await window.getProgetti();
+    }
+
+    const p = window.progettiList.find(x => x.id === projectId);
+    if (!p) {
+        alert('Progetto non trovato.');
+        return;
+    }
+
+    if (typeof window.modificaProgetto === 'function') {
+        window.modificaProgetto(projectId);
+    }
+
+    window.openProjectEditPopup(projectId);
+
+    if (target === 'corsi_svolti' && typeof window.apriIscrizioni === 'function') {
+        await new Promise(resolve => setTimeout(resolve, 200));
+        await window.apriIscrizioni(projectId);
+    }
+};
+
+window.openProjectEditPopup = function(projectId) {
+    const col = document.getElementById('progetto-form-col');
+    const card = document.getElementById('progetto-form-card');
+    const title = document.getElementById('progetto-form-title');
+    const closeBtn = document.getElementById('btn-close-project-popup');
+    if (!col || !card) return;
+
+    if (!col.dataset.originalClass) col.dataset.originalClass = col.className;
+    if (!card.dataset.originalClass) card.dataset.originalClass = card.className;
+
+    const p = (window.progettiList || []).find(x => x.id === projectId);
+    window.projectEditOpenedAsPopup = true;
+
+    col.className = 'fixed inset-0 z-[90] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4';
+    card.className = 'bg-white p-6 rounded-2xl shadow-2xl border border-slate-200 w-full max-w-3xl max-h-[92vh] overflow-y-auto';
+
+    if (title) {
+        title.innerHTML = `<i data-lucide="layout-template" class="w-4 h-4 text-rose-500"></i> Modifica progetto · <span class="font-mono text-rose-700">${window.dashEscape ? window.dashEscape(p?.codice || '') : (p?.codice || '')}</span>`;
+    }
+    if (closeBtn) closeBtn.classList.remove('hidden');
+
+    const first = document.getElementById('prog-azienda');
+    if (first) setTimeout(() => first.focus(), 100);
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+};
+
+window.chiudiPopupProgetto = function() {
+    const col = document.getElementById('progetto-form-col');
+    const card = document.getElementById('progetto-form-card');
+    const title = document.getElementById('progetto-form-title');
+    const closeBtn = document.getElementById('btn-close-project-popup');
+
+    if (col && col.dataset.originalClass) col.className = col.dataset.originalClass;
+    if (card && card.dataset.originalClass) card.className = card.dataset.originalClass;
+    if (title) title.innerHTML = '<i data-lucide="layout-template" class="w-4 h-4 text-rose-500"></i> Gestione Progetto';
+    if (closeBtn) closeBtn.classList.add('hidden');
+
+    window.projectEditOpenedAsPopup = false;
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+};
+
 window.loadProgettiTable = async function() {
     const tbody = document.getElementById('tabella-progetti');
     if(!tbody) return;
@@ -1107,7 +1181,7 @@ for (const p of window.progettiList) {
             <td class="p-3 border-b font-bold text-center text-slate-700">${window.formatDataToItalian(p.data_esame)}</td>
             <td class="p-3 border-b text-center whitespace-nowrap">
                 <button onclick="window.apriIscrizioni('${p.id}')" class="text-white bg-slate-800 hover:bg-slate-700 p-1.5 rounded transition shadow-sm font-bold text-[9px] uppercase px-2"><i data-lucide="users" class="w-3 h-3 inline"></i> Iscritti</button>
-                <button onclick="window.modificaProgetto('${p.id}')" class="text-blue-600 hover:bg-blue-200 bg-blue-100 p-1.5 rounded transition shadow-sm ml-1"><i data-lucide="edit" class="w-3 h-3"></i></button>
+                <button onclick="window.apriPopupProgettoById('${p.id}', 'progetti')" class="text-blue-600 hover:bg-blue-200 bg-blue-100 p-1.5 rounded transition shadow-sm ml-1" title="Modifica in popup"><i data-lucide="edit" class="w-3 h-3"></i></button>
                 <button onclick="window.eliminaProgetto('${p.id}')" class="text-red-600 hover:bg-red-200 bg-red-100 p-1.5 rounded transition shadow-sm ml-1"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
             </td>
         </tr>
@@ -1231,8 +1305,13 @@ window.salvaProgettoDB = async function() {
     if (id && id !== "") record.id = id;
 
     if (await window.saveProgetto(record)) {
+        const wasPopup = !!window.projectEditOpenedAsPopup;
         window.resetFormProgetto();
+        if (wasPopup && typeof window.chiudiPopupProgetto === 'function') window.chiudiPopupProgetto();
         await window.loadProgettiTable();
+        if (typeof window.loadDashboardCompliance === 'function' && document.getElementById('dash-progetti-formativi-checks')) {
+            await window.loadDashboardCompliance();
+        }
     } else alert("Errore nel salvataggio del progetto formativo. Verifica di aver applicato tutte le migration Supabase, inclusa quella Step 5 per validazione CNA/OPTA.");
 };
 
