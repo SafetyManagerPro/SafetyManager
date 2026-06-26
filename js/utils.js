@@ -93,6 +93,7 @@ window.dashProjectLabel = function(p) {
     return `${p.codice || 'Senza codice'} · ${corso}`;
 };
 
+
 window.dashRenderPanel = function(containerId, badgeId, items, verifiedText) {
     const box = document.getElementById(containerId);
     const badge = document.getElementById(badgeId);
@@ -112,15 +113,21 @@ window.dashRenderPanel = function(containerId, badgeId, items, verifiedText) {
         if (typeof lucide !== 'undefined') lucide.createIcons();
         return;
     }
-    const grouped = items.slice(0, 8).map(item => `
-        <div class="border border-red-100 bg-red-50 rounded-xl p-3 mb-2">
-            <p class="font-black text-red-900 uppercase text-[11px]">${window.dashEscape(item.title)}</p>
+    const grouped = items.slice(0, 8).map(item => {
+        const projectId = item.project_id || '';
+        const target = item.target || 'progetti';
+        return `
+        <div onclick="window.apriCorrezioneDashboard('${window.dashEscape(projectId)}','${window.dashEscape(target)}')" class="border border-red-100 bg-red-50 rounded-xl p-3 mb-2 cursor-pointer hover:bg-red-100 hover:border-red-300 transition group" title="Clicca per aprire e correggere">
+            <div class="flex items-start justify-between gap-2">
+                <p class="font-black text-red-900 uppercase text-[11px]">${window.dashEscape(item.title)}</p>
+                <span class="shrink-0 text-[9px] font-black uppercase text-red-700 bg-white border border-red-200 rounded-full px-2 py-0.5 group-hover:bg-red-700 group-hover:text-white">Modifica</span>
+            </div>
             <ul class="list-disc ml-4 mt-1 space-y-0.5 text-[10px] text-red-800">
                 ${item.errors.map(e => `<li>${window.dashEscape(e)}</li>`).join('')}
             </ul>
             ${item.fix ? `<p class="mt-2 text-[10px] text-slate-700"><strong>Correzione:</strong> ${window.dashEscape(item.fix)}</p>` : ''}
-        </div>
-    `).join('');
+        </div>`;
+    }).join('');
     const more = items.length > 8 ? `<p class="text-[10px] text-slate-500 mt-2">Altri ${items.length - 8} elementi da verificare non mostrati.</p>` : '';
     box.innerHTML = grouped + more;
     if (badge) {
@@ -128,6 +135,41 @@ window.dashRenderPanel = function(containerId, badgeId, items, verifiedText) {
         badge.className = 'px-2 py-1 rounded-full bg-red-100 text-red-800 text-[9px] font-black uppercase';
     }
     if (typeof lucide !== 'undefined') lucide.createIcons();
+};
+
+window.apriCorrezioneDashboard = async function(projectId, target) {
+    if (!projectId) return;
+    await window.loadModule('progetti');
+
+    let tries = 0;
+    while ((!window.progettiList || !window.progettiList.find(p => p.id === projectId)) && tries < 15) {
+        await new Promise(resolve => setTimeout(resolve, 150));
+        tries++;
+    }
+
+    if (!window.progettiList || !window.progettiList.find(p => p.id === projectId)) {
+        window.progettiList = await window.getProgetti();
+    }
+
+    const row = document.querySelector(`tr[data-project-id="${projectId}"]`);
+    if (row) {
+        row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        row.classList.add('ring-2','ring-red-400','bg-red-50');
+        setTimeout(() => row.classList.remove('ring-2','ring-red-400','bg-red-50'), 3000);
+    }
+
+    if (typeof window.modificaProgetto === 'function') {
+        window.modificaProgetto(projectId);
+        const form = document.getElementById('form-progetto');
+        if (form) form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    if (target === 'corsi_svolti' && typeof window.apriIscrizioni === 'function') {
+        await new Promise(resolve => setTimeout(resolve, 200));
+        await window.apriIscrizioni(projectId);
+        const panel = document.getElementById('panel-iscrizioni');
+        if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
 };
 
 window.dashGetProjectIssues = async function(p) {
@@ -160,11 +202,44 @@ window.dashGetProjectIssues = async function(p) {
     }
 
     return errors.length ? {
+        project_id: p.id,
+        target: 'progetti',
         title: window.dashProjectLabel(p),
         errors,
         fix: 'Apri Gestione Progetto, completa i campi obbligatori, riclassifica eventuali corsi legacy e ristampa progetto/fascicolo.'
     } : null;
 };
+
+
+window.dashParseLocalJSON = function(key, fallback = []) {
+    try { return JSON.parse(localStorage.getItem(key) || ''); } catch(e) { return fallback; }
+};
+
+window.dashGetDigitalProcedureIssues = function(p, iscritti) {
+    const errors = [];
+    const signatures = window.dashParseLocalJSON('SafetyManager.digitalSignatures.v1', []);
+    const tests = window.dashParseLocalJSON('SafetyManager.digitalTests.v1', []);
+
+    const registro = signatures.filter(s => s.progetto_id === p.id && s.documento === 'registro');
+    if (registro.length > 0) {
+        const activeFields = [...new Set(registro.map(s => s.campo_firma).filter(Boolean))];
+        const signedKeys = new Set(registro.map(s => `${s.iscrizione_id}::${s.campo_firma}`));
+        activeFields.forEach(field => {
+            const missing = iscritti.filter(isc => !signedKeys.has(`${isc.id}::${field}`));
+            if (missing.length) {
+                errors.push(`Registro digitale parziale: campo "${field}" firmato solo in parte (${iscritti.length - missing.length}/${iscritti.length}).`);
+            }
+        });
+    }
+
+    const testDigitali = tests.filter(t => t.progetto_id === p.id);
+    if (testDigitali.length > 0 && testDigitali.length < iscritti.length) {
+        errors.push(`Test digitali parziali: presenti ${testDigitali.length}/${iscritti.length} test digitali. Completare oppure gestire tutti i test su supporto cartaceo/scansionato.`);
+    }
+
+    return errors;
+};
+
 
 window.dashGetCourseDoneIssues = async function(p) {
     if (!window.dashIsPastOrToday(p.data_esame)) return null;
@@ -182,10 +257,16 @@ window.dashGetCourseDoneIssues = async function(p) {
         if (!isc.voto_test && !isc.note_verifica) errors.push(`${nome}: test/verifica finale non registrata.`);
     });
 
+    // La firma digitale NON è obbligatoria: non è errore se assente.
+    // Diventa errore solo se la procedura digitale è stata iniziata e risulta parziale.
+    errors.push(...(window.dashGetDigitalProcedureIssues ? window.dashGetDigitalProcedureIssues(p, iscritti) : []));
+
     return errors.length ? {
+        project_id: p.id,
+        target: 'corsi_svolti',
         title: window.dashProjectLabel(p),
         errors: errors.slice(0, 10),
-        fix: 'Completa registro presenze, test/verifiche, esiti, ID certificati e scadenze prima dell’archiviazione del fascicolo.'
+        fix: 'Completa registro, test/verifiche, esiti, ID certificati e scadenze. Le firme digitali sono richieste solo se il corso è stato gestito digitalmente in modo parziale.'
     } : null;
 };
 
@@ -206,10 +287,31 @@ window.dashGetCommunicationIssues = function(p) {
     }
 
     return errors.length ? {
+        project_id: p.id,
+        target: 'comunicazioni',
         title: window.dashProjectLabel(p),
         errors,
         fix: isDL ? 'Apri Gestione Progetto e completa validazione CNA + comunicazione OPTA/OPRA.' : 'Completa esito/riscontro della comunicazione agli organismi.'
     } : null;
+};
+
+
+window.dashGetProjectOverallIssues = async function(p) {
+    const issues = [];
+    const pi = await window.dashGetProjectIssues(p);
+    if (pi) issues.push(...pi.errors);
+    const ci = await window.dashGetCourseDoneIssues(p);
+    if (ci) issues.push(...ci.errors);
+    const oi = window.dashGetCommunicationIssues(p);
+    if (oi) issues.push(...oi.errors);
+    return issues;
+};
+
+window.dashStatusBadgeHtml = function(hasErrors) {
+    if (hasErrors) {
+        return '<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-red-100 text-red-800 border border-red-200 font-black text-[8px] uppercase"><span class="w-2 h-2 rounded-full bg-red-600"></span>Errori</span>';
+    }
+    return '<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 font-black text-[8px] uppercase"><span class="w-2 h-2 rounded-full bg-emerald-600"></span>Verified</span>';
 };
 
 window.loadDashboardCompliance = async function() {
@@ -978,31 +1080,39 @@ window.loadProgettiTable = async function() {
         return;
     }
 
-    let html = '';
-    window.progettiList.forEach(p => {
-        const nomeAzienda = p.aziende ? p.aziende.ragione_sociale : 'Privato';
-        const nomeCorso = window.DB_CORSI[p.corso_id] ? window.DB_CORSI[p.corso_id].t : p.corso_id;
-        const siglaCorso = window.DB_CORSI[p.corso_id] ? window.DB_CORSI[p.corso_id].code : '';
-        const erogatoreBadge = (p.ente_erogatore === 'azienda')
-            ? '<span class="inline-block mt-1 px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 font-black text-[8px] uppercase">DL soggetto formatore</span>'
-            : '<span class="inline-block mt-1 px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-black text-[8px] uppercase">Associazione / ente</span>';
-        
-        html += `
-            <tr class="hover:bg-amber-50 transition-colors" data-corso="${p.corso_id}">
-                <td class="p-3 border-b font-mono font-bold text-[10px] text-slate-800">${p.codice}</td>
-                <td class="p-3 border-b">
-                    <p class="font-bold text-xs text-blue-900"><span class="text-slate-400 font-mono text-[9px]">[${siglaCorso}]</span> ${nomeCorso}</p>
-                    <p class="text-[9px] text-slate-500 uppercase mt-0.5">${nomeAzienda}</p>${erogatoreBadge}
-                </td>
-                <td class="p-3 border-b font-bold text-center text-slate-700">${window.formatDataToItalian(p.data_esame)}</td>
-                <td class="p-3 border-b text-center whitespace-nowrap">
-                    <button onclick="window.apriIscrizioni('${p.id}')" class="text-white bg-slate-800 hover:bg-slate-700 p-1.5 rounded transition shadow-sm font-bold text-[9px] uppercase px-2"><i data-lucide="users" class="w-3 h-3 inline"></i> Iscritti</button>
-                    <button onclick="window.modificaProgetto('${p.id}')" class="text-blue-600 hover:bg-blue-200 bg-blue-100 p-1.5 rounded transition shadow-sm ml-1"><i data-lucide="edit" class="w-3 h-3"></i></button>
-                    <button onclick="window.eliminaProgetto('${p.id}')" class="text-red-600 hover:bg-red-200 bg-red-100 p-1.5 rounded transition shadow-sm ml-1"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
-                </td>
-            </tr>
-        `;
-    });
+let html = '';
+for (const p of window.progettiList) {
+    const nomeAzienda = p.aziende ? p.aziende.ragione_sociale : 'Privato';
+    const nomeCorso = window.DB_CORSI[p.corso_id] ? window.DB_CORSI[p.corso_id].t : p.corso_id;
+    const siglaCorso = window.DB_CORSI[p.corso_id] ? window.DB_CORSI[p.corso_id].code : '';
+    const erogatoreBadge = (p.ente_erogatore === 'azienda')
+        ? '<span class="inline-block mt-1 px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 font-black text-[8px] uppercase">DL soggetto formatore</span>'
+        : '<span class="inline-block mt-1 px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-black text-[8px] uppercase">Associazione / ente</span>';
+
+    const issues = (typeof window.dashGetProjectOverallIssues === 'function') ? await window.dashGetProjectOverallIssues(p) : [];
+    const statoBadge = (typeof window.dashStatusBadgeHtml === 'function') ? window.dashStatusBadgeHtml(issues.length > 0) : '';
+
+    html += `
+        <tr class="hover:bg-amber-50 transition-colors" data-corso="${p.corso_id}" data-project-id="${p.id}">
+            <td class="p-3 border-b font-mono font-bold text-[10px] text-slate-800">
+                <div class="flex flex-col gap-1">
+                    <span>${p.codice}</span>
+                    ${statoBadge}
+                </div>
+            </td>
+            <td class="p-3 border-b">
+                <p class="font-bold text-xs text-blue-900"><span class="text-slate-400 font-mono text-[9px]">[${siglaCorso}]</span> ${nomeCorso}</p>
+                <p class="text-[9px] text-slate-500 uppercase mt-0.5">${nomeAzienda}</p>${erogatoreBadge}
+            </td>
+            <td class="p-3 border-b font-bold text-center text-slate-700">${window.formatDataToItalian(p.data_esame)}</td>
+            <td class="p-3 border-b text-center whitespace-nowrap">
+                <button onclick="window.apriIscrizioni('${p.id}')" class="text-white bg-slate-800 hover:bg-slate-700 p-1.5 rounded transition shadow-sm font-bold text-[9px] uppercase px-2"><i data-lucide="users" class="w-3 h-3 inline"></i> Iscritti</button>
+                <button onclick="window.modificaProgetto('${p.id}')" class="text-blue-600 hover:bg-blue-200 bg-blue-100 p-1.5 rounded transition shadow-sm ml-1"><i data-lucide="edit" class="w-3 h-3"></i></button>
+                <button onclick="window.eliminaProgetto('${p.id}')" class="text-red-600 hover:bg-red-200 bg-red-100 p-1.5 rounded transition shadow-sm ml-1"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
+            </td>
+        </tr>
+    `;
+}
     tbody.innerHTML = html;
     if(typeof lucide !== 'undefined') lucide.createIcons();
 };
