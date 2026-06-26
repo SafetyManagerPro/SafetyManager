@@ -16,6 +16,26 @@ if (typeof lucide !== 'undefined') {
 
 window.loadModule = async function(moduleId) {
     const contentDiv = document.getElementById('app-content');
+
+    if (moduleId === 'procedure') {
+        document.querySelectorAll('.btn-tab').forEach(b => b.classList.remove('active'));
+        contentDiv.innerHTML = `
+            <div class="w-full max-w-3xl mx-auto mt-24 bg-white border border-slate-200 rounded-2xl shadow-sm p-8 text-center">
+                <div class="w-16 h-16 mx-auto rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
+                    <i data-lucide="pause-circle" class="w-9 h-9 text-slate-500"></i>
+                </div>
+                <h1 class="text-2xl font-black uppercase text-slate-900 tracking-tight">Procedure digitali in pausa</h1>
+                <p class="text-sm text-slate-600 mt-3 leading-relaxed">
+                    Il modulo <strong>Firma, test e fascicolo locale</strong> è temporaneamente disattivato.
+                    I dati già presenti non vengono cancellati; il modulo resta nel codice per eventuale riattivazione futura.
+                </p>
+                <button onclick="window.loadModule('admin')" class="mt-6 bg-slate-900 hover:bg-slate-800 text-white px-5 py-3 rounded-xl text-xs font-black uppercase tracking-widest">
+                    Torna alla Dashboard
+                </button>
+            </div>`;
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+        return;
+    }
     
     document.querySelectorAll('.btn-tab').forEach(b => {
         b.classList.remove('active');
