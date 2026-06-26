@@ -11,11 +11,14 @@
         </div>
 
         <!-- HEADER ENTE E DICITURA LEGALE DINAMICA -->
-        <div class="text-center mb-8 mt-6 shrink-0">
-            <img src="" alt="Logo" class="logo-img h-16 object-contain mx-auto mb-4 hidden">
-            <h1 class="text-2xl font-black uppercase tracking-[0.2em] text-slate-800 val-erogatore font-serif">---</h1>
+        <div class="text-center mb-6 mt-5 shrink-0">
+            <img src="" alt="Logo" class="logo-img h-16 object-contain mx-auto mb-3 hidden">
+            <div class="mx-auto max-w-[82%] border-2 border-emerald-300 bg-emerald-50 rounded-xl px-4 py-2 shadow-sm">
+                <p class="text-[8px] font-black uppercase tracking-[0.22em] text-emerald-800 mb-1">Ente formatore / erogatore</p>
+                <h1 class="text-xl font-black uppercase tracking-[0.16em] text-emerald-950 val-erogatore font-serif bg-white/80 border border-emerald-200 rounded px-3 py-1 inline-block">---</h1>
+            </div>
             
-            <div class="val-header-legale mt-4 text-[8px] font-bold text-slate-500 uppercase tracking-widest leading-relaxed border-y border-slate-300 py-3 mx-12">
+            <div class="val-header-legale mt-3 text-[8px] font-bold text-slate-500 uppercase tracking-widest leading-relaxed border-y border-slate-300 py-2 mx-12">
                 <p>Soggetto formatore ai sensi dell'Accordo Stato Regioni del 17 aprile 2025 (Rep. Atti n. 59/CSR)</p>
                 <p>Erogazione Diretta o tramite struttura di diretta emanazione</p>
             </div>
@@ -34,21 +37,26 @@
             <h3 class="text-4xl font-black uppercase text-blue-800 val-nome font-serif mb-2 drop-shadow-sm">---</h3>
             <p class="text-xs font-semibold text-slate-600 tracking-wider">Nato/a a <span class="val-nascita font-bold text-slate-900">---</span> &nbsp;&bull;&nbsp; C.F.: <span class="val-cf font-mono font-bold text-slate-900">---</span></p>
             
-            <div class="mt-6 flex flex-col items-center justify-center gap-1">
-                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">In forza presso l'Azienda / Ente:</p>
-                <p class="text-lg font-black uppercase text-slate-900 val-azienda">---</p>
-                <p class="text-[10px] font-bold text-slate-600 uppercase tracking-wider mt-1 border border-slate-300 px-3 py-1 rounded bg-slate-50">Mansione: <span class="val-mansione text-slate-900">---</span></p>
+            <div class="mt-5 flex flex-col items-center justify-center gap-1">
+                <div class="border-2 border-amber-300 bg-amber-50 rounded-xl px-5 py-2 shadow-sm max-w-[86%]">
+                    <p class="text-[9px] font-black text-amber-800 uppercase tracking-[0.2em] mb-1">Azienda committente</p>
+                    <p class="text-base font-black uppercase text-amber-950 val-azienda bg-white/80 border border-amber-200 rounded px-3 py-1 inline-block">---</p>
+                </div>
+                <p class="text-[10px] font-bold text-slate-600 uppercase tracking-wider mt-2 border border-slate-300 px-3 py-1 rounded bg-slate-50">Mansione: <span class="val-mansione text-slate-900">---</span></p>
             </div>
         </div>
 
         <!-- DATI CORSO -->
         <div class="text-center mb-8 shrink-0 flex-1">
             <p class="text-xs italic font-serif text-slate-500 mb-3">Per aver frequentato con profitto e superato la verifica finale del corso per:</p>
-            <!-- NOME CORSO IN BLU -->
-            <h3 class="text-2xl font-black uppercase text-blue-900 val-titolo-corso px-8 font-serif leading-tight tracking-wide">---</h3>
+            <!-- NOME CORSO IN BLU EVIDENZIATO -->
+            <div class="mx-auto max-w-[88%] border-2 border-blue-300 bg-blue-50 rounded-xl px-5 py-3 shadow-sm">
+                <p class="font-black text-[9px] uppercase tracking-[0.22em] text-blue-800 mb-1">Corso svolto</p>
+                <h3 class="text-xl font-black uppercase text-blue-950 val-titolo-corso px-4 font-serif leading-tight tracking-wide bg-white/80 border border-blue-200 rounded py-1 inline-block">---</h3>
+            </div>
             
             <!-- BOX ORE E MODALITÀ -->
-            <div class="mt-6 inline-block border-2 border-blue-200 p-4 rounded bg-blue-50/50 shadow-sm">
+            <div class="mt-5 inline-block border-2 border-blue-200 p-4 rounded bg-blue-50/50 shadow-sm">
                 <div class="grid grid-cols-2 gap-8 text-center px-6 text-slate-800">
                     <div>
                         <strong class="uppercase text-[9px] text-blue-800 tracking-widest block mb-1">Monte Ore</strong> 
@@ -85,8 +93,9 @@
                     <span class="text-[8px] font-bold text-slate-500 block uppercase tracking-widest">Il Docente Formatore</span>
                     <span class="val-docente-main font-black text-[10px] block mt-1 uppercase text-slate-900">---</span>
                 </div>
-                <div class="w-1/3 flex justify-center items-end pb-4">
-                    <div class="w-20 h-20 border-[3px] border-double border-blue-200 rounded-full flex items-center justify-center text-blue-300 transform -rotate-12 opacity-80 bg-slate-50/50 shadow-inner">
+                <div class="w-1/3 flex justify-center items-end pb-2">
+                    <img src="" alt="Timbro" class="stamp-img h-24 object-contain hidden opacity-95">
+                    <div class="stamp-placeholder w-20 h-20 border-[3px] border-double border-blue-200 rounded-full flex items-center justify-center text-blue-300 transform -rotate-12 opacity-80 bg-slate-50/50 shadow-inner">
                         <span class="val-testo-timbro text-[8px] font-bold text-center leading-tight uppercase tracking-widest">TIMBRO<br>EROGATORE</span>
                     </div>
                 </div>
@@ -105,14 +114,30 @@
     
     <div class="flex-1 border-[6px] border-double border-blue-900 p-8 flex flex-col relative h-full">
         
-        <div class="flex justify-between items-center border-b-2 border-blue-900 pb-4 mb-6 shrink-0">
-            <div>
-                <h3 class="font-black text-sm uppercase text-blue-900 tracking-widest">Syllabus Dettagliato Erogato</h3>
-                <p class="text-[8px] text-slate-500 font-bold mt-1 uppercase tracking-wider"><span class="val-erogatore text-slate-800">---</span> &nbsp;|&nbsp; Sede: <span class="val-sede-corso text-slate-800">---</span></p>
+        <div class="border-b-2 border-blue-900 pb-4 mb-5 shrink-0">
+            <div class="flex justify-between items-center mb-3">
+                <div>
+                    <h3 class="font-black text-sm uppercase text-blue-900 tracking-widest">Syllabus Dettagliato Erogato</h3>
+                    <p class="text-[8px] text-slate-500 font-bold mt-1 uppercase tracking-wider">Sede: <span class="val-sede-corso text-slate-800">---</span></p>
+                </div>
+                <div class="text-right">
+                    <p class="text-[8px] font-bold text-slate-500 uppercase tracking-widest">Allegato Certificato: <span class="val-cert-id text-blue-900 font-mono">---</span></p>
+                    <p class="text-[8px] font-bold text-slate-500 uppercase tracking-widest mt-1">Rif. Progetto: <span class="val-codice text-blue-900 font-mono">---</span></p>
+                </div>
             </div>
-            <div class="text-right">
-                <p class="text-[8px] font-bold text-slate-500 uppercase tracking-widest">Allegato Certificato: <span class="val-cert-id text-blue-900 font-mono">---</span></p>
-                <p class="text-[8px] font-bold text-slate-500 uppercase tracking-widest mt-1">Rif. Progetto: <span class="val-codice text-blue-900 font-mono">---</span></p>
+            <div class="grid grid-cols-3 gap-2 text-[8px] leading-tight">
+                <div class="border border-blue-300 bg-blue-50 rounded p-2">
+                    <p class="font-black uppercase text-blue-800 tracking-wider">Corso svolto</p>
+                    <p class="val-titolo-corso font-black uppercase text-blue-950 mt-1">---</p>
+                </div>
+                <div class="border border-amber-300 bg-amber-50 rounded p-2">
+                    <p class="font-black uppercase text-amber-800 tracking-wider">Azienda committente</p>
+                    <p class="val-azienda font-black uppercase text-amber-950 mt-1">---</p>
+                </div>
+                <div class="border border-emerald-300 bg-emerald-50 rounded p-2">
+                    <p class="font-black uppercase text-emerald-800 tracking-wider">Ente formatore / erogatore</p>
+                    <p class="val-erogatore font-black uppercase text-emerald-950 mt-1">---</p>
+                </div>
             </div>
         </div>
 
