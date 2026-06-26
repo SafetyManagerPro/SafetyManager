@@ -33,25 +33,69 @@
                     <label class="font-black text-blue-900 uppercase block mb-2">Organismi Paritetici / art. 37 comma 12</label>
                     <div class="grid grid-cols-2 gap-2">
                         <div>
-                            <label class="text-[9px] font-bold text-blue-700 uppercase block mb-1">Data richiesta</label>
+                            <label class="text-[9px] font-bold text-blue-700 uppercase block mb-1">Data richiesta/comunicazione</label>
                             <input type="date" id="prog-op-invio" class="w-full px-2 py-1.5 bg-white border border-blue-200 rounded outline-none focus:border-blue-500">
                         </div>
                         <div>
-                            <label class="text-[9px] font-bold text-blue-700 uppercase block mb-1">Esito / stato</label>
-                            <select id="prog-op-esito" class="w-full px-2 py-1.5 bg-white border border-blue-200 rounded outline-none focus:border-blue-500 font-bold">
+                            <label class="text-[9px] font-bold text-blue-700 uppercase block mb-1">Stato OP / OPTA</label>
+                            <select id="prog-op-esito" onchange="window.syncValidazioneCNAUI && window.syncValidazioneCNAUI()" class="w-full px-2 py-1.5 bg-white border border-blue-200 rounded outline-none focus:border-blue-500 font-bold">
                                 <option value="">-- Da definire --</option>
-                                <option value="op_non_presente">OP non presente / non individuato nel settore-territorio</option>
-                                <option value="richiesta_inviata">Richiesta inviata - in attesa / decorrenza 15 giorni</option>
-                                <option value="riscontro_ricevuto">Riscontro ricevuto - indicazioni recepite</option>
+                                <option value="validazione_ente_in_corso">Valutazione percorso in carico a CNA</option>
+                                <option value="validazione_ente_completata">Percorso validato da CNA - da comunicare a OPRA/OPTA</option>
+                                <option value="comunicazione_op_inviata">Comunicazione inviata a OPRA/OPTA</option>
+                                <option value="riscontro_ricevuto">Riscontro OPRA/OPTA ricevuto - indicazioni recepite</option>
+                                <option value="richiesta_inviata">Legacy: richiesta inviata - decorrenza 15 giorni</option>
+                                <option value="op_non_presente">Legacy: OP non presente / non individuato</option>
                                 <option value="non_applicabile">Non applicabile al percorso specifico</option>
                             </select>
                         </div>
                     </div>
-                    <div class="mt-2">
-                        <label class="text-[9px] font-bold text-blue-700 uppercase block mb-1">Data eventuale riscontro</label>
-                        <input type="date" id="prog-op-risposta" class="w-full px-2 py-1.5 bg-white border border-blue-200 rounded outline-none focus:border-blue-500">
+                    <div class="mt-2 grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-[9px] font-bold text-blue-700 uppercase block mb-1">Data riscontro OPRA/OPTA</label>
+                            <input type="date" id="prog-op-risposta" class="w-full px-2 py-1.5 bg-white border border-blue-200 rounded outline-none focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="text-[9px] font-bold text-blue-700 uppercase block mb-1">Destinatario</label>
+                            <input type="text" id="prog-op-destinatario" value="OPTA Avellino / OPRA Campania" class="w-full px-2 py-1.5 bg-white border border-blue-200 rounded outline-none focus:border-blue-500 font-bold">
+                        </div>
                     </div>
-                    <p class="mt-2 text-[9px] text-blue-800">Da compilare soprattutto quando il soggetto formatore è il datore di lavoro. Se non vi sono OP presenti, indicarlo e conservare l’evidenza della verifica.</p>
+                    <p class="mt-2 text-[9px] text-blue-800">Per i corsi organizzati dal datore di lavoro, CNA Avellino valuta il percorso formativo e cura la comunicazione all’Organismo Paritetico territoriale/regionale competente.</p>
+                </div>
+
+                <div id="prog-validazione-cna-box" class="bg-emerald-50 border border-emerald-200 p-3 rounded text-[10px] leading-snug">
+                    <label class="font-black text-emerald-900 uppercase block mb-2">Validazione percorso da Associazione di Categoria</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-[9px] font-bold text-emerald-700 uppercase block mb-1">Ente validatore</label>
+                            <input type="text" id="prog-ente-validatore" value="CNA Artigiani Imprenditori D'Italia Avellino" class="w-full px-2 py-1.5 bg-white border border-emerald-200 rounded outline-none focus:border-emerald-500 font-bold">
+                        </div>
+                        <div>
+                            <label class="text-[9px] font-bold text-emerald-700 uppercase block mb-1">Esito valutazione</label>
+                            <select id="prog-validazione-esito" onchange="window.syncValidazioneCNAUI && window.syncValidazioneCNAUI()" class="w-full px-2 py-1.5 bg-white border border-emerald-200 rounded outline-none focus:border-emerald-500 font-bold">
+                                <option value="">-- Da definire --</option>
+                                <option value="da_valutare">Da valutare da CNA</option>
+                                <option value="validato">Validato</option>
+                                <option value="validato_con_prescrizioni">Validato con prescrizioni/integrazioni</option>
+                                <option value="non_validato">Non validato - da rivedere</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 mt-2">
+                        <div>
+                            <label class="text-[9px] font-bold text-emerald-700 uppercase block mb-1">Data validazione CNA</label>
+                            <input type="date" id="prog-validazione-data" class="w-full px-2 py-1.5 bg-white border border-emerald-200 rounded outline-none focus:border-emerald-500">
+                        </div>
+                        <div>
+                            <label class="text-[9px] font-bold text-emerald-700 uppercase block mb-1">Data comunicazione OPRA/OPTA</label>
+                            <input type="date" id="prog-op-comunicazione" class="w-full px-2 py-1.5 bg-white border border-emerald-200 rounded outline-none focus:border-emerald-500">
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <label class="text-[9px] font-bold text-emerald-700 uppercase block mb-1">Note valutazione / prescrizioni CNA</label>
+                        <textarea id="prog-validazione-note" rows="2" placeholder="Es. percorso valutato sulla base di programma, durata, docenti, aula, attrezzature e destinatari; comunicazione inviata a OPTA Avellino/OPRA Campania..." class="w-full px-2 py-1.5 bg-white border border-emerald-200 rounded outline-none focus:border-emerald-500"></textarea>
+                    </div>
+                    <p class="mt-2 text-[9px] text-emerald-800">Campo obbligatorio quando il soggetto formatore è il datore di lavoro. Il datore di lavoro resta soggetto formatore per i propri dipendenti; CNA Avellino svolge la valutazione/validazione del percorso e cura la comunicazione all’organismo paritetico dell’artigianato competente.</p>
                 </div>
 
                 <div>

@@ -551,6 +551,51 @@ window.parseJSONSafe = function(value, fallback = {}) {
     try { return JSON.parse(value); } catch(e) { return fallback; }
 };
 
+window.DEFAULT_ENTE_VALIDATORE = "CNA Artigiani Imprenditori D'Italia Avellino";
+window.DEFAULT_OP_DESTINATARIO = "OPTA Avellino / OPRA Campania";
+
+window.getDefaultEnteValidatore = function() {
+    return window.DEFAULT_ENTE_VALIDATORE;
+};
+
+window.labelEsitoValidazioneCNA = function(value) {
+    const labels = {
+        da_valutare: 'Da valutare da CNA',
+        validato: 'Validato',
+        validato_con_prescrizioni: 'Validato con prescrizioni/integrazioni',
+        non_validato: 'Non validato - da rivedere'
+    };
+    return labels[value] || value || '---';
+};
+
+window.labelEsitoOP = function(value) {
+    const labels = {
+        validazione_ente_in_corso: 'Valutazione percorso in carico a CNA',
+        validazione_ente_completata: 'Percorso validato da CNA - da comunicare a OPRA/OPTA',
+        comunicazione_op_inviata: 'Comunicazione inviata a OPRA/OPTA',
+        riscontro_ricevuto: 'Riscontro OPRA/OPTA ricevuto - indicazioni recepite',
+        richiesta_inviata: 'Richiesta inviata - decorrenza 15 giorni',
+        op_non_presente: 'OP non presente / non individuato',
+        non_applicabile: 'Non applicabile'
+    };
+    return labels[value] || value || '---';
+};
+
+window.syncValidazioneCNAUI = function() {
+    const erogatore = document.getElementById('prog-erogatore') ? document.getElementById('prog-erogatore').value : 'ente';
+    const box = document.getElementById('prog-validazione-cna-box');
+    const isAzienda = erogatore === 'azienda';
+    if (box) {
+        box.classList.toggle('ring-2', isAzienda);
+        box.classList.toggle('ring-emerald-400', isAzienda);
+        box.classList.toggle('opacity-70', !isAzienda);
+    }
+    const enteVal = document.getElementById('prog-ente-validatore');
+    if (enteVal && !enteVal.value) enteVal.value = window.getDefaultEnteValidatore();
+    const opDest = document.getElementById('prog-op-destinatario');
+    if (opDest && !opDest.value) opDest.value = window.DEFAULT_OP_DESTINATARIO;
+};
+
 window.getDocentiUdFromForm = function() {
     const docenti_ud = {};
     document.querySelectorAll('.prog-docente-ud').forEach(sel => {
@@ -568,6 +613,7 @@ window.renderComplianceProgetto = function(corsoId) {
     const info = window.getCourseCompliance ? window.getCourseCompliance(corsoId, modalita, erogatore) : { note: [] };
     let notes = [...(info.note || [])];
     if (erogatore === 'azienda') {
+        notes.unshift("Validazione percorso: CNA Artigiani Imprenditori D'Italia Avellino valuta programma, docenza, durata, destinatari, aula/campo prova e cura comunicazione a OPTA Avellino / OPRA Campania.");
         notes.unshift(policy.notaAzienda || 'Erogazione diretta aziendale: ammessa solo per propri lavoratori, preposti e dirigenti.');
     } else {
         notes.unshift(policy.notaEnte || 'Verificare requisiti del soggetto formatore / diretta emanazione.');
@@ -583,6 +629,7 @@ window.renderComplianceProgetto = function(corsoId) {
 
     const opBox = document.getElementById('prog-op-box');
     if (opBox) opBox.classList.toggle('ring-2', erogatore === 'azienda');
+    if (typeof window.syncValidazioneCNAUI === 'function') window.syncValidazioneCNAUI();
 };
 
 window.getComplianceNotaDocumento = function(courseId, isAzienda) {
@@ -591,7 +638,7 @@ window.getComplianceNotaDocumento = function(courseId, isAzienda) {
     const erogatore = isAzienda ? 'azienda' : 'ente';
     const info = window.getCourseCompliance ? window.getCourseCompliance(courseId, modalita, erogatore) : { note: [] };
     const erogazione = isAzienda
-        ? 'Il corso è organizzato dal datore di lavoro come soggetto formatore esclusivamente per i propri lavoratori/preposti/dirigenti; restano obbligatori docenti qualificati, richiesta agli Organismi Paritetici ove presenti, registro presenze, verifica finale e fascicolo.'
+        ? "Il corso è organizzato dal datore di lavoro come soggetto formatore esclusivamente per i propri lavoratori/preposti/dirigenti; la valutazione/validazione del percorso è curata da CNA Artigiani Imprenditori D'Italia Avellino, con comunicazione all'organismo paritetico dell'artigianato competente (OPTA/OPRA Campania). Restano obbligatori docenti qualificati, registro presenze, verifica finale e fascicolo."
         : 'Il corso è erogato da associazione sindacale di categoria/struttura di diretta emanazione in qualità di soggetto formatore; conservare evidenza dei requisiti di rappresentatività o relativa autocertificazione DPR 445/2000.';
     const base = [
         erogazione,
@@ -807,6 +854,12 @@ window.salvaProgettoDB = async function() {
     const opRisposta = document.getElementById('prog-op-risposta') ? document.getElementById('prog-op-risposta').value : null;
     const omogeneitaAula = document.getElementById('prog-omogeneita-aula') ? document.getElementById('prog-omogeneita-aula').checked : true;
     const complianceNote = (document.getElementById('prog-compliance-note-free')?.value || '').trim();
+    const enteValidatore = (document.getElementById('prog-ente-validatore')?.value || window.getDefaultEnteValidatore()).trim();
+    const validazioneEsito = document.getElementById('prog-validazione-esito') ? document.getElementById('prog-validazione-esito').value : '';
+    const validazioneData = document.getElementById('prog-validazione-data') ? document.getElementById('prog-validazione-data').value : null;
+    const comunicazioneOpData = document.getElementById('prog-op-comunicazione') ? document.getElementById('prog-op-comunicazione').value : null;
+    const opDestinatario = (document.getElementById('prog-op-destinatario')?.value || window.DEFAULT_OP_DESTINATARIO).trim();
+    const validazioneNote = (document.getElementById('prog-validazione-note')?.value || '').trim();
 
     if (!aziendaId) return alert("Seleziona l\'azienda committente prima di salvare il progetto.");
     if (!corsoId) return alert('Seleziona una tipologia di corso.');
@@ -815,11 +868,23 @@ window.salvaProgettoDB = async function() {
 
     const modalitaCheck = window.getModalitaCompliance ? window.getModalitaCompliance(corsoId, modalita) : { ok: true };
     if (!modalitaCheck.ok) return alert('Modalità non coerente con il corso selezionato: ' + modalitaCheck.message);
+    if (erogatore === 'azienda' && !enteValidatore) {
+        return alert('Per il datore di lavoro soggetto formatore indica l’ente/associazione che valida il percorso formativo.');
+    }
+    if (erogatore === 'azienda' && !validazioneEsito) {
+        return alert('Per il datore di lavoro soggetto formatore indica lo stato della validazione CNA del percorso formativo.');
+    }
+    if (erogatore === 'azienda' && (validazioneEsito === 'validato' || validazioneEsito === 'validato_con_prescrizioni') && !validazioneData) {
+        return alert('Inserisci la data di validazione del percorso da parte di CNA Avellino.');
+    }
     if (erogatore === 'azienda' && !opEsito) {
-        return alert('Per erogazione diretta aziendale indica lo stato della richiesta agli Organismi Paritetici oppure seleziona "OP non presente/non applicabile".');
+        return alert('Per erogazione diretta aziendale indica lo stato della comunicazione/iter verso OPRA/OPTA.');
+    }
+    if (erogatore === 'azienda' && (opEsito === 'comunicazione_op_inviata' || opEsito === 'riscontro_ricevuto') && !comunicazioneOpData && !opInvio) {
+        return alert('Inserisci la data di comunicazione a OPRA/OPTA.');
     }
     if (erogatore === 'azienda' && opEsito === 'richiesta_inviata' && !opInvio) {
-        return alert('Inserisci la data di invio della richiesta agli Organismi Paritetici.');
+        return alert('Inserisci la data di invio della richiesta/comunicazione agli Organismi Paritetici.');
     }
     if (!omogeneitaAula && !complianceNote) {
         return alert('Se l’aula non è omogenea, inserisci una nota che spieghi come sono stati adattati contenuti e rischi trattati.');
@@ -857,14 +922,21 @@ window.salvaProgettoDB = async function() {
         compliance_note: complianceNote || null,
         omogeneita_aula: omogeneitaAula,
         modalita_verificata: modalitaCheck.ok,
-        versione_normativa: 'ASR 17/04/2025 Rep. 59/CSR'
+        versione_normativa: 'ASR 17/04/2025 Rep. 59/CSR',
+        ente_validatore: erogatore === 'azienda' ? enteValidatore : null,
+        ente_validatore_tipo: erogatore === 'azienda' ? 'associazione_datoriale_cna_opta_campania' : null,
+        validazione_ente_esito: erogatore === 'azienda' ? validazioneEsito : null,
+        validazione_ente_at: erogatore === 'azienda' ? (validazioneData || null) : null,
+        comunicazione_op_at: erogatore === 'azienda' ? (comunicazioneOpData || opInvio || null) : null,
+        organismo_destinatario: erogatore === 'azienda' ? opDestinatario : null,
+        note_validazione_ente: erogatore === 'azienda' ? (validazioneNote || null) : null
     };
     if (id && id !== "") record.id = id;
 
     if (await window.saveProgetto(record)) {
         window.resetFormProgetto();
         await window.loadProgettiTable();
-    } else alert("Errore nel salvataggio del progetto formativo. Verifica che lo schema Supabase abbia le colonne sede, resp_progetto, resp_corso e docenti_ud.");
+    } else alert("Errore nel salvataggio del progetto formativo. Verifica di aver applicato tutte le migration Supabase, inclusa quella Step 5 per validazione CNA/OPTA.");
 };
 
 window.modificaProgetto = function(id) {
@@ -885,6 +957,12 @@ window.modificaProgetto = function(id) {
     if(document.getElementById('prog-op-risposta')) document.getElementById('prog-op-risposta').value = p.risposta_op_at || '';
     if(document.getElementById('prog-op-esito')) document.getElementById('prog-op-esito').value = p.esito_richiesta_op || '';
     if(document.getElementById('prog-compliance-note-free')) document.getElementById('prog-compliance-note-free').value = p.compliance_note || '';
+    if(document.getElementById('prog-ente-validatore')) document.getElementById('prog-ente-validatore').value = p.ente_validatore || window.getDefaultEnteValidatore();
+    if(document.getElementById('prog-validazione-esito')) document.getElementById('prog-validazione-esito').value = p.validazione_ente_esito || '';
+    if(document.getElementById('prog-validazione-data')) document.getElementById('prog-validazione-data').value = p.validazione_ente_at || '';
+    if(document.getElementById('prog-op-comunicazione')) document.getElementById('prog-op-comunicazione').value = p.comunicazione_op_at || '';
+    if(document.getElementById('prog-op-destinatario')) document.getElementById('prog-op-destinatario').value = p.organismo_destinatario || window.DEFAULT_OP_DESTINATARIO;
+    if(document.getElementById('prog-validazione-note')) document.getElementById('prog-validazione-note').value = p.note_validazione_ente || '';
     if(document.getElementById('prog-omogeneita-aula')) document.getElementById('prog-omogeneita-aula').checked = p.omogeneita_aula !== false;
 
     window.calcolaDettagliProgetto(); 
@@ -915,6 +993,9 @@ window.resetFormProgetto = function() {
     if(comp) comp.innerHTML = '<li>Seleziona corso e data per generare calendario, scadenza e vincoli.</li>';
     const lbl = document.getElementById('lbl-prog-scadenza');
     if(lbl) lbl.innerText = '---';
+    if(document.getElementById('prog-ente-validatore')) document.getElementById('prog-ente-validatore').value = window.getDefaultEnteValidatore();
+    if(document.getElementById('prog-op-destinatario')) document.getElementById('prog-op-destinatario').value = window.DEFAULT_OP_DESTINATARIO;
+    if(typeof window.syncValidazioneCNAUI === 'function') window.syncValidazioneCNAUI();
 };
 
 window.apriIscrizioni = async function(progetto_id) {
@@ -1157,6 +1238,12 @@ window.caricaDatiStampa = async function() {
     window.AppState['cfg-op-esito'] = p.esito_richiesta_op || "";
     window.AppState['cfg-compliance-note-free'] = p.compliance_note || "";
     window.AppState['cfg-omogeneita-aula'] = p.omogeneita_aula === false ? "NO" : "SI";
+    window.AppState['cfg-ente-validatore'] = p.ente_validatore || window.getDefaultEnteValidatore();
+    window.AppState['cfg-validazione-esito'] = p.validazione_ente_esito || "";
+    window.AppState['cfg-validazione-data'] = p.validazione_ente_at || "";
+    window.AppState['cfg-op-comunicazione'] = p.comunicazione_op_at || "";
+    window.AppState['cfg-op-destinatario'] = p.organismo_destinatario || window.DEFAULT_OP_DESTINATARIO;
+    window.AppState['cfg-validazione-note'] = p.note_validazione_ente || "";
 
     window.currentProgettoStampaId = progId;
     window.currentSessionCorsisti = iscritti.map(isc => ({
@@ -1388,7 +1475,14 @@ window.updateAll = function() {
     document.querySelectorAll('.val-azienda-indirizzo').forEach(el => el.innerText = window.getVal('cfg-azienda-indirizzo') || "---");
     document.querySelectorAll('.val-op-invio').forEach(el => el.innerText = window.formatDataToItalian(window.getVal('cfg-op-invio')) || "---");
     document.querySelectorAll('.val-op-risposta').forEach(el => el.innerText = window.formatDataToItalian(window.getVal('cfg-op-risposta')) || "---");
-    document.querySelectorAll('.val-op-esito').forEach(el => el.innerText = (window.getVal('cfg-op-esito') || "---").replaceAll('_', ' '));
+    document.querySelectorAll('.val-op-esito').forEach(el => el.innerText = window.labelEsitoOP(window.getVal('cfg-op-esito')));
+    document.querySelectorAll('.val-ente-validatore').forEach(el => el.innerText = window.getVal('cfg-ente-validatore') || window.getDefaultEnteValidatore());
+    document.querySelectorAll('.val-validazione-esito').forEach(el => el.innerText = window.labelEsitoValidazioneCNA(window.getVal('cfg-validazione-esito')));
+    document.querySelectorAll('.val-validazione-data').forEach(el => el.innerText = window.formatDataToItalian(window.getVal('cfg-validazione-data')) || "---");
+    document.querySelectorAll('.val-op-comunicazione').forEach(el => el.innerText = window.formatDataToItalian(window.getVal('cfg-op-comunicazione')) || "---");
+    document.querySelectorAll('.val-op-destinatario').forEach(el => el.innerText = window.getVal('cfg-op-destinatario') || window.DEFAULT_OP_DESTINATARIO);
+    document.querySelectorAll('.val-validazione-note').forEach(el => el.innerText = window.getVal('cfg-validazione-note') || "Nessuna prescrizione aggiuntiva registrata.");
+    document.querySelectorAll('.only-dl-validazione').forEach(el => el.style.display = isAzienda ? '' : 'none');
     document.querySelectorAll('.val-omogeneita-aula').forEach(el => el.innerText = window.getVal('cfg-omogeneita-aula', 'SI'));
     document.querySelectorAll('.val-compliance-note-free').forEach(el => el.innerText = window.getVal('cfg-compliance-note-free') || "Nessuna nota aggiuntiva.");
     document.querySelectorAll('.val-ente-indirizzo-dinamico').forEach(el => el.innerText = isAzienda ? window.getVal('cfg-azienda-indirizzo') : window.getVal('cfg-ente-indirizzo'));
@@ -1417,7 +1511,7 @@ window.updateAll = function() {
 
     document.querySelectorAll('.val-dicitura-legale').forEach(el => {
         if(isAzienda) {
-            el.innerHTML = "Corso erogato in conformità a:<br><strong>" + (c.norma || "D.Lgs. 81/08 e Accordo Stato Regioni del 17 Aprile 2025") + "</strong><br><span class='text-blue-700 italic block mt-1'>Datore di lavoro soggetto formatore: formazione diretta per propri lavoratori/preposti/dirigenti.</span>";
+            el.innerHTML = "Corso erogato in conformità a:<br><strong>" + (c.norma || "D.Lgs. 81/08 e Accordo Stato Regioni del 17 Aprile 2025") + "</strong><br><span class='text-blue-700 italic block mt-1'>Datore di lavoro soggetto formatore: formazione diretta per propri lavoratori/preposti/dirigenti. Percorso valutato/validato da <strong>" + (window.getVal('cfg-ente-validatore') || window.getDefaultEnteValidatore()) + "</strong> con comunicazione a <strong>" + (window.getVal('cfg-op-destinatario') || window.DEFAULT_OP_DESTINATARIO) + "</strong>.</span>";
         } else {
             el.innerHTML = "Corso erogato in conformità a:<br><strong>" + (c.norma || "D.Lgs. 81/08 e Accordo Stato Regioni del 17 Aprile 2025") + "</strong><br><span class='text-emerald-700 italic block mt-1'>Associazione sindacale di categoria / struttura di diretta emanazione quale soggetto formatore.</span>";
         }
@@ -1425,7 +1519,7 @@ window.updateAll = function() {
 
     let headerLegaleHtml = "";
     if (isAzienda) {
-        headerLegaleHtml = "<p>Datore di lavoro quale soggetto formatore ex Accordo Stato-Regioni 17/04/2025, Rep. atti n. 59/CSR</p><p>Formazione diretta esclusivamente per propri lavoratori, preposti e dirigenti</p>";
+        headerLegaleHtml = "<p>Datore di lavoro quale soggetto formatore ex Accordo Stato-Regioni 17/04/2025, Rep. atti n. 59/CSR</p><p>Formazione diretta esclusivamente per propri lavoratori, preposti e dirigenti</p><p>Validazione percorso: " + (window.getVal('cfg-ente-validatore') || window.getDefaultEnteValidatore()) + " - comunicazione: " + (window.getVal('cfg-op-destinatario') || window.DEFAULT_OP_DESTINATARIO) + "</p>";
     } else {
         headerLegaleHtml = "<p>Associazione sindacale di categoria / struttura di diretta emanazione quale soggetto formatore</p><p>Accordo Stato-Regioni 17/04/2025, Rep. atti n. 59/CSR - requisiti da conservare/autocertificare ove applicabile</p>";
     }
@@ -1441,7 +1535,7 @@ window.updateAll = function() {
 
     const logoUrl = window.getVal('cfg-logo');
     document.querySelectorAll('.logo-img').forEach(img => { 
-        if(logoUrl && !isAzienda){ img.src=logoUrl; img.classList.remove('hidden'); } 
+        if(logoUrl){ img.src=logoUrl; img.classList.remove('hidden'); } 
         else img.classList.add('hidden'); 
     });
 
