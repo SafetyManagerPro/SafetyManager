@@ -1050,6 +1050,7 @@ window.waitForElement = async function(selector, timeoutMs = 2500) {
     return null;
 };
 
+
 window.apriPopupProgettoById = async function(projectId, target = 'progetti') {
     if (!projectId) return;
 
@@ -1072,15 +1073,209 @@ window.apriPopupProgettoById = async function(projectId, target = 'progetti') {
         window.modificaProgetto(projectId);
     }
 
-    window.openProjectEditPopup(projectId);
-
-    if (target === 'corsi_svolti' && typeof window.apriIscrizioni === 'function') {
-        await new Promise(resolve => setTimeout(resolve, 200));
-        await window.apriIscrizioni(projectId);
+    if (typeof window.openProjectEditPopup === 'function') {
+        await window.openProjectEditPopup(projectId, target);
     }
 };
 
-window.openProjectEditPopup = function(projectId) {
+
+window.clearProjectPopupFieldErrors = function() {
+    document.querySelectorAll('[data-project-field-error="1"]').forEach(el => {
+        el.style.backgroundColor = el.dataset.prevBg || '';
+        el.style.borderColor = el.dataset.prevBorder || '';
+        el.style.boxShadow = el.dataset.prevShadow || '';
+        el.removeAttribute('data-project-field-error');
+        delete el.dataset.prevBg;
+        delete el.dataset.prevBorder;
+        delete el.dataset.prevShadow;
+    });
+};
+
+window.markProjectPopupFieldError = function(selector) {
+    const nodes = document.querySelectorAll(selector);
+    nodes.forEach(el => {
+        if (!el.dataset.projectFieldError) {
+            el.dataset.prevBg = el.style.backgroundColor || '';
+            el.dataset.prevBorder = el.style.borderColor || '';
+            el.dataset.prevShadow = el.style.boxShadow || '';
+        }
+        el.dataset.projectFieldError = '1';
+        el.style.backgroundColor = '#fef2f2';
+        el.style.borderColor = '#ef4444';
+        el.style.boxShadow = '0 0 0 2px rgba(239,68,68,.25)';
+    });
+};
+
+window.collectProjectFormSnapshot = function(projectId) {
+    const original = (window.progettiList || []).find(x => x.id === projectId) || {};
+    return {
+        ...original,
+        id: projectId || document.getElementById('prog-id')?.value || original.id,
+        azienda_id: document.getElementById('prog-azienda')?.value || '',
+        ente_erogatore: document.getElementById('prog-erogatore')?.value || 'ente',
+        corso_id: document.getElementById('prog-corso')?.value || '',
+        codice: document.getElementById('prog-codice')?.value || '',
+        modalita: document.getElementById('prog-modalita')?.value || '',
+        data_inizio: document.getElementById('prog-inizio')?.value || '',
+        data_esame: document.getElementById('prog-esame')?.value || '',
+        sede: document.getElementById('prog-sede')?.value || '',
+        resp_progetto: document.getElementById('prog-resp-progetto')?.value || '',
+        resp_corso: document.getElementById('prog-resp-corso')?.value || '',
+        richiesta_op_inviata_at: document.getElementById('prog-op-invio')?.value || '',
+        risposta_op_at: document.getElementById('prog-op-risposta')?.value || '',
+        esito_richiesta_op: document.getElementById('prog-op-esito')?.value || '',
+        compliance_note: document.getElementById('prog-compliance-note-free')?.value || '',
+        ente_validatore: document.getElementById('prog-ente-validatore')?.value || '',
+        validazione_ente_esito: document.getElementById('prog-validazione-esito')?.value || '',
+        validazione_ente_at: document.getElementById('prog-validazione-data')?.value || '',
+        comunicazione_op_at: document.getElementById('prog-op-comunicazione')?.value || '',
+        organismo_destinatario: document.getElementById('prog-op-destinatario')?.value || '',
+        note_validazione_ente: document.getElementById('prog-validazione-note')?.value || '',
+        omogeneita_aula: document.getElementById('prog-omogeneita-aula') ? document.getElementById('prog-omogeneita-aula').checked : true
+    };
+};
+
+window.getProjectPopupFieldErrors = function(p, iscritti = []) {
+    const errors = [];
+    const course = window.DB_CORSI ? window.DB_CORSI[p.corso_id] : null;
+    const isDL = p.ente_erogatore === 'azienda';
+    const add = (selector, message) => errors.push({ selector, message });
+
+    if (!p.codice) add('#prog-codice', 'Codice ID progetto mancante.');
+    if (!p.corso_id || !course) add('#prog-corso', 'Corso non riconosciuto nel catalogo.');
+    if (course && course.deprecated) add('#prog-corso', 'Corso legacy/deprecato: riclassificare con una voce attiva.');
+    if (!p.azienda_id) add('#prog-azienda', 'Azienda committente non selezionata.');
+    if (!p.data_inizio) add('#prog-inizio', 'Data inizio mancante.');
+    if (!p.data_esame) add('#prog-esame', 'Data verifica/fine mancante.');
+    if (!p.sede) add('#prog-sede', 'Sede corso / aula / campo prova mancante.');
+    if (!p.resp_progetto) add('#prog-resp-progetto', 'Responsabile progetto formativo mancante.');
+    if (!p.modalita) add('#prog-modalita', 'Modalità di svolgimento mancante.');
+
+    const modeCheck = window.getModalitaCompliance ? window.getModalitaCompliance(p.corso_id, p.modalita || '') : { ok: true };
+    if (modeCheck && modeCheck.ok === false) add('#prog-modalita', modeCheck.message || 'Modalità non coerente con il corso selezionato.');
+
+    const docentiSelects = Array.from(document.querySelectorAll('.prog-docente-ud'));
+    if (!docentiSelects.length && !p.docenti_ud && !p.docente_principale) {
+        add('#prog-docenti-container', 'Docenti non assegnati alle unità didattiche.');
+    }
+    const docentiMancanti = docentiSelects.filter(sel => !sel.value);
+    if (docentiMancanti.length) add('.prog-docente-ud', 'Assegnare un docente qualificato a tutte le unità didattiche.');
+
+    if (!p.omogeneita_aula && !p.compliance_note) {
+        add('#prog-compliance-note-free', 'Aula non omogenea: indicare come sono stati adattati contenuti e rischi.');
+    }
+
+    if (iscritti.length > (window.ASR2025_POLICY?.maxDiscentiAula || 30)) {
+        add('#popup-corsisti-box', `Numero discenti superiore al limite generale (${iscritti.length}/30), salvo e-learning.`);
+    }
+
+    if (isDL) {
+        const invalid = iscritti.filter(isc => isc.corsisti && isc.corsisti.azienda_id && isc.corsisti.azienda_id !== p.azienda_id);
+        if (invalid.length) add('#popup-corsisti-box', 'Datore di lavoro soggetto formatore: presenti corsisti non appartenenti alla stessa azienda.');
+        if (!p.ente_validatore) add('#prog-ente-validatore', 'Ente validatore CNA mancante.');
+        if (!p.validazione_ente_esito || p.validazione_ente_esito === 'da_valutare') add('#prog-validazione-esito', 'Esito valutazione/validazione CNA non concluso.');
+        if ((p.validazione_ente_esito === 'validato' || p.validazione_ente_esito === 'validato_con_prescrizioni') && !p.validazione_ente_at) {
+            add('#prog-validazione-data', 'Data validazione CNA mancante.');
+        }
+        if (!p.esito_richiesta_op) add('#prog-op-esito', 'Stato comunicazione/iter OPRA/OPTA mancante.');
+        if (!p.organismo_destinatario) add('#prog-op-destinatario', 'Destinatario OPRA/OPTA mancante.');
+        if ((p.esito_richiesta_op === 'comunicazione_op_inviata' || p.esito_richiesta_op === 'riscontro_ricevuto') && !p.comunicazione_op_at && !p.richiesta_op_inviata_at) {
+            add('#prog-op-comunicazione,#prog-op-invio', 'Data comunicazione a OPRA/OPTA mancante.');
+        }
+    }
+
+    return errors;
+};
+
+window.applyProjectPopupValidation = async function(projectId) {
+    const p = window.collectProjectFormSnapshot(projectId);
+    const iscritti = projectId ? await window.getIscrizioni(projectId) : [];
+    const box = document.getElementById('popup-project-errors');
+    window.clearProjectPopupFieldErrors();
+    const errors = window.getProjectPopupFieldErrors(p, iscritti);
+
+    errors.forEach(e => window.markProjectPopupFieldError(e.selector));
+
+    if (box) {
+        if (!errors.length) {
+            box.className = 'mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-[10px] text-emerald-800 leading-snug';
+            box.innerHTML = '<p class="font-black uppercase flex items-center gap-2"><i data-lucide="badge-check" class="w-4 h-4"></i> Verified</p><p class="mt-1">Il progetto non presenta errori nei controlli minimi.</p>';
+        } else {
+            box.className = 'mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-[10px] text-red-800 leading-snug';
+            box.innerHTML = `<p class="font-black uppercase flex items-center gap-2"><i data-lucide="alert-triangle" class="w-4 h-4"></i> Campi da correggere</p><ul class="list-disc ml-4 mt-1 space-y-0.5">${errors.map(e => `<li>${window.dashEscape ? window.dashEscape(e.message) : e.message}</li>`).join('')}</ul>`;
+        }
+        box.classList.remove('hidden');
+    }
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+};
+
+window.bindProjectPopupValidationEvents = function(projectId) {
+    const form = document.getElementById('form-progetto');
+    if (!form || form.dataset.validationBound === projectId) return;
+    form.dataset.validationBound = projectId;
+    let t = null;
+    form.querySelectorAll('input, select, textarea').forEach(el => {
+        el.addEventListener('input', () => {
+            clearTimeout(t);
+            t = setTimeout(() => window.applyProjectPopupValidation(projectId), 250);
+        });
+        el.addEventListener('change', () => {
+            clearTimeout(t);
+            t = setTimeout(() => window.applyProjectPopupValidation(projectId), 250);
+        });
+    });
+};
+
+window.renderPopupCorsisti = async function(projectId) {
+    const box = document.getElementById('popup-corsisti-box');
+    const list = document.getElementById('popup-corsisti-list');
+    const summary = document.getElementById('popup-corsisti-summary');
+    if (!box || !list) return [];
+
+    box.classList.remove('hidden');
+    list.innerHTML = '<div class="text-center text-slate-400 py-6"><i data-lucide="loader-2" class="w-5 h-5 animate-spin mx-auto mb-2"></i> Caricamento corsisti...</div>';
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+
+    const iscritti = await window.getIscrizioni(projectId);
+    if (summary) summary.innerText = `${iscritti.length} corsisti abbinati`;
+    if (!iscritti.length) {
+        list.innerHTML = '<div class="rounded-xl border border-red-200 bg-red-50 p-4 text-red-800 text-[11px] font-bold uppercase">Nessun corsista abbinato a questo corso.</div>';
+        return iscritti;
+    }
+
+    list.innerHTML = `
+        <div class="overflow-x-auto">
+            <table class="w-full text-[10px] border-collapse">
+                <thead class="bg-slate-200 text-slate-700 uppercase">
+                    <tr>
+                        <th class="p-2 text-left">Corsista</th>
+                        <th class="p-2 text-left">CF</th>
+                        <th class="p-2 text-left">Mansione</th>
+                        <th class="p-2 text-center">Certificato</th>
+                        <th class="p-2 text-center">Esito</th>
+                        <th class="p-2 text-center">Frequenza</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${iscritti.map(isc => {
+                        const c = isc.corsisti || {};
+                        const incomplete = !isc.id_certificato || !isc.esito || isc.percentuale_frequenza === null || isc.percentuale_frequenza === undefined;
+                        return `<tr class="${incomplete ? 'bg-red-50' : 'bg-white'} border-b border-slate-200">
+                            <td class="p-2 font-black uppercase text-slate-900">${window.dashEscape ? window.dashEscape(c.nome_cognome || '-') : (c.nome_cognome || '-')}</td>
+                            <td class="p-2 font-mono text-slate-600">${window.dashEscape ? window.dashEscape(c.cf || '-') : (c.cf || '-')}</td>
+                            <td class="p-2 text-slate-600">${window.dashEscape ? window.dashEscape(isc.mansione_storica || c.mansione_storica || '-') : (isc.mansione_storica || c.mansione_storica || '-')}</td>
+                            <td class="p-2 text-center font-mono ${isc.id_certificato ? 'text-emerald-700' : 'text-red-700 font-black'}">${window.dashEscape ? window.dashEscape(isc.id_certificato || 'Mancante') : (isc.id_certificato || 'Mancante')}</td>
+                            <td class="p-2 text-center ${isc.esito ? 'text-emerald-700 font-bold' : 'text-red-700 font-black'}">${window.dashEscape ? window.dashEscape(isc.esito || 'Mancante') : (isc.esito || 'Mancante')}</td>
+                            <td class="p-2 text-center ${isc.percentuale_frequenza !== null && isc.percentuale_frequenza !== undefined ? 'text-slate-700 font-bold' : 'text-red-700 font-black'}">${isc.percentuale_frequenza !== null && isc.percentuale_frequenza !== undefined ? isc.percentuale_frequenza + '%' : 'Mancante'}</td>
+                        </tr>`;
+                    }).join('')}
+                </tbody>
+            </table>
+        </div>`;
+    return iscritti;
+};
+
+window.openProjectEditPopup = async function(projectId, target = 'progetti') {
     const col = document.getElementById('progetto-form-col');
     const card = document.getElementById('progetto-form-card');
     const title = document.getElementById('progetto-form-title');
@@ -1094,15 +1289,23 @@ window.openProjectEditPopup = function(projectId) {
     window.projectEditOpenedAsPopup = true;
 
     col.className = 'fixed inset-0 z-[90] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4';
-    card.className = 'bg-white p-6 rounded-2xl shadow-2xl border border-slate-200 w-full max-w-3xl max-h-[92vh] overflow-y-auto';
+    card.className = 'bg-white p-6 rounded-2xl shadow-2xl border border-slate-200 w-full max-w-6xl max-h-[92vh] overflow-y-auto';
 
     if (title) {
         title.innerHTML = `<i data-lucide="layout-template" class="w-4 h-4 text-rose-500"></i> Modifica progetto · <span class="font-mono text-rose-700">${window.dashEscape ? window.dashEscape(p?.codice || '') : (p?.codice || '')}</span>`;
     }
     if (closeBtn) closeBtn.classList.remove('hidden');
 
-    const first = document.getElementById('prog-azienda');
-    if (first) setTimeout(() => first.focus(), 100);
+    await window.renderPopupCorsisti(projectId);
+    await window.applyProjectPopupValidation(projectId);
+    window.bindProjectPopupValidationEvents(projectId);
+
+    const firstError = document.querySelector('[data-project-field-error="1"]');
+    if (firstError && firstError.scrollIntoView) firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    else {
+        const first = document.getElementById('prog-azienda');
+        if (first) setTimeout(() => first.focus(), 100);
+    }
     if (typeof lucide !== 'undefined') lucide.createIcons();
 };
 
@@ -1111,11 +1314,17 @@ window.chiudiPopupProgetto = function() {
     const card = document.getElementById('progetto-form-card');
     const title = document.getElementById('progetto-form-title');
     const closeBtn = document.getElementById('btn-close-project-popup');
+    const errorBox = document.getElementById('popup-project-errors');
+    const corsistiBox = document.getElementById('popup-corsisti-box');
+
+    window.clearProjectPopupFieldErrors();
 
     if (col && col.dataset.originalClass) col.className = col.dataset.originalClass;
     if (card && card.dataset.originalClass) card.className = card.dataset.originalClass;
     if (title) title.innerHTML = '<i data-lucide="layout-template" class="w-4 h-4 text-rose-500"></i> Gestione Progetto';
     if (closeBtn) closeBtn.classList.add('hidden');
+    if (errorBox) errorBox.classList.add('hidden');
+    if (corsistiBox) corsistiBox.classList.add('hidden');
 
     window.projectEditOpenedAsPopup = false;
     if (typeof lucide !== 'undefined') lucide.createIcons();

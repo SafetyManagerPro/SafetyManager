@@ -12,6 +12,7 @@
                     <i data-lucide="x" class="w-4 h-4"></i>
                 </button>
             </div>
+            <div id="popup-project-errors" class="hidden mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-[10px] text-red-800 leading-snug"></div>
             <form id="form-progetto" onsubmit="event.preventDefault(); window.salvaProgettoDB();" class="space-y-4 text-xs">
                 <input type="hidden" id="prog-id" value="">
 
@@ -254,6 +255,21 @@
                     <button type="button" onclick="window.resetFormProgetto()" class="bg-slate-200 hover:bg-slate-300 text-slate-600 font-bold uppercase py-2 px-3 rounded transition">Annulla</button>
                 </div>
             </form>
+
+            <div id="popup-corsisti-box" class="hidden mt-5 rounded-2xl border border-slate-200 bg-slate-50 overflow-hidden">
+                <div class="bg-slate-900 text-white px-4 py-3 flex items-center justify-between gap-3">
+                    <div>
+                        <h3 class="font-black uppercase text-sm flex items-center gap-2">
+                            <i data-lucide="users" class="w-4 h-4 text-amber-300"></i> Corsisti abbinati al corso
+                        </h3>
+                        <p id="popup-corsisti-summary" class="text-[9px] text-slate-300 uppercase tracking-widest mt-0.5">---</p>
+                    </div>
+                    <button type="button" onclick="window.apriIscrizioni && window.apriIscrizioni(document.getElementById('prog-id').value)" class="bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded-lg text-[9px] font-black uppercase transition">
+                        Gestisci iscritti
+                    </button>
+                </div>
+                <div id="popup-corsisti-list" class="p-4 text-xs text-slate-600">Caricamento corsisti...</div>
+            </div>
         </div>
     </div>
 
@@ -357,6 +373,21 @@
                 <div><label class="font-bold text-slate-500 uppercase block mb-1">Partita IVA / C.F.</label><input type="text" id="qa-az-piva" class="w-full p-2 border rounded bg-slate-50 outline-none focus:border-rose-500 font-mono"></div>
                 <button type="submit" class="w-full mt-4 bg-rose-600 text-white font-bold uppercase py-2.5 rounded shadow hover:bg-rose-700 transition">Salva e Seleziona</button>
             </form>
+
+            <div id="popup-corsisti-box" class="hidden mt-5 rounded-2xl border border-slate-200 bg-slate-50 overflow-hidden">
+                <div class="bg-slate-900 text-white px-4 py-3 flex items-center justify-between gap-3">
+                    <div>
+                        <h3 class="font-black uppercase text-sm flex items-center gap-2">
+                            <i data-lucide="users" class="w-4 h-4 text-amber-300"></i> Corsisti abbinati al corso
+                        </h3>
+                        <p id="popup-corsisti-summary" class="text-[9px] text-slate-300 uppercase tracking-widest mt-0.5">---</p>
+                    </div>
+                    <button type="button" onclick="window.apriIscrizioni && window.apriIscrizioni(document.getElementById('prog-id').value)" class="bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded-lg text-[9px] font-black uppercase transition">
+                        Gestisci iscritti
+                    </button>
+                </div>
+                <div id="popup-corsisti-list" class="p-4 text-xs text-slate-600">Caricamento corsisti...</div>
+            </div>
         </div>
     </div>
 </div>
@@ -378,6 +409,21 @@
                 </div>
                 <button type="submit" class="w-full mt-4 bg-blue-600 text-white font-bold uppercase py-2.5 rounded shadow hover:bg-blue-700 transition">Genera Corso</button>
             </form>
+
+            <div id="popup-corsisti-box" class="hidden mt-5 rounded-2xl border border-slate-200 bg-slate-50 overflow-hidden">
+                <div class="bg-slate-900 text-white px-4 py-3 flex items-center justify-between gap-3">
+                    <div>
+                        <h3 class="font-black uppercase text-sm flex items-center gap-2">
+                            <i data-lucide="users" class="w-4 h-4 text-amber-300"></i> Corsisti abbinati al corso
+                        </h3>
+                        <p id="popup-corsisti-summary" class="text-[9px] text-slate-300 uppercase tracking-widest mt-0.5">---</p>
+                    </div>
+                    <button type="button" onclick="window.apriIscrizioni && window.apriIscrizioni(document.getElementById('prog-id').value)" class="bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded-lg text-[9px] font-black uppercase transition">
+                        Gestisci iscritti
+                    </button>
+                </div>
+                <div id="popup-corsisti-list" class="p-4 text-xs text-slate-600">Caricamento corsisti...</div>
+            </div>
         </div>
     </div>
 </div>
@@ -397,6 +443,21 @@
                 <input type="hidden" id="qa-cor-azienda-id"> <!-- Inviato in automatico -->
                 <button type="submit" class="w-full mt-4 bg-emerald-600 text-white font-bold uppercase py-2.5 rounded shadow hover:bg-emerald-700 transition">Salva e Iscrivi</button>
             </form>
+
+            <div id="popup-corsisti-box" class="hidden mt-5 rounded-2xl border border-slate-200 bg-slate-50 overflow-hidden">
+                <div class="bg-slate-900 text-white px-4 py-3 flex items-center justify-between gap-3">
+                    <div>
+                        <h3 class="font-black uppercase text-sm flex items-center gap-2">
+                            <i data-lucide="users" class="w-4 h-4 text-amber-300"></i> Corsisti abbinati al corso
+                        </h3>
+                        <p id="popup-corsisti-summary" class="text-[9px] text-slate-300 uppercase tracking-widest mt-0.5">---</p>
+                    </div>
+                    <button type="button" onclick="window.apriIscrizioni && window.apriIscrizioni(document.getElementById('prog-id').value)" class="bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded-lg text-[9px] font-black uppercase transition">
+                        Gestisci iscritti
+                    </button>
+                </div>
+                <div id="popup-corsisti-list" class="p-4 text-xs text-slate-600">Caricamento corsisti...</div>
+            </div>
         </div>
     </div>
 </div>
