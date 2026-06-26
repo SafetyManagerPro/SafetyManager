@@ -32,7 +32,7 @@ window.CORSI_PRESENZA_OBBLIGATORIA = [
 
 window.isCorsoPresenzaObbligatoria = function(corsoId) {
     const id = corsoId || '';
-    return window.CORSI_PRESENZA_OBBLIGATORIA.includes(id) || id.startsWith('attr_');
+    return window.CORSI_PRESENZA_OBBLIGATORIA.includes(id) || id.startsWith('attr_') || id.startsWith('agg_attr_');
 };
 
 window.getActiveCorsiEntries = function() {
@@ -86,14 +86,15 @@ window.getCourseCompliance = function(corsoId, modalita, erogatore) {
     const id = corsoId || '';
     const pratico = window.isCorsoPresenzaObbligatoria ? window.isCorsoPresenzaObbligatoria(id) : (id.startsWith('attr_') || id.includes('quota') || id.includes('confinati'));
     const updateBiennale = id === 'agg_prep';
-    const updateQuinquennale = id.startsWith('agg_lav') || id === 'agg_dir' || id === 'agg_dl' || id === 'agg_dl_spp' || id === 'agg_attrezzature_4h' || id === 'agg_spazi_confinati_4h' || id === 'agg_pratico_4h';
+    const updateQuinquennale = id.startsWith('agg_lav') || id === 'agg_dir' || id === 'agg_dl' || id === 'agg_dl_spp' || id.startsWith('agg_attr_') || id === 'agg_attrezzature_4h' || id === 'agg_spazi_confinati_4h' || id === 'agg_pratico_4h';
     const note = [];
     note.push('Frequenza minima per ammissione alla verifica finale: 90% del monte ore.');
     note.push('Numero massimo discenti: 30 per corso, salvo e-learning.');
     if (pratico) note.push('Modulo con componente pratica o norma speciale: criterio prudenziale di presenza fisica, rapporto docente/discente 1:6 nelle esercitazioni pratiche e conservazione dichiarazione area/attrezzature/DPI.');
     if (updateBiennale) note.push('Aggiornamento preposto: cadenza biennale, durata minima 6 ore.');
     else if (updateQuinquennale) note.push('Aggiornamento: verificare la periodicità specifica prevista dal profilo formativo.');
-    if (id === 'agg_pratico_4h') note.push('ATTENZIONE: corso storico combinato da non usare per nuovi progetti. Riclassificare scegliendo Aggiornamento attrezzature art.73 oppure Aggiornamento spazi confinati DPR 177/2011.');
+    if (id.startsWith('agg_attr_')) note.push('Aggiornamento quinquennale riferito alla specifica tipologia di macchina/attrezzatura indicata nel progetto formativo, con verifica finale pratica/coerente con l\'abilitazione posseduta.');
+    if (id === 'agg_pratico_4h') note.push('ATTENZIONE: corso storico combinato da non usare per nuovi progetti. Riclassificare scegliendo un aggiornamento specifico per tipologia di attrezzatura oppure Aggiornamento spazi confinati DPR 177/2011.');
     if (corso && corso.scad && corso.scad !== 99) note.push('Scadenza attestato calcolata automaticamente su ' + corso.scad + ' anni dalla data di verifica finale.');
 
     const modalitaCheck = window.getModalitaCompliance ? window.getModalitaCompliance(corsoId, modalita || '') : { ok: true, message: '' };
@@ -249,11 +250,64 @@ window.DB_CORSI = {
     agg_dl_spp: { t: "Aggiornamento DL SPP (Ex RSPP) (8h)", ore: 8, scad: 5, risk: "AGG", code: "DLSPP", norma: "D.Lgs. 81/08 Art. 34 commi 2 e 3 e Accordo Stato Regioni del 17 Aprile 2025 (Rep. Atti n. 59/CSR)", prog: [
         { ud: "UD1", ore: 8, m: "Aggiornamento Valutazione Rischi", d: "<ul class='syllabus-list list-outside list-disc ml-3 space-y-0.5 text-left'><li>Aggiornamento in relazione ai propri compiti operativi di prevenzione e protezione in azienda.</li><li>Evoluzioni tecnico-normative e procedurali sui rischi specifici (es. agricoltura, costruzioni, se applicabili).</li><li>Adeguamento delle metodologie di valutazione dei rischi e stesura documentale.</li></ul>" }
     ]},
-    agg_attrezzature_4h: { t: "Aggiornamento operatori macchine/attrezzature art. 73 (4h)", ore: 4, scad: 5, risk: "AGG", code: "ATT", norma: "D.Lgs. 81/08 Art. 73 comma 5 e Accordo Stato Regioni del 17 Aprile 2025 (Rep. Atti n. 59/CSR), Parte III punto 6", prog: [
-        { ud: "UD1", ore: 1, m: "Aggiornamento tecnico-normativo attrezzatura", d: "<ul class='syllabus-list list-outside list-disc ml-3 space-y-0.5 text-left'><li>Modifiche normative ed evoluzioni tecniche relative all'attrezzatura oggetto dell'abilitazione.</li><li>Richiamo dei rischi specifici: ribaltamento, investimento, schiacciamento, caduta carico, interferenze e manutenzione.</li><li>Controlli pre-utilizzo, dispositivi di comando e sicurezza, documentazione e registri.</li></ul>" },
-        { ud: "UD2", ore: 3, m: "Esercitazioni e verifica pratica attrezzatura", d: "<ul class='syllabus-list list-outside list-disc ml-3 space-y-0.5 text-left'><li>Ripetizione delle manovre operative in sicurezza sull'attrezzatura indicata nel progetto formativo.</li><li>Gestione di anomalie, emergenze, messa a riposo e procedure di segnalazione.</li><li>Verifica finale: prova pratica individuale e colloquio in relazione all'oggetto dell'aggiornamento.</li></ul>" }
-    ]},
-    agg_spazi_confinati_4h: { t: "Aggiornamento ambienti sospetti di inquinamento o confinati (4h)", ore: 4, scad: 5, risk: "AGG", code: "SC", norma: "D.P.R. 177/2011 Art. 2 lett. d), D.Lgs. 81/08 Art. 37 e Accordo Stato Regioni del 17 Aprile 2025 (Rep. Atti n. 59/CSR), Parte III punto 5", prog: [
+    
+agg_attrezzature_4h: { t: "LEGACY - Aggiornamento macchine/attrezzature art. 73 (4h) - riclassificare", ore: 4, scad: 5, risk: "AGG", code: "ATT", deprecated: true, norma: "Voce storica interna: non usare per nuovi progetti. Riclassificare scegliendo il tipo specifico di macchina/attrezzatura art. 73.", prog: [
+    { ud: "UD1", ore: 4, m: "Voce storica da riclassificare", d: "<ul class='syllabus-list list-outside list-disc ml-3 space-y-0.5 text-left'><li>Questa voce era usata nelle versioni precedenti per unire tutti gli aggiornamenti delle attrezzature ex art. 73.</li><li>Per i nuovi corsi selezionare la specifica tipologia di attrezzatura/macchina prevista dal catalogo.</li></ul>" }
+]},
+agg_attr_carrelli_ind_4h: { t: "Aggiornamento Carrelli Elevatori Industriali Semoventi (4h)", ore: 4, scad: 5, risk: "AGG", code: "CE", norma: "D.Lgs. 81/08 Art. 73 comma 5 e Accordo Stato Regioni del 17 Aprile 2025 (Rep. Atti n. 59/CSR), Parte III punto 6", prog: [
+    { ud: "UD1", ore: 1, m: "Aggiornamento tecnico-normativo carrelli industriali", d: "<ul class='syllabus-list list-outside list-disc ml-3 space-y-0.5 text-left'><li>Aggiornamenti normativi e richiamo dei rischi specifici di ribaltamento, investimento, urti e caduta del carico.</li><li>Controlli pre-utilizzo, portata, stabilità, viabilità interna e dispositivi di sicurezza.</li></ul>" },
+    { ud: "UD2", ore: 3, m: "Esercitazioni e verifica pratica carrelli industriali", d: "<ul class='syllabus-list list-outside list-disc ml-3 space-y-0.5 text-left'><li>Manovre operative in sicurezza, stoccaggio e movimentazione del carico.</li><li>Verifica finale pratica individuale coerente con l\'abilitazione posseduta.</li></ul>" }
+]},
+agg_attr_carrelli_all_4h: { t: "Aggiornamento Carrelli elevatori industriali + telescopici + rotativi (4h)", ore: 4, scad: 5, risk: "AGG", code: "CE", norma: "D.Lgs. 81/08 Art. 73 comma 5 e Accordo Stato Regioni del 17 Aprile 2025 (Rep. Atti n. 59/CSR), Parte III punto 6", prog: [
+    { ud: "UD1", ore: 1, m: "Aggiornamento tecnico-normativo carrelli combinati", d: "<ul class='syllabus-list list-outside list-disc ml-3 space-y-0.5 text-left'><li>Ripasso e aggiornamento dei rischi specifici per carrelli industriali, telescopici e rotativi.</li><li>Analisi delle differenze operative tra le varie tipologie e dei rispettivi limiti d'uso.</li></ul>" },
+    { ud: "UD2", ore: 3, m: "Esercitazioni e verifica pratica carrelli combinati", d: "<ul class='syllabus-list list-outside list-disc ml-3 space-y-0.5 text-left'><li>Esercitazioni pratiche sulle tipologie previste nel progetto formativo.</li><li>Verifica finale pratica individuale coerente con le abilitazioni possedute.</li></ul>" }
+]},
+agg_attr_ple_4h: { t: "Aggiornamento Piattaforme di Lavoro Elevabili PLE (4h)", ore: 4, scad: 5, risk: "AGG", code: "PLE", norma: "D.Lgs. 81/08 Art. 73 comma 5 e Accordo Stato Regioni del 17 Aprile 2025 (Rep. Atti n. 59/CSR), Parte III punto 6", prog: [
+    { ud: "UD1", ore: 1, m: "Aggiornamento tecnico-normativo PLE", d: "<ul class='syllabus-list list-outside list-disc ml-3 space-y-0.5 text-left'><li>Rischi di caduta, ribaltamento, urto, schiacciamento e contatti elettrici.</li><li>Controlli pre-utilizzo, stabilizzatori, piano di appoggio e DPI anticaduta.</li></ul>" },
+    { ud: "UD2", ore: 3, m: "Esercitazioni e verifica pratica PLE", d: "<ul class='syllabus-list list-outside list-disc ml-3 space-y-0.5 text-left'><li>Posizionamento, sollevamento e manovre in quota in sicurezza.</li><li>Verifica finale pratica individuale coerente con la tipologia di PLE abilitata.</li></ul>" }
+]},
+agg_attr_mmt_esc_4h: { t: "Aggiornamento Macchine movimento terra / escavatori idraulici (4h)", ore: 4, scad: 5, risk: "AGG", code: "MMT", norma: "D.Lgs. 81/08 Art. 73 comma 5 e Accordo Stato Regioni del 17 Aprile 2025 (Rep. Atti n. 59/CSR), Parte III punto 6", prog: [
+    { ud: "UD1", ore: 1, m: "Aggiornamento tecnico-normativo escavatori", d: "<ul class='syllabus-list list-outside list-disc ml-3 space-y-0.5 text-left'><li>Rischi di investimento, interferenza, ribaltamento, scavo e sottoservizi.</li><li>Controlli giornalieri, dispositivi di sicurezza e procedure operative.</li></ul>" },
+    { ud: "UD2", ore: 3, m: "Esercitazioni e verifica pratica escavatori", d: "<ul class='syllabus-list list-outside list-disc ml-3 space-y-0.5 text-left'><li>Manovre operative e messa in sicurezza in relazione alla macchina prevista dal progetto.</li><li>Verifica finale pratica individuale.</li></ul>" }
+]},
+agg_attr_mmt_all_4h: { t: "Aggiornamento Macchine movimento terra (escavatori + pale + terne) (4h)", ore: 4, scad: 5, risk: "AGG", code: "MMT", norma: "D.Lgs. 81/08 Art. 73 comma 5 e Accordo Stato Regioni del 17 Aprile 2025 (Rep. Atti n. 59/CSR), Parte III punto 6", prog: [
+    { ud: "UD1", ore: 1, m: "Aggiornamento tecnico-normativo MMT combinate", d: "<ul class='syllabus-list list-outside list-disc ml-3 space-y-0.5 text-left'><li>Richiamo dei rischi e delle differenze operative fra escavatori, pale caricatrici e terne.</li><li>Controlli, documentazione, segnalazioni e limiti d'impiego.</li></ul>" },
+    { ud: "UD2", ore: 3, m: "Esercitazioni e verifica pratica MMT combinate", d: "<ul class='syllabus-list list-outside list-disc ml-3 space-y-0.5 text-left'><li>Prove pratiche sulle tipologie inserite nel progetto formativo.</li><li>Verifica finale pratica individuale coerente con le abilitazioni possedute.</li></ul>" }
+]},
+agg_attr_gru_autocarro_4h: { t: "Aggiornamento Gru per autocarro (4h)", ore: 4, scad: 5, risk: "AGG", code: "GRU", norma: "D.Lgs. 81/08 Art. 73 comma 5 e Accordo Stato Regioni del 17 Aprile 2025 (Rep. Atti n. 59/CSR), Parte III punto 6", prog: [
+    { ud: "UD1", ore: 1, m: "Aggiornamento tecnico-normativo gru per autocarro", d: "<ul class='syllabus-list list-outside list-disc ml-3 space-y-0.5 text-left'><li>Rischi di ribaltamento, caduta carico, schiacciamento e interferenze.</li><li>Diagrammi di carico, stabilizzatori, accessori di sollevamento e controlli.</li></ul>" },
+    { ud: "UD2", ore: 3, m: "Esercitazioni e verifica pratica gru per autocarro", d: "<ul class='syllabus-list list-outside list-disc ml-3 space-y-0.5 text-left'><li>Manovre operative, imbraco, sollevamento e posizionamento del carico.</li><li>Verifica finale pratica individuale.</li></ul>" }
+]},
+agg_attr_gru_torre_4h: { t: "Aggiornamento Gru a torre rotazione basso e alto (4h)", ore: 4, scad: 5, risk: "AGG", code: "GRU", norma: "D.Lgs. 81/08 Art. 73 comma 5 e Accordo Stato Regioni del 17 Aprile 2025 (Rep. Atti n. 59/CSR), Parte III punto 6", prog: [
+    { ud: "UD1", ore: 1, m: "Aggiornamento tecnico-normativo gru a torre", d: "<ul class='syllabus-list list-outside list-disc ml-3 space-y-0.5 text-left'><li>Rischi di ribaltamento, urti, caduta carico, interferenze e condizioni meteo.</li><li>Controlli su stabilità, diagrammi e procedure di comunicazione/manovra.</li></ul>" },
+    { ud: "UD2", ore: 3, m: "Esercitazioni e verifica pratica gru a torre", d: "<ul class='syllabus-list list-outside list-disc ml-3 space-y-0.5 text-left'><li>Movimentazione carichi e gestione in sicurezza dell'area di lavoro.</li><li>Verifica finale pratica individuale.</li></ul>" }
+]},
+agg_attr_pompe_4h: { t: "Aggiornamento Pompe per calcestruzzo (4h)", ore: 4, scad: 5, risk: "AGG", code: "CLS", norma: "D.Lgs. 81/08 Art. 73 comma 5 e Accordo Stato Regioni del 17 Aprile 2025 (Rep. Atti n. 59/CSR), Parte III punto 6", prog: [
+    { ud: "UD1", ore: 1, m: "Aggiornamento tecnico-normativo pompe per calcestruzzo", d: "<ul class='syllabus-list list-outside list-disc ml-3 space-y-0.5 text-left'><li>Rischi legati a stabilizzazione, getto, intasamento, pressione e interferenze.</li><li>Procedure di controllo, manutenzione e messa in sicurezza.</li></ul>" },
+    { ud: "UD2", ore: 3, m: "Esercitazioni e verifica pratica pompe per calcestruzzo", d: "<ul class='syllabus-list list-outside list-disc ml-3 space-y-0.5 text-left'><li>Posizionamento, pompaggio e gestione anomalie.</li><li>Verifica finale pratica individuale.</li></ul>" }
+]},
+agg_attr_trattori_4h: { t: "Aggiornamento Trattori agricoli o forestali (4h)", ore: 4, scad: 5, risk: "AGG", code: "TRA", norma: "D.Lgs. 81/08 Art. 73 comma 5 e Accordo Stato Regioni del 17 Aprile 2025 (Rep. Atti n. 59/CSR), Parte III punto 6", prog: [
+    { ud: "UD1", ore: 1, m: "Aggiornamento tecnico-normativo trattori", d: "<ul class='syllabus-list list-outside list-disc ml-3 space-y-0.5 text-left'><li>Rischi di ribaltamento, trascinamento, investimento e uso dei dispositivi ROPS/cinture.</li><li>Controlli pre-utilizzo, organi di trasmissione e viabilità in campo/strada.</li></ul>" },
+    { ud: "UD2", ore: 3, m: "Esercitazioni e verifica pratica trattori", d: "<ul class='syllabus-list list-outside list-disc ml-3 space-y-0.5 text-left'><li>Manovre operative in sicurezza e gestione delle situazioni critiche.</li><li>Verifica finale pratica individuale.</li></ul>" }
+]},
+agg_attr_crf_4h: { t: "Aggiornamento Macchina agricola raccoglifrutta CRF (4h)", ore: 4, scad: 5, risk: "AGG", code: "CRF", norma: "D.Lgs. 81/08 Art. 73 comma 5 e Accordo Stato Regioni del 17 Aprile 2025 (Rep. Atti n. 59/CSR), Parte III punto 6", prog: [
+    { ud: "UD1", ore: 1, m: "Aggiornamento tecnico-normativo CRF", d: "<ul class='syllabus-list list-outside list-disc ml-3 space-y-0.5 text-left'><li>Rischi specifici di stabilità, organi in movimento, piattaforma di lavoro e movimentazione in frutteto.</li><li>Controlli e procedure di sicurezza dedicate alla macchina raccoglifrutta.</li></ul>" },
+    { ud: "UD2", ore: 3, m: "Esercitazioni e verifica pratica CRF", d: "<ul class='syllabus-list list-outside list-disc ml-3 space-y-0.5 text-left'><li>Manovre e utilizzo in sicurezza della macchina agricola raccoglifrutta.</li><li>Verifica finale pratica individuale.</li></ul>" }
+]},
+agg_attr_cmm_4h: { t: "Aggiornamento Caricatori per movimentazione materiali CMM (4h)", ore: 4, scad: 5, risk: "AGG", code: "CMM", norma: "D.Lgs. 81/08 Art. 73 comma 5 e Accordo Stato Regioni del 17 Aprile 2025 (Rep. Atti n. 59/CSR), Parte III punto 6", prog: [
+    { ud: "UD1", ore: 1, m: "Aggiornamento tecnico-normativo CMM", d: "<ul class='syllabus-list list-outside list-disc ml-3 space-y-0.5 text-left'><li>Rischi specifici di stabilità, investimento, caduta del carico e interferenze.</li><li>Controlli pre-utilizzo, organi di comando e limiti di esercizio.</li></ul>" },
+    { ud: "UD2", ore: 3, m: "Esercitazioni e verifica pratica CMM", d: "<ul class='syllabus-list list-outside list-disc ml-3 space-y-0.5 text-left'><li>Manovre operative e utilizzo in sicurezza del caricatore per movimentazione materiali.</li><li>Verifica finale pratica individuale.</li></ul>" }
+]},
+agg_attr_carroponte_10h_4h: { t: "Aggiornamento Carroponte / gru a cavalletto - una tipologia comando (4h)", ore: 4, scad: 5, risk: "AGG", code: "CP", norma: "D.Lgs. 81/08 Art. 73 comma 5 e Accordo Stato Regioni del 17 Aprile 2025 (Rep. Atti n. 59/CSR), Parte III punto 6", prog: [
+    { ud: "UD1", ore: 1, m: "Aggiornamento tecnico-normativo carroponte", d: "<ul class='syllabus-list list-outside list-disc ml-3 space-y-0.5 text-left'><li>Rischi di caduta carico, schiacciamento, urti, tiro obliquo e accessori di sollevamento.</li><li>Controlli, portate e procedure di movimentazione in sicurezza.</li></ul>" },
+    { ud: "UD2", ore: 3, m: "Esercitazioni e verifica pratica carroponte", d: "<ul class='syllabus-list list-outside list-disc ml-3 space-y-0.5 text-left'><li>Movimentazione del carico con la tipologia di comando indicata nel progetto.</li><li>Verifica finale pratica individuale.</li></ul>" }
+]},
+agg_attr_carroponte_all_11h_4h: { t: "Aggiornamento Carroponte / gru a cavalletto - tutte le tipologie comando (4h)", ore: 4, scad: 5, risk: "AGG", code: "CP", norma: "D.Lgs. 81/08 Art. 73 comma 5 e Accordo Stato Regioni del 17 Aprile 2025 (Rep. Atti n. 59/CSR), Parte III punto 6", prog: [
+    { ud: "UD1", ore: 1, m: "Aggiornamento tecnico-normativo carroponte multi-comando", d: "<ul class='syllabus-list list-outside list-disc ml-3 space-y-0.5 text-left'><li>Ripasso dei rischi e delle procedure di sicurezza per le diverse tipologie di comando.</li><li>Accessori di sollevamento, imbraco, traiettorie e interdizione area.</li></ul>" },
+    { ud: "UD2", ore: 3, m: "Esercitazioni e verifica pratica carroponte multi-comando", d: "<ul class='syllabus-list list-outside list-disc ml-3 space-y-0.5 text-left'><li>Esercitazioni sulle tipologie di comando previste nel progetto formativo.</li><li>Verifica finale pratica individuale coerente con l\'abilitazione posseduta.</li></ul>" }
+]},
+agg_spazi_confinati_4h: {
+ t: "Aggiornamento ambienti sospetti di inquinamento o confinati (4h)", ore: 4, scad: 5, risk: "AGG", code: "SC", norma: "D.P.R. 177/2011 Art. 2 lett. d), D.Lgs. 81/08 Art. 37 e Accordo Stato Regioni del 17 Aprile 2025 (Rep. Atti n. 59/CSR), Parte III punto 5", prog: [
         { ud: "UD1", ore: 1, m: "Aggiornamento tecnico-normativo spazi confinati", d: "<ul class='syllabus-list list-outside list-disc ml-3 space-y-0.5 text-left'><li>Richiamo DPR 177/2011, procedure aziendali e modifiche normative/tecniche intervenute.</li><li>Analisi dei principali rischi: asfissia, intossicazione, esplosione/incendio, seppellimento, caduta dall'alto e interferenze.</li><li>Permesso di lavoro, ruoli, comunicazioni, monitoraggio atmosfera e gestione ingresso/uscita.</li></ul>" },
         { ud: "UD2", ore: 3, m: "Esercitazioni e verifica pratica spazi confinati", d: "<ul class='syllabus-list list-outside list-disc ml-3 space-y-0.5 text-left'><li>Utilizzo pratico di APVR, rilevatori gas, tripode, imbracature, ventilazione e sistemi di comunicazione.</li><li>Simulazione di procedura d'ingresso, sorveglianza esterna, emergenza e recupero infortunato.</li><li>Verifica finale: prova pratica individuale e colloquio in relazione all'oggetto dell'aggiornamento.</li></ul>" }
     ]},

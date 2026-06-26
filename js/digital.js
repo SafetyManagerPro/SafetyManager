@@ -173,6 +173,17 @@
     const ff=root.folder('firme_png'); fs.forEach((f,i)=>ff.file(`${String(i+1).padStart(3,'0')}_${slug(f.documento)}_${slug(f.campo_firma)}_${slug(f.firmatario_nome)}.png`,dataUrlToBytes(f.data_url)));
     const df=root.folder('documenti_html'); for(const m of EXPORT_DOCS){ try{df.file(`${m}.html`,await renderDoc(m,null));}catch(e){df.file(`${m}_ERRORE.txt`,String(e.message||e));} }
     const af=root.folder('attestati_html'); for(const c of window.currentSessionCorsisti){ try{af.file(`attestato_${slug(c.nome)}_${slug(c.cf)}.html`,await renderDoc('attestato',c));}catch(e){af.file(`attestato_${slug(c.nome)}_ERRORE.txt`,String(e.message||e));} }
+    try {
+      const assets=[['logocna.png','logocna.png'],['timbrocna.png','timbrocna.png']];
+      for(const [srcName,dstName] of assets){
+        const resp = await fetch(srcName);
+        if(resp.ok){
+          const arr = new Uint8Array(await resp.arrayBuffer());
+          df.file(dstName, arr);
+          af.file(dstName, arr);
+        }
+      }
+    } catch(e){ console.warn('Impossibile allegare asset grafici al fascicolo ZIP', e); }
     return {zip,folderName};
   }
   async function writeDir(zip,folderName){

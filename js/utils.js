@@ -554,6 +554,21 @@ window.parseJSONSafe = function(value, fallback = {}) {
 window.DEFAULT_ENTE_VALIDATORE = "CNA Artigiani Imprenditori D'Italia Avellino";
 window.DEFAULT_OP_DESTINATARIO = "OPTA Avellino / OPRA Campania";
 
+window.isCnaErogatore = function() {
+    const erogatore = window.getVal('cfg-ente-erogatore') || 'ente';
+    if (erogatore === 'azienda') return false;
+    const nomeEnte = (window.getVal('cfg-ente') || '').toUpperCase();
+    return nomeEnte.includes('CNA');
+};
+window.getEffectiveLogoSrc = function() {
+    const configured = window.getVal('cfg-logo');
+    if (configured) return configured;
+    return window.isCnaErogatore() ? 'logocna.png' : '';
+};
+window.getEffectiveTimbroSrc = function() {
+    return window.isCnaErogatore() ? 'timbrocna.png' : '';
+};
+
 window.getDefaultEnteValidatore = function() {
     return window.DEFAULT_ENTE_VALIDATORE;
 };
@@ -1533,10 +1548,18 @@ window.updateAll = function() {
         } else el.innerText = "___/___/2026";
     });
 
-    const logoUrl = window.getVal('cfg-logo');
-    document.querySelectorAll('.logo-img').forEach(img => { 
-        if(logoUrl){ img.src=logoUrl; img.classList.remove('hidden'); } 
-        else img.classList.add('hidden'); 
+    const logoUrl = window.getEffectiveLogoSrc ? window.getEffectiveLogoSrc() : (window.getVal('cfg-logo') || '');
+    document.querySelectorAll('.logo-img').forEach(img => {
+        if(logoUrl){ img.src=logoUrl; img.classList.remove('hidden'); }
+        else img.classList.add('hidden');
+    });
+    const timbroUrl = window.getEffectiveTimbroSrc ? window.getEffectiveTimbroSrc() : '';
+    document.querySelectorAll('.stamp-img').forEach(img => {
+        if (timbroUrl) { img.src = timbroUrl; img.classList.remove('hidden'); }
+        else img.classList.add('hidden');
+    });
+    document.querySelectorAll('.stamp-placeholder').forEach(el => {
+        el.style.display = timbroUrl ? 'none' : '';
     });
 
     if (window.currentPrintModule === 'dichiarazione_docenza') {
