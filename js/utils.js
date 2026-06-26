@@ -66,9 +66,181 @@ window.loadDashboardStats = async function() {
         const elProg = document.getElementById('dash-progetti');
         if(elProg) elProg.innerText = prog;
 
+        if (typeof window.loadDashboardCompliance === 'function') {
+            await window.loadDashboardCompliance();
+        }
+
     } catch (e) {
         console.error("Errore caricamento statistiche", e);
     }
+};
+
+
+window.dashEscape = function(value) {
+    return String(value ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+};
+
+window.dashIsPastOrToday = function(dateString) {
+    if (!dateString) return false;
+    const today = new Date();
+    const d = new Date(dateString + 'T00:00:00');
+    today.setHours(0,0,0,0);
+    return d.getTime() <= today.getTime();
+};
+
+window.dashProjectLabel = function(p) {
+    const corso = (window.DB_CORSI && window.DB_CORSI[p.corso_id]) ? window.DB_CORSI[p.corso_id].t : (p.corso_id || 'Corso non indicato');
+    return `${p.codice || 'Senza codice'} · ${corso}`;
+};
+
+window.dashRenderPanel = function(containerId, badgeId, items, verifiedText) {
+    const box = document.getElementById(containerId);
+    const badge = document.getElementById(badgeId);
+    if (!box) return;
+    if (!items.length) {
+        box.innerHTML = `
+            <div class="border border-emerald-200 bg-emerald-50 rounded-xl p-4 text-center">
+                <p class="font-black text-emerald-700 uppercase text-sm flex items-center justify-center gap-2">
+                    <i data-lucide="badge-check" class="w-5 h-5"></i> Verified
+                </p>
+                <p class="text-[10px] text-emerald-800 mt-1">${window.dashEscape(verifiedText || 'Nessuna correzione rilevata.')}</p>
+            </div>`;
+        if (badge) {
+            badge.innerText = 'Verified';
+            badge.className = 'px-2 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[9px] font-black uppercase';
+        }
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+        return;
+    }
+    const grouped = items.slice(0, 8).map(item => `
+        <div class="border border-red-100 bg-red-50 rounded-xl p-3 mb-2">
+            <p class="font-black text-red-900 uppercase text-[11px]">${window.dashEscape(item.title)}</p>
+            <ul class="list-disc ml-4 mt-1 space-y-0.5 text-[10px] text-red-800">
+                ${item.errors.map(e => `<li>${window.dashEscape(e)}</li>`).join('')}
+            </ul>
+            ${item.fix ? `<p class="mt-2 text-[10px] text-slate-700"><strong>Correzione:</strong> ${window.dashEscape(item.fix)}</p>` : ''}
+        </div>
+    `).join('');
+    const more = items.length > 8 ? `<p class="text-[10px] text-slate-500 mt-2">Altri ${items.length - 8} elementi da verificare non mostrati.</p>` : '';
+    box.innerHTML = grouped + more;
+    if (badge) {
+        badge.innerText = `${items.length} alert`;
+        badge.className = 'px-2 py-1 rounded-full bg-red-100 text-red-800 text-[9px] font-black uppercase';
+    }
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+};
+
+window.dashGetProjectIssues = async function(p) {
+    const errors = [];
+    const course = window.DB_CORSI ? window.DB_CORSI[p.corso_id] : null;
+    const isDL = p.ente_erogatore === 'azienda';
+    const iscritti = await window.getIscrizioni(p.id);
+
+    if (!p.codice) errors.push('Codice progetto mancante.');
+    if (!p.corso_id || !course) errors.push('Corso non riconosciuto nel catalogo.');
+    if (course && course.deprecated) errors.push('Corso legacy/deprecato: riclassificare con una voce attiva.');
+    if (!p.azienda_id) errors.push('Azienda committente non collegata.');
+    if (!p.data_inizio) errors.push('Data inizio mancante.');
+    if (!p.data_esame) errors.push('Data verifica/fine mancante.');
+    if (!p.sede) errors.push('Sede corso / aula / campo prova mancante.');
+    if (!p.resp_progetto) errors.push('Responsabile progetto formativo mancante.');
+    if (!p.modalita) errors.push('Modalità di svolgimento mancante.');
+    if (!p.docenti_ud && !p.docente_principale) errors.push('Docente/i non assegnati alle unità didattiche.');
+
+    const modeCheck = window.getModalitaCompliance ? window.getModalitaCompliance(p.corso_id, p.modalita || '') : { ok:true };
+    if (modeCheck && modeCheck.ok === false) errors.push(modeCheck.message);
+
+    if (iscritti.length > (window.ASR2025_POLICY?.maxDiscentiAula || 30)) {
+        errors.push(`Numero discenti superiore al limite generale (${iscritti.length}/30), salvo e-learning.`);
+    }
+
+    if (isDL) {
+        const invalid = iscritti.filter(isc => isc.corsisti && isc.corsisti.azienda_id && isc.corsisti.azienda_id !== p.azienda_id);
+        if (invalid.length) errors.push('Datore di lavoro soggetto formatore: presenti corsisti non appartenenti alla stessa azienda.');
+    }
+
+    return errors.length ? {
+        title: window.dashProjectLabel(p),
+        errors,
+        fix: 'Apri Gestione Progetto, completa i campi obbligatori, riclassifica eventuali corsi legacy e ristampa progetto/fascicolo.'
+    } : null;
+};
+
+window.dashGetCourseDoneIssues = async function(p) {
+    if (!window.dashIsPastOrToday(p.data_esame)) return null;
+    const errors = [];
+    const iscritti = await window.getIscrizioni(p.id);
+    if (!iscritti.length) errors.push('Corso svolto senza iscrizioni/allievi collegati.');
+
+    iscritti.forEach(isc => {
+        const nome = isc.corsisti?.nome_cognome || 'Corsista';
+        if (!isc.id_certificato) errors.push(`${nome}: ID certificato mancante.`);
+        if (!isc.esito) errors.push(`${nome}: esito finale mancante.`);
+        if ((isc.esito || '').toLowerCase().includes('idoneo') && !isc.data_scadenza) errors.push(`${nome}: data scadenza attestato mancante.`);
+        if (isc.percentuale_frequenza !== undefined && isc.percentuale_frequenza !== null && Number(isc.percentuale_frequenza) < 90) errors.push(`${nome}: frequenza inferiore al 90%.`);
+        if (isc.percentuale_frequenza === undefined || isc.percentuale_frequenza === null) errors.push(`${nome}: percentuale frequenza non registrata.`);
+        if (!isc.voto_test && !isc.note_verifica) errors.push(`${nome}: test/verifica finale non registrata.`);
+    });
+
+    return errors.length ? {
+        title: window.dashProjectLabel(p),
+        errors: errors.slice(0, 10),
+        fix: 'Completa registro presenze, test/verifiche, esiti, ID certificati e scadenze prima dell’archiviazione del fascicolo.'
+    } : null;
+};
+
+window.dashGetCommunicationIssues = function(p) {
+    const errors = [];
+    const isDL = p.ente_erogatore === 'azienda';
+
+    if (isDL) {
+        if (!p.ente_validatore) errors.push('Ente validatore CNA mancante.');
+        if (!p.validazione_ente_esito || p.validazione_ente_esito === 'da_valutare') errors.push('Esito valutazione/validazione CNA non concluso.');
+        if (!p.validazione_ente_at) errors.push('Data validazione CNA mancante.');
+        if (!p.organismo_destinatario) errors.push('Destinatario OPRA/OPTA mancante.');
+        if (!p.comunicazione_op_at) errors.push('Data comunicazione a OPRA/OPTA mancante.');
+    }
+
+    if (!isDL && (p.richiesta_op_inviata_at || p.esito_richiesta_op || p.risposta_op_at)) {
+        if (p.richiesta_op_inviata_at && !p.esito_richiesta_op) errors.push('Comunicazione/richiesta OP registrata senza esito.');
+    }
+
+    return errors.length ? {
+        title: window.dashProjectLabel(p),
+        errors,
+        fix: isDL ? 'Apri Gestione Progetto e completa validazione CNA + comunicazione OPTA/OPRA.' : 'Completa esito/riscontro della comunicazione agli organismi.'
+    } : null;
+};
+
+window.loadDashboardCompliance = async function() {
+    const containers = ['dash-progetti-formativi-checks','dash-corsi-svolti-checks','dash-comunicazioni-enti-checks'];
+    if (!containers.some(id => document.getElementById(id))) return;
+
+    containers.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = '<div class="text-center text-slate-400 py-6"><i data-lucide="loader-2" class="w-5 h-5 animate-spin mx-auto mb-2"></i> Verifica in corso...</div>';
+    });
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+
+    const projects = await window.getProgetti();
+    const projectIssues = [];
+    const doneIssues = [];
+    const communicationIssues = [];
+
+    for (const p of projects) {
+        const pi = await window.dashGetProjectIssues(p);
+        if (pi) projectIssues.push(pi);
+
+        const ci = await window.dashGetCourseDoneIssues(p);
+        if (ci) doneIssues.push(ci);
+
+        const oi = window.dashGetCommunicationIssues(p);
+        if (oi) communicationIssues.push(oi);
+    }
+
+    window.dashRenderPanel('dash-progetti-formativi-checks', 'dash-progetti-formativi-badge', projectIssues, 'Tutti i progetti formativi risultano coerenti con i controlli minimi.');
+    window.dashRenderPanel('dash-corsi-svolti-checks', 'dash-corsi-svolti-badge', doneIssues, 'Tutti i corsi svolti risultano completi per esiti, attestati e scadenze.');
+    window.dashRenderPanel('dash-comunicazioni-enti-checks', 'dash-comunicazioni-enti-badge', communicationIssues, 'Comunicazioni e validazioni risultano complete.');
 };
 
 // ==========================================
@@ -1126,6 +1298,44 @@ window.rimuoviIscrizione = async function(id) {
             await window.loadIscrittiTable();
         }
     }
+};
+
+
+window.CNA_AVELLINO_PRESET = {
+    ragione_sociale: "CNA Artigiani Imprenditori D'Italia Avellino",
+    piva_cf: "P.IVA 02851400644 / C.F. 92002100649",
+    indirizzo: "Via Serafino Soldi, 11/13 - 83100 Avellino",
+    contatti: "Tel./Fax 0825 783345 | Email avellino@cna.it | PEC cna.avellino@pec.it | Web www.cnaavellino.it",
+    luogo_emissione: "Avellino",
+    logo_url: "logocna.png"
+};
+
+window.applicaPresetCNAAvellino = function() {
+    const p = window.CNA_AVELLINO_PRESET;
+    const set = (id, value) => {
+        const el = document.getElementById(id);
+        if (el) el.value = value || "";
+    };
+
+    set('ente-ragione', p.ragione_sociale);
+    set('ente-piva', p.piva_cf);
+    set('ente-indirizzo', p.indirizzo);
+    set('ente-contatti', p.contatti);
+    set('ente-luogo-emissione', p.luogo_emissione);
+    set('cfg-logo', p.logo_url);
+
+    window.AppState['cfg-ente'] = p.ragione_sociale;
+    window.AppState['cfg-ente-indirizzo'] = p.indirizzo;
+    window.AppState['cfg-ente-contatti'] = p.contatti;
+    window.AppState['cfg-luogo-emissione'] = p.luogo_emissione;
+    window.AppState['cfg-logo'] = p.logo_url;
+
+    const legale = document.getElementById('ente-legale-nome');
+    if (legale && !legale.value) legale.placeholder = "Inserire nominativo del legale rappresentante";
+    const nascita = document.getElementById('ente-legale-nascita');
+    if (nascita && !nascita.value) nascita.placeholder = "Inserire luogo e data di nascita";
+
+    alert("Dati CNA Avellino caricati. Verifica/integra il legale rappresentante, poi salva l'ente.");
 };
 
 // ==========================================
