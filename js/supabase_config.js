@@ -180,6 +180,30 @@ window.getIscrizioni = async function(progetto_id) {
     } catch (err) { console.error(err); return []; }
 };
 
+window.getIscrizioniPerProgetti = async function(progettoIds = []) {
+    const ids = [...new Set((progettoIds || []).filter(Boolean))];
+    const map = {};
+    ids.forEach(id => { map[id] = []; });
+    if (!ids.length) return map;
+
+    try {
+        const { data, error } = await supabaseClient
+            .from('iscrizioni')
+            .select('*, corsisti(id, azienda_id, nome_cognome, cf, luogo_data_nascita, mansione_storica)')
+            .in('progetto_id', ids)
+            .order('created_at', { ascending: true });
+        if (error) throw error;
+        (data || []).forEach(row => {
+            if (!map[row.progetto_id]) map[row.progetto_id] = [];
+            map[row.progetto_id].push(row);
+        });
+        return map;
+    } catch (err) {
+        console.error('Errore caricamento batch iscrizioni:', err);
+        return map;
+    }
+};
+
 window.saveIscrizione = async function(record) {
     try {
         const { data, error } = await supabaseClient.from('iscrizioni').insert(record).select();

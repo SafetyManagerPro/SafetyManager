@@ -164,11 +164,11 @@ window.apriCorrezioneDashboard = async function(projectId, target) {
     }
 };
 
-window.dashGetProjectIssues = async function(p) {
+window.dashGetProjectIssues = async function(p, iscrittiOverride = null) {
     const errors = [];
     const course = window.DB_CORSI ? window.DB_CORSI[p.corso_id] : null;
     const isDL = p.ente_erogatore === 'azienda';
-    const iscritti = await window.getIscrizioni(p.id);
+    const iscritti = Array.isArray(iscrittiOverride) ? iscrittiOverride : await window.getIscrizioni(p.id);
 
     if (!p.codice) errors.push('Codice progetto mancante.');
     if (!p.corso_id || !course) errors.push('Corso non riconosciuto nel catalogo.');
@@ -240,10 +240,10 @@ window.dashGetDigitalProcedureIssues = function(p, iscritti) {
 };
 
 
-window.dashGetCourseDoneIssues = async function(p) {
+window.dashGetCourseDoneIssues = async function(p, iscrittiOverride = null) {
     if (!window.dashIsPastOrToday(p.data_esame)) return null;
     const errors = [];
-    const iscritti = await window.getIscrizioni(p.id);
+    const iscritti = Array.isArray(iscrittiOverride) ? iscrittiOverride : await window.getIscrizioni(p.id);
     if (!iscritti.length) errors.push('Corso svolto senza iscrizioni/allievi collegati.');
 
     iscritti.forEach(isc => {
@@ -295,11 +295,12 @@ window.dashGetCommunicationIssues = function(p) {
 };
 
 
-window.dashGetProjectOverallIssues = async function(p) {
+window.dashGetProjectOverallIssues = async function(p, iscrittiOverride = null) {
     const issues = [];
-    const pi = await window.dashGetProjectIssues(p);
+    const iscritti = Array.isArray(iscrittiOverride) ? iscrittiOverride : await window.getIscrizioni(p.id);
+    const pi = await window.dashGetProjectIssues(p, iscritti);
     if (pi) issues.push(...pi.errors);
-    const ci = await window.dashGetCourseDoneIssues(p);
+    const ci = await window.dashGetCourseDoneIssues(p, iscritti);
     if (ci) issues.push(...ci.errors);
     const oi = window.dashGetCommunicationIssues(p);
     if (oi) issues.push(...oi.errors);
@@ -324,15 +325,21 @@ window.loadDashboardCompliance = async function() {
     if (typeof lucide !== 'undefined') lucide.createIcons();
 
     const projects = await window.getProgetti();
+    const projectIds = projects.map(p => p.id).filter(Boolean);
+    const iscrizioniMap = window.getIscrizioniPerProgetti
+        ? await window.getIscrizioniPerProgetti(projectIds)
+        : await window.buildIscrizioniMapFallback(projects);
+
     const projectIssues = [];
     const doneIssues = [];
     const communicationIssues = [];
 
     for (const p of projects) {
-        const pi = await window.dashGetProjectIssues(p);
+        const iscritti = iscrizioniMap[p.id] || [];
+        const pi = await window.dashGetProjectIssues(p, iscritti);
         if (pi) projectIssues.push(pi);
 
-        const ci = await window.dashGetCourseDoneIssues(p);
+        const ci = await window.dashGetCourseDoneIssues(p, iscritti);
         if (ci) doneIssues.push(ci);
 
         const oi = window.dashGetCommunicationIssues(p);
@@ -346,6 +353,7 @@ window.loadDashboardCompliance = async function() {
 
 // ==========================================
 // LOGICA CRM: AZIENDE
+
 // ==========================================
 window.aziendeList = [];
 
@@ -1441,7 +1449,16 @@ window.chiudiPopupProgetto = function() {
 };
 
 
+window.buildIscrizioniMapFallback = async function(projects = []) {
+    const map = {};
+    for (const p of projects) {
+        map[p.id] = await window.getIscrizioni(p.id);
+    }
+    return map;
+};
+
 window.inlineIscrittiExpanded = window.inlineIscrittiExpanded || {};
+window.progettiIscrizioniMap = window.progettiIscrizioniMap || {};
 
 window.getCorsistaOptionsForProject = function(projectId, selectedId = '') {
     const p = (window.progettiList || []).find(x => x.id === projectId);
@@ -1477,7 +1494,7 @@ window.renderInlineIscrittiCards = function(projectId, iscritti, showAll = false
     }
 
     return `
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-2">
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-2">
             ${visible.map(isc => {
                 const c = isc.corsisti || {};
                 const missing = !isc.id_certificato || !isc.esito || isc.percentuale_frequenza === null || isc.percentuale_frequenza === undefined;
@@ -1488,8 +1505,8 @@ window.renderInlineIscrittiCards = function(projectId, iscritti, showAll = false
                             <p class="font-mono text-[9px] text-slate-300 mt-0.5">${window.dashEscape(c.cf || '-')}</p>
                         </div>
                         <div class="flex gap-1 shrink-0">
-                            <button onclick="window.modificaCorsistaDaProgetto('${c.id || isc.corsista_id}','${projectId}')" class="p-1.5 rounded bg-blue-500 hover:bg-blue-400 text-white" title="Modifica corsista"><i data-lucide="edit-3" class="w-3 h-3"></i></button>
-                            <button onclick="window.rimuoviIscrizione('${isc.id}', '${projectId}')" class="p-1.5 rounded bg-red-600 hover:bg-red-500 text-white" title="Rimuovi dal corso"><i data-lucide="user-minus" class="w-3 h-3"></i></button>
+                            <button onclick="window.modificaCorsistaDaProgetto('${c.id || isc.corsista_id}','${projectId}')" class="p-2 rounded-lg bg-blue-500 hover:bg-blue-400 text-white" title="Modifica corsista"><i data-lucide="edit-3" class="w-3 h-3"></i></button>
+                            <button onclick="window.rimuoviIscrizione('${isc.id}', '${projectId}')" class="p-2 rounded-lg bg-red-600 hover:bg-red-500 text-white" title="Rimuovi dal corso"><i data-lucide="user-minus" class="w-3 h-3"></i></button>
                         </div>
                     </div>
                     <div class="mt-2 text-[9px] text-slate-200 space-y-0.5">
@@ -1500,16 +1517,39 @@ window.renderInlineIscrittiCards = function(projectId, iscritti, showAll = false
                 </div>`;
             }).join('')}
         </div>
-        ${iscritti.length > 4 ? `<button onclick="window.toggleInlineIscritti('${projectId}')" class="mt-3 px-3 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-[9px] font-black uppercase tracking-widest">
+        ${iscritti.length > 4 ? `<button onclick="window.toggleInlineIscritti('${projectId}')" class="mt-3 px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white text-[9px] font-black uppercase tracking-widest">
             ${showAll ? 'Mostra meno' : 'Di più · altri ' + (iscritti.length - 4)}
         </button>` : ''}
     `;
 };
 
+window.renderInlineIscrittiControls = function(p, view = 'desk') {
+    const projectId = p.id;
+    return `<div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-3">
+        <div>
+            <p class="font-black uppercase text-white text-xs flex items-center gap-2"><i data-lucide="users" class="w-4 h-4 text-amber-400"></i> Corsisti iscritti</p>
+            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">${(window.progettiIscrizioniMap[projectId] || []).length} iscritti abbinati al progetto ${window.dashEscape(p.codice || '')}</p>
+        </div>
+        <div class="flex flex-col md:flex-row gap-2 md:items-center">
+            <select id="inline-sel-iscrivi-${projectId}-${view}" data-inline-select="${projectId}" class="min-w-0 md:min-w-[260px] px-3 py-2 bg-slate-950 border border-slate-600 rounded-lg text-xs outline-none focus:border-amber-400 font-bold text-white">
+                ${window.getCorsistaOptionsForProject(projectId)}
+            </select>
+            <div class="flex gap-2">
+                <button onclick="window.aggiungiIscrizioneInline('${projectId}', '${view}')" class="flex-1 md:flex-none bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-3 py-2 rounded-lg text-[10px] uppercase transition shadow flex items-center justify-center gap-1">
+                    <i data-lucide="user-plus" class="w-3.5 h-3.5"></i> Aggiungi
+                </button>
+                <button type="button" onclick="window.apriQACorsistaInline('${projectId}')" class="flex-1 md:flex-none bg-slate-700 hover:bg-slate-600 text-white font-black px-3 py-2 rounded-lg text-[10px] uppercase transition shadow flex items-center justify-center gap-1">
+                    <i data-lucide="plus" class="w-3.5 h-3.5"></i> Nuovo
+                </button>
+            </div>
+        </div>
+    </div>`;
+};
+
 window.toggleInlineIscritti = async function(projectId) {
     window.inlineIscrittiExpanded[projectId] = !window.inlineIscrittiExpanded[projectId];
     await window.loadProgettiTable();
-    const row = document.querySelector(`[data-inline-iscritti-project="${projectId}"]`);
+    const row = document.querySelector(`[data-inline-iscritti-project="${projectId}"]`) || document.querySelector(`[data-mobile-project-id="${projectId}"]`);
     if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
 };
 
@@ -1522,7 +1562,7 @@ window.aggiungiIscrizioneDaId = async function(projectId, corsistaId) {
     if (!p || !c) return alert('Dati progetto/corsista non disponibili. Ricarica la pagina.');
 
     const corsoInfo = window.DB_CORSI[p.corso_id];
-    const iscrittiEsistenti = await window.getIscrizioni(projectId);
+    const iscrittiEsistenti = window.progettiIscrizioniMap?.[projectId] || await window.getIscrizioni(projectId);
 
     if (iscrittiEsistenti.some(isc => isc.corsista_id === corsistaId)) {
         return alert("L'allievo è già iscritto a questo progetto.");
@@ -1567,8 +1607,8 @@ window.aggiungiIscrizioneDaId = async function(projectId, corsistaId) {
     }
 };
 
-window.aggiungiIscrizioneInline = async function(projectId) {
-    const sel = document.getElementById(`inline-sel-iscrivi-${projectId}`);
+window.aggiungiIscrizioneInline = async function(projectId, view = 'desk') {
+    const sel = document.getElementById(`inline-sel-iscrivi-${projectId}-${view}`) || document.querySelector(`[data-inline-select="${projectId}"]`);
     await window.aggiungiIscrizioneDaId(projectId, sel?.value || '');
 };
 
@@ -1597,14 +1637,101 @@ window.modificaCorsistaDaProgetto = function(corsistaId, projectId) {
     if (typeof lucide !== 'undefined') lucide.createIcons();
 };
 
+window.renderProjectDesktopRows = function(p, iscritti, issues) {
+    const showAll = !!window.inlineIscrittiExpanded[p.id];
+    const nomeAzienda = p.aziende ? p.aziende.ragione_sociale : 'Privato';
+    const nomeCorso = window.DB_CORSI[p.corso_id] ? window.DB_CORSI[p.corso_id].t : p.corso_id;
+    const siglaCorso = window.DB_CORSI[p.corso_id] ? window.DB_CORSI[p.corso_id].code : '';
+    const erogatoreBadge = (p.ente_erogatore === 'azienda')
+        ? '<span class="inline-block mt-1 px-1.5 py-0.5 rounded bg-blue-200 text-blue-950 font-black text-[8px] uppercase">DL soggetto formatore</span>'
+        : '<span class="inline-block mt-1 px-1.5 py-0.5 rounded bg-emerald-200 text-emerald-950 font-black text-[8px] uppercase">Associazione / ente</span>';
+    const statoBadge = (typeof window.dashStatusBadgeHtml === 'function') ? window.dashStatusBadgeHtml(issues.length > 0) : '';
+    const chiusuraBadge = p.stato_corso === 'chiuso'
+        ? '<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-slate-950 text-white border border-slate-600 font-black text-[8px] uppercase">Chiuso</span>'
+        : (p.stato_corso === 'svolto' ? '<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-300 text-amber-950 border border-amber-400 font-black text-[8px] uppercase">Da chiudere</span>' : '');
+
+    return `
+        <tr class="hover:bg-slate-800 transition-colors bg-slate-900" data-corso="${p.corso_id}" data-project-id="${p.id}">
+            <td class="p-3 border-b border-slate-700 font-mono font-bold text-[10px] text-slate-100 align-top">
+                <div class="flex flex-col gap-1">
+                    <button type="button" onclick="window.apriPopupProgettoById('${p.id}', 'progetti')" class="text-left text-rose-300 hover:underline font-black">${window.dashEscape(p.codice || '')}</button>
+                    ${statoBadge}
+                    ${chiusuraBadge}
+                </div>
+            </td>
+            <td class="p-3 border-b border-slate-700 align-top">
+                <div class="rounded-xl border-2 border-blue-400 bg-blue-600 p-3 shadow-md shadow-blue-950/30">
+                    <p class="text-[8px] font-black uppercase tracking-widest text-blue-100 mb-1">Corso svolto</p>
+                    <p class="font-black text-sm text-white uppercase leading-tight"><span class="text-blue-100 font-mono text-[10px]">[${siglaCorso}]</span> ${window.dashEscape(nomeCorso || '')}</p>
+                </div>
+                <div class="rounded-xl border-2 border-amber-300 bg-amber-400 p-3 mt-2 shadow-md shadow-amber-950/20">
+                    <p class="text-[8px] font-black uppercase tracking-widest text-amber-950 mb-1">Azienda committente</p>
+                    <p class="font-black text-xs text-slate-950 uppercase leading-tight">${window.dashEscape(nomeAzienda || '')}</p>
+                    ${erogatoreBadge}
+                </div>
+            </td>
+            <td class="p-3 border-b border-slate-700 font-bold text-center text-slate-200 align-top">${window.formatDataToItalian(p.data_esame)}</td>
+            <td class="p-3 border-b border-slate-700 text-center whitespace-nowrap align-top">
+                <button onclick="window.apriPopupProgettoById('${p.id}', 'progetti')" class="text-white hover:bg-blue-500 bg-blue-600 p-2 rounded-lg transition shadow-sm" title="Modifica progetto"><i data-lucide="edit" class="w-3 h-3"></i></button>
+                <button onclick="window.eliminaProgetto('${p.id}')" class="text-white hover:bg-red-500 bg-red-700 p-2 rounded-lg transition shadow-sm ml-1" title="Elimina progetto"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
+            </td>
+        </tr>
+        <tr class="bg-slate-950" data-corso="${p.corso_id}" data-project-id="${p.id}" data-inline-iscritti-project="${p.id}">
+            <td colspan="4" class="p-4 border-b border-slate-700">
+                ${window.renderInlineIscrittiControls(p, 'desk')}
+                ${window.renderInlineIscrittiCards(p.id, iscritti, showAll)}
+            </td>
+        </tr>`;
+};
+
+window.renderProjectMobileCard = function(p, iscritti, issues) {
+    const showAll = !!window.inlineIscrittiExpanded[p.id];
+    const nomeAzienda = p.aziende ? p.aziende.ragione_sociale : 'Privato';
+    const nomeCorso = window.DB_CORSI[p.corso_id] ? window.DB_CORSI[p.corso_id].t : p.corso_id;
+    const siglaCorso = window.DB_CORSI[p.corso_id] ? window.DB_CORSI[p.corso_id].code : '';
+    const statoBadge = (typeof window.dashStatusBadgeHtml === 'function') ? window.dashStatusBadgeHtml(issues.length > 0) : '';
+    const chiusuraBadge = p.stato_corso === 'chiuso'
+        ? '<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-slate-950 text-white border border-slate-600 font-black text-[8px] uppercase">Chiuso</span>'
+        : (p.stato_corso === 'svolto' ? '<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-300 text-amber-950 border border-amber-400 font-black text-[8px] uppercase">Da chiudere</span>' : '');
+
+    return `<article class="rounded-2xl border border-slate-700 bg-slate-900 shadow-xl overflow-hidden" data-corso="${p.corso_id}" data-mobile-project-id="${p.id}" data-project-id="${p.id}">
+        <div class="p-4 border-b border-slate-700 flex items-start justify-between gap-3">
+            <div class="min-w-0">
+                <button onclick="window.apriPopupProgettoById('${p.id}', 'progetti')" class="font-mono text-rose-300 font-black text-xs hover:underline">${window.dashEscape(p.codice || '')}</button>
+                <p class="text-[10px] text-slate-400 font-bold uppercase mt-1">Esame: ${window.formatDataToItalian(p.data_esame)}</p>
+                <div class="flex flex-wrap gap-1 mt-2">${statoBadge}${chiusuraBadge}</div>
+            </div>
+            <div class="flex gap-2 shrink-0">
+                <button onclick="window.apriPopupProgettoById('${p.id}', 'progetti')" class="text-white bg-blue-600 hover:bg-blue-500 p-2 rounded-lg"><i data-lucide="edit" class="w-4 h-4"></i></button>
+                <button onclick="window.eliminaProgetto('${p.id}')" class="text-white bg-red-700 hover:bg-red-600 p-2 rounded-lg"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+            </div>
+        </div>
+        <div class="p-4 space-y-3">
+            <div class="rounded-xl border-2 border-blue-400 bg-blue-600 p-3">
+                <p class="text-[8px] font-black uppercase tracking-widest text-blue-100 mb-1">Corso svolto</p>
+                <p class="font-black text-sm text-white uppercase leading-tight"><span class="text-blue-100 font-mono text-[10px]">[${siglaCorso}]</span> ${window.dashEscape(nomeCorso || '')}</p>
+            </div>
+            <div class="rounded-xl border-2 border-amber-300 bg-amber-400 p-3">
+                <p class="text-[8px] font-black uppercase tracking-widest text-amber-950 mb-1">Azienda committente</p>
+                <p class="font-black text-xs text-slate-950 uppercase leading-tight">${window.dashEscape(nomeAzienda || '')}</p>
+            </div>
+            <div class="rounded-xl bg-slate-950 border border-slate-700 p-3">
+                ${window.renderInlineIscrittiControls(p, 'mob')}
+                ${window.renderInlineIscrittiCards(p.id, iscritti, showAll)}
+            </div>
+        </div>
+    </article>`;
+};
+
 window.loadProgettiTable = async function() {
     const tbody = document.getElementById('tabella-progetti');
-    if(!tbody) return;
-
+    const mobileBox = document.getElementById('progetti-mobile-cards');
+    if(!tbody && !mobileBox) return;
+    
     if(window.aziendeList.length === 0) window.aziendeList = await window.getAziende();
     if(window.docentiList.length === 0) window.docentiList = await window.getDocenti();
     window.corsistiList = await window.getCorsisti();
-
+    
     const selAzienda = document.getElementById('prog-azienda');
     if(selAzienda) {
         selAzienda.innerHTML = '<option value="">-- Seleziona Azienda --</option>' + 
@@ -1621,89 +1748,36 @@ window.loadProgettiTable = async function() {
         filterSelect.innerHTML = optHtml;
     }
 
-    tbody.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-slate-400 italic"><i data-lucide="loader-2" class="w-5 h-5 animate-spin mx-auto mb-2"></i> Caricamento progetti e corsisti...</td></tr>';
+    const loading = '<tr><td colspan="4" class="p-6 text-center text-slate-400 italic"><i data-lucide="loader-2" class="w-5 h-5 animate-spin mx-auto mb-2"></i> Caricamento progetti e corsisti...</td></tr>';
+    if (tbody) tbody.innerHTML = loading;
+    if (mobileBox) mobileBox.innerHTML = '<div class="p-6 text-center text-slate-400 font-bold uppercase text-xs"><i data-lucide="loader-2" class="w-5 h-5 animate-spin mx-auto mb-2"></i> Caricamento progetti...</div>';
     if(typeof lucide !== 'undefined') lucide.createIcons();
 
     window.progettiList = await window.getProgetti();
 
     if (window.progettiList.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-slate-500 italic">Nessun corso registrato.</td></tr>';
+        if (tbody) tbody.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-slate-500 italic">Nessun corso registrato.</td></tr>';
+        if (mobileBox) mobileBox.innerHTML = '<div class="p-6 text-center text-slate-500 italic bg-slate-900 rounded-xl border border-slate-700">Nessun corso registrato.</div>';
         return;
     }
 
-    let html = '';
+    const ids = window.progettiList.map(p => p.id).filter(Boolean);
+    window.progettiIscrizioniMap = window.getIscrizioniPerProgetti
+        ? await window.getIscrizioniPerProgetti(ids)
+        : await window.buildIscrizioniMapFallback(window.progettiList);
+
+    let tableHtml = '';
+    let mobileHtml = '';
     for (const p of window.progettiList) {
-        const iscritti = await window.getIscrizioni(p.id);
-        const showAll = !!window.inlineIscrittiExpanded[p.id];
-        const nomeAzienda = p.aziende ? p.aziende.ragione_sociale : 'Privato';
-        const nomeCorso = window.DB_CORSI[p.corso_id] ? window.DB_CORSI[p.corso_id].t : p.corso_id;
-        const siglaCorso = window.DB_CORSI[p.corso_id] ? window.DB_CORSI[p.corso_id].code : '';
-        const erogatoreBadge = (p.ente_erogatore === 'azienda')
-            ? '<span class="inline-block mt-1 px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 font-black text-[8px] uppercase">DL soggetto formatore</span>'
-            : '<span class="inline-block mt-1 px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-black text-[8px] uppercase">Associazione / ente</span>';
-
-        const issues = (typeof window.dashGetProjectOverallIssues === 'function') ? await window.dashGetProjectOverallIssues(p) : [];
-        const statoBadge = (typeof window.dashStatusBadgeHtml === 'function') ? window.dashStatusBadgeHtml(issues.length > 0) : '';
-        const chiusuraBadge = p.stato_corso === 'chiuso'
-            ? '<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-slate-900 text-white border border-slate-700 font-black text-[8px] uppercase">Chiuso</span>'
-            : (p.stato_corso === 'svolto' ? '<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-100 text-amber-800 border border-amber-200 font-black text-[8px] uppercase">Da chiudere</span>' : '');
-
-        html += `
-            <tr class="bg-slate-800 hover:bg-slate-700 transition-colors" data-corso="${p.corso_id}" data-project-id="${p.id}">
-                <td class="p-3 border-b border-slate-700 font-mono font-bold text-[10px] text-slate-100 align-top">
-                    <div class="flex flex-col gap-1">
-                        <button type="button" onclick="window.apriPopupProgettoById('${p.id}', 'progetti')" class="text-left text-rose-300 hover:text-rose-200 hover:underline font-black">${window.dashEscape(p.codice || '')}</button>
-                        ${statoBadge}
-                        ${chiusuraBadge}
-                    </div>
-                </td>
-                <td class="p-3 border-b border-slate-700 align-top">
-                    <div class="rounded-xl border border-blue-300 bg-blue-600 p-3 shadow-lg shadow-blue-900/20">
-                        <p class="text-[8px] font-black uppercase tracking-widest text-blue-100 mb-1">Corso svolto</p>
-                        <p class="font-black text-sm text-white uppercase leading-tight"><span class="text-blue-100 font-mono text-[10px]">[${siglaCorso}]</span> ${window.dashEscape(nomeCorso || '')}</p>
-                    </div>
-                    <div class="rounded-xl border border-amber-300 bg-amber-400 p-3 mt-2 shadow-lg shadow-amber-900/20">
-                        <p class="text-[8px] font-black uppercase tracking-widest text-amber-900 mb-1">Azienda committente</p>
-                        <p class="font-black text-xs text-slate-950 uppercase leading-tight">${window.dashEscape(nomeAzienda || '')}</p>
-                        ${erogatoreBadge}
-                    </div>
-                </td>
-                <td class="p-3 border-b border-slate-700 font-bold text-center text-slate-100 align-top">${window.formatDataToItalian(p.data_esame)}</td>
-                <td class="p-3 border-b border-slate-700 text-center whitespace-nowrap align-top">
-                    <button onclick="window.apriPopupProgettoById('${p.id}', 'progetti')" class="text-blue-600 hover:bg-blue-200 bg-blue-100 p-1.5 rounded transition shadow-sm" title="Modifica progetto"><i data-lucide="edit" class="w-3 h-3"></i></button>
-                    <button onclick="window.eliminaProgetto('${p.id}')" class="text-red-600 hover:bg-red-200 bg-red-100 p-1.5 rounded transition shadow-sm ml-1" title="Elimina progetto"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
-                </td>
-            </tr>
-            <tr class="bg-slate-900" data-corso="${p.corso_id}" data-project-id="${p.id}" data-inline-iscritti-project="${p.id}">
-                <td colspan="4" class="p-4 border-b border-slate-700">
-                    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-3">
-                        <div>
-                            <p class="font-black uppercase text-white text-xs flex items-center gap-2"><i data-lucide="users" class="w-4 h-4 text-amber-400"></i> Corsisti iscritti</p>
-                            <p class="text-[10px] text-slate-300 font-bold uppercase tracking-widest">${iscritti.length} iscritti abbinati al progetto ${window.dashEscape(p.codice || '')}</p>
-                        </div>
-                        <div class="flex flex-col md:flex-row gap-2 md:items-center">
-                            <select id="inline-sel-iscrivi-${p.id}" class="min-w-[260px] px-3 py-2 bg-slate-800 border border-amber-400 rounded-lg text-xs outline-none focus:border-amber-300 font-bold text-white shadow-inner">
-                                ${window.getCorsistaOptionsForProject(p.id)}
-                            </select>
-                            <div class="flex gap-2">
-                                <button onclick="window.aggiungiIscrizioneInline('${p.id}')" class="bg-amber-600 hover:bg-amber-700 text-white font-black px-3 py-2 rounded-lg text-[10px] uppercase transition shadow flex items-center gap-1">
-                                    <i data-lucide="user-plus" class="w-3.5 h-3.5"></i> Aggiungi
-                                </button>
-                                <button type="button" onclick="window.apriQACorsistaInline('${p.id}')" class="bg-slate-800 hover:bg-slate-700 text-white font-black px-3 py-2 rounded-lg text-[10px] uppercase transition shadow flex items-center gap-1">
-                                    <i data-lucide="plus" class="w-3.5 h-3.5"></i> Nuovo
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    ${window.renderInlineIscrittiCards(p.id, iscritti, showAll)}
-                </td>
-            </tr>
-        `;
+        const iscritti = window.progettiIscrizioniMap[p.id] || [];
+        const issues = (typeof window.dashGetProjectOverallIssues === 'function') ? await window.dashGetProjectOverallIssues(p, iscritti) : [];
+        tableHtml += window.renderProjectDesktopRows(p, iscritti, issues);
+        mobileHtml += window.renderProjectMobileCard(p, iscritti, issues);
     }
-    tbody.innerHTML = html;
+    if (tbody) tbody.innerHTML = tableHtml;
+    if (mobileBox) mobileBox.innerHTML = mobileHtml;
     if(typeof lucide !== 'undefined') lucide.createIcons();
 };
-
 
 window.filtraProgetti = function() {
     const textFilter = (document.getElementById('search-progetti')?.value || '').toLowerCase();
@@ -3004,11 +3078,10 @@ window.loadArchivioCorsi = async function() {
     const [progetti, aziende] = await Promise.all([window.getProgetti(), window.getAziende()]);
     window.archivioCorsiState.progetti = progetti || [];
     window.archivioCorsiState.aziende = aziende || [];
-    window.archivioCorsiState.iscrizioniByProject = {};
-
-    for (const p of window.archivioCorsiState.progetti) {
-        window.archivioCorsiState.iscrizioniByProject[p.id] = await window.getIscrizioni(p.id);
-    }
+    const ids = window.archivioCorsiState.progetti.map(p => p.id).filter(Boolean);
+    window.archivioCorsiState.iscrizioniByProject = window.getIscrizioniPerProgetti
+        ? await window.getIscrizioniPerProgetti(ids)
+        : await window.buildIscrizioniMapFallback(window.archivioCorsiState.progetti);
 
     window.renderArchivioCorsi();
 };
