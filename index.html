@@ -73,6 +73,47 @@
         .btn-tab.active[id="nav-ente"]::after { background-color: #64748b; }
         .btn-tab.active[id="nav-migrazione"]::after { background-color: #d97706; }
 
+
+/* Popup iscritti responsive */
+#panel-iscrizioni { overflow: hidden !important; }
+#iscritti-modal-card { max-width: min(980px, calc(100vw - 1rem)); }
+@media (max-width: 640px) {
+    #panel-iscrizioni { padding: 0.5rem !important; }
+    #iscritti-modal-card { height: 86vh !important; max-height: 86vh !important; border-radius: 1rem !important; }
+    #panel-iscrizioni #table-iscritti thead { display: none !important; }
+    #panel-iscrizioni #table-iscritti,
+    #panel-iscrizioni #table-iscritti tbody,
+    #panel-iscrizioni #table-iscritti tr,
+    #panel-iscrizioni #table-iscritti td { display: block !important; width: 100% !important; }
+    #panel-iscrizioni #table-iscritti tr {
+        margin: 0.75rem;
+        border: 1px solid rgb(51 65 85);
+        border-radius: 0.9rem;
+        background: rgb(15 23 42 / 0.72);
+        overflow: hidden;
+    }
+    #panel-iscrizioni #table-iscritti td {
+        border-bottom: 1px solid rgb(51 65 85) !important;
+        display: flex !important;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 0.75rem;
+        text-align: right !important;
+        word-break: break-word;
+    }
+    #panel-iscrizioni #table-iscritti td::before {
+        content: attr(data-label);
+        color: rgb(148 163 184);
+        font-size: 9px;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        text-align: left;
+        min-width: 88px;
+    }
+    #panel-iscrizioni #table-iscritti td:last-child { border-bottom: none !important; }
+}
+
         /* --- MOTORE DI STAMPA PDF --- */
         body.is-printing-temp #print-area-temp { display: block !important; position: absolute; top: 0; left: 0; width: 100%; background: white; z-index: 99999; }
         body.is-printing-temp nav, body.is-printing-temp aside, body.is-printing-temp main { display: none !important; }

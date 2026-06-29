@@ -328,7 +328,7 @@
                     <thead class="bg-slate-800 text-white">
                         <tr>
                             <th class="p-3 font-bold uppercase tracking-wider w-40">Codice ID</th>
-                            <th class="p-3 font-bold uppercase tracking-wider">Corso / Azienda</th>
+                            <th class="p-3 font-bold uppercase tracking-wider">Corso / Azienda / Corsisti</th>
                             <th class="p-3 font-bold uppercase tracking-wider text-center w-28">Data Esame</th>
                             <th class="p-3 font-bold uppercase tracking-wider text-center w-40">Azioni</th>
                         </tr>
@@ -339,44 +339,68 @@
                 </table>
             </div>
 
-            <!-- PANNELLO ISCRIZIONI (OVERLAY Z-10) -->
-            <div id="panel-iscrizioni" class="hidden fixed inset-0 bg-slate-900/95 backdrop-blur-sm z-[100] flex flex-col p-6 overflow-hidden">
-                <div class="flex justify-between items-start border-b border-slate-700 pb-3 mb-4 shrink-0">
-                    <div>
-                        <h2 class="text-xl font-black uppercase text-white flex items-center gap-2">
-                            <i data-lucide="users" class="w-5 h-5 text-amber-400"></i> Gestione Iscritti
-                        </h2>
-                        <p id="lbl-progetto-attivo" class="text-[10px] text-slate-400 font-mono mt-1">---</p>
+            
+            <!-- PANNELLO ISCRIZIONI RESPONSIVE -->
+            <div id="panel-iscrizioni" class="hidden fixed inset-0 bg-slate-950/75 backdrop-blur-sm z-[100] items-center justify-center p-3 md:p-5 overflow-hidden">
+                <div id="iscritti-modal-card" class="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-4xl h-[82vh] max-h-[82vh] flex flex-col overflow-hidden">
+                    <!-- HEADER FISSO -->
+                    <div class="shrink-0 bg-slate-900 border-b border-slate-700 px-4 py-3 md:px-5 md:py-4">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="min-w-0">
+                                <h2 class="text-base md:text-xl font-black uppercase text-white flex items-center gap-2">
+                                    <i data-lucide="users" class="w-5 h-5 text-amber-400 shrink-0"></i> Gestione Iscritti
+                                </h2>
+                                <p id="lbl-progetto-attivo" class="text-[9px] md:text-[10px] text-slate-400 font-mono mt-1 leading-snug break-words">---</p>
+                                <p id="lbl-iscritti-count" class="text-[9px] text-amber-300 font-black uppercase tracking-widest mt-1">0 iscritti</p>
+                            </div>
+                            <button onclick="window.chiudiPannelloIscrizioni()" class="shrink-0 text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 p-2 rounded-lg transition" title="Chiudi">
+                                <i data-lucide="x" class="w-5 h-5"></i>
+                            </button>
+                        </div>
                     </div>
-                    <button onclick="window.chiudiPannelloIscrizioni()" class="text-slate-400 hover:text-white bg-slate-800 p-2 rounded-lg transition"><i data-lucide="x" class="w-5 h-5"></i></button>
-                </div>
 
-                <div class="flex gap-2 mb-4 shrink-0 max-w-5xl w-full mx-auto">
-                    <select id="sel-iscrivi-corsista" class="flex-1 px-3 py-2 bg-slate-800 border border-slate-700 rounded text-xs text-white outline-none focus:border-amber-500">
-                        <!-- Popolato via JS -->
-                    </select>
-                    <!-- Pulsante Aggiunta Rapida Corsista -->
-                    <button type="button" onclick="window.apriQACorsista()" class="bg-slate-700 hover:bg-slate-600 text-white px-3 rounded transition border border-slate-600" title="Crea Nuovo Allievo"><i data-lucide="plus" class="w-4 h-4"></i></button>
-                    
-                    <button onclick="window.aggiungiIscrizione()" class="bg-amber-600 hover:bg-amber-700 text-white font-bold px-4 py-2 rounded text-xs uppercase transition shadow flex items-center gap-2 ml-2">
-                        <i data-lucide="user-plus" class="w-4 h-4"></i> Aggiungi
-                    </button>
-                </div>
+                    <!-- CONTROLLI FISSI RESPONSIVE -->
+                    <div class="shrink-0 bg-slate-800/90 border-b border-slate-700 px-4 py-3 md:px-5">
+                        <div class="flex flex-col sm:flex-row gap-2">
+                            <select id="sel-iscrivi-corsista" class="flex-1 min-w-0 px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white outline-none focus:border-amber-500">
+                                <!-- Popolato via JS -->
+                            </select>
+                            <div class="flex gap-2 shrink-0">
+                                <button type="button" onclick="window.apriQACorsista()" class="flex-1 sm:flex-none bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 rounded-lg transition border border-slate-600 text-xs font-black uppercase flex items-center justify-center gap-2" title="Crea Nuovo Allievo">
+                                    <i data-lucide="plus" class="w-4 h-4"></i><span class="sm:hidden">Nuovo</span>
+                                </button>
+                                <button onclick="window.aggiungiIscrizione()" class="flex-1 sm:flex-none bg-amber-600 hover:bg-amber-700 text-white font-black px-4 py-2 rounded-lg text-xs uppercase transition shadow flex items-center justify-center gap-2">
+                                    <i data-lucide="user-plus" class="w-4 h-4"></i> Aggiungi
+                                </button>
+                            </div>
+                        </div>
+                    </div>
 
-                <div class="flex-1 overflow-y-auto border border-slate-700 rounded bg-slate-800/50">
-                    <table class="w-full text-left text-xs border-collapse">
-                        <thead class="bg-slate-800 text-slate-300 sticky top-0">
-                            <tr>
-                                <th class="p-2 border-b border-slate-700 uppercase tracking-wider">Allievo</th>
-                                <th class="p-2 border-b border-slate-700 uppercase tracking-wider w-32">Codice Fiscale</th>
-                                <th class="p-2 border-b border-slate-700 uppercase tracking-wider w-40">Num. Attestato</th>
-                                <th class="p-2 border-b border-slate-700 text-center w-12"><i data-lucide="trash-2" class="w-4 h-4 mx-auto"></i></th>
-                            </tr>
-                        </thead>
-                        <tbody id="tabella-iscritti" class="divide-y divide-slate-700/50">
-                            <!-- Iniettato via JS -->
-                        </tbody>
-                    </table>
+                    <!-- AREA SCORRIMENTO SOLO CORPO -->
+                    <div class="flex-1 min-h-0 overflow-y-auto bg-slate-950/40 p-3 md:p-4">
+                        <div class="rounded-xl border border-slate-700 bg-slate-800/60 overflow-hidden">
+                            <div class="overflow-x-auto">
+                                <table id="table-iscritti" class="w-full text-left text-xs border-collapse">
+                                    <thead class="bg-slate-800 text-slate-300 sticky top-0 z-10">
+                                        <tr>
+                                            <th class="p-3 border-b border-slate-700 uppercase tracking-wider min-w-[220px]">Allievo</th>
+                                            <th class="p-3 border-b border-slate-700 uppercase tracking-wider min-w-[150px]">Codice Fiscale</th>
+                                            <th class="p-3 border-b border-slate-700 uppercase tracking-wider min-w-[180px]">Num. Attestato</th>
+                                            <th class="p-3 border-b border-slate-700 text-center w-16"><i data-lucide="trash-2" class="w-4 h-4 mx-auto"></i></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tabella-iscritti" class="divide-y divide-slate-700/50">
+                                        <!-- Iniettato via JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- FOOTER FISSO -->
+                    <div class="shrink-0 bg-slate-900 border-t border-slate-700 px-4 py-2 text-[9px] text-slate-400 uppercase tracking-widest font-bold">
+                        Suggerimento: su schermi piccoli la tabella diventa scheda verticale per ogni corsista.
+                    </div>
                 </div>
             </div>
         </div>
@@ -388,7 +412,7 @@
 <!-- ======================================================== -->
 
 <!-- MODALE QUICK ADD: AZIENDA -->
-<div id="qa-modal-azienda" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+<div id="qa-modal-azienda" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
     <div class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
         <div class="bg-rose-600 p-4 flex justify-between items-center text-white">
             <h3 class="font-black uppercase text-sm flex items-center gap-2"><i data-lucide="briefcase" class="w-4 h-4"></i> Nuova Azienda Rapida</h3>
@@ -420,7 +444,7 @@
 </div>
 
 <!-- MODALE QUICK ADD: CORSO PERSONALIZZATO -->
-<div id="qa-modal-corso" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+<div id="qa-modal-corso" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
     <div class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
         <div class="bg-blue-600 p-4 flex justify-between items-center text-white">
             <h3 class="font-black uppercase text-sm flex items-center gap-2"><i data-lucide="layout-template" class="w-4 h-4"></i> Crea Corso Custom</h3>
@@ -456,17 +480,19 @@
 </div>
 
 <!-- MODALE QUICK ADD: CORSISTA -->
-<div id="qa-modal-corsista" class="hidden fixed inset-0 bg-slate-900/90 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
+<div id="qa-modal-corsista" class="hidden fixed inset-0 bg-slate-900/90 backdrop-blur-sm z-[130] flex items-center justify-center p-4">
     <div class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
         <div class="bg-emerald-600 p-4 flex justify-between items-center text-white">
-            <h3 class="font-black uppercase text-sm flex items-center gap-2"><i data-lucide="user-plus" class="w-4 h-4"></i> Nuovo Allievo Rapido</h3>
+            <h3 id="qa-cor-title" class="font-black uppercase text-sm flex items-center gap-2"><i data-lucide="user-plus" class="w-4 h-4"></i> Nuovo Allievo Rapido</h3>
             <button onclick="window.chiudiQACorsista()" class="hover:bg-emerald-700 p-1 rounded"><i data-lucide="x" class="w-4 h-4"></i></button>
         </div>
         <div class="p-6">
             <form onsubmit="event.preventDefault(); window.salvaQACorsista();" class="space-y-4 text-xs">
+                <input type="hidden" id="qa-cor-id" value="">
                 <div><label class="font-bold text-slate-500 uppercase block mb-1">Nome e Cognome *</label><input type="text" id="qa-cor-nome" required class="w-full p-2 border rounded bg-slate-50 outline-none focus:border-emerald-500"></div>
                 <div><label class="font-bold text-slate-500 uppercase block mb-1">Codice Fiscale *</label><input type="text" id="qa-cor-cf" required maxlength="16" class="w-full p-2 border rounded bg-slate-50 outline-none focus:border-emerald-500 font-mono uppercase"></div>
                 <div><label class="font-bold text-slate-500 uppercase block mb-1">Nato a / Il</label><input type="text" id="qa-cor-nascita" class="w-full p-2 border rounded bg-slate-50 outline-none focus:border-emerald-500" placeholder="Es. Roma, 10/05/1990"></div>
+                <div><label class="font-bold text-slate-500 uppercase block mb-1">Mansione</label><input type="text" id="qa-cor-mansione" class="w-full p-2 border rounded bg-slate-50 outline-none focus:border-emerald-500" placeholder="Es. Operaio, preposto, impiegato..."></div>
                 <input type="hidden" id="qa-cor-azienda-id"> <!-- Inviato in automatico -->
                 <button type="submit" class="w-full mt-4 bg-emerald-600 text-white font-bold uppercase py-2.5 rounded shadow hover:bg-emerald-700 transition">Salva e Iscrivi</button>
             </form>
