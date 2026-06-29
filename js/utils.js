@@ -1446,19 +1446,32 @@ window.inlineIscrittiExpanded = window.inlineIscrittiExpanded || {};
 window.getCorsistaOptionsForProject = function(projectId, selectedId = '') {
     const p = (window.progettiList || []).find(x => x.id === projectId);
     const list = window.corsistiList || [];
+    const dipendenti = list.filter(c => p && c.azienda_id && c.azienda_id === p.azienda_id);
+    const altri = list.filter(c => !p || !c.azienda_id || c.azienda_id !== p.azienda_id);
     let html = '<option value="">-- Seleziona corsista --</option>';
-    list.forEach(c => {
-        const sameCompany = p && c.azienda_id === p.azienda_id;
-        const marker = sameCompany ? '📌 ' : '';
-        html += `<option value="${c.id}" ${selectedId === c.id ? 'selected' : ''}>${marker}${window.dashEscape(c.nome_cognome || '')} (${window.dashEscape(c.cf || '')})</option>`;
-    });
+
+    if (dipendenti.length) {
+        html += '<optgroup label="📌 Dipendenti azienda committente">';
+        dipendenti.forEach(c => {
+            html += `<option value="${c.id}" ${selectedId === c.id ? 'selected' : ''} style="background:#f59e0b;color:#111827;font-weight:900;">📌 ${window.dashEscape(c.nome_cognome || '')} (${window.dashEscape(c.cf || '')})</option>`;
+        });
+        html += '</optgroup>';
+    }
+
+    if (altri.length) {
+        html += '<optgroup label="Altri corsisti anagrafica">';
+        altri.forEach(c => {
+            html += `<option value="${c.id}" ${selectedId === c.id ? 'selected' : ''}>${window.dashEscape(c.nome_cognome || '')} (${window.dashEscape(c.cf || '')})</option>`;
+        });
+        html += '</optgroup>';
+    }
     return html;
 };
 
 window.renderInlineIscrittiCards = function(projectId, iscritti, showAll = false) {
     const visible = showAll ? iscritti : iscritti.slice(0, 4);
     if (!iscritti.length) {
-        return `<div class="rounded-xl border border-red-100 bg-red-50 p-3 text-[10px] font-bold uppercase text-red-700">
+        return `<div class="rounded-xl border border-red-500/50 bg-red-950/80 p-3 text-[10px] font-bold uppercase text-red-100">
             Nessun corsista iscritto a questo progetto.
         </div>`;
     }
@@ -1468,21 +1481,21 @@ window.renderInlineIscrittiCards = function(projectId, iscritti, showAll = false
             ${visible.map(isc => {
                 const c = isc.corsisti || {};
                 const missing = !isc.id_certificato || !isc.esito || isc.percentuale_frequenza === null || isc.percentuale_frequenza === undefined;
-                return `<div class="rounded-xl border ${missing ? 'border-red-200 bg-red-50' : 'border-slate-200 bg-white'} p-3 shadow-sm">
+                return `<div class="rounded-xl border ${missing ? 'border-red-500/70 bg-red-950/80' : 'border-slate-600 bg-slate-800'} p-3 shadow-sm">
                     <div class="flex items-start justify-between gap-2">
                         <div class="min-w-0">
-                            <p class="font-black uppercase text-slate-900 text-[11px] leading-tight break-words">${window.dashEscape(c.nome_cognome || '-')}</p>
-                            <p class="font-mono text-[9px] text-slate-500 mt-0.5">${window.dashEscape(c.cf || '-')}</p>
+                            <p class="font-black uppercase text-white text-[11px] leading-tight break-words">${window.dashEscape(c.nome_cognome || '-')}</p>
+                            <p class="font-mono text-[9px] text-slate-300 mt-0.5">${window.dashEscape(c.cf || '-')}</p>
                         </div>
                         <div class="flex gap-1 shrink-0">
-                            <button onclick="window.modificaCorsistaDaProgetto('${c.id || isc.corsista_id}','${projectId}')" class="p-1.5 rounded bg-blue-100 hover:bg-blue-200 text-blue-700" title="Modifica corsista"><i data-lucide="edit-3" class="w-3 h-3"></i></button>
-                            <button onclick="window.rimuoviIscrizione('${isc.id}', '${projectId}')" class="p-1.5 rounded bg-red-100 hover:bg-red-200 text-red-700" title="Rimuovi dal corso"><i data-lucide="user-minus" class="w-3 h-3"></i></button>
+                            <button onclick="window.modificaCorsistaDaProgetto('${c.id || isc.corsista_id}','${projectId}')" class="p-1.5 rounded bg-blue-500 hover:bg-blue-400 text-white" title="Modifica corsista"><i data-lucide="edit-3" class="w-3 h-3"></i></button>
+                            <button onclick="window.rimuoviIscrizione('${isc.id}', '${projectId}')" class="p-1.5 rounded bg-red-600 hover:bg-red-500 text-white" title="Rimuovi dal corso"><i data-lucide="user-minus" class="w-3 h-3"></i></button>
                         </div>
                     </div>
-                    <div class="mt-2 text-[9px] text-slate-600 space-y-0.5">
+                    <div class="mt-2 text-[9px] text-slate-200 space-y-0.5">
                         <p><span class="font-black uppercase text-slate-400">Mansione:</span> ${window.dashEscape(isc.mansione_storica || c.mansione_storica || '-')}</p>
-                        <p><span class="font-black uppercase text-slate-400">Cert:</span> <span class="font-mono ${isc.id_certificato ? 'text-slate-700' : 'text-red-700 font-black'}">${window.dashEscape(isc.id_certificato || 'Mancante')}</span></p>
-                        <p><span class="font-black uppercase text-slate-400">Esito:</span> <span class="${isc.esito ? 'text-emerald-700 font-black' : 'text-red-700 font-black'}">${window.dashEscape(isc.esito || 'Mancante')}</span></p>
+                        <p><span class="font-black uppercase text-slate-400">Cert:</span> <span class="font-mono ${isc.id_certificato ? 'text-slate-100' : 'text-red-200 font-black'}">${window.dashEscape(isc.id_certificato || 'Mancante')}</span></p>
+                        <p><span class="font-black uppercase text-slate-400">Esito:</span> <span class="${isc.esito ? 'text-emerald-300 font-black' : 'text-red-200 font-black'}">${window.dashEscape(isc.esito || 'Mancante')}</span></p>
                     </div>
                 </div>`;
             }).join('')}
@@ -1636,40 +1649,40 @@ window.loadProgettiTable = async function() {
             : (p.stato_corso === 'svolto' ? '<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-100 text-amber-800 border border-amber-200 font-black text-[8px] uppercase">Da chiudere</span>' : '');
 
         html += `
-            <tr class="hover:bg-amber-50 transition-colors bg-white" data-corso="${p.corso_id}" data-project-id="${p.id}">
-                <td class="p-3 border-b font-mono font-bold text-[10px] text-slate-800 align-top">
+            <tr class="bg-slate-800 hover:bg-slate-700 transition-colors" data-corso="${p.corso_id}" data-project-id="${p.id}">
+                <td class="p-3 border-b border-slate-700 font-mono font-bold text-[10px] text-slate-100 align-top">
                     <div class="flex flex-col gap-1">
-                        <button type="button" onclick="window.apriPopupProgettoById('${p.id}', 'progetti')" class="text-left text-rose-700 hover:underline font-black">${window.dashEscape(p.codice || '')}</button>
+                        <button type="button" onclick="window.apriPopupProgettoById('${p.id}', 'progetti')" class="text-left text-rose-300 hover:text-rose-200 hover:underline font-black">${window.dashEscape(p.codice || '')}</button>
                         ${statoBadge}
                         ${chiusuraBadge}
                     </div>
                 </td>
-                <td class="p-3 border-b align-top">
-                    <div class="rounded-xl border border-blue-200 bg-blue-50 p-3">
-                        <p class="text-[8px] font-black uppercase tracking-widest text-blue-700 mb-1">Corso svolto</p>
-                        <p class="font-black text-sm text-blue-950 uppercase leading-tight"><span class="text-slate-500 font-mono text-[10px]">[${siglaCorso}]</span> ${window.dashEscape(nomeCorso || '')}</p>
+                <td class="p-3 border-b border-slate-700 align-top">
+                    <div class="rounded-xl border border-blue-300 bg-blue-600 p-3 shadow-lg shadow-blue-900/20">
+                        <p class="text-[8px] font-black uppercase tracking-widest text-blue-100 mb-1">Corso svolto</p>
+                        <p class="font-black text-sm text-white uppercase leading-tight"><span class="text-blue-100 font-mono text-[10px]">[${siglaCorso}]</span> ${window.dashEscape(nomeCorso || '')}</p>
                     </div>
-                    <div class="rounded-xl border border-amber-200 bg-amber-50 p-3 mt-2">
-                        <p class="text-[8px] font-black uppercase tracking-widest text-amber-700 mb-1">Azienda committente</p>
-                        <p class="font-black text-xs text-amber-950 uppercase leading-tight">${window.dashEscape(nomeAzienda || '')}</p>
+                    <div class="rounded-xl border border-amber-300 bg-amber-400 p-3 mt-2 shadow-lg shadow-amber-900/20">
+                        <p class="text-[8px] font-black uppercase tracking-widest text-amber-900 mb-1">Azienda committente</p>
+                        <p class="font-black text-xs text-slate-950 uppercase leading-tight">${window.dashEscape(nomeAzienda || '')}</p>
                         ${erogatoreBadge}
                     </div>
                 </td>
-                <td class="p-3 border-b font-bold text-center text-slate-700 align-top">${window.formatDataToItalian(p.data_esame)}</td>
-                <td class="p-3 border-b text-center whitespace-nowrap align-top">
+                <td class="p-3 border-b border-slate-700 font-bold text-center text-slate-100 align-top">${window.formatDataToItalian(p.data_esame)}</td>
+                <td class="p-3 border-b border-slate-700 text-center whitespace-nowrap align-top">
                     <button onclick="window.apriPopupProgettoById('${p.id}', 'progetti')" class="text-blue-600 hover:bg-blue-200 bg-blue-100 p-1.5 rounded transition shadow-sm" title="Modifica progetto"><i data-lucide="edit" class="w-3 h-3"></i></button>
                     <button onclick="window.eliminaProgetto('${p.id}')" class="text-red-600 hover:bg-red-200 bg-red-100 p-1.5 rounded transition shadow-sm ml-1" title="Elimina progetto"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
                 </td>
             </tr>
-            <tr class="bg-slate-50" data-corso="${p.corso_id}" data-project-id="${p.id}" data-inline-iscritti-project="${p.id}">
-                <td colspan="4" class="p-4 border-b border-slate-200">
+            <tr class="bg-slate-900" data-corso="${p.corso_id}" data-project-id="${p.id}" data-inline-iscritti-project="${p.id}">
+                <td colspan="4" class="p-4 border-b border-slate-700">
                     <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-3">
                         <div>
-                            <p class="font-black uppercase text-slate-800 text-xs flex items-center gap-2"><i data-lucide="users" class="w-4 h-4 text-amber-500"></i> Corsisti iscritti</p>
-                            <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">${iscritti.length} iscritti abbinati al progetto ${window.dashEscape(p.codice || '')}</p>
+                            <p class="font-black uppercase text-white text-xs flex items-center gap-2"><i data-lucide="users" class="w-4 h-4 text-amber-400"></i> Corsisti iscritti</p>
+                            <p class="text-[10px] text-slate-300 font-bold uppercase tracking-widest">${iscritti.length} iscritti abbinati al progetto ${window.dashEscape(p.codice || '')}</p>
                         </div>
                         <div class="flex flex-col md:flex-row gap-2 md:items-center">
-                            <select id="inline-sel-iscrivi-${p.id}" class="min-w-[260px] px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs outline-none focus:border-amber-500 font-bold text-slate-700">
+                            <select id="inline-sel-iscrivi-${p.id}" class="min-w-[260px] px-3 py-2 bg-slate-800 border border-amber-400 rounded-lg text-xs outline-none focus:border-amber-300 font-bold text-white shadow-inner">
                                 ${window.getCorsistaOptionsForProject(p.id)}
                             </select>
                             <div class="flex gap-2">
