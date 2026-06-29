@@ -250,6 +250,33 @@
                     <p class="mt-1 text-[9px] text-slate-500">Scadenza stimata: <span id="lbl-prog-scadenza" class="font-black text-slate-800">---</span></p>
                 </div>
 
+<div class="border border-slate-200 bg-slate-50 rounded-xl p-3 space-y-2">
+    <label class="text-[10px] font-black text-slate-600 uppercase block border-b border-slate-200 pb-1">Chiusura corso e documenti firmati</label>
+    <div class="grid grid-cols-2 gap-2">
+        <div>
+            <label class="text-[9px] font-bold text-slate-500 uppercase block mb-1">Stato corso</label>
+            <select id="prog-stato-corso" class="w-full px-2 py-1.5 bg-white border border-slate-300 rounded outline-none focus:border-rose-500 font-bold text-[10px]">
+                <option value="aperto">Aperto / in lavorazione</option>
+                <option value="svolto">Svolto - da chiudere</option>
+                <option value="chiuso">Chiuso / archiviato</option>
+            </select>
+        </div>
+        <div>
+            <label class="text-[9px] font-bold text-slate-500 uppercase block mb-1">Data chiusura</label>
+            <input type="date" id="prog-chiuso-at" class="w-full px-2 py-1.5 bg-white border border-slate-300 rounded outline-none focus:border-rose-500">
+        </div>
+    </div>
+    <div>
+        <label class="text-[9px] font-bold text-slate-500 uppercase block mb-1">Link scansioni documenti firmati</label>
+        <input type="url" id="prog-documenti-url" placeholder="Es. link Drive/Dropbox/cartella documenti firmati" class="w-full px-2 py-1.5 bg-white border border-slate-300 rounded outline-none focus:border-rose-500 text-[10px]">
+    </div>
+    <div>
+        <label class="text-[9px] font-bold text-slate-500 uppercase block mb-1">Note chiusura / archivio</label>
+        <textarea id="prog-note-chiusura" rows="2" placeholder="Es. documenti ricevuti via PEC, scansioni verificate, attestati consegnati..." class="w-full px-2 py-1.5 bg-white border border-slate-300 rounded outline-none focus:border-rose-500 text-[10px]"></textarea>
+    </div>
+</div>
+
+
                 <div class="pt-2 flex gap-2">
                     <button type="submit" class="flex-1 bg-rose-600 hover:bg-rose-700 text-white font-bold uppercase py-2 px-4 rounded shadow transition text-center block">Salva Progetto</button>
                     <button type="button" onclick="window.resetFormProgetto()" class="bg-slate-200 hover:bg-slate-300 text-slate-600 font-bold uppercase py-2 px-3 rounded transition">Annulla</button>
@@ -313,7 +340,7 @@
             </div>
 
             <!-- PANNELLO ISCRIZIONI (OVERLAY Z-10) -->
-            <div id="panel-iscrizioni" class="hidden absolute inset-0 bg-slate-900/95 backdrop-blur-sm z-10 flex flex-col p-6 overflow-hidden">
+            <div id="panel-iscrizioni" class="hidden fixed inset-0 bg-slate-900/95 backdrop-blur-sm z-[100] flex flex-col p-6 overflow-hidden">
                 <div class="flex justify-between items-start border-b border-slate-700 pb-3 mb-4 shrink-0">
                     <div>
                         <h2 class="text-xl font-black uppercase text-white flex items-center gap-2">
@@ -324,7 +351,7 @@
                     <button onclick="window.chiudiPannelloIscrizioni()" class="text-slate-400 hover:text-white bg-slate-800 p-2 rounded-lg transition"><i data-lucide="x" class="w-5 h-5"></i></button>
                 </div>
 
-                <div class="flex gap-2 mb-4 shrink-0">
+                <div class="flex gap-2 mb-4 shrink-0 max-w-5xl w-full mx-auto">
                     <select id="sel-iscrivi-corsista" class="flex-1 px-3 py-2 bg-slate-800 border border-slate-700 rounded text-xs text-white outline-none focus:border-amber-500">
                         <!-- Popolato via JS -->
                     </select>

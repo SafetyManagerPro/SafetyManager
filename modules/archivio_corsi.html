@@ -1,0 +1,29 @@
+
+<!-- modules/archivio_corsi.html -->
+<div class="w-full max-w-7xl mx-auto mt-4 mb-10">
+    <div class="border-b-2 border-slate-900 pb-3 mb-6 flex flex-col md:flex-row md:items-end md:justify-between gap-3">
+        <div>
+            <h1 class="text-3xl font-black uppercase text-slate-900 tracking-tighter flex items-center gap-3">
+                <i data-lucide="folders" class="w-8 h-8 text-blue-600"></i> Archivio Imprese / Enti
+            </h1>
+            <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Corsi svolti, progetti e corsisti abbinati a ciascuna azienda o soggetto formatore</p>
+        </div>
+        <button onclick="window.loadArchivioCorsi()" class="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-2">
+            <i data-lucide="refresh-cw" class="w-4 h-4"></i> Aggiorna
+        </button>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
+        <input id="archivio-search" onkeyup="window.renderArchivioCorsi()" type="text" placeholder="Cerca azienda, corso, codice, corsista..." class="md:col-span-2 px-4 py-3 bg-white border border-slate-300 rounded-xl text-sm outline-none focus:border-blue-500 shadow-sm">
+        <select id="archivio-filter-stato" onchange="window.renderArchivioCorsi()" class="px-4 py-3 bg-white border border-slate-300 rounded-xl text-sm outline-none focus:border-blue-500 shadow-sm font-bold text-slate-700">
+            <option value="">Tutti gli stati</option>
+            <option value="aperto">Aperti</option>
+            <option value="svolto">Svolti da chiudere</option>
+            <option value="chiuso">Chiusi / archiviati</option>
+        </select>
+    </div>
+
+    <div id="archivio-corsi-container" class="space-y-4">
+        <div class="p-8 text-center text-slate-400 font-bold uppercase">Caricamento archivio...</div>
+    </div>
+</div>

@@ -68,6 +68,7 @@ window.loadModule = async function(moduleId) {
         if (moduleId === 'stampe' && typeof window.initStampe === 'function') window.initStampe();
         if (moduleId === 'procedure' && typeof window.initProcedureDigitali === 'function') window.initProcedureDigitali();
         if (moduleId === 'migrazione' && typeof window.initMigrazione === 'function') window.initMigrazione();
+        if (moduleId === 'archivio_corsi' && typeof window.loadArchivioCorsi === 'function') window.loadArchivioCorsi();
 
     } catch (error) {
         contentDiv.innerHTML = `<div class="p-10 text-center text-red-500 font-bold flex flex-col items-center mt-20"><i data-lucide="alert-triangle" class="w-10 h-10 mb-2"></i> Errore Modulo: ${error.message}</div>`;

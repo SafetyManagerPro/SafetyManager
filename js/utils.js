@@ -188,6 +188,13 @@ window.dashGetProjectIssues = async function(p) {
         errors.push(`Numero discenti superiore al limite generale (${iscritti.length}/30), salvo e-learning.`);
     }
 
+    if (p.stato_corso === 'chiuso' && !p.documenti_firmati_url) {
+        errors.push('Corso chiuso senza link alla scansione dei documenti firmati.');
+    }
+    if (p.stato_corso === 'chiuso' && !p.chiuso_at) {
+        errors.push('Corso chiuso senza data di chiusura/archiviazione.');
+    }
+
     if (isDL) {
         const invalid = iscritti.filter(isc => isc.corsisti && isc.corsisti.azienda_id && isc.corsisti.azienda_id !== p.azienda_id);
         if (invalid.length) errors.push('Datore di lavoro soggetto formatore: presenti corsisti non appartenenti alla stessa azienda.');
@@ -827,11 +834,15 @@ window.isCnaErogatore = function() {
     return nomeEnte.includes('CNA');
 };
 window.getEffectiveLogoSrc = function() {
+    const erogatore = window.getVal('cfg-ente-erogatore') || 'ente';
+    if (erogatore === 'azienda') return '';
     const configured = window.getVal('cfg-logo');
     if (configured) return configured;
     return window.isCnaErogatore() ? 'logocna.png' : '';
 };
 window.getEffectiveTimbroSrc = function() {
+    const erogatore = window.getVal('cfg-ente-erogatore') || 'ente';
+    if (erogatore === 'azienda') return '';
     return window.isCnaErogatore() ? 'timbrocna.png' : '';
 };
 
@@ -1131,7 +1142,11 @@ window.collectProjectFormSnapshot = function(projectId) {
         comunicazione_op_at: document.getElementById('prog-op-comunicazione')?.value || '',
         organismo_destinatario: document.getElementById('prog-op-destinatario')?.value || '',
         note_validazione_ente: document.getElementById('prog-validazione-note')?.value || '',
-        omogeneita_aula: document.getElementById('prog-omogeneita-aula') ? document.getElementById('prog-omogeneita-aula').checked : true
+        omogeneita_aula: document.getElementById('prog-omogeneita-aula') ? document.getElementById('prog-omogeneita-aula').checked : true,
+        stato_corso: document.getElementById('prog-stato-corso')?.value || original.stato_corso || 'aperto',
+        documenti_firmati_url: document.getElementById('prog-documenti-url')?.value || '',
+        chiuso_at: document.getElementById('prog-chiuso-at')?.value || '',
+        note_chiusura: document.getElementById('prog-note-chiusura')?.value || ''
     };
 };
 
@@ -1184,7 +1199,14 @@ window.getProjectPopupFieldErrors = function(p, iscritti = []) {
         }
     }
 
-    return errors;
+        if (p.stato_corso === 'chiuso' && !p.documenti_firmati_url) {
+        add('#prog-documenti-url', 'Corso chiuso: inserire il link alla scansione dei documenti firmati.');
+    }
+    if (p.stato_corso === 'chiuso' && !p.chiuso_at) {
+        add('#prog-chiuso-at', 'Corso chiuso: indicare la data di chiusura/archiviazione.');
+    }
+
+return errors;
 };
 
 window.applyProjectPopupValidation = async function(projectId) {
@@ -1374,6 +1396,9 @@ for (const p of window.progettiList) {
 
     const issues = (typeof window.dashGetProjectOverallIssues === 'function') ? await window.dashGetProjectOverallIssues(p) : [];
     const statoBadge = (typeof window.dashStatusBadgeHtml === 'function') ? window.dashStatusBadgeHtml(issues.length > 0) : '';
+        const chiusuraBadge = p.stato_corso === 'chiuso'
+            ? '<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-slate-900 text-white border border-slate-700 font-black text-[8px] uppercase">Chiuso</span>'
+            : (p.stato_corso === 'svolto' ? '<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-100 text-amber-800 border border-amber-200 font-black text-[8px] uppercase">Da chiudere</span>' : '');
 
     html += `
         <tr class="hover:bg-amber-50 transition-colors" data-corso="${p.corso_id}" data-project-id="${p.id}">
@@ -1440,6 +1465,10 @@ window.salvaProgettoDB = async function() {
     const comunicazioneOpData = document.getElementById('prog-op-comunicazione') ? document.getElementById('prog-op-comunicazione').value : null;
     const opDestinatario = (document.getElementById('prog-op-destinatario')?.value || window.DEFAULT_OP_DESTINATARIO).trim();
     const validazioneNote = (document.getElementById('prog-validazione-note')?.value || '').trim();
+    const statoCorso = document.getElementById('prog-stato-corso') ? document.getElementById('prog-stato-corso').value : 'aperto';
+    const documentiFirmatiUrl = (document.getElementById('prog-documenti-url')?.value || '').trim();
+    const chiusoAt = document.getElementById('prog-chiuso-at') ? document.getElementById('prog-chiuso-at').value : '';
+    const noteChiusura = (document.getElementById('prog-note-chiusura')?.value || '').trim();
 
     if (!aziendaId) return alert("Seleziona l\'azienda committente prima di salvare il progetto.");
     if (!corsoId) return alert('Seleziona una tipologia di corso.');
@@ -1509,7 +1538,11 @@ window.salvaProgettoDB = async function() {
         validazione_ente_at: erogatore === 'azienda' ? (validazioneData || null) : null,
         comunicazione_op_at: erogatore === 'azienda' ? (comunicazioneOpData || opInvio || null) : null,
         organismo_destinatario: erogatore === 'azienda' ? opDestinatario : null,
-        note_validazione_ente: erogatore === 'azienda' ? (validazioneNote || null) : null
+        note_validazione_ente: erogatore === 'azienda' ? (validazioneNote || null) : null,
+        stato_corso: statoCorso || 'aperto',
+        documenti_firmati_url: documentiFirmatiUrl || null,
+        chiuso_at: statoCorso === 'chiuso' ? (chiusoAt || new Date().toISOString().slice(0,10)) : (chiusoAt || null),
+        note_chiusura: noteChiusura || null
     };
     if (id && id !== "") record.id = id;
 
@@ -1580,6 +1613,10 @@ window.resetFormProgetto = function() {
     if(lbl) lbl.innerText = '---';
     if(document.getElementById('prog-ente-validatore')) document.getElementById('prog-ente-validatore').value = window.getDefaultEnteValidatore();
     if(document.getElementById('prog-op-destinatario')) document.getElementById('prog-op-destinatario').value = window.DEFAULT_OP_DESTINATARIO;
+    if(document.getElementById('prog-stato-corso')) document.getElementById('prog-stato-corso').value = 'aperto';
+    if(document.getElementById('prog-documenti-url')) document.getElementById('prog-documenti-url').value = '';
+    if(document.getElementById('prog-chiuso-at')) document.getElementById('prog-chiuso-at').value = '';
+    if(document.getElementById('prog-note-chiusura')) document.getElementById('prog-note-chiusura').value = '';
     if(typeof window.syncValidazioneCNAUI === 'function') window.syncValidazioneCNAUI();
 };
 
@@ -2091,10 +2128,10 @@ window.updateAll = function() {
     document.querySelectorAll('.val-luogo-emissione').forEach(el => el.innerText = luogoEmissione);
 
     document.querySelectorAll('.val-erogatore').forEach(el => el.innerText = nomeErogatore || "---");
-    document.querySelectorAll('.val-legale-nome').forEach(el => el.innerText = window.getVal('cfg-legale-nome') || respProgetto || "---");
+    document.querySelectorAll('.val-legale-nome').forEach(el => el.innerText = isAzienda ? (respProgetto || window.getVal('cfg-azienda-referente') || "---") : (window.getVal('cfg-legale-nome') || respProgetto || "---"));
     document.querySelectorAll('.val-legale-nascita').forEach(el => el.innerText = window.getVal('cfg-legale-nascita') || "---");
-    document.querySelectorAll('.val-ente-indirizzo').forEach(el => el.innerText = window.getVal('cfg-ente-indirizzo') || "---");
-    document.querySelectorAll('.val-ente-contatti').forEach(el => el.innerText = window.getVal('cfg-ente-contatti') || "---");
+    document.querySelectorAll('.val-ente-indirizzo').forEach(el => el.innerText = isAzienda ? (window.getVal('cfg-azienda-indirizzo') || "---") : (window.getVal('cfg-ente-indirizzo') || "---"));
+    document.querySelectorAll('.val-ente-contatti').forEach(el => el.innerText = isAzienda ? ("ATECO: " + (window.getVal('cfg-ateco') || "---")) : (window.getVal('cfg-ente-contatti') || "---"));
     document.querySelectorAll('.val-azienda-indirizzo').forEach(el => el.innerText = window.getVal('cfg-azienda-indirizzo') || "---");
     document.querySelectorAll('.val-op-invio').forEach(el => el.innerText = window.formatDataToItalian(window.getVal('cfg-op-invio')) || "---");
     document.querySelectorAll('.val-op-risposta').forEach(el => el.innerText = window.formatDataToItalian(window.getVal('cfg-op-risposta')) || "---");
@@ -2105,18 +2142,22 @@ window.updateAll = function() {
     document.querySelectorAll('.val-op-comunicazione').forEach(el => el.innerText = window.formatDataToItalian(window.getVal('cfg-op-comunicazione')) || "---");
     document.querySelectorAll('.val-op-destinatario').forEach(el => el.innerText = window.getVal('cfg-op-destinatario') || window.DEFAULT_OP_DESTINATARIO);
     document.querySelectorAll('.val-validazione-note').forEach(el => el.innerText = window.getVal('cfg-validazione-note') || "Nessuna prescrizione aggiuntiva registrata.");
+    document.querySelectorAll('.val-stato-corso').forEach(el => el.innerText = (window.getVal('cfg-stato-corso') || 'aperto').toUpperCase());
+    document.querySelectorAll('.val-documenti-firmati-url').forEach(el => { const v = window.getVal('cfg-documenti-firmati-url'); el.innerText = v || '---'; if (v && el.tagName === 'A') el.href = v; });
+    document.querySelectorAll('.val-chiuso-at').forEach(el => el.innerText = window.formatDataToItalian(window.getVal('cfg-chiuso-at')) || '---');
+    document.querySelectorAll('.val-note-chiusura').forEach(el => el.innerText = window.getVal('cfg-note-chiusura') || '---');
     document.querySelectorAll('.only-dl-validazione').forEach(el => el.style.display = isAzienda ? '' : 'none');
     document.querySelectorAll('.val-omogeneita-aula').forEach(el => el.innerText = window.getVal('cfg-omogeneita-aula', 'SI'));
     document.querySelectorAll('.val-compliance-note-free').forEach(el => el.innerText = window.getVal('cfg-compliance-note-free') || "Nessuna nota aggiuntiva.");
     document.querySelectorAll('.val-ente-indirizzo-dinamico').forEach(el => el.innerText = isAzienda ? window.getVal('cfg-azienda-indirizzo') : window.getVal('cfg-ente-indirizzo'));
     document.querySelectorAll('.val-ente-contatti-dinamico').forEach(el => el.innerText = isAzienda ? "Ateco: " + window.getVal('cfg-ateco') : window.getVal('cfg-ente-contatti'));
     
-    document.querySelectorAll('.val-ruolo-firma-3').forEach(el => el.innerText = isAzienda ? "Il Datore di Lavoro" : "Il Legale Rappresentante dell'Ente");
-    document.querySelectorAll('.val-firma-3-nome').forEach(el => el.innerText = isAzienda ? (window.getVal('cfg-azienda-referente') || respProgetto) : (window.getVal('cfg-legale-nome') || respProgetto));
+    document.querySelectorAll('.val-ruolo-firma-3').forEach(el => el.innerText = isAzienda ? "Referente formazione / Responsabile progetto formativo" : "Il Legale Rappresentante dell'Ente");
+    document.querySelectorAll('.val-firma-3-nome').forEach(el => el.innerText = isAzienda ? (respProgetto || window.getVal('cfg-azienda-referente') || "---") : (window.getVal('cfg-legale-nome') || respProgetto || "---"));
     document.querySelectorAll('.val-testo-timbro').forEach(el => el.innerHTML = isAzienda ? "TIMBRO<br>AZIENDA" : "TIMBRO<br>EROGATORE");
 
     const sedeToDisplay = window.getVal('cfg-sede-corso') || window.getVal('cfg-azienda-indirizzo') || "Sede Aziendale";
-    document.querySelectorAll('.val-ente').forEach(el => el.innerText = window.getVal('cfg-ente'));
+    document.querySelectorAll('.val-ente').forEach(el => el.innerText = isAzienda ? (window.getVal('cfg-azienda') || "---") : (window.getVal('cfg-ente') || "---"));
     document.querySelectorAll('.val-azienda').forEach(el => el.innerText = window.getVal('cfg-azienda'));
     document.querySelectorAll('.val-ateco').forEach(el => el.innerText = window.getVal('cfg-ateco'));
     document.querySelectorAll('.val-titolo-corso').forEach(el => el.innerText = c.t);
@@ -2690,4 +2731,191 @@ window.renderTest = function() {
 window.toggleCorrettore = function() {
     window.correctorEnabled = !window.correctorEnabled;
     window.renderTest();
+};
+
+
+// ==========================================
+// ARCHIVIO IMPRESE / ENTI
+// ==========================================
+window.archivioCorsiState = { progetti: [], aziende: [], iscrizioniByProject: {} };
+
+window.loadArchivioCorsi = async function() {
+    const container = document.getElementById('archivio-corsi-container');
+    if (!container) return;
+    container.innerHTML = '<div class="p-8 text-center text-slate-400 font-bold uppercase"><i data-lucide="loader-2" class="w-6 h-6 animate-spin mx-auto mb-2"></i> Caricamento archivio...</div>';
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+
+    const [progetti, aziende] = await Promise.all([window.getProgetti(), window.getAziende()]);
+    window.archivioCorsiState.progetti = progetti || [];
+    window.archivioCorsiState.aziende = aziende || [];
+    window.archivioCorsiState.iscrizioniByProject = {};
+
+    for (const p of window.archivioCorsiState.progetti) {
+        window.archivioCorsiState.iscrizioniByProject[p.id] = await window.getIscrizioni(p.id);
+    }
+
+    window.renderArchivioCorsi();
+};
+
+window.renderArchivioCorsi = function() {
+    const container = document.getElementById('archivio-corsi-container');
+    if (!container) return;
+
+    const q = (document.getElementById('archivio-search')?.value || '').toLowerCase();
+    const stato = document.getElementById('archivio-filter-stato')?.value || '';
+    const progetti = window.archivioCorsiState.progetti || [];
+    const aziende = window.archivioCorsiState.aziende || [];
+    const iscrizioniByProject = window.archivioCorsiState.iscrizioniByProject || {};
+
+    const groups = [];
+    aziende.forEach(az => {
+        const ps = progetti.filter(p => p.azienda_id === az.id && (!stato || (p.stato_corso || 'aperto') === stato));
+        if (!ps.length) return;
+        groups.push({ type: 'azienda', title: az.ragione_sociale, subtitle: `${az.piva_cf || ''} ${az.ateco ? '· ATECO ' + az.ateco : ''}`, progetti: ps });
+    });
+
+    const enteProjects = progetti.filter(p => p.ente_erogatore === 'ente' && (!stato || (p.stato_corso || 'aperto') === stato));
+    if (enteProjects.length) {
+        groups.unshift({ type: 'ente', title: window.getVal('cfg-ente') || 'Ente formatore / erogatore', subtitle: 'Corsi erogati come associazione/ente di diretta emanazione', progetti: enteProjects });
+    }
+
+    const filtered = groups.map(g => {
+        const ps = g.progetti.filter(p => {
+            const course = window.DB_CORSI[p.corso_id]?.t || p.corso_id;
+            const iscritti = iscrizioniByProject[p.id] || [];
+            const hay = [g.title, g.subtitle, p.codice, course, p.aziende?.ragione_sociale, ...iscritti.map(i => `${i.corsisti?.nome_cognome || ''} ${i.corsisti?.cf || ''}`)].join(' ').toLowerCase();
+            return !q || hay.includes(q);
+        });
+        return { ...g, progetti: ps };
+    }).filter(g => g.progetti.length);
+
+    if (!filtered.length) {
+        container.innerHTML = '<div class="p-8 bg-white rounded-xl border border-slate-200 text-center text-slate-500 font-bold uppercase">Nessun corso trovato per i filtri selezionati.</div>';
+        return;
+    }
+
+    container.innerHTML = filtered.map(g => `
+        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+            <div class="p-4 ${g.type === 'ente' ? 'bg-emerald-50 border-emerald-100' : 'bg-blue-50 border-blue-100'} border-b flex justify-between items-start gap-4">
+                <div>
+                    <p class="font-black uppercase ${g.type === 'ente' ? 'text-emerald-900' : 'text-blue-900'}">${window.dashEscape(g.title)}</p>
+                    <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">${window.dashEscape(g.subtitle || '')}</p>
+                </div>
+                <span class="px-3 py-1 rounded-full bg-white border border-slate-200 text-[10px] font-black uppercase text-slate-700">${g.progetti.length} corsi</span>
+            </div>
+            <div class="divide-y divide-slate-100">
+                ${g.progetti.map(p => {
+                    const course = window.DB_CORSI[p.corso_id]?.t || p.corso_id;
+                    const iscritti = iscrizioniByProject[p.id] || [];
+                    const stato = p.stato_corso || 'aperto';
+                    const badge = stato === 'chiuso' ? 'bg-slate-900 text-white' : (stato === 'svolto' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800');
+                    return `<div class="p-4">
+                        <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3">
+                            <div>
+                                <button onclick="window.apriPopupProgettoById('${p.id}', 'progetti')" class="font-mono text-rose-700 hover:underline font-black text-xs">${window.dashEscape(p.codice || '')}</button>
+                                <p class="font-black text-slate-900 uppercase text-sm mt-1">${window.dashEscape(course)}</p>
+                                <p class="text-[10px] text-slate-500 uppercase mt-0.5">Esame: ${window.formatDataToItalian(p.data_esame)} · Corsisti: ${iscritti.length}</p>
+                                ${p.documenti_firmati_url ? `<a href="${window.dashEscape(p.documenti_firmati_url)}" target="_blank" class="inline-block mt-2 text-[10px] font-black text-blue-700 hover:underline uppercase">Apri scansioni documenti firmati</a>` : ''}
+                            </div>
+                            <span class="px-3 py-1 rounded-full ${badge} text-[9px] font-black uppercase self-start">${window.dashEscape(stato)}</span>
+                        </div>
+                        <div class="mt-3 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
+                            ${iscritti.length ? iscritti.map(isc => `<div class="border border-slate-200 bg-slate-50 rounded-lg p-2">
+                                <p class="font-black uppercase text-slate-900 text-[11px]">${window.dashEscape(isc.corsisti?.nome_cognome || '-')}</p>
+                                <p class="font-mono text-[9px] text-slate-500">${window.dashEscape(isc.corsisti?.cf || '-')}</p>
+                                <p class="text-[9px] text-slate-500 mt-1">${window.dashEscape(isc.mansione_storica || isc.corsisti?.mansione_storica || '-')}</p>
+                            </div>`).join('') : '<div class="text-[10px] text-red-600 font-bold uppercase">Nessun corsista abbinato</div>'}
+                        </div>
+                    </div>`;
+                }).join('')}
+            </div>
+        </div>
+    `).join('');
+
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+};
+
+
+// ==========================================
+// STAMPA PDF COMPLETA PROGETTO + ATTESTATI
+// ==========================================
+window.renderPrintModuleToTemp = async function(moduleId, singleCorsista = null) {
+    const resp = await fetch(`modules/${moduleId}.html`);
+    if (!resp.ok) throw new Error(`Modulo non trovato: ${moduleId}`);
+    const html = await resp.text();
+    const temp = document.createElement('div');
+    temp.innerHTML = html;
+    const prevModule = window.currentPrintModule;
+    const prevSession = [...(window.currentSessionCorsisti || [])];
+
+    window.currentPrintModule = moduleId;
+    if (singleCorsista) window.currentSessionCorsisti = [singleCorsista];
+    window.updateAll();
+
+    // Aggiorna sul frammento temporaneo usando una preview invisibile.
+    const oldPreview = document.getElementById('print-preview-container');
+    let holder = document.createElement('div');
+    holder.id = 'print-preview-container';
+    holder.style.display = 'none';
+    holder.innerHTML = html;
+    document.body.appendChild(holder);
+    window.updateAll();
+    const pages = Array.from(holder.querySelectorAll('.doc-page')).map(p => {
+        const clone = p.cloneNode(true);
+        clone.classList.remove('scale-[0.8]', 'origin-top');
+        clone.classList.add('print-show', 'temp-page');
+        return clone;
+    });
+    holder.remove();
+
+    window.currentPrintModule = prevModule;
+    window.currentSessionCorsisti = prevSession;
+    return pages;
+};
+
+window.stampaFascicoloCompletoPDF = async function() {
+    const progId = document.getElementById('stampa-progetto')?.value;
+    if (!progId) return alert('Seleziona prima un progetto formativo.');
+
+    await window.caricaDatiStampa();
+    const printArea = document.getElementById('print-area-temp');
+    printArea.innerHTML = '';
+
+    const docs = [
+        'progetto_formativo',
+        'validazione_percorso_formativo',
+        'dichiarazione_docenza',
+        'autocert',
+        'richiesta_organismo_paritetico',
+        'dichiarazione_attrezzature',
+        'registro',
+        'verbale',
+        'fascicolo_corso'
+    ];
+
+    try {
+        for (const m of docs) {
+            const pages = await window.renderPrintModuleToTemp(m, null);
+            pages.forEach(p => printArea.appendChild(p));
+        }
+
+        const backupSession = [...(window.currentSessionCorsisti || [])];
+        for (const c of backupSession) {
+            const pages = await window.renderPrintModuleToTemp('attestato', c);
+            pages.forEach(p => printArea.appendChild(p));
+        }
+
+        alert('Ora si aprirà la stampa. Seleziona "Salva come PDF" per salvare sul PC il fascicolo completo con attestati.');
+        document.body.classList.add('is-printing-temp');
+        setTimeout(() => {
+            window.print();
+            document.body.classList.remove('is-printing-temp');
+            printArea.innerHTML = '';
+        }, 1200);
+    } catch (e) {
+        console.error(e);
+        alert('Errore nella preparazione del PDF completo: ' + (e.message || e));
+        document.body.classList.remove('is-printing-temp');
+        printArea.innerHTML = '';
+    }
 };
