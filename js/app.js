@@ -82,6 +82,7 @@ window.loadModule = async function(moduleId) {
         if (moduleId === 'procedure' && typeof window.initProcedureDigitali === 'function') window.initProcedureDigitali();
         if (moduleId === 'migrazione' && typeof window.initMigrazione === 'function') window.initMigrazione();
         if (moduleId === 'archivio_corsi' && typeof window.loadArchivioCorsi === 'function') window.loadArchivioCorsi();
+        if (typeof window.injectSectionExportToolbar === 'function') window.injectSectionExportToolbar(moduleId);
         if (typeof window.updateNavOffset === 'function') setTimeout(window.updateNavOffset, 50);
 
     } catch (error) {

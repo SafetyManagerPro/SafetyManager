@@ -17,6 +17,7 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800;900&display=swap');
@@ -113,6 +114,43 @@
     }
     #panel-iscrizioni #table-iscritti td:last-child { border-bottom: none !important; }
 }
+
+
+        /* --- AZIONI ESPORTA/STAMPA SEZIONI --- */
+        .section-export-toolbar {
+            display: flex; align-items: center; justify-content: space-between; gap: .75rem;
+            background: #0f172a; border: 1px solid #1e293b; color: white;
+            border-radius: 1rem; padding: .8rem 1rem; margin: -0.4rem 0 1.25rem 0;
+            box-shadow: 0 10px 24px rgba(15,23,42,.18);
+        }
+        .section-export-toolbar .section-export-title { font-size: .68rem; font-weight: 900; text-transform: uppercase; letter-spacing: .18em; color: #cbd5e1; }
+        .section-export-toolbar .section-export-actions { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; justify-content: flex-end; }
+        .section-export-toolbar button { min-height: 40px; }
+        @media (max-width: 768px) {
+            .section-export-toolbar { flex-direction: column; align-items: stretch; }
+            .section-export-toolbar .section-export-actions { justify-content: stretch; }
+            .section-export-toolbar .section-export-actions button { flex: 1 1 100%; justify-content: center; }
+        }
+        #progetto-form-col:not(.fixed) #progetto-form-card {
+            top: var(--nav-offset, 6rem) !important;
+            max-height: calc(100vh - var(--nav-offset, 6rem) - 2rem);
+            overflow-y: auto;
+            scrollbar-gutter: stable;
+        }
+        #progetto-form-col:not(.fixed) #progetto-form-card::-webkit-scrollbar { width: 8px; }
+        #progetto-form-col:not(.fixed) #progetto-form-card::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 99px; }
+        #progetto-form-col:not(.fixed) #progetto-form-card::-webkit-scrollbar-track { background: #e2e8f0; border-radius: 99px; }
+        @media (max-width: 1024px) {
+            #progetto-form-col:not(.fixed) #progetto-form-card { max-height: none; overflow-y: visible; }
+        }
+        @media print {
+            .export-print-page { display: block !important; page-break-after: always; padding: 12mm; font-family: Inter, Arial, sans-serif; }
+            .export-print-page h1 { font-size: 18pt; font-weight: 900; text-transform: uppercase; margin-bottom: 2mm; }
+            .export-print-page h2 { font-size: 11pt; font-weight: 900; text-transform: uppercase; margin: 6mm 0 2mm; color: #1e3a8a; }
+            .export-print-page table { width: 100%; border-collapse: collapse; font-size: 7.5pt; }
+            .export-print-page th { background: #0f172a; color: white; text-align: left; padding: 4px; border: 1px solid #334155; }
+            .export-print-page td { padding: 4px; border: 1px solid #cbd5e1; vertical-align: top; }
+        }
 
         /* --- MOTORE DI STAMPA PDF --- */
         body.is-printing-temp #print-area-temp { display: block !important; position: absolute; top: 0; left: 0; width: 100%; background: white; z-index: 99999; }
