@@ -25,6 +25,36 @@
     <div id="backup-db-status" class="hidden mt-4 font-mono text-[10px] bg-slate-900 text-slate-200 rounded-lg p-3 max-h-40 overflow-y-auto"></div>
 </div>
 
+
+<div class="bg-white rounded-xl shadow-sm border border-rose-200 p-6 mb-6">
+    <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+        <div>
+            <h2 class="font-black text-sm uppercase text-rose-900 mb-1 flex items-center gap-2">
+                <i data-lucide="rotate-ccw" class="w-4 h-4 text-rose-600"></i> Ripristino backup database
+            </h2>
+            <p class="text-xs text-slate-500 leading-relaxed">
+                Importa un backup locale generato da SafetyManager. Il ripristino è conservativo: aggiorna/inserisce i record presenti nel file,
+                senza cancellare automaticamente i dati esistenti non presenti nel backup.
+            </p>
+            <p class="text-[10px] text-rose-700 font-bold uppercase tracking-widest mt-2">
+                Consigliato: esegui prima un nuovo backup locale.
+            </p>
+        </div>
+        <div class="w-full lg:w-[420px] space-y-3">
+            <input type="file" id="restore-backup-file" accept=".zip,.json" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-rose-50 file:text-rose-700 hover:file:bg-rose-100 cursor-pointer">
+            <div class="flex gap-2">
+                <button onclick="window.analizzaBackupDaRipristinare()" class="flex-1 bg-rose-100 hover:bg-rose-200 text-rose-800 font-black text-xs uppercase px-4 py-2.5 rounded-lg shadow-sm transition flex items-center justify-center gap-2 border border-rose-200">
+                    <i data-lucide="search-check" class="w-4 h-4"></i> Analizza
+                </button>
+                <button onclick="window.ripristinaBackupDatabaseLocale()" class="flex-1 bg-rose-700 hover:bg-rose-800 text-white font-black text-xs uppercase px-4 py-2.5 rounded-lg shadow transition flex items-center justify-center gap-2">
+                    <i data-lucide="database-backup" class="w-4 h-4"></i> Ripristina
+                </button>
+            </div>
+        </div>
+    </div>
+    <div id="restore-db-status" class="hidden mt-4 font-mono text-[10px] bg-slate-900 text-slate-200 rounded-lg p-3 max-h-52 overflow-y-auto"></div>
+</div>
+
 <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
         <h2 class="font-black text-sm uppercase text-slate-800 mb-4 border-b border-slate-100 pb-2">1. Seleziona il file sorgente</h2>
         <div class="flex items-center gap-4">

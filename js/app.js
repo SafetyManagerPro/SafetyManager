@@ -14,6 +14,19 @@ if (typeof lucide !== 'undefined') {
     };
 }
 
+
+window.updateNavOffset = function() {
+    const nav = document.getElementById('top-nav');
+    if (!nav) return;
+    const h = Math.ceil(nav.getBoundingClientRect().height || 80);
+    document.documentElement.style.setProperty('--nav-offset', (h + 18) + 'px');
+};
+
+window.addEventListener('resize', () => {
+    clearTimeout(window.__navOffsetTimer);
+    window.__navOffsetTimer = setTimeout(window.updateNavOffset, 100);
+});
+
 window.loadModule = async function(moduleId) {
     const contentDiv = document.getElementById('app-content');
 
@@ -69,6 +82,7 @@ window.loadModule = async function(moduleId) {
         if (moduleId === 'procedure' && typeof window.initProcedureDigitali === 'function') window.initProcedureDigitali();
         if (moduleId === 'migrazione' && typeof window.initMigrazione === 'function') window.initMigrazione();
         if (moduleId === 'archivio_corsi' && typeof window.loadArchivioCorsi === 'function') window.loadArchivioCorsi();
+        if (typeof window.updateNavOffset === 'function') setTimeout(window.updateNavOffset, 50);
 
     } catch (error) {
         contentDiv.innerHTML = `<div class="p-10 text-center text-red-500 font-bold flex flex-col items-center mt-20"><i data-lucide="alert-triangle" class="w-10 h-10 mb-2"></i> Errore Modulo: ${error.message}</div>`;
@@ -110,5 +124,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (installBtn) installBtn.classList.add('hidden');
     });
 
-    await window.loadModule('admin'); 
+    await window.loadModule('admin');
+    if (typeof window.updateNavOffset === 'function') window.updateNavOffset(); 
 });

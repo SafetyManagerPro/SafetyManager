@@ -22,7 +22,23 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800;900&display=swap');
         body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
         
-        #app-content { margin-top: 6rem; padding-bottom: 3rem; }
+        #app-content { margin-top: var(--nav-offset, 6rem); padding-bottom: 3rem; }
+        #top-nav { overflow: visible !important; }
+        #top-nav-inner { min-height: 5rem; height: auto !important; }
+        #top-nav-buttons { overflow: visible !important; flex-wrap: wrap !important; row-gap: 0.35rem; justify-content: flex-end; }
+        #top-nav .btn-tab { flex: 0 1 auto; }
+        @media (max-width: 1280px) {
+            #top-nav-inner { align-items: flex-start !important; padding-top: 0.75rem; padding-bottom: 0.75rem; }
+            #top-nav-brand { align-self: flex-start; margin-top: 0.25rem; }
+            #top-nav-buttons { max-width: calc(100vw - 260px); }
+            #top-nav .btn-tab { padding: 0.45rem 0.55rem !important; }
+            #top-nav .btn-tab span { display: none !important; }
+        }
+        @media (max-width: 768px) {
+            #top-nav-inner { flex-direction: column !important; align-items: stretch !important; gap: 0.6rem; }
+            #top-nav-buttons { max-width: 100%; justify-content: center; }
+            #top-nav-brand { justify-content: center; }
+        }
 
         /* --- Stili Pulsanti Navbar --- */
         .btn-tab { position: relative; transition: all 0.3s ease; }
@@ -41,7 +57,7 @@
         .btn-tab.active .icon-svg { color: #ffffff; }
 
         .btn-tab::after {
-            content: ''; position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%);
+            content: ''; position: absolute; bottom: -3px; left: 50%; transform: translateX(-50%);
             width: 0; height: 3px; background-color: transparent; transition: all 0.3s ease; border-radius: 4px 4px 0 0;
         }
         .btn-tab.active::after { width: 80%; }
@@ -101,10 +117,10 @@
 </head>
 <body class="bg-slate-50 text-slate-800">
 
-    <nav class="w-full bg-slate-900/95 backdrop-blur-md border-b border-slate-800 shadow-xl fixed top-0 left-0 z-50">
-        <div class="max-w-[1400px] mx-auto px-6 h-20 flex items-center justify-between">
+    <nav id="top-nav" class="w-full bg-slate-900/95 backdrop-blur-md border-b border-slate-800 shadow-xl fixed top-0 left-0 z-50">
+        <div id="top-nav-inner" class="max-w-[1400px] mx-auto px-4 md:px-6 min-h-20 flex items-center justify-between gap-4 flex-wrap">
             
-            <div class="flex items-center gap-3 cursor-pointer" onclick="window.loadModule('admin')">
+            <div id="top-nav-brand" class="flex items-center gap-3 cursor-pointer shrink-0" onclick="window.loadModule('admin')">
                 <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-emerald-400 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/30 shrink-0">
                     <i data-lucide="shield-check" class="w-6 h-6 text-white"></i>
                 </div>
@@ -114,7 +130,7 @@
                 </div>
             </div>
 
-            <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+            <div id="top-nav-buttons" class="flex items-center gap-1.5 flex-wrap justify-end overflow-visible min-w-0">
                 <button id="btn-install-app" class="hidden flex items-center gap-2 px-3 py-2 rounded-xl font-bold text-xs transition-all duration-300 text-emerald-400 hover:text-white hover:bg-slate-800 group mr-2 border border-emerald-500/30 bg-emerald-500/10">
                     <div class="w-7 h-7 rounded-lg bg-emerald-500/20 flex items-center justify-center group-hover:bg-emerald-500 group-hover:shadow-lg group-hover:shadow-emerald-500/40 transition-all"><i data-lucide="monitor-smartphone" class="w-3.5 h-3.5 group-hover:text-white transition-colors text-emerald-400"></i></div>
                     <span class="hidden xl:block">Installa App</span>
