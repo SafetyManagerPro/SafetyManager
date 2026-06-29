@@ -1,0 +1,56 @@
+
+<!-- modules/collaudo.html -->
+<div class="w-full max-w-7xl mx-auto mt-4 mb-10">
+    <div class="border-b-2 border-slate-900 pb-3 mb-6 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+        <div>
+            <h1 class="text-3xl font-black uppercase text-slate-900 tracking-tighter flex items-center gap-3">
+                <i data-lucide="shield-check" class="w-8 h-8 text-emerald-600"></i> Collaudo Sistema
+            </h1>
+            <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">
+                Verifica funzionale, responsive, librerie, moduli, database, export, backup e prestazioni principali
+            </p>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-2">
+            <button onclick="window.runCollaudoSistema()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow">
+                <i data-lucide="play-circle" class="w-4 h-4"></i> Avvia Collaudo
+            </button>
+            <button onclick="window.esportaReportCollaudo()" class="bg-slate-900 hover:bg-slate-800 text-white px-5 py-3 rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow">
+                <i data-lucide="download" class="w-4 h-4"></i> Scarica Report
+            </button>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+            <p class="text-[9px] uppercase tracking-widest font-black text-slate-400">Esito generale</p>
+            <p id="collaudo-esito" class="text-2xl font-black text-slate-900 mt-1">Da avviare</p>
+        </div>
+        <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+            <p class="text-[9px] uppercase tracking-widest font-black text-slate-400">OK</p>
+            <p id="collaudo-ok" class="text-2xl font-black text-emerald-700 mt-1">0</p>
+        </div>
+        <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+            <p class="text-[9px] uppercase tracking-widest font-black text-slate-400">Avvisi</p>
+            <p id="collaudo-warn" class="text-2xl font-black text-amber-700 mt-1">0</p>
+        </div>
+        <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+            <p class="text-[9px] uppercase tracking-widest font-black text-slate-400">Errori</p>
+            <p id="collaudo-error" class="text-2xl font-black text-red-700 mt-1">0</p>
+        </div>
+    </div>
+
+    <div class="bg-slate-950 border border-slate-800 rounded-2xl p-4 mb-6 text-slate-100">
+        <h2 class="font-black text-xs uppercase tracking-widest mb-3 flex items-center gap-2">
+            <i data-lucide="monitor-smartphone" class="w-4 h-4 text-blue-400"></i> Diagnostica dispositivo
+        </h2>
+        <div id="collaudo-device" class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs text-slate-300">
+            In attesa di collaudo...
+        </div>
+    </div>
+
+    <div id="collaudo-results" class="space-y-3">
+        <div class="bg-white border border-slate-200 rounded-2xl p-8 text-center text-slate-500 font-bold uppercase tracking-widest text-xs">
+            Premi “Avvia Collaudo” per eseguire la verifica.
+        </div>
+    </div>
+</div>

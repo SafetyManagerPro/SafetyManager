@@ -55,6 +55,7 @@
         .btn-tab.active .icon-box.archivio_corsi { background-color: #2563eb; box-shadow: 0 0 15px rgb(37 99 235 / 0.6); }
         .btn-tab.active .icon-box.ente { background-color: #64748b; box-shadow: 0 0 15px rgb(100 116 139 / 0.6); }
         .btn-tab.active .icon-box.migrazione { background-color: #d97706; box-shadow: 0 0 15px rgb(217 119 6 / 0.6); }
+        .btn-tab.active .icon-box.collaudo { background-color: #059669; box-shadow: 0 0 15px rgb(5 150 105 / 0.6); }
         .btn-tab.active .icon-svg { color: #ffffff; }
 
         .btn-tab::after {
@@ -73,6 +74,7 @@
         .btn-tab.active[id="nav-archivio_corsi"]::after { background-color: #2563eb; }
         .btn-tab.active[id="nav-ente"]::after { background-color: #64748b; }
         .btn-tab.active[id="nav-migrazione"]::after { background-color: #d97706; }
+        .btn-tab.active[id="nav-collaudo"]::after { background-color: #059669; }
 
 
 /* Popup iscritti responsive */
@@ -266,6 +268,11 @@
                     <div class="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center group-hover:bg-amber-600 transition-all icon-box migrazione"><i data-lucide="database-zap" class="w-3.5 h-3.5 group-hover:text-white icon-svg transition-colors"></i></div>
                     <span class="hidden xl:block">Migrazione</span>
                 </button>
+
+<button onclick="window.loadModule('collaudo')" id="nav-collaudo" class="btn-tab flex items-center gap-2 px-3 py-2 rounded-xl font-bold text-xs transition-all duration-300 hover:text-white hover:bg-slate-800 group text-slate-400">
+    <div class="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center group-hover:bg-emerald-600 transition-all icon-box collaudo"><i data-lucide="shield-check" class="w-3.5 h-3.5 group-hover:text-white icon-svg transition-colors"></i></div>
+    <span class="hidden xl:block">Collaudo</span>
+</button>
 
                 <button onclick="window.loadModule('ente')" id="nav-ente" class="btn-tab flex items-center gap-2 px-3 py-2 rounded-xl font-bold text-xs transition-all duration-300 hover:text-white hover:bg-slate-800 group text-slate-400">
                     <div class="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center group-hover:bg-slate-500 transition-all icon-box ente"><i data-lucide="settings" class="w-3.5 h-3.5 group-hover:rotate-90 transition-transform duration-500 group-hover:text-white icon-svg"></i></div>

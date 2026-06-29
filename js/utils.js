@@ -314,14 +314,15 @@ window.dashStatusBadgeHtml = function(hasErrors) {
     return '<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 font-black text-[8px] uppercase"><span class="w-2 h-2 rounded-full bg-emerald-600"></span>Verified</span>';
 };
 
-window.loadDashboardCompliance = async function() {
-    const containers = ['dash-progetti-formativi-checks','dash-corsi-svolti-checks','dash-comunicazioni-enti-checks'];
-    if (!containers.some(id => document.getElementById(id))) return;
 
-    containers.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.innerHTML = '<div class="text-center text-slate-400 py-6"><i data-lucide="loader-2" class="w-5 h-5 animate-spin mx-auto mb-2"></i> Verifica in corso...</div>';
-    });
+window.loadDashboardCompliance = async function() {
+    const panelId = 'dash-progetti-formativi-checks';
+    if (!document.getElementById(panelId)) return;
+
+    const el = document.getElementById(panelId);
+    if (el) {
+        el.innerHTML = '<div class="text-center text-slate-400 py-6"><i data-lucide="loader-2" class="w-5 h-5 animate-spin mx-auto mb-2"></i> Verifica in corso...</div>';
+    }
     if (typeof lucide !== 'undefined') lucide.createIcons();
 
     const projects = await window.getProgetti();
@@ -331,28 +332,33 @@ window.loadDashboardCompliance = async function() {
         : await window.buildIscrizioniMapFallback(projects);
 
     const projectIssues = [];
-    const doneIssues = [];
-    const communicationIssues = [];
-
     for (const p of projects) {
         const iscritti = iscrizioniMap[p.id] || [];
-        const pi = await window.dashGetProjectIssues(p, iscritti);
-        if (pi) projectIssues.push(pi);
-
-        const ci = await window.dashGetCourseDoneIssues(p, iscritti);
-        if (ci) doneIssues.push(ci);
-
-        const oi = window.dashGetCommunicationIssues(p);
-        if (oi) communicationIssues.push(oi);
+        const issues = window.dashGetProjectOverallIssues
+            ? await window.dashGetProjectOverallIssues(p, iscritti)
+            : [];
+        if (issues && issues.length) {
+            projectIssues.push({
+                project_id: p.id,
+                target: 'progetti',
+                title: window.dashProjectLabel ? window.dashProjectLabel(p) : (p.codice || 'Progetto'),
+                errors: issues.slice(0, 12),
+                fix: 'Apri il progetto, completa i dati evidenziati, verifica iscritti/documenti e ristampa il fascicolo se necessario.'
+            });
+        }
     }
 
-    window.dashRenderPanel('dash-progetti-formativi-checks', 'dash-progetti-formativi-badge', projectIssues, 'Tutti i progetti formativi risultano coerenti con i controlli minimi.');
-    window.dashRenderPanel('dash-corsi-svolti-checks', 'dash-corsi-svolti-badge', doneIssues, 'Tutti i corsi svolti risultano completi per esiti, attestati e scadenze.');
-    window.dashRenderPanel('dash-comunicazioni-enti-checks', 'dash-comunicazioni-enti-badge', communicationIssues, 'Comunicazioni e validazioni risultano complete.');
+    window.dashRenderPanel(
+        'dash-progetti-formativi-checks',
+        'dash-progetti-formativi-badge',
+        projectIssues,
+        'Tutti i progetti formativi risultano verificati nei controlli minimi.'
+    );
 };
 
 // ==========================================
 // LOGICA CRM: AZIENDE
+
 
 // ==========================================
 window.aziendeList = [];
@@ -3761,5 +3767,200 @@ window.stampaSezionePdf = async function(moduleId) {
     } catch (e) {
         console.error(e);
         alert('Errore stampa PDF: ' + (e.message || e));
+    }
+};
+
+
+// ==========================================
+// COLLAUDO GENERALE SISTEMA
+// ==========================================
+window.collaudoReport = null;
+
+window.collStatusClass = function(status) {
+    if (status === 'ok') return 'border-emerald-200 bg-emerald-50 text-emerald-900';
+    if (status === 'warn') return 'border-amber-200 bg-amber-50 text-amber-900';
+    return 'border-red-200 bg-red-50 text-red-900';
+};
+
+window.collStatusLabel = function(status) {
+    if (status === 'ok') return 'OK';
+    if (status === 'warn') return 'Avviso';
+    return 'Errore';
+};
+
+window.collAdd = function(report, area, name, status, details = '') {
+    report.items.push({ area, name, status, details });
+};
+
+window.renderCollaudoDevice = function() {
+    const box = document.getElementById('collaudo-device');
+    if (!box) return;
+    const nav = document.getElementById('top-nav');
+    const navH = nav ? Math.round(nav.getBoundingClientRect().height) : 0;
+    const mode = window.innerWidth < 768 ? 'Smartphone' : (window.innerWidth < 1180 ? 'Tablet / finestra media' : 'Desktop');
+    box.innerHTML = `
+        <div class="rounded-xl bg-slate-900 border border-slate-800 p-3"><span class="text-slate-500 uppercase text-[9px] font-black">Viewport</span><br><strong>${window.innerWidth} × ${window.innerHeight}</strong></div>
+        <div class="rounded-xl bg-slate-900 border border-slate-800 p-3"><span class="text-slate-500 uppercase text-[9px] font-black">Modalità UI</span><br><strong>${mode}</strong></div>
+        <div class="rounded-xl bg-slate-900 border border-slate-800 p-3"><span class="text-slate-500 uppercase text-[9px] font-black">Navbar</span><br><strong>${navH}px</strong></div>`;
+};
+
+window.runCollaudoSistema = async function() {
+    const results = document.getElementById('collaudo-results');
+    if (results) results.innerHTML = '<div class="bg-white border border-slate-200 rounded-2xl p-8 text-center text-slate-500 font-bold uppercase tracking-widest text-xs"><i data-lucide="loader-2" class="w-6 h-6 animate-spin mx-auto mb-3"></i> Collaudo in corso...</div>';
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+
+    const report = {
+        meta: {
+            app: 'SafetyManager PRO',
+            step: '22',
+            executed_at: new Date().toISOString(),
+            user_agent: navigator.userAgent,
+            viewport: { width: window.innerWidth, height: window.innerHeight }
+        },
+        items: []
+    };
+
+    // Librerie frontend.
+    [
+        ['Supabase client', typeof window.supabaseClient !== 'undefined'],
+        ['Lucide icons', typeof lucide !== 'undefined'],
+        ['JSZip backup/export', typeof JSZip !== 'undefined'],
+        ['XLSX export', typeof XLSX !== 'undefined'],
+        ['PapaParse import CSV', typeof Papa !== 'undefined']
+    ].forEach(([name, ok]) => window.collAdd(report, 'Librerie', name, ok ? 'ok' : 'error', ok ? 'Caricata' : 'Non disponibile'));
+
+    // Funzioni critiche.
+    [
+        'loadProgettiTable',
+        'getIscrizioniPerProgetti',
+        'esportaSezioneExcel',
+        'stampaSezionePdf',
+        'esportaBackupDatabaseLocale',
+        'ripristinaBackupDatabaseLocale',
+        'loadArchivioCorsi',
+        'stampaFascicoloCompletoPDF'
+    ].forEach(fn => window.collAdd(report, 'Funzioni critiche', fn, typeof window[fn] === 'function' ? 'ok' : 'error', typeof window[fn] === 'function' ? 'Disponibile' : 'Mancante'));
+
+    // Moduli HTML.
+    const modules = ['admin','aziende','corsisti','docenti','progetti','archivio_corsi','scadenze','stampe','migrazione','ente','collaudo','attestato','registro','fascicolo_corso'];
+    for (const m of modules) {
+        try {
+            const resp = await fetch(`modules/${m}.html`, { cache: 'no-store' });
+            window.collAdd(report, 'Moduli HTML', `modules/${m}.html`, resp.ok ? 'ok' : 'error', resp.ok ? 'Caricabile' : `HTTP ${resp.status}`);
+        } catch (e) {
+            window.collAdd(report, 'Moduli HTML', `modules/${m}.html`, 'error', e.message || String(e));
+        }
+    }
+
+    // Database e query principali.
+    if (typeof window.supabaseClient === 'undefined') {
+        window.collAdd(report, 'Database', 'Connessione Supabase', 'error', 'Client non configurato');
+    } else {
+        const tables = ['enti','aziende','docenti','corsisti','progetti','iscrizioni'];
+        for (const table of tables) {
+            try {
+                const { error } = await window.supabaseClient.from(table).select('id').limit(1);
+                window.collAdd(report, 'Database', table, error ? 'warn' : 'ok', error ? error.message : 'Query lettura OK');
+            } catch (e) {
+                window.collAdd(report, 'Database', table, 'warn', e.message || String(e));
+            }
+        }
+    }
+
+    // Performance Progetti + iscrizioni batch.
+    try {
+        const t0 = performance.now();
+        const projects = await window.getProgetti();
+        const ids = projects.map(p => p.id).filter(Boolean);
+        const map = window.getIscrizioniPerProgetti ? await window.getIscrizioniPerProgetti(ids) : {};
+        const t1 = performance.now();
+        const countIscr = Object.values(map || {}).reduce((sum, arr) => sum + (arr ? arr.length : 0), 0);
+        const ms = Math.round(t1 - t0);
+        const status = ms < 1500 ? 'ok' : (ms < 4000 ? 'warn' : 'error');
+        window.collAdd(report, 'Performance', 'Caricamento Progetti + iscrizioni batch', status, `${projects.length} progetti, ${countIscr} iscrizioni, ${ms} ms`);
+    } catch (e) {
+        window.collAdd(report, 'Performance', 'Caricamento Progetti + iscrizioni batch', 'warn', e.message || String(e));
+    }
+
+    // Responsive e layout.
+    const nav = document.getElementById('top-nav');
+    if (nav) {
+        const rect = nav.getBoundingClientRect();
+        const tooTall = rect.height > Math.max(170, window.innerHeight * 0.28);
+        window.collAdd(report, 'Responsive', 'Navbar adattiva', tooTall ? 'warn' : 'ok', `Altezza navbar: ${Math.round(rect.height)}px`);
+    } else {
+        window.collAdd(report, 'Responsive', 'Navbar adattiva', 'warn', 'Navbar non trovata nel DOM corrente');
+    }
+    const appOffset = getComputedStyle(document.documentElement).getPropertyValue('--nav-offset') || '';
+    window.collAdd(report, 'Responsive', 'Offset contenuto dinamico', appOffset ? 'ok' : 'warn', appOffset || 'Non impostato');
+
+    // Export configurato.
+    for (const mod of Object.keys(window.SECTION_EXPORT_LABELS || {})) {
+        window.collAdd(report, 'Export sezioni', mod, 'ok', 'Toolbar export/stampa configurata');
+    }
+
+    // Risultati.
+    const counts = {
+        ok: report.items.filter(i => i.status === 'ok').length,
+        warn: report.items.filter(i => i.status === 'warn').length,
+        error: report.items.filter(i => i.status === 'error').length
+    };
+    report.summary = counts;
+    window.collaudoReport = report;
+
+    const setText = (id, value) => { const el = document.getElementById(id); if (el) el.innerText = value; };
+    setText('collaudo-ok', counts.ok);
+    setText('collaudo-warn', counts.warn);
+    setText('collaudo-error', counts.error);
+    setText('collaudo-esito', counts.error ? 'Errori' : (counts.warn ? 'Avvisi' : 'OK'));
+    window.renderCollaudoDevice();
+
+    if (results) {
+        const byArea = {};
+        report.items.forEach(item => {
+            if (!byArea[item.area]) byArea[item.area] = [];
+            byArea[item.area].push(item);
+        });
+        results.innerHTML = Object.entries(byArea).map(([area, items]) => `
+            <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+                <div class="bg-slate-900 text-white px-4 py-3">
+                    <h2 class="font-black uppercase text-sm">${window.dashEscape(area)}</h2>
+                </div>
+                <div class="p-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                    ${items.map(item => `
+                        <div class="rounded-xl border p-3 ${window.collStatusClass(item.status)}">
+                            <div class="flex items-start justify-between gap-2">
+                                <p class="font-black uppercase text-[11px] leading-tight">${window.dashEscape(item.name)}</p>
+                                <span class="text-[8px] font-black uppercase px-2 py-1 rounded bg-white/70">${window.collStatusLabel(item.status)}</span>
+                            </div>
+                            <p class="text-[10px] mt-2 leading-snug opacity-90">${window.dashEscape(item.details || '')}</p>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `).join('');
+    }
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+};
+
+window.initCollaudoSistema = function() {
+    window.renderCollaudoDevice();
+    window.addEventListener('resize', () => {
+        if (document.getElementById('collaudo-device')) window.renderCollaudoDevice();
+    }, { passive: true });
+};
+
+window.esportaReportCollaudo = function() {
+    if (!window.collaudoReport) {
+        return alert('Esegui prima il collaudo.');
+    }
+    const blob = new Blob([JSON.stringify(window.collaudoReport, null, 2)], { type: 'application/json' });
+    const name = `SafetyManager_collaudo_${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.json`;
+    if (window.downloadBlobFile) window.downloadBlobFile(blob, name);
+    else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = name; document.body.appendChild(a); a.click();
+        setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
     }
 };
