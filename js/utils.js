@@ -1297,21 +1297,81 @@ window.renderPopupCorsisti = async function(projectId) {
     return iscritti;
 };
 
+
+window.ensureProjectPopupTabs = function() {
+    const errorBox = document.getElementById('popup-project-errors');
+    const card = document.getElementById('progetto-form-card');
+    if (!errorBox || !card || document.getElementById('popup-project-tabs')) return;
+
+    const tabs = document.createElement('div');
+    tabs.id = 'popup-project-tabs';
+    tabs.className = 'shrink-0 flex items-center gap-2 mb-3 border-b border-slate-100 pb-2';
+    tabs.innerHTML = `
+        <button type="button" id="popup-tab-btn-dati" onclick="window.switchProjectPopupTab('dati')" class="px-3 py-2 rounded-lg text-[10px] font-black uppercase bg-rose-600 text-white shadow-sm">
+            Dati progetto
+        </button>
+        <button type="button" id="popup-tab-btn-corsisti" onclick="window.switchProjectPopupTab('corsisti')" class="px-3 py-2 rounded-lg text-[10px] font-black uppercase bg-slate-100 text-slate-700 hover:bg-slate-200">
+            Corsisti abbinati
+        </button>
+    `;
+    errorBox.insertAdjacentElement('afterend', tabs);
+};
+
+window.switchProjectPopupTab = function(tab) {
+    const form = document.getElementById('form-progetto');
+    const corsisti = document.getElementById('popup-corsisti-box');
+    const btnDati = document.getElementById('popup-tab-btn-dati');
+    const btnCorsisti = document.getElementById('popup-tab-btn-corsisti');
+
+    const active = 'px-3 py-2 rounded-lg text-[10px] font-black uppercase bg-rose-600 text-white shadow-sm';
+    const inactive = 'px-3 py-2 rounded-lg text-[10px] font-black uppercase bg-slate-100 text-slate-700 hover:bg-slate-200';
+
+    if (tab === 'corsisti') {
+        if (form) form.classList.add('hidden');
+        if (corsisti) corsisti.classList.remove('hidden');
+        if (btnDati) btnDati.className = inactive;
+        if (btnCorsisti) btnCorsisti.className = active;
+    } else {
+        if (form) form.classList.remove('hidden');
+        if (corsisti) corsisti.classList.add('hidden');
+        if (btnDati) btnDati.className = active;
+        if (btnCorsisti) btnCorsisti.className = inactive;
+    }
+};
+
 window.openProjectEditPopup = async function(projectId, target = 'progetti') {
     const col = document.getElementById('progetto-form-col');
     const card = document.getElementById('progetto-form-card');
     const title = document.getElementById('progetto-form-title');
     const closeBtn = document.getElementById('btn-close-project-popup');
+    const header = document.getElementById('popup-project-header');
+    const form = document.getElementById('form-progetto');
+    const errorBox = document.getElementById('popup-project-errors');
+    const corsistiBox = document.getElementById('popup-corsisti-box');
     if (!col || !card) return;
 
     if (!col.dataset.originalClass) col.dataset.originalClass = col.className;
     if (!card.dataset.originalClass) card.dataset.originalClass = card.className;
+    if (form && !form.dataset.originalClass) form.dataset.originalClass = form.className;
+    if (corsistiBox && !corsistiBox.dataset.originalClass) corsistiBox.dataset.originalClass = corsistiBox.className;
 
     const p = (window.progettiList || []).find(x => x.id === projectId);
     window.projectEditOpenedAsPopup = true;
 
-    col.className = 'fixed inset-0 z-[90] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4';
-    card.className = 'bg-white p-6 rounded-2xl shadow-2xl border border-slate-200 w-full max-w-6xl max-h-[92vh] overflow-y-auto';
+    // Finestra vera, non a schermo intero: overlay pieno ma card contenuta.
+    col.className = 'fixed inset-0 z-[90] bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4';
+    card.className = 'bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-4xl h-[82vh] max-h-[82vh] overflow-hidden flex flex-col p-5';
+    if (header) header.classList.add('shrink-0');
+    if (errorBox) errorBox.classList.add('shrink-0');
+
+    window.ensureProjectPopupTabs();
+
+    if (form) {
+        form.className = 'space-y-4 text-xs popup-project-pane popup-project-pane-dati flex-1 min-h-0 overflow-y-auto pr-2 pb-2';
+    }
+    if (corsistiBox) {
+        corsistiBox.className = 'hidden popup-project-pane popup-project-pane-corsisti flex-1 min-h-0 rounded-2xl border border-slate-200 bg-slate-50 overflow-hidden';
+    }
 
     if (title) {
         title.innerHTML = `<i data-lucide="layout-template" class="w-4 h-4 text-rose-500"></i> Modifica progetto · <span class="font-mono text-rose-700">${window.dashEscape ? window.dashEscape(p?.codice || '') : (p?.codice || '')}</span>`;
@@ -1322,11 +1382,14 @@ window.openProjectEditPopup = async function(projectId, target = 'progetti') {
     await window.applyProjectPopupValidation(projectId);
     window.bindProjectPopupValidationEvents(projectId);
 
+    window.switchProjectPopupTab(target === 'corsi_svolti' ? 'corsisti' : 'dati');
+
     const firstError = document.querySelector('[data-project-field-error="1"]');
-    if (firstError && firstError.scrollIntoView) firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    else {
+    if (target !== 'corsi_svolti' && firstError && firstError.scrollIntoView) {
+        firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } else {
         const first = document.getElementById('prog-azienda');
-        if (first) setTimeout(() => first.focus(), 100);
+        if (first && target !== 'corsi_svolti') setTimeout(() => first.focus(), 100);
     }
     if (typeof lucide !== 'undefined') lucide.createIcons();
 };
@@ -1338,15 +1401,21 @@ window.chiudiPopupProgetto = function() {
     const closeBtn = document.getElementById('btn-close-project-popup');
     const errorBox = document.getElementById('popup-project-errors');
     const corsistiBox = document.getElementById('popup-corsisti-box');
+    const form = document.getElementById('form-progetto');
+    const tabs = document.getElementById('popup-project-tabs');
 
     window.clearProjectPopupFieldErrors();
 
     if (col && col.dataset.originalClass) col.className = col.dataset.originalClass;
     if (card && card.dataset.originalClass) card.className = card.dataset.originalClass;
+    if (form && form.dataset.originalClass) form.className = form.dataset.originalClass;
+    if (corsistiBox && corsistiBox.dataset.originalClass) corsistiBox.className = corsistiBox.dataset.originalClass;
+
     if (title) title.innerHTML = '<i data-lucide="layout-template" class="w-4 h-4 text-rose-500"></i> Gestione Progetto';
     if (closeBtn) closeBtn.classList.add('hidden');
     if (errorBox) errorBox.classList.add('hidden');
     if (corsistiBox) corsistiBox.classList.add('hidden');
+    if (tabs) tabs.remove();
 
     window.projectEditOpenedAsPopup = false;
     if (typeof lucide !== 'undefined') lucide.createIcons();
@@ -2917,5 +2986,107 @@ window.stampaFascicoloCompletoPDF = async function() {
         alert('Errore nella preparazione del PDF completo: ' + (e.message || e));
         document.body.classList.remove('is-printing-temp');
         printArea.innerHTML = '';
+    }
+};
+
+
+// ==========================================
+// BACKUP LOCALE DATABASE SUPABASE
+// ==========================================
+window.backupLog = function(message) {
+    const box = document.getElementById('backup-db-status');
+    if (!box) return;
+    box.classList.remove('hidden');
+    box.innerHTML += `[${new Date().toLocaleTimeString('it-IT')}] ${window.dashEscape ? window.dashEscape(message) : message}<br>`;
+    box.scrollTop = box.scrollHeight;
+};
+
+window.downloadBlobFile = function(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+        URL.revokeObjectURL(url);
+        a.remove();
+    }, 1000);
+};
+
+window.esportaBackupDatabaseLocale = async function() {
+    if (!window.supabaseClient) return alert('Supabase non configurato.');
+    const status = document.getElementById('backup-db-status');
+    if (status) status.innerHTML = '';
+
+    const tables = [
+        'enti',
+        'aziende',
+        'docenti',
+        'corsisti',
+        'progetti',
+        'iscrizioni',
+        'firme_digitali',
+        'test_digitali',
+        'export_fascicoli',
+        'ente'
+    ];
+
+    const backup = {
+        meta: {
+            app: 'SafetyManager PRO',
+            version: 'ASR2025 step15',
+            exported_at: new Date().toISOString(),
+            source: 'Supabase client export',
+            note: 'Backup locale JSON creato dal browser. Non contiene chiavi service_role.'
+        },
+        tables: {},
+        errors: {}
+    };
+
+    window.backupLog('Avvio esportazione backup locale...');
+    for (const table of tables) {
+        try {
+            window.backupLog(`Lettura tabella ${table}...`);
+            const { data, error } = await window.supabaseClient
+                .from(table)
+                .select('*');
+            if (error) throw error;
+            backup.tables[table] = data || [];
+            window.backupLog(`OK ${table}: ${(data || []).length} record.`);
+        } catch (e) {
+            backup.tables[table] = [];
+            backup.errors[table] = e.message || String(e);
+            window.backupLog(`SKIP ${table}: ${backup.errors[table]}`);
+        }
+    }
+
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const filename = `SafetyManager_backup_${stamp}.zip`;
+
+    try {
+        if (typeof JSZip !== 'undefined') {
+            const zip = new JSZip();
+            zip.file('backup_completo.json', JSON.stringify(backup, null, 2));
+            zip.file('manifest.json', JSON.stringify(backup.meta, null, 2));
+            const folder = zip.folder('tabelle');
+            Object.entries(backup.tables).forEach(([table, rows]) => {
+                folder.file(`${table}.json`, JSON.stringify(rows, null, 2));
+            });
+            if (Object.keys(backup.errors).length) {
+                zip.file('ERRORI_EXPORT.json', JSON.stringify(backup.errors, null, 2));
+            }
+            const blob = await zip.generateAsync({ type: 'blob' });
+            window.downloadBlobFile(blob, filename);
+        } else {
+            const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+            window.downloadBlobFile(blob, filename.replace('.zip', '.json'));
+        }
+        window.backupLog(`Backup creato: ${filename}`);
+        alert('Backup database scaricato sul PC.');
+    } catch (e) {
+        console.error(e);
+        alert('Errore nella creazione del backup: ' + (e.message || e));
+        window.backupLog(`ERRORE: ${e.message || e}`);
     }
 };

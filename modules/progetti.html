@@ -4,7 +4,7 @@
     <!-- SEZIONE SINISTRA: FORM DI INSERIMENTO / MODIFICA -->
     <div id="progetto-form-col" class="w-full lg:w-[400px] shrink-0">
         <div id="progetto-form-card" class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 sticky top-24">
-            <div class="flex items-center justify-between gap-3 mb-4 border-b border-slate-100 pb-2">
+            <div id="popup-project-header" class="flex items-center justify-between gap-3 mb-3 border-b border-slate-100 pb-2 shrink-0">
                 <h2 id="progetto-form-title" class="font-black text-sm uppercase text-slate-800 flex items-center gap-2">
                     <i data-lucide="layout-template" class="w-4 h-4 text-rose-500"></i> Gestione Progetto
                 </h2>
@@ -12,8 +12,8 @@
                     <i data-lucide="x" class="w-4 h-4"></i>
                 </button>
             </div>
-            <div id="popup-project-errors" class="hidden mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-[10px] text-red-800 leading-snug"></div>
-            <form id="form-progetto" onsubmit="event.preventDefault(); window.salvaProgettoDB();" class="space-y-4 text-xs">
+            <div id="popup-project-errors" class="hidden mb-3 rounded-xl border border-red-200 bg-red-50 p-3 text-[10px] text-red-800 leading-snug shrink-0 max-h-28 overflow-y-auto"></div>
+            <form id="form-progetto" onsubmit="event.preventDefault(); window.salvaProgettoDB();" class="space-y-4 text-xs popup-project-pane popup-project-pane-dati">
                 <input type="hidden" id="prog-id" value="">
 
                 <div>
@@ -283,7 +283,7 @@
                 </div>
             </form>
 
-            <div id="popup-corsisti-box" class="hidden mt-5 rounded-2xl border border-slate-200 bg-slate-50 overflow-hidden">
+            <div id="popup-corsisti-box" class="hidden popup-project-pane popup-project-pane-corsisti rounded-2xl border border-slate-200 bg-slate-50 overflow-hidden">
                 <div class="bg-slate-900 text-white px-4 py-3 flex items-center justify-between gap-3">
                     <div>
                         <h3 class="font-black uppercase text-sm flex items-center gap-2">
@@ -401,7 +401,7 @@
                 <button type="submit" class="w-full mt-4 bg-rose-600 text-white font-bold uppercase py-2.5 rounded shadow hover:bg-rose-700 transition">Salva e Seleziona</button>
             </form>
 
-            <div id="popup-corsisti-box" class="hidden mt-5 rounded-2xl border border-slate-200 bg-slate-50 overflow-hidden">
+            <div id="popup-corsisti-box" class="hidden popup-project-pane popup-project-pane-corsisti rounded-2xl border border-slate-200 bg-slate-50 overflow-hidden">
                 <div class="bg-slate-900 text-white px-4 py-3 flex items-center justify-between gap-3">
                     <div>
                         <h3 class="font-black uppercase text-sm flex items-center gap-2">
@@ -437,7 +437,7 @@
                 <button type="submit" class="w-full mt-4 bg-blue-600 text-white font-bold uppercase py-2.5 rounded shadow hover:bg-blue-700 transition">Genera Corso</button>
             </form>
 
-            <div id="popup-corsisti-box" class="hidden mt-5 rounded-2xl border border-slate-200 bg-slate-50 overflow-hidden">
+            <div id="popup-corsisti-box" class="hidden popup-project-pane popup-project-pane-corsisti rounded-2xl border border-slate-200 bg-slate-50 overflow-hidden">
                 <div class="bg-slate-900 text-white px-4 py-3 flex items-center justify-between gap-3">
                     <div>
                         <h3 class="font-black uppercase text-sm flex items-center gap-2">
@@ -471,7 +471,7 @@
                 <button type="submit" class="w-full mt-4 bg-emerald-600 text-white font-bold uppercase py-2.5 rounded shadow hover:bg-emerald-700 transition">Salva e Iscrivi</button>
             </form>
 
-            <div id="popup-corsisti-box" class="hidden mt-5 rounded-2xl border border-slate-200 bg-slate-50 overflow-hidden">
+            <div id="popup-corsisti-box" class="hidden popup-project-pane popup-project-pane-corsisti rounded-2xl border border-slate-200 bg-slate-50 overflow-hidden">
                 <div class="bg-slate-900 text-white px-4 py-3 flex items-center justify-between gap-3">
                     <div>
                         <h3 class="font-black uppercase text-sm flex items-center gap-2">
