@@ -127,8 +127,37 @@ window.getCorsisti = async function() {
     } catch (err) { console.error(err); return []; }
 };
 
+window.normalizzaCodiceFiscale = function(cf) {
+    return String(cf || '').trim().toUpperCase().replace(/\s+/g, '');
+};
+
+window.checkCorsistaCfDuplicato = async function(cf, excludeId = null) {
+    const cfNorm = window.normalizzaCodiceFiscale(cf);
+    if (!cfNorm) return null;
+    try {
+        let q = supabaseClient
+            .from('corsisti')
+            .select('id,nome_cognome,cf')
+            .eq('cf', cfNorm)
+            .limit(1);
+        if (excludeId) q = q.neq('id', excludeId);
+        const { data, error } = await q;
+        if (error) throw error;
+        return data && data.length ? data[0] : null;
+    } catch (err) {
+        console.error('Errore controllo duplicato CF:', err);
+        return null;
+    }
+};
+
 window.saveCorsistaData = async function(record) {
     try {
+        record.cf = window.normalizzaCodiceFiscale(record.cf);
+        const duplicato = await window.checkCorsistaCfDuplicato(record.cf, record.id || null);
+        if (duplicato) {
+            alert(`Codice fiscale già presente: ${duplicato.nome_cognome || 'corsista esistente'} (${duplicato.cf}). Operazione annullata per evitare doppioni.`);
+            return false;
+        }
         const { data, error } = await supabaseClient.from('corsisti').upsert(record).select();
         if (error) throw error; return data;
     } catch (err) { console.error(err); return false; }

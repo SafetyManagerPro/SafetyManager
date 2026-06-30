@@ -35,11 +35,11 @@ window.renderPrintModuleToTemp = async function(moduleId, singleCorsista = null)
     return pages;
 };
 
-window.stampaFascicoloCompletoPDF = async function() {
-    const progId = document.getElementById('stampa-progetto')?.value;
+window.stampaFascicoloCompletoPDF = async function(projectId = null) {
+    const progId = projectId || document.getElementById('stampa-progetto')?.value;
     if (!progId) return alert('Seleziona prima un progetto formativo.');
 
-    await window.caricaDatiStampa();
+    await window.caricaDatiStampa(progId);
     const printArea = document.getElementById('print-area-temp');
     printArea.innerHTML = '';
 
@@ -86,3 +86,14 @@ window.stampaFascicoloCompletoPDF = async function() {
 // ==========================================
 // BACKUP LOCALE DATABASE SUPABASE
 // ==========================================
+
+
+window.stampaFascicoloCompletoDaProgetti = async function(projectId) {
+    if (!projectId) return alert('Progetto non selezionato.');
+    if (typeof window.stampaFascicoloCompletoPDF !== 'function') {
+        alert('Modulo stampa fascicolo non caricato. Ricarica la pagina e riprova.');
+        return;
+    }
+    await window.stampaFascicoloCompletoPDF(projectId);
+};
+

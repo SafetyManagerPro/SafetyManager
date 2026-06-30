@@ -572,9 +572,13 @@ window.loadCorsistiTable = async function() {
             aziende ( ragione_sociale ),
             iscrizioni (
                 id_certificato,
+                progetto_id,
                 progetti (
+                    id,
+                    codice,
                     corso_id,
-                    data_esame
+                    data_esame,
+                    azienda_id
                 )
             )
         `)
@@ -608,8 +612,10 @@ window.loadCorsistiTable = async function() {
                     const cInfo = window.DB_CORSI[isc.progetti.corso_id];
                     const tCorso = cInfo ? cInfo.t : isc.progetti.corso_id;
                     const dFine = window.formatDataToItalian(isc.progetti.data_esame);
-                    cArr.push(`<div class="font-medium text-slate-800 text-[11px] truncate max-w-[220px]" title="${tCorso}">&bull; ${tCorso}</div>`);
-                    dArr.push(`<div class="font-mono text-slate-600 text-[10px]">${dFine}</div>`);
+                    const projectId = isc.progetti.id || isc.progetto_id;
+                    const codice = isc.progetti.codice || '';
+                    cArr.push(`<button type="button" onclick="window.apriPopupProgettoById('${projectId}', 'progetti')" class="block text-left font-black text-blue-700 hover:text-blue-900 hover:underline text-[11px] truncate max-w-[260px]" title="Apri progetto ${codice}">• ${window.dashEscape(tCorso)} <span class="font-mono text-[9px] text-slate-500">${window.dashEscape(codice)}</span></button>`);
+                    dArr.push(`<button type="button" onclick="window.apriPopupProgettoById('${projectId}', 'progetti')" class="font-mono text-blue-700 hover:underline text-[10px]">${dFine}</button>`);
                 }
             });
             if (cArr.length > 0) {
@@ -840,6 +846,10 @@ window.salvaQACorsista = async function() {
         await window.aggiungiIscrizioneDaId(window.currentProgettoId, savedId);
         return;
     }
+    if (!id && savedId && document.getElementById('prog-draft-corsista') && typeof window.aggiungiCorsistaDraftProgetto === 'function') {
+        window.aggiungiCorsistaDraftProgetto(savedId);
+        return;
+    }
 
     if (typeof window.loadProgettiTable === 'function' && document.getElementById('tabella-progetti')) {
         await window.loadProgettiTable();
@@ -859,19 +869,52 @@ window.parseJSONSafe = function(value, fallback = {}) {
 
 window.DEFAULT_ENTE_VALIDATORE = "CNA Artigiani Imprenditori D'Italia Avellino";
 window.DEFAULT_OP_DESTINATARIO = "OPTA Avellino / OPRA Campania";
+window.CNA_AVELLINO_PRESET = window.CNA_AVELLINO_PRESET || {
+    ragione_sociale: "CNA Artigiani Imprenditori D'Italia Avellino",
+    piva_cf: "P.IVA 02851400644 / C.F. 92002100649",
+    indirizzo: "Via Serafino Soldi, 11/13 - 83100 Avellino",
+    contatti: "Tel./Fax 0825 783345 | Email avellino@cna.it | PEC cna.avellino@pec.it | Web www.cnaavellino.it",
+    luogo_emissione: "Avellino",
+    logo_url: "logocna.png"
+};
+
+window.isCnaName = function(value) {
+    return String(value || '').toUpperCase().includes('CNA ARTIGIANI IMPRENDITORI') || String(value || '').toUpperCase().includes('CNA');
+};
+
+window.ensureCnaPresetState = function() {
+    const p = window.CNA_AVELLINO_PRESET;
+    const domName = document.getElementById('ente-ragione')?.value || document.getElementById('cfg-ente')?.value || '';
+    const currentName = window.AppState['cfg-ente'] || domName;
+    if (!window.isCnaName(currentName)) return false;
+
+    window.AppState['cfg-ente'] = currentName || p.ragione_sociale;
+    if (!window.AppState['cfg-ente-indirizzo']) window.AppState['cfg-ente-indirizzo'] = p.indirizzo;
+    if (!window.AppState['cfg-ente-contatti']) window.AppState['cfg-ente-contatti'] = p.contatti;
+    if (!window.AppState['cfg-luogo-emissione']) window.AppState['cfg-luogo-emissione'] = p.luogo_emissione;
+    window.AppState['cfg-logo'] = p.logo_url;
+    localStorage.setItem('SafetyManager.cnaLogoDefault', p.logo_url);
+
+    const logoInput = document.getElementById('cfg-logo');
+    if (logoInput && !logoInput.value) logoInput.value = p.logo_url;
+    return true;
+};
 
 window.isCnaErogatore = function() {
     const erogatore = window.getVal('cfg-ente-erogatore') || 'ente';
     if (erogatore === 'azienda') return false;
-    const nomeEnte = (window.getVal('cfg-ente') || '').toUpperCase();
+    window.ensureCnaPresetState();
+    const nomeEnte = (window.getVal('cfg-ente') || window.AppState['cfg-ente'] || '').toUpperCase();
     return nomeEnte.includes('CNA');
 };
 window.getEffectiveLogoSrc = function() {
     const erogatore = window.getVal('cfg-ente-erogatore') || 'ente';
     if (erogatore === 'azienda') return '';
-    const configured = window.getVal('cfg-logo');
+    const cna = window.isCnaErogatore();
+    const configured = window.getVal('cfg-logo') || '';
     if (configured) return configured;
-    return window.isCnaErogatore() ? 'logocna.png' : '';
+    if (cna) return localStorage.getItem('SafetyManager.cnaLogoDefault') || 'logocna.png';
+    return '';
 };
 window.getEffectiveTimbroSrc = function() {
     const erogatore = window.getVal('cfg-ente-erogatore') || 'ente';
@@ -980,9 +1023,148 @@ window.getComplianceNotaDocumento = function(courseId, isAzienda) {
 // ==========================================
 // MOTORE DI CALCOLO AUTOMATICO GIORNI E DOCENTI
 // ==========================================
+
+// ==========================================
+// PREISCRIZIONE CORSISTI DURANTE INSERIMENTO PROGETTO
+// ==========================================
+window.progettoDraftCorsistiIds = window.progettoDraftCorsistiIds || [];
+
+window.renderProgettoDraftCorsistiControls = function() {
+    const sel = document.getElementById('prog-draft-corsista');
+    const list = document.getElementById('prog-draft-iscritti-list');
+    if (!sel || !list) return;
+
+    const aziendaId = document.getElementById('prog-azienda')?.value || '';
+    const corsisti = window.corsistiList || [];
+    const selected = new Set(window.progettoDraftCorsistiIds || []);
+    const same = corsisti.filter(c => aziendaId && c.azienda_id === aziendaId && !selected.has(c.id));
+    const others = corsisti.filter(c => (!aziendaId || c.azienda_id !== aziendaId) && !selected.has(c.id));
+
+    let html = '<option value="">-- Seleziona corsista --</option>';
+    if (same.length) {
+        html += '<optgroup label="📌 Dipendenti azienda committente">';
+        same.forEach(c => {
+            html += `<option value="${c.id}" style="background:#f59e0b;color:#111827;font-weight:900;">📌 ${window.dashEscape(c.nome_cognome || '')} (${window.dashEscape(c.cf || '')})</option>`;
+        });
+        html += '</optgroup>';
+    }
+    if (others.length) {
+        html += '<optgroup label="Altri corsisti anagrafica">';
+        others.forEach(c => {
+            html += `<option value="${c.id}">${window.dashEscape(c.nome_cognome || '')} (${window.dashEscape(c.cf || '')})</option>`;
+        });
+        html += '</optgroup>';
+    }
+    sel.innerHTML = html;
+
+    const staged = (window.progettoDraftCorsistiIds || [])
+        .map(id => corsisti.find(c => c.id === id))
+        .filter(Boolean);
+
+    if (!staged.length) {
+        list.innerHTML = '<div class="text-amber-800 font-bold uppercase">Nessun corsista preparato.</div>';
+        return;
+    }
+
+    list.innerHTML = staged.map(c => `
+        <div class="bg-white border border-amber-300 rounded-lg p-2 flex items-start justify-between gap-2 shadow-sm">
+            <div>
+                <p class="font-black uppercase text-slate-900">${window.dashEscape(c.nome_cognome || '')}</p>
+                <p class="font-mono text-[9px] text-slate-500">${window.dashEscape(c.cf || '')}</p>
+                <p class="text-[9px] text-slate-500">${window.dashEscape(c.mansione_storica || '')}</p>
+            </div>
+            <button type="button" onclick="window.rimuoviCorsistaDraftProgetto('${c.id}')" class="text-red-700 bg-red-100 hover:bg-red-200 rounded p-1.5" title="Rimuovi dalla preiscrizione">
+                <i data-lucide="x" class="w-3 h-3"></i>
+            </button>
+        </div>
+    `).join('');
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+};
+
+window.aggiungiCorsistaDraftProgetto = function(corsistaId = null) {
+    const sel = document.getElementById('prog-draft-corsista');
+    const id = corsistaId || sel?.value || '';
+    if (!id) return alert('Seleziona un corsista da aggiungere al progetto.');
+    window.progettoDraftCorsistiIds = window.progettoDraftCorsistiIds || [];
+    if (window.progettoDraftCorsistiIds.includes(id)) return alert('Corsista già presente nella preiscrizione.');
+    window.progettoDraftCorsistiIds.push(id);
+    window.renderProgettoDraftCorsistiControls();
+};
+
+window.rimuoviCorsistaDraftProgetto = function(corsistaId) {
+    window.progettoDraftCorsistiIds = (window.progettoDraftCorsistiIds || []).filter(id => id !== corsistaId);
+    window.renderProgettoDraftCorsistiControls();
+};
+
+window.apriQACorsistaDraftProgetto = function() {
+    window.currentProgettoId = null;
+    const modal = document.getElementById('qa-modal-corsista');
+    if (!modal) return;
+    const aziendaId = document.getElementById('prog-azienda')?.value || '';
+    const set = (id, value='') => { const el = document.getElementById(id); if (el) el.value = value; };
+    set('qa-cor-id');
+    set('qa-cor-nome');
+    set('qa-cor-cf');
+    set('qa-cor-nascita');
+    set('qa-cor-mansione');
+    set('qa-cor-azienda-id', aziendaId);
+    const title = document.getElementById('qa-cor-title');
+    if (title) title.innerHTML = '<i data-lucide="user-plus" class="w-4 h-4"></i> Nuovo corsista per progetto';
+    modal.classList.remove('hidden');
+    document.getElementById('qa-cor-nome')?.focus();
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+};
+
+window.buildIscrizioneRecord = function(project, corsista) {
+    const corsoInfo = window.DB_CORSI[project.corso_id];
+    let dataScadenzaISO = null;
+    if (corsoInfo && corsoInfo.scad !== 99) {
+        let dScad = new Date(project.data_esame);
+        dScad.setFullYear(dScad.getFullYear() + corsoInfo.scad);
+        const offsetDate = new Date(dScad.getTime() - (dScad.getTimezoneOffset() * 60000));
+        dataScadenzaISO = offsetDate.toISOString().split('T')[0];
+    }
+
+    const annoCert = new Date(project.data_esame || Date.now()).getFullYear().toString().slice(-2);
+    const cfPart = (corsista.cf || 'XXXXXX').replace(/[^A-Z0-9]/gi, '').toUpperCase().substring(0,6).padEnd(6, 'X');
+    const seriale = String(Math.floor(Math.random() * 1000)).padStart(3, '0');
+    const id_cert = `C${annoCert}-${project.codice}-${cfPart}-${seriale}`;
+
+    return {
+        progetto_id: project.id,
+        corsista_id: corsista.id,
+        id_certificato: id_cert,
+        mansione_storica: corsista.mansione_storica || null,
+        esito: "Idoneo",
+        data_scadenza: dataScadenzaISO
+    };
+};
+
+window.salvaDraftCorsistiPerProgetto = async function(project) {
+    const ids = [...new Set(window.progettoDraftCorsistiIds || [])];
+    if (!project?.id || !ids.length) return;
+
+    const corsisti = window.corsistiList?.length ? window.corsistiList : await window.getCorsisti();
+    let ok = 0;
+    for (const id of ids) {
+        const c = corsisti.find(x => x.id === id);
+        if (!c) continue;
+        if (project.ente_erogatore === 'azienda' && c.azienda_id !== project.azienda_id) {
+            console.warn('Corsista non appartenente alla stessa azienda, non iscritto:', c.nome_cognome);
+            continue;
+        }
+        const record = window.buildIscrizioneRecord(project, c);
+        if (await window.saveIscrizione(record)) ok++;
+    }
+    if (ok) console.log(`Preiscritti ${ok} corsisti al progetto ${project.codice}`);
+    window.progettoDraftCorsistiIds = [];
+    window.renderProgettoDraftCorsistiControls();
+};
+
 window.calcolaDettagliProgetto = function() {
     const corsoId = document.getElementById('prog-corso').value;
     window.renderComplianceProgetto(corsoId);
+    if (typeof window.renderProgettoDraftCorsistiControls === 'function') window.renderProgettoDraftCorsistiControls();
     const dataInizioRaw = document.getElementById('prog-inizio').value;
     if (!corsoId || !dataInizioRaw) return;
 
@@ -1559,6 +1741,7 @@ window.toggleInlineIscritti = async function(projectId) {
     if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
 };
 
+
 window.aggiungiIscrizioneDaId = async function(projectId, corsistaId) {
     if(!corsistaId || !projectId) return alert("Seleziona un corsista.");
     window.currentProgettoId = projectId;
@@ -1567,8 +1750,7 @@ window.aggiungiIscrizioneDaId = async function(projectId, corsistaId) {
     const c = window.corsistiList.find(x => x.id === corsistaId);
     if (!p || !c) return alert('Dati progetto/corsista non disponibili. Ricarica la pagina.');
 
-    const corsoInfo = window.DB_CORSI[p.corso_id];
-    const iscrittiEsistenti = window.progettiIscrizioniMap?.[projectId] || await window.getIscrizioni(projectId);
+    const iscrittiEsistenti = await window.getIscrizioni(projectId);
 
     if (iscrittiEsistenti.some(isc => isc.corsista_id === corsistaId)) {
         return alert("L'allievo è già iscritto a questo progetto.");
@@ -1583,27 +1765,7 @@ window.aggiungiIscrizioneDaId = async function(projectId, corsistaId) {
         return alert('Erogazione diretta aziendale: puoi iscrivere solo corsisti appartenenti alla stessa azienda del progetto.');
     }
 
-    let dataScadenzaISO = null;
-    if (corsoInfo && corsoInfo.scad !== 99) {
-        let dScad = new Date(p.data_esame);
-        dScad.setFullYear(dScad.getFullYear() + corsoInfo.scad);
-        const offsetDate = new Date(dScad.getTime() - (dScad.getTimezoneOffset() * 60000));
-        dataScadenzaISO = offsetDate.toISOString().split('T')[0];
-    }
-
-    const annoCert = new Date(p.data_esame || Date.now()).getFullYear().toString().slice(-2);
-    const cfPart = (c.cf || 'XXXXXX').replace(/[^A-Z0-9]/gi, '').toUpperCase().substring(0,6).padEnd(6, 'X');
-    const seriale = String(Math.floor(Math.random() * 1000)).padStart(3, '0');
-    const id_cert = `C${annoCert}-${p.codice}-${cfPart}-${seriale}`;
-
-    const record = {
-        progetto_id: projectId,
-        corsista_id: corsistaId,
-        id_certificato: id_cert,
-        mansione_storica: c.mansione_storica || null,
-        esito: "Idoneo",
-        data_scadenza: dataScadenzaISO 
-    };
+    const record = window.buildIscrizioneRecord(p, c);
 
     if(await window.saveIscrizione(record)) {
         window.inlineIscrittiExpanded[projectId] = true;
@@ -1657,7 +1819,7 @@ window.renderProjectDesktopRows = function(p, iscritti, issues) {
         : (p.stato_corso === 'svolto' ? '<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-300 text-amber-950 border border-amber-400 font-black text-[8px] uppercase">Da chiudere</span>' : '');
 
     return `
-        <tr class="hover:bg-slate-800 transition-colors bg-slate-900" data-corso="${p.corso_id}" data-project-id="${p.id}">
+        <tr class="hover:bg-slate-800 transition-colors bg-slate-900" data-corso="${p.corso_id}" data-azienda="${p.azienda_id || ''}" data-project-id="${p.id}">
             <td class="p-3 border-b border-slate-700 font-mono font-bold text-[10px] text-slate-100 align-top">
                 <div class="flex flex-col gap-1">
                     <button type="button" onclick="window.apriPopupProgettoById('${p.id}', 'progetti')" class="text-left text-rose-300 hover:underline font-black">${window.dashEscape(p.codice || '')}</button>
@@ -1679,10 +1841,11 @@ window.renderProjectDesktopRows = function(p, iscritti, issues) {
             <td class="p-3 border-b border-slate-700 font-bold text-center text-slate-200 align-top">${window.formatDataToItalian(p.data_esame)}</td>
             <td class="p-3 border-b border-slate-700 text-center whitespace-nowrap align-top">
                 <button onclick="window.apriPopupProgettoById('${p.id}', 'progetti')" class="text-white hover:bg-blue-500 bg-blue-600 p-2 rounded-lg transition shadow-sm" title="Modifica progetto"><i data-lucide="edit" class="w-3 h-3"></i></button>
+                <button onclick="window.stampaFascicoloCompletoDaProgetti('${p.id}')" class="text-white hover:bg-indigo-500 bg-indigo-700 p-2 rounded-lg transition shadow-sm ml-1" title="Stampa PDF fascicolo completo"><i data-lucide="file-archive" class="w-3 h-3"></i></button>
                 <button onclick="window.eliminaProgetto('${p.id}')" class="text-white hover:bg-red-500 bg-red-700 p-2 rounded-lg transition shadow-sm ml-1" title="Elimina progetto"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
             </td>
         </tr>
-        <tr class="bg-slate-950" data-corso="${p.corso_id}" data-project-id="${p.id}" data-inline-iscritti-project="${p.id}">
+        <tr class="bg-slate-950" data-corso="${p.corso_id}" data-azienda="${p.azienda_id || ''}" data-project-id="${p.id}" data-inline-iscritti-project="${p.id}">
             <td colspan="4" class="p-4 border-b border-slate-700">
                 ${window.renderInlineIscrittiControls(p, 'desk')}
                 ${window.renderInlineIscrittiCards(p.id, iscritti, showAll)}
@@ -1700,7 +1863,7 @@ window.renderProjectMobileCard = function(p, iscritti, issues) {
         ? '<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-slate-950 text-white border border-slate-600 font-black text-[8px] uppercase">Chiuso</span>'
         : (p.stato_corso === 'svolto' ? '<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-300 text-amber-950 border border-amber-400 font-black text-[8px] uppercase">Da chiudere</span>' : '');
 
-    return `<article class="rounded-2xl border border-slate-700 bg-slate-900 shadow-xl overflow-hidden" data-corso="${p.corso_id}" data-mobile-project-id="${p.id}" data-project-id="${p.id}">
+    return `<article class="rounded-2xl border border-slate-700 bg-slate-900 shadow-xl overflow-hidden" data-corso="${p.corso_id}" data-azienda="${p.azienda_id || ''}" data-mobile-project-id="${p.id}" data-project-id="${p.id}">
         <div class="p-4 border-b border-slate-700 flex items-start justify-between gap-3">
             <div class="min-w-0">
                 <button onclick="window.apriPopupProgettoById('${p.id}', 'progetti')" class="font-mono text-rose-300 font-black text-xs hover:underline">${window.dashEscape(p.codice || '')}</button>
@@ -1708,8 +1871,9 @@ window.renderProjectMobileCard = function(p, iscritti, issues) {
                 <div class="flex flex-wrap gap-1 mt-2">${statoBadge}${chiusuraBadge}</div>
             </div>
             <div class="flex gap-2 shrink-0">
-                <button onclick="window.apriPopupProgettoById('${p.id}', 'progetti')" class="text-white bg-blue-600 hover:bg-blue-500 p-2 rounded-lg"><i data-lucide="edit" class="w-4 h-4"></i></button>
-                <button onclick="window.eliminaProgetto('${p.id}')" class="text-white bg-red-700 hover:bg-red-600 p-2 rounded-lg"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                <button onclick="window.apriPopupProgettoById('${p.id}', 'progetti')" class="text-white bg-blue-600 hover:bg-blue-500 p-2 rounded-lg" title="Modifica progetto"><i data-lucide="edit" class="w-4 h-4"></i></button>
+                <button onclick="window.stampaFascicoloCompletoDaProgetti('${p.id}')" class="text-white bg-indigo-700 hover:bg-indigo-600 p-2 rounded-lg" title="Stampa fascicolo"><i data-lucide="file-archive" class="w-4 h-4"></i></button>
+                <button onclick="window.eliminaProgetto('${p.id}')" class="text-white bg-red-700 hover:bg-red-600 p-2 rounded-lg" title="Elimina progetto"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
             </div>
         </div>
         <div class="p-4 space-y-3">
@@ -1754,6 +1918,18 @@ window.loadProgettiTable = async function() {
         filterSelect.innerHTML = optHtml;
     }
 
+    const filterAzienda = document.getElementById('filter-progetti-azienda');
+    if (filterAzienda) {
+        const previous = filterAzienda.value || '';
+        let azHtml = '<option value="">-- Tutte le aziende --</option>';
+        (window.aziendeList || []).forEach(a => {
+            azHtml += `<option value="${a.id}">${window.dashEscape(a.ragione_sociale || '')}</option>`;
+        });
+        filterAzienda.innerHTML = azHtml;
+        if (previous) filterAzienda.value = previous;
+    }
+    if (typeof window.renderProgettoDraftCorsistiControls === 'function') window.renderProgettoDraftCorsistiControls();
+
     const loading = '<tr><td colspan="4" class="p-6 text-center text-slate-400 italic"><i data-lucide="loader-2" class="w-5 h-5 animate-spin mx-auto mb-2"></i> Caricamento progetti e corsisti...</td></tr>';
     if (tbody) tbody.innerHTML = loading;
     if (mobileBox) mobileBox.innerHTML = '<div class="p-6 text-center text-slate-400 font-bold uppercase text-xs"><i data-lucide="loader-2" class="w-5 h-5 animate-spin mx-auto mb-2"></i> Caricamento progetti...</div>';
@@ -1785,12 +1961,14 @@ window.loadProgettiTable = async function() {
     if(typeof lucide !== 'undefined') lucide.createIcons();
 };
 
+
 window.filtraProgetti = function() {
     const textFilter = (document.getElementById('search-progetti')?.value || '').toLowerCase();
     const typeFilter = document.getElementById('filter-corso-tipo')?.value || '';
-    const rows = Array.from(document.getElementById('tabella-progetti').getElementsByTagName('tr'));
-    const grouped = {};
+    const aziendaFilter = document.getElementById('filter-progetti-azienda')?.value || '';
 
+    const rows = Array.from(document.getElementById('tabella-progetti')?.getElementsByTagName('tr') || []);
+    const grouped = {};
     rows.forEach(row => {
         const pid = row.getAttribute('data-project-id') || `row-${Math.random()}`;
         if (!grouped[pid]) grouped[pid] = [];
@@ -1800,10 +1978,22 @@ window.filtraProgetti = function() {
     Object.values(grouped).forEach(groupRows => {
         const groupText = groupRows.map(r => r.innerText.toLowerCase()).join(' ');
         const rowCorsoId = groupRows[0]?.getAttribute('data-corso') || '';
+        const rowAziendaId = groupRows[0]?.getAttribute('data-azienda') || '';
         const matchText = !textFilter || groupText.includes(textFilter);
         const matchType = typeFilter === '' || rowCorsoId === typeFilter;
-        const show = matchText && matchType;
+        const matchAzienda = aziendaFilter === '' || rowAziendaId === aziendaFilter;
+        const show = matchText && matchType && matchAzienda;
         groupRows.forEach(r => r.style.display = show ? '' : 'none');
+    });
+
+    document.querySelectorAll('#progetti-mobile-cards [data-project-id]').forEach(card => {
+        const text = card.innerText.toLowerCase();
+        const rowCorsoId = card.getAttribute('data-corso') || '';
+        const rowAziendaId = card.getAttribute('data-azienda') || '';
+        const show = (!textFilter || text.includes(textFilter)) &&
+                     (typeFilter === '' || rowCorsoId === typeFilter) &&
+                     (aziendaFilter === '' || rowAziendaId === aziendaFilter);
+        card.style.display = show ? '' : 'none';
     });
 };
 
@@ -1906,7 +2096,13 @@ window.salvaProgettoDB = async function() {
     };
     if (id && id !== "") record.id = id;
 
-    if (await window.saveProgetto(record)) {
+    const savedProjectData = await window.saveProgetto(record);
+    if (savedProjectData) {
+        const savedProject = Array.isArray(savedProjectData) ? savedProjectData[0] : savedProjectData;
+        if (savedProject && savedProject.id && (window.progettoDraftCorsistiIds || []).length) {
+            const projectForEnroll = { ...record, ...savedProject };
+            await window.salvaDraftCorsistiPerProgetto(projectForEnroll);
+        }
         const wasPopup = !!window.projectEditOpenedAsPopup;
         window.resetFormProgetto();
         if (wasPopup && typeof window.chiudiPopupProgetto === 'function') window.chiudiPopupProgetto();
@@ -1977,6 +2173,8 @@ window.resetFormProgetto = function() {
     if(document.getElementById('prog-documenti-url')) document.getElementById('prog-documenti-url').value = '';
     if(document.getElementById('prog-chiuso-at')) document.getElementById('prog-chiuso-at').value = '';
     if(document.getElementById('prog-note-chiusura')) document.getElementById('prog-note-chiusura').value = '';
+    window.progettoDraftCorsistiIds = [];
+    if (typeof window.renderProgettoDraftCorsistiControls === 'function') window.renderProgettoDraftCorsistiControls();
     if(typeof window.syncValidazioneCNAUI === 'function') window.syncValidazioneCNAUI();
 };
 
@@ -2072,15 +2270,6 @@ window.rimuoviIscrizione = async function(id, projectId = null) {
 };
 
 
-window.CNA_AVELLINO_PRESET = {
-    ragione_sociale: "CNA Artigiani Imprenditori D'Italia Avellino",
-    piva_cf: "P.IVA 02851400644 / C.F. 92002100649",
-    indirizzo: "Via Serafino Soldi, 11/13 - 83100 Avellino",
-    contatti: "Tel./Fax 0825 783345 | Email avellino@cna.it | PEC cna.avellino@pec.it | Web www.cnaavellino.it",
-    luogo_emissione: "Avellino",
-    logo_url: "logocna.png"
-};
-
 window.applicaPresetCNAAvellino = function() {
     const p = window.CNA_AVELLINO_PRESET;
     const set = (id, value) => {
@@ -2100,6 +2289,7 @@ window.applicaPresetCNAAvellino = function() {
     window.AppState['cfg-ente-contatti'] = p.contatti;
     window.AppState['cfg-luogo-emissione'] = p.luogo_emissione;
     window.AppState['cfg-logo'] = p.logo_url;
+    localStorage.setItem('SafetyManager.cnaLogoDefault', p.logo_url);
 
     const legale = document.getElementById('ente-legale-nome');
     if (legale && !legale.value) legale.placeholder = "Inserire nominativo del legale rappresentante";
@@ -2148,7 +2338,7 @@ window.salvaEnteDB = async function() {
         legale_nome: document.getElementById('ente-legale-nome').value.trim(),
         legale_nascita: document.getElementById('ente-legale-nascita').value.trim(),
         luogo_emissione: document.getElementById('ente-luogo-emissione').value.trim(),
-        logo_url: document.getElementById('cfg-logo').value 
+        logo_url: window.isCnaName(document.getElementById('ente-ragione').value) ? window.CNA_AVELLINO_PRESET.logo_url : document.getElementById('cfg-logo').value 
     };
     if (id && id !== "") record.id = id;
 
@@ -2202,13 +2392,26 @@ window.filtraStampe = function() {
 
 window.currentPrintModule = "";
 
-window.caricaDatiStampa = async function() {
-    const progId = document.getElementById('stampa-progetto').value;
+window.caricaDatiStampa = async function(projectId = null) {
+    const progId = projectId || document.getElementById('stampa-progetto')?.value;
     if(!progId) return;
 
+    if (!window.progettiList || !window.progettiList.length) window.progettiList = await window.getProgetti();
     const p = window.progettiList.find(x => x.id === progId);
     if(!p) return;
 
+    if (!window.AppState['cfg-ente'] && typeof window.getEnte === 'function') {
+        const enteCfg = await window.getEnte();
+        if (enteCfg) {
+            window.AppState['cfg-ente'] = enteCfg.ragione_sociale || '';
+            window.AppState['cfg-ente-indirizzo'] = enteCfg.indirizzo || '';
+            window.AppState['cfg-ente-contatti'] = enteCfg.contatti || '';
+            window.AppState['cfg-luogo-emissione'] = enteCfg.luogo_emissione || '';
+            window.AppState['cfg-legale-nome'] = enteCfg.legale_nome || '';
+            window.AppState['cfg-legale-nascita'] = enteCfg.legale_nascita || '';
+            window.AppState['cfg-logo'] = enteCfg.logo_url || '';
+        }
+    }
     if(window.docentiList.length === 0) window.docentiList = await window.getDocenti();
     const iscritti = await window.getIscrizioni(progId);
 
@@ -2225,6 +2428,7 @@ window.caricaDatiStampa = async function() {
     window.AppState['cfg-azienda-referente'] = p.aziende ? p.aziende.referente : "";
 
     window.AppState['cfg-ente-erogatore'] = p.ente_erogatore || 'ente';
+    if (typeof window.ensureCnaPresetState === 'function') window.ensureCnaPresetState();
     window.AppState['cfg-docenti-ud'] = JSON.stringify(window.parseJSONSafe(p.docenti_ud || p.docente_principale || '{}', {}));
     window.AppState['cfg-calendario'] = p.calendario || ""; 
     window.AppState['cfg-resp-progetto'] = p.resp_progetto || "";
@@ -2259,7 +2463,7 @@ window.caricaDatiStampa = async function() {
         esito: isc.esito || "Idoneo"
     }));
 
-    if(window.currentPrintModule) {
+    if(window.currentPrintModule && !projectId && document.getElementById('stampa-progetto') && document.getElementById('print-preview-container')) {
         window.loadPrintPreview(window.currentPrintModule);
     }
 };
@@ -2366,6 +2570,7 @@ window.preparaEStampaMassiva = function(tabId) {
 // RENDER DOCUMENTI E SYLLABUS MULTIDOCENTE
 // ==========================================
 window.updateAll = function() {
+    if (typeof window.ensureCnaPresetState === 'function') window.ensureCnaPresetState();
     const courseId = window.getVal('cfg-corso', 'lav_basso');
     const c = window.DB_CORSI[courseId];
     if(!c || !c.prog) return;
