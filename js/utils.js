@@ -381,7 +381,12 @@ window.loadAziendeTable = async function() {
     window.aziendeList.forEach(az => {
         html += `
             <tr class="hover:bg-blue-50 transition-colors">
-                <td class="p-3 border-b font-bold text-slate-800">${az.ragione_sociale}</td>
+                <td class="p-3 border-b font-bold text-slate-800">
+                    <button type="button" onclick="window.apriPopupRelazioniAzienda('${az.id}')" class="text-left text-blue-700 hover:text-blue-900 hover:underline font-black uppercase leading-tight">
+                        ${window.dashEscape(az.ragione_sociale || '')}
+                    </button>
+                    <p class="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Clicca per progetti e corsisti</p>
+                </td>
                 <td class="p-3 border-b font-mono text-[10px] text-slate-600">${az.piva_cf || '-'}</td>
                 <td class="p-3 border-b font-mono text-[10px] text-slate-500">${az.ateco || '-'}</td>
                 <td class="p-3 border-b text-center whitespace-nowrap">
@@ -446,6 +451,199 @@ window.filtraAziende = function() {
         if(rows[i].cells.length === 1) continue; 
         rows[i].style.display = rows[i].innerText.toLowerCase().includes(filter) ? "" : "none";
     }
+};
+
+
+// ==========================================
+// POPUP RELAZIONI AZIENDA: PROGETTI E CORSISTI
+// ==========================================
+window.chiudiPopupRelazioniAzienda = function() {
+    const modal = document.getElementById('azienda-relazioni-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+};
+
+window.openProjectFromAziendaPopup = async function(projectId) {
+    window.chiudiPopupRelazioniAzienda();
+    if (typeof window.apriPopupProgettoById === 'function') {
+        await window.apriPopupProgettoById(projectId, 'progetti');
+    } else {
+        await window.loadModule('progetti');
+    }
+};
+
+window.openCorsistaFromAziendaPopup = async function(corsistaId) {
+    window.chiudiPopupRelazioniAzienda();
+    await window.loadModule('corsisti');
+    setTimeout(() => {
+        if (typeof window.modificaCorsista === 'function') {
+            window.modificaCorsista(corsistaId);
+            const form = document.getElementById('form-corsista');
+            if (form) form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }, 350);
+};
+
+window.renderAziendaProjectCard = function(p, iscritti = []) {
+    const corso = window.DB_CORSI?.[p.corso_id];
+    const nomeCorso = corso ? corso.t : (p.corso_id || '-');
+    const sigla = corso ? corso.code : '';
+    const stato = (p.stato_corso || 'aperto').toUpperCase();
+    const statoClass = p.stato_corso === 'chiuso'
+        ? 'bg-slate-700 text-white border-slate-600'
+        : (p.stato_corso === 'svolto' ? 'bg-amber-300 text-amber-950 border-amber-400' : 'bg-emerald-300 text-emerald-950 border-emerald-400');
+
+    return `<div class="rounded-xl border border-slate-700 bg-slate-900 p-3 shadow">
+        <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+            <div class="min-w-0">
+                <button type="button" onclick="window.openProjectFromAziendaPopup('${p.id}')" class="font-mono text-rose-300 hover:text-rose-200 hover:underline font-black text-xs">
+                    ${window.dashEscape(p.codice || 'Senza codice')}
+                </button>
+                <p class="text-[9px] text-slate-400 font-bold uppercase mt-1">Esame: ${window.formatDataToItalian(p.data_esame)} · Inizio: ${window.formatDataToItalian(p.data_inizio)}</p>
+                <div class="mt-2 rounded-lg border border-blue-500/70 bg-blue-700 p-2">
+                    <p class="text-[8px] text-blue-100 font-black uppercase tracking-widest">Corso svolto</p>
+                    <p class="text-white font-black uppercase text-xs leading-tight"><span class="font-mono text-blue-100">[${window.dashEscape(sigla)}]</span> ${window.dashEscape(nomeCorso)}</p>
+                </div>
+            </div>
+            <div class="shrink-0 flex md:flex-col gap-2 md:items-end">
+                <span class="inline-flex items-center justify-center px-2 py-1 rounded-full border ${statoClass} font-black text-[8px] uppercase">${stato}</span>
+                <span class="inline-flex items-center justify-center px-2 py-1 rounded-full border border-slate-600 bg-slate-800 text-slate-100 font-black text-[8px] uppercase">
+                    ${iscritti.length} iscritti
+                </span>
+                <button type="button" onclick="window.openProjectFromAziendaPopup('${p.id}')" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded-lg text-[9px] font-black uppercase inline-flex items-center gap-1">
+                    <i data-lucide="external-link" class="w-3 h-3"></i> Apri progetto
+                </button>
+            </div>
+        </div>
+        ${iscritti.length ? `<div class="mt-3 pt-3 border-t border-slate-700 grid grid-cols-1 md:grid-cols-2 gap-2">
+            ${iscritti.slice(0, 6).map(isc => {
+                const c = isc.corsisti || {};
+                return `<div class="rounded-lg bg-slate-950 border border-slate-700 p-2">
+                    <p class="font-black uppercase text-slate-100 text-[10px]">${window.dashEscape(c.nome_cognome || '-')}</p>
+                    <p class="font-mono text-[9px] text-slate-400">${window.dashEscape(c.cf || '-')}</p>
+                    <p class="text-[9px] text-amber-300 font-mono mt-0.5">${window.dashEscape(isc.id_certificato || 'Certificato da generare')}</p>
+                </div>`;
+            }).join('')}
+            ${iscritti.length > 6 ? `<div class="rounded-lg bg-slate-950 border border-slate-700 p-2 text-slate-400 text-[10px] font-bold uppercase flex items-center">+ altri ${iscritti.length - 6} iscritti nel progetto</div>` : ''}
+        </div>` : ''}
+    </div>`;
+};
+
+window.renderAziendaCorsistaCard = function(c, progettiByCorsista = {}) {
+    const corsi = progettiByCorsista[c.id] || [];
+    return `<div class="rounded-xl border border-slate-700 bg-slate-900 p-3 shadow">
+        <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0">
+                <button type="button" onclick="window.openCorsistaFromAziendaPopup('${c.id}')" class="text-left font-black uppercase text-slate-100 hover:text-blue-300 hover:underline text-xs leading-tight">
+                    ${window.dashEscape(c.nome_cognome || '-')}
+                </button>
+                <p class="font-mono text-[9px] text-slate-400 mt-0.5">${window.dashEscape(c.cf || '-')}</p>
+                <p class="text-[9px] text-slate-500 font-bold uppercase mt-1">${window.dashEscape(c.mansione_storica || 'Mansione non indicata')}</p>
+            </div>
+            <button type="button" onclick="window.openCorsistaFromAziendaPopup('${c.id}')" class="shrink-0 bg-slate-800 hover:bg-slate-700 text-white p-2 rounded-lg" title="Apri anagrafica corsista">
+                <i data-lucide="user-round-pen" class="w-3.5 h-3.5"></i>
+            </button>
+        </div>
+        <div class="mt-3 pt-2 border-t border-slate-700">
+            <p class="text-[8px] text-slate-500 font-black uppercase tracking-widest mb-1">Corsi svolti / iscrizioni</p>
+            ${corsi.length ? `<div class="space-y-1">
+                ${corsi.slice(0, 4).map(p => `<button type="button" onclick="window.openProjectFromAziendaPopup('${p.id}')" class="block w-full text-left rounded bg-slate-950 hover:bg-slate-800 border border-slate-700 px-2 py-1.5 text-[9px] text-blue-300 font-bold">
+                    ${window.dashEscape(p.codice || '')} · ${window.dashEscape(window.DB_CORSI?.[p.corso_id]?.code || p.corso_id || '')} · ${window.formatDataToItalian(p.data_esame)}
+                </button>`).join('')}
+                ${corsi.length > 4 ? `<p class="text-[9px] text-slate-500 font-bold uppercase">+ altri ${corsi.length - 4} corsi</p>` : ''}
+            </div>` : '<p class="text-[9px] text-slate-500 italic">Nessun corso collegato.</p>'}
+        </div>
+    </div>`;
+};
+
+window.apriPopupRelazioniAzienda = async function(aziendaId) {
+    const modal = document.getElementById('azienda-relazioni-modal');
+    const title = document.getElementById('azienda-relazioni-title');
+    const summary = document.getElementById('azienda-relazioni-summary');
+    const content = document.getElementById('azienda-relazioni-content');
+    if (!modal || !content) return alert('Popup relazioni azienda non disponibile.');
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    content.innerHTML = '<div class="text-center text-slate-400 p-8"><i data-lucide="loader-2" class="w-6 h-6 animate-spin mx-auto mb-2"></i> Caricamento relazioni azienda...</div>';
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+
+    if (!window.aziendeList || !window.aziendeList.length) window.aziendeList = await window.getAziende();
+    const azienda = (window.aziendeList || []).find(a => a.id === aziendaId);
+    if (!azienda) {
+        content.innerHTML = '<div class="text-red-300 font-bold p-6">Azienda non trovata.</div>';
+        return;
+    }
+
+    if (title) title.innerText = `${azienda.ragione_sociale || ''} · ${azienda.piva_cf || 'P.IVA/C.F. non indicata'}`;
+
+    const [allProjects, allCorsisti] = await Promise.all([
+        window.getProgetti(),
+        window.getCorsisti()
+    ]);
+
+    const progetti = (allProjects || []).filter(p => p.azienda_id === aziendaId);
+    const corsisti = (allCorsisti || []).filter(c => c.azienda_id === aziendaId);
+    const iscrizioniMap = window.getIscrizioniPerProgetti ? await window.getIscrizioniPerProgetti(progetti.map(p => p.id)) : {};
+
+    const progettiByCorsista = {};
+    progetti.forEach(p => {
+        (iscrizioniMap[p.id] || []).forEach(isc => {
+            const cid = isc.corsista_id || isc.corsisti?.id;
+            if (!cid) return;
+            if (!progettiByCorsista[cid]) progettiByCorsista[cid] = [];
+            if (!progettiByCorsista[cid].some(x => x.id === p.id)) progettiByCorsista[cid].push(p);
+        });
+    });
+
+    if (summary) summary.innerText = `${progetti.length} progetti · ${corsisti.length} corsisti aziendali`;
+
+    content.innerHTML = `
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-3">
+            <div class="rounded-2xl border border-amber-400 bg-amber-400 p-4 text-slate-950">
+                <p class="text-[8px] font-black uppercase tracking-widest">Azienda committente</p>
+                <h3 class="font-black uppercase text-lg leading-tight mt-1">${window.dashEscape(azienda.ragione_sociale || '-')}</h3>
+                <p class="font-mono text-[10px] mt-2">${window.dashEscape(azienda.piva_cf || '-')}</p>
+                <p class="text-[10px] font-bold mt-1">${window.dashEscape(azienda.indirizzo || '')}</p>
+                <p class="text-[10px] font-bold mt-1">ATECO: ${window.dashEscape(azienda.ateco || '-')}</p>
+                <p class="text-[10px] font-bold mt-1">Referente: ${window.dashEscape(azienda.referente || '-')}</p>
+            </div>
+            <div class="rounded-2xl border border-blue-500 bg-blue-700 p-4 text-white">
+                <p class="text-[8px] font-black uppercase tracking-widest text-blue-100">Progetti collegati</p>
+                <p class="text-4xl font-black mt-2">${progetti.length}</p>
+                <p class="text-[10px] font-bold uppercase text-blue-100 mt-1">Corsi/progetti formativi riferiti a questa azienda</p>
+            </div>
+            <div class="rounded-2xl border border-emerald-500 bg-emerald-700 p-4 text-white">
+                <p class="text-[8px] font-black uppercase tracking-widest text-emerald-100">Corsisti aziendali</p>
+                <p class="text-4xl font-black mt-2">${corsisti.length}</p>
+                <p class="text-[10px] font-bold uppercase text-emerald-100 mt-1">Anagrafiche dipendenti associate all'azienda</p>
+            </div>
+        </div>
+
+        <section class="rounded-2xl border border-slate-700 bg-slate-950 p-4">
+            <div class="flex items-center justify-between gap-3 mb-3">
+                <h3 class="font-black uppercase text-white text-sm flex items-center gap-2"><i data-lucide="folder-kanban" class="w-4 h-4 text-blue-400"></i> Progetti relativi all'azienda</h3>
+                <span class="text-[9px] text-slate-400 font-black uppercase tracking-widest">${progetti.length} risultati</span>
+            </div>
+            <div class="space-y-3">
+                ${progetti.length ? progetti.map(p => window.renderAziendaProjectCard(p, iscrizioniMap[p.id] || [])).join('') : '<div class="rounded-xl border border-slate-700 bg-slate-900 p-4 text-slate-400 text-xs italic">Nessun progetto collegato a questa azienda.</div>'}
+            </div>
+        </section>
+
+        <section class="rounded-2xl border border-slate-700 bg-slate-950 p-4">
+            <div class="flex items-center justify-between gap-3 mb-3">
+                <h3 class="font-black uppercase text-white text-sm flex items-center gap-2"><i data-lucide="users" class="w-4 h-4 text-emerald-400"></i> Corsisti di questa azienda</h3>
+                <span class="text-[9px] text-slate-400 font-black uppercase tracking-widest">${corsisti.length} risultati</span>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                ${corsisti.length ? corsisti.map(c => window.renderAziendaCorsistaCard(c, progettiByCorsista)).join('') : '<div class="rounded-xl border border-slate-700 bg-slate-900 p-4 text-slate-400 text-xs italic">Nessun corsista associato a questa azienda.</div>'}
+            </div>
+        </section>
+    `;
+
+    if (typeof lucide !== 'undefined') lucide.createIcons();
 };
 
 // ==========================================

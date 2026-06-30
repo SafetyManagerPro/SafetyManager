@@ -72,3 +72,32 @@
 
     </div>
 </div>
+
+
+<!-- POPUP RELAZIONI AZIENDA -->
+<div id="azienda-relazioni-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[120] items-center justify-center p-3 md:p-5 overflow-hidden">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-5xl h-[84vh] max-h-[84vh] flex flex-col overflow-hidden">
+        <div class="shrink-0 bg-slate-950 border-b border-slate-700 px-4 py-3 md:px-5 md:py-4">
+            <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                    <h2 class="text-base md:text-xl font-black uppercase text-white flex items-center gap-2">
+                        <i data-lucide="building-2" class="w-5 h-5 text-blue-400 shrink-0"></i>
+                        Dettaglio azienda
+                    </h2>
+                    <p id="azienda-relazioni-title" class="text-[10px] text-slate-300 font-mono mt-1 leading-snug break-words">---</p>
+                    <p id="azienda-relazioni-summary" class="text-[9px] text-amber-300 font-black uppercase tracking-widest mt-1">---</p>
+                </div>
+                <button onclick="window.chiudiPopupRelazioniAzienda()" class="shrink-0 text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 p-2 rounded-lg transition" title="Chiudi">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="flex-1 min-h-0 overflow-y-auto bg-slate-950/60 p-3 md:p-5">
+            <div id="azienda-relazioni-content" class="space-y-4">
+                <div class="text-center text-slate-400 p-8">Caricamento...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
