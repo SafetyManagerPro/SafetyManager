@@ -812,8 +812,8 @@ window.loadCorsistiTable = async function() {
                     const dFine = window.formatDataToItalian(isc.progetti.data_esame);
                     const projectId = isc.progetti.id || isc.progetto_id;
                     const codice = isc.progetti.codice || '';
-                    cArr.push(`<button type="button" onclick="window.apriPopupProgettoById('${projectId}', 'progetti')" class="block text-left font-black text-blue-700 hover:text-blue-900 hover:underline text-[11px] truncate max-w-[260px]" title="Apri progetto ${codice}">• ${window.dashEscape(tCorso)} <span class="font-mono text-[9px] text-slate-500">${window.dashEscape(codice)}</span></button>`);
-                    dArr.push(`<button type="button" onclick="window.apriPopupProgettoById('${projectId}', 'progetti')" class="font-mono text-blue-700 hover:underline text-[10px]">${dFine}</button>`);
+                    cArr.push(`<button type="button" onclick="window.apriProgettoDaCorsoSvolto('${projectId}', '${cor.id}')" class="block text-left font-black text-blue-700 hover:text-blue-900 hover:underline text-[11px] truncate max-w-[260px]" title="Apri progetto esistente ${codice}">• ${window.dashEscape(tCorso)} <span class="font-mono text-[9px] text-slate-500">${window.dashEscape(codice)}</span></button>`);
+                    dArr.push(`<button type="button" onclick="window.apriProgettoDaCorsoSvolto('${projectId}', '${cor.id}')" class="font-mono text-blue-700 hover:underline text-[10px]" title="Apri progetto esistente">${dFine}</button>`);
                 }
             });
             if (cArr.length > 0) {
@@ -1475,21 +1475,46 @@ window.waitForElement = async function(selector, timeoutMs = 2500) {
 };
 
 
-window.apriPopupProgettoById = async function(projectId, target = 'progetti') {
-    if (!projectId) return;
 
-    if (!document.getElementById('form-progetto')) {
+window.ensureProgettiModuleReadyForProject = async function(projectId) {
+    const formWasMissing = !document.getElementById('form-progetto');
+
+    if (formWasMissing) {
         await window.loadModule('progetti');
-        await window.waitForElement('#form-progetto');
+        await window.waitForElement('#form-progetto', 5000);
     }
 
-    if (!window.progettiList || !window.progettiList.find(p => p.id === projectId)) {
+    if (!window.aziendeList || !window.aziendeList.length) window.aziendeList = await window.getAziende();
+    if (!window.docentiList || !window.docentiList.length) window.docentiList = await window.getDocenti();
+    if (!window.corsistiList || !window.corsistiList.length) window.corsistiList = await window.getCorsisti();
+
+    const aziendaSelect = document.getElementById('prog-azienda');
+    const aziendaOptionsReady = !aziendaSelect || (aziendaSelect.options && aziendaSelect.options.length > 1);
+    const projectLoaded = window.progettiList && window.progettiList.some(p => p.id === projectId);
+
+    if (!projectLoaded || !aziendaOptionsReady) {
+        if (typeof window.loadProgettiTable === 'function' && (document.getElementById('tabella-progetti') || document.getElementById('progetti-mobile-cards'))) {
+            await window.loadProgettiTable();
+        } else {
+            window.progettiList = await window.getProgetti();
+        }
+    }
+
+    if (!window.progettiList || !window.progettiList.some(p => p.id === projectId)) {
         window.progettiList = await window.getProgetti();
     }
 
-    const p = window.progettiList.find(x => x.id === projectId);
+    return (window.progettiList || []).find(p => p.id === projectId) || null;
+};
+
+window.apriPopupProgettoById = async function(projectId, target = 'progetti') {
+    if (!projectId) return;
+
+    window.pendingProjectOpenId = projectId;
+    const p = await window.ensureProgettiModuleReadyForProject(projectId);
+
     if (!p) {
-        alert('Progetto non trovato.');
+        alert('Progetto non trovato tra i progetti attivi. Verifica che il corso collegato al corsista non sia stato eliminato.');
         return;
     }
 
@@ -1497,11 +1522,34 @@ window.apriPopupProgettoById = async function(projectId, target = 'progetti') {
         window.modificaProgetto(projectId);
     }
 
+    await new Promise(resolve => setTimeout(resolve, 160));
+
+    if (document.getElementById('prog-id')?.value !== projectId && typeof window.modificaProgetto === 'function') {
+        window.modificaProgetto(projectId);
+        await new Promise(resolve => setTimeout(resolve, 120));
+    }
+
     if (typeof window.openProjectEditPopup === 'function') {
         await window.openProjectEditPopup(projectId, target);
     }
 };
 
+window.apriProgettoDaCorsoSvolto = async function(projectId, corsistaId = '') {
+    if (!projectId) return alert('Progetto non collegato o non trovato.');
+    await window.apriPopupProgettoById(projectId, 'progetti');
+
+    // Evidenzia il corsista dentro al popup, se la card è presente.
+    if (corsistaId) {
+        setTimeout(() => {
+            const node = document.querySelector(`[data-popup-corsista-id="${corsistaId}"]`);
+            if (node) {
+                node.classList.add('ring-2', 'ring-amber-400');
+                node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                setTimeout(() => node.classList.remove('ring-2', 'ring-amber-400'), 2500);
+            }
+        }, 350);
+    }
+};
 
 window.clearProjectPopupFieldErrors = function() {
     document.querySelectorAll('[data-project-field-error="1"]').forEach(el => {
@@ -1695,7 +1743,7 @@ window.renderPopupCorsisti = async function(projectId) {
                     ${iscritti.map(isc => {
                         const c = isc.corsisti || {};
                         const incomplete = !isc.id_certificato || !isc.esito || isc.percentuale_frequenza === null || isc.percentuale_frequenza === undefined;
-                        return `<tr class="${incomplete ? 'bg-red-50' : 'bg-white'} border-b border-slate-200">
+                        return `<tr data-popup-corsista-id="${c.id || ''}" class="${incomplete ? 'bg-red-50' : 'bg-white'} border-b border-slate-200">
                             <td class="p-2 font-black uppercase text-slate-900">${window.dashEscape ? window.dashEscape(c.nome_cognome || '-') : (c.nome_cognome || '-')}</td>
                             <td class="p-2 font-mono text-slate-600">${window.dashEscape ? window.dashEscape(c.cf || '-') : (c.cf || '-')}</td>
                             <td class="p-2 text-slate-600">${window.dashEscape ? window.dashEscape(isc.mansione_storica || c.mansione_storica || '-') : (isc.mansione_storica || c.mansione_storica || '-')}</td>
@@ -2311,41 +2359,81 @@ window.salvaProgettoDB = async function() {
     } else alert("Errore nel salvataggio del progetto formativo. Verifica di aver applicato tutte le migration Supabase, inclusa quella Step 5 per validazione CNA/OPTA.");
 };
 
-window.modificaProgetto = function(id) {
-    const p = window.progettiList.find(x => x.id === id);
-    if(!p) return;
-    document.getElementById('prog-id').value = p.id;
-    document.getElementById('prog-azienda').value = p.azienda_id || '';
-    if(document.getElementById('prog-erogatore')) document.getElementById('prog-erogatore').value = p.ente_erogatore || 'ente';
-    document.getElementById('prog-corso').value = p.corso_id || '';
-    document.getElementById('prog-codice').value = p.codice || '';
-    document.getElementById('prog-modalita').value = p.modalita || 'In Presenza Fisica';
-    document.getElementById('prog-inizio').value = p.data_inizio || '';
-    document.getElementById('prog-esame').value = p.data_esame || '';
-    if(document.getElementById('prog-sede')) document.getElementById('prog-sede').value = p.sede || '';
-    if(document.getElementById('prog-resp-progetto')) document.getElementById('prog-resp-progetto').value = p.resp_progetto || '';
-    if(document.getElementById('prog-resp-corso')) document.getElementById('prog-resp-corso').value = p.resp_corso || '';
-    if(document.getElementById('prog-op-invio')) document.getElementById('prog-op-invio').value = p.richiesta_op_inviata_at || '';
-    if(document.getElementById('prog-op-risposta')) document.getElementById('prog-op-risposta').value = p.risposta_op_at || '';
-    if(document.getElementById('prog-op-esito')) document.getElementById('prog-op-esito').value = p.esito_richiesta_op || '';
-    if(document.getElementById('prog-compliance-note-free')) document.getElementById('prog-compliance-note-free').value = p.compliance_note || '';
-    if(document.getElementById('prog-ente-validatore')) document.getElementById('prog-ente-validatore').value = p.ente_validatore || window.getDefaultEnteValidatore();
-    if(document.getElementById('prog-validazione-esito')) document.getElementById('prog-validazione-esito').value = p.validazione_ente_esito || '';
-    if(document.getElementById('prog-validazione-data')) document.getElementById('prog-validazione-data').value = p.validazione_ente_at || '';
-    if(document.getElementById('prog-op-comunicazione')) document.getElementById('prog-op-comunicazione').value = p.comunicazione_op_at || '';
-    if(document.getElementById('prog-op-destinatario')) document.getElementById('prog-op-destinatario').value = p.organismo_destinatario || window.DEFAULT_OP_DESTINATARIO;
-    if(document.getElementById('prog-validazione-note')) document.getElementById('prog-validazione-note').value = p.note_validazione_ente || '';
-    if(document.getElementById('prog-omogeneita-aula')) document.getElementById('prog-omogeneita-aula').checked = p.omogeneita_aula !== false;
 
-    window.calcolaDettagliProgetto(); 
-    
+window.modificaProgetto = function(id) {
+    const p = (window.progettiList || []).find(x => x.id === id);
+    if(!p) return alert('Progetto non trovato o non ancora caricato.');
+
+    window.currentProgettoId = id;
+    window.currentEditingProjectId = id;
+
+    const set = (elId, value='') => {
+        const el = document.getElementById(elId);
+        if (el) el.value = value ?? '';
+    };
+
+    const aziendaSelect = document.getElementById('prog-azienda');
+    if (aziendaSelect && p.azienda_id && !aziendaSelect.querySelector(`option[value="${p.azienda_id}"]`) && window.aziendeList?.length) {
+        aziendaSelect.innerHTML = '<option value="">-- Seleziona Azienda --</option>' +
+            window.aziendeList.map(a => `<option value="${a.id}">${window.dashEscape(a.ragione_sociale || '')}</option>`).join('');
+    }
+
+    set('prog-id', p.id);
+    set('prog-azienda', p.azienda_id || '');
+    set('prog-erogatore', p.ente_erogatore || 'ente');
+    set('prog-corso', p.corso_id || '');
+    set('prog-codice', p.codice || '');
+    set('prog-modalita', p.modalita || 'In Presenza Fisica');
+    set('prog-inizio', p.data_inizio || '');
+    set('prog-esame', p.data_esame || '');
+    set('prog-sede', p.sede || '');
+    set('prog-resp-progetto', p.resp_progetto || '');
+    set('prog-resp-corso', p.resp_corso || '');
+    set('prog-op-invio', p.richiesta_op_inviata_at || '');
+    set('prog-op-risposta', p.risposta_op_at || '');
+    set('prog-op-esito', p.esito_richiesta_op || '');
+    set('prog-compliance-note-free', p.compliance_note || '');
+    set('prog-ente-validatore', p.ente_validatore || window.getDefaultEnteValidatore());
+    set('prog-validazione-esito', p.validazione_ente_esito || '');
+    set('prog-validazione-data', p.validazione_ente_at || '');
+    set('prog-op-comunicazione', p.comunicazione_op_at || '');
+    set('prog-op-destinatario', p.organismo_destinatario || window.DEFAULT_OP_DESTINATARIO);
+    set('prog-validazione-note', p.note_validazione_ente || '');
+    set('prog-stato-corso', p.stato_corso || 'aperto');
+    set('prog-documenti-url', p.documenti_firmati_url || '');
+    set('prog-chiuso-at', p.chiuso_at || '');
+    set('prog-note-chiusura', p.note_chiusura || '');
+
+    if(document.getElementById('prog-omogeneita-aula')) {
+        document.getElementById('prog-omogeneita-aula').checked = p.omogeneita_aula !== false;
+    }
+
+    // Serve per ricostruire unità didattiche e menu docenti, ma non deve trasformare
+    // il progetto esistente in un "nuovo corso" rigenerando codice/date già salvati.
+    const saved = {
+        codice: p.codice || '',
+        data_esame: p.data_esame || '',
+        calendario: p.calendario || ''
+    };
+    if (typeof window.calcolaDettagliProgetto === 'function') window.calcolaDettagliProgetto();
+
+    set('prog-codice', saved.codice);
+    set('prog-esame', saved.data_esame);
+    if (saved.calendario) set('prog-calendario-testo', saved.calendario);
+
     setTimeout(() => {
         const parsedDocs = window.parseJSONSafe(p.docenti_ud || p.docente_principale || '{}', {});
         document.querySelectorAll('.prog-docente-ud').forEach(sel => {
             let ud = sel.getAttribute('data-ud');
             if(parsedDocs[ud]) sel.value = parsedDocs[ud];
         });
+        set('prog-id', p.id);
+        set('prog-codice', saved.codice);
+        set('prog-esame', saved.data_esame);
+        if (saved.calendario) set('prog-calendario-testo', saved.calendario);
     }, 100);
+
+    if(typeof window.syncValidazioneCNAUI === 'function') window.syncValidazioneCNAUI();
 };
 
 window.eliminaProgetto = async function(id) {
