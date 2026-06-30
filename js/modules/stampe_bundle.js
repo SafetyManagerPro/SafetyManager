@@ -1,27 +1,28 @@
 // Stampa fascicolo completo module
 // Estratto da js/utils.js nello step 23 per ridurre il file principale.
 
+
 window.renderPrintModuleToTemp = async function(moduleId, singleCorsista = null) {
+    if (typeof window.renderPrintModulePages === 'function') {
+        return await window.renderPrintModulePages(moduleId, singleCorsista, { preview: false });
+    }
+
     const resp = await fetch(`modules/${moduleId}.html`);
     if (!resp.ok) throw new Error(`Modulo non trovato: ${moduleId}`);
     const html = await resp.text();
-    const temp = document.createElement('div');
-    temp.innerHTML = html;
     const prevModule = window.currentPrintModule;
     const prevSession = [...(window.currentSessionCorsisti || [])];
+
+    const holder = document.createElement('div');
+    holder.style.position = 'absolute';
+    holder.style.left = '-99999px';
+    holder.innerHTML = html;
+    document.body.appendChild(holder);
 
     window.currentPrintModule = moduleId;
     if (singleCorsista) window.currentSessionCorsisti = [singleCorsista];
     window.updateAll();
 
-    // Aggiorna sul frammento temporaneo usando una preview invisibile.
-    const oldPreview = document.getElementById('print-preview-container');
-    let holder = document.createElement('div');
-    holder.id = 'print-preview-container';
-    holder.style.display = 'none';
-    holder.innerHTML = html;
-    document.body.appendChild(holder);
-    window.updateAll();
     const pages = Array.from(holder.querySelectorAll('.doc-page')).map(p => {
         const clone = p.cloneNode(true);
         clone.classList.remove('scale-[0.8]', 'origin-top');
@@ -34,6 +35,7 @@ window.renderPrintModuleToTemp = async function(moduleId, singleCorsista = null)
     window.currentSessionCorsisti = prevSession;
     return pages;
 };
+
 
 window.stampaFascicoloCompletoPDF = async function(projectId = null) {
     const progId = projectId || document.getElementById('stampa-progetto')?.value;
@@ -56,18 +58,24 @@ window.stampaFascicoloCompletoPDF = async function(projectId = null) {
     ];
 
     try {
+        // Creazione in memoria: appendiamo al DOM solo alla fine per evitare che
+        // updateAll delle stampe successive sovrascriva le pagine già preparate.
+        const allPages = [];
+
         for (const m of docs) {
             const pages = await window.renderPrintModuleToTemp(m, null);
-            pages.forEach(p => printArea.appendChild(p));
+            allPages.push(...pages);
         }
 
         const backupSession = [...(window.currentSessionCorsisti || [])];
         for (const c of backupSession) {
             const pages = await window.renderPrintModuleToTemp('attestato', c);
-            pages.forEach(p => printArea.appendChild(p));
+            allPages.push(...pages);
         }
 
-        alert('Ora si aprirà la stampa. Seleziona "Salva come PDF" per salvare sul PC il fascicolo completo con attestati.');
+        allPages.forEach(p => printArea.appendChild(p));
+
+        alert(`Ora si aprirà la stampa. Seleziona "Salva come PDF" per salvare sul PC il fascicolo completo con ${backupSession.length} attestati.`);
         document.body.classList.add('is-printing-temp');
         setTimeout(() => {
             window.print();
@@ -81,7 +89,6 @@ window.stampaFascicoloCompletoPDF = async function(projectId = null) {
         printArea.innerHTML = '';
     }
 };
-
 
 // ==========================================
 // BACKUP LOCALE DATABASE SUPABASE

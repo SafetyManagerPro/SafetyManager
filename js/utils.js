@@ -2666,13 +2666,123 @@ window.caricaDatiStampa = async function(projectId = null) {
     }
 };
 
+
+// ==========================================
+// STAMPA MULTIPLA ATTESTATI - FIX STEP 26
+// ==========================================
+window.renderPrintModulePages = async function(moduleId, singleCorsista = null, options = {}) {
+    const preview = !!options.preview;
+    const resp = await fetch(`modules/${moduleId}.html`);
+    if (!resp.ok) throw new Error(`Modulo non trovato: ${moduleId}`);
+    const html = await resp.text();
+
+    const prevModule = window.currentPrintModule;
+    const prevSession = [...(window.currentSessionCorsisti || [])];
+
+    const holder = document.createElement('div');
+    holder.className = 'print-render-holder';
+    holder.style.position = 'absolute';
+    holder.style.left = '-99999px';
+    holder.style.top = '0';
+    holder.style.width = '210mm';
+    holder.style.background = 'white';
+    holder.style.pointerEvents = 'none';
+    holder.innerHTML = html;
+    document.body.appendChild(holder);
+
+    window.currentPrintModule = moduleId;
+    if (singleCorsista) window.currentSessionCorsisti = [singleCorsista];
+
+    if (typeof window.updateAll === 'function') window.updateAll();
+
+    const pages = Array.from(holder.querySelectorAll('.doc-page')).map(page => {
+        const clone = page.cloneNode(true);
+        clone.id = '';
+        clone.classList.remove('scale-[0.8]', 'origin-top');
+        clone.style.margin = preview ? '0 auto 16px auto' : '0 auto';
+        if (preview) {
+            clone.classList.add('scale-[0.8]', 'origin-top');
+        } else {
+            clone.classList.add('print-show', 'temp-page');
+            if (page.classList.contains('landscape')) clone.classList.add('landscape-force');
+            else clone.classList.add('portrait');
+        }
+        return clone;
+    });
+
+    holder.remove();
+    window.currentPrintModule = prevModule;
+    window.currentSessionCorsisti = prevSession;
+    return pages;
+};
+
+
+window.renderAttestatiMultipli = async function(targetContainer, options = {}) {
+    const session = [...(window.currentSessionCorsisti || [])];
+    if (!session.length) {
+        targetContainer.innerHTML = '<div class="p-6 text-center text-red-500 font-bold">Nessun corsista iscritto al progetto selezionato.</div>';
+        return 0;
+    }
+
+    // Importante: non appendere le pagine mentre updateAll gira per il corsista successivo,
+    // altrimenti le classi .val-* delle pagine già create verrebbero sovrascritte.
+    const fragment = document.createDocumentFragment();
+
+    for (const corsista of session) {
+        const pages = await window.renderPrintModulePages('attestato', corsista, options);
+        pages.forEach(page => {
+            if (options.preview) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'mb-8 border-b border-slate-300 pb-6';
+                const label = document.createElement('div');
+                label.className = 'mb-2 px-3 py-2 rounded-lg bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest inline-flex items-center gap-2';
+                label.innerHTML = `<span>Attestato</span><span class="font-mono text-amber-300">${window.dashEscape(corsista.nome || '')}</span>`;
+                wrapper.appendChild(label);
+                wrapper.appendChild(page);
+                fragment.appendChild(wrapper);
+            } else {
+                fragment.appendChild(page);
+            }
+        });
+    }
+
+    targetContainer.innerHTML = '';
+    targetContainer.appendChild(fragment);
+    return session.length;
+};
+
+window.stampaAttestatiMultipli = async function() {
+    const printArea = document.getElementById('print-area-temp');
+    if (!printArea) return alert('Area di stampa non disponibile.');
+    const session = [...(window.currentSessionCorsisti || [])];
+    if (!session.length) return alert('Nessun corsista iscritto al progetto selezionato.');
+
+    try {
+        printArea.innerHTML = '';
+        await window.renderAttestatiMultipli(printArea, { preview: false });
+        alert(`Ora si aprirà la stampa. Verranno stampati ${session.length} attestati, uno per ogni corsista iscritto al corso.`);
+        document.body.classList.add('is-printing-temp');
+        setTimeout(() => {
+            window.print();
+            document.body.classList.remove('is-printing-temp');
+            printArea.innerHTML = '';
+        }, 1000);
+    } catch (e) {
+        console.error(e);
+        alert('Errore nella preparazione degli attestati: ' + (e.message || e));
+        document.body.classList.remove('is-printing-temp');
+        printArea.innerHTML = '';
+    }
+};
+
+
 window.loadPrintPreview = async function(modulo) {
-    const progId = document.getElementById('stampa-progetto').value;
+    const progId = document.getElementById('stampa-progetto')?.value;
     if(!progId) return alert("Seleziona prima un Progetto dal menu a tendina!");
 
     window.currentPrintModule = modulo;
     const container = document.getElementById('print-preview-container');
-    
+
     const btnCorrettore = document.getElementById('btn-correttore');
     if (btnCorrettore) {
         if (modulo === 'esame') btnCorrettore.classList.remove('hidden');
@@ -2680,10 +2790,18 @@ window.loadPrintPreview = async function(modulo) {
     }
 
     try {
+        container.innerHTML = '<div class="p-8 text-center text-slate-500 font-bold uppercase text-xs"><i data-lucide="loader-2" class="w-5 h-5 animate-spin mx-auto mb-2"></i> Preparazione anteprima...</div>';
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+
+        if (modulo === 'attestato') {
+            await window.renderAttestatiMultipli(container, { preview: true });
+            return;
+        }
+
         const response = await fetch(`modules/${modulo}.html`);
         if(!response.ok) throw new Error("File del documento non trovato.");
         const html = await response.text();
-        
+
         container.innerHTML = html;
         container.querySelectorAll('.doc-page').forEach(doc => {
             doc.style.margin = "0";
@@ -2698,18 +2816,20 @@ window.loadPrintPreview = async function(modulo) {
     }
 };
 
-window.stampaSezioneAttuale = function() {
-    if(!window.currentPrintModule) return alert("Seleziona un documento da stampare.");
-    const printArea = document.getElementById('print-area-temp');
-    printArea.innerHTML = '';
-    
-    const docOriginale = document.querySelector('#print-preview-container .doc-page');
-    if(!docOriginale) return;
 
-    if(window.currentPrintModule === 'attestato' && window.currentSessionCorsisti.length > 0) {
-        window.preparaEStampaMassiva(window.currentPrintModule);
+window.stampaSezioneAttuale = async function() {
+    if(!window.currentPrintModule) return alert("Seleziona un documento da stampare.");
+
+    if(window.currentPrintModule === 'attestato') {
+        await window.stampaAttestatiMultipli();
         return;
     }
+
+    const printArea = document.getElementById('print-area-temp');
+    printArea.innerHTML = '';
+
+    const docOriginale = document.querySelector('#print-preview-container .doc-page');
+    if(!docOriginale) return;
 
     if(window.currentPrintModule === 'esame' && window.currentSessionCorsisti.length > 0) {
         window.preparaEStampaMassiva(window.currentPrintModule);
@@ -2721,7 +2841,7 @@ window.stampaSezioneAttuale = function() {
     clone.classList.add('print-show', 'temp-page');
     if(docOriginale.classList.contains('landscape')) clone.classList.add('landscape-force');
     else clone.classList.add('portrait');
-    
+
     printArea.appendChild(clone);
 
     document.body.classList.add('is-printing-temp');
@@ -2732,7 +2852,13 @@ window.stampaSezioneAttuale = function() {
     }, 800);
 };
 
-window.preparaEStampaMassiva = function(tabId) {
+
+window.preparaEStampaMassiva = async function(tabId) {
+    if (tabId === 'attestato') {
+        await window.stampaAttestatiMultipli();
+        return;
+    }
+
     let printArea = document.getElementById('print-area-temp');
     printArea.innerHTML = '';
 
@@ -2741,7 +2867,7 @@ window.preparaEStampaMassiva = function(tabId) {
     backupSession.forEach((c, idx) => {
         window.currentSessionCorsisti = [c];
         window.updateAll(); 
-        
+
         document.querySelectorAll('#print-preview-container .doc-page').forEach(original => {
             const clone = original.cloneNode(true);
             clone.id = "";
