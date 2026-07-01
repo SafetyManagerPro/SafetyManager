@@ -661,12 +661,40 @@ window.apriPopupRelazioniAzienda = async function(aziendaId) {
 // ==========================================
 window.docentiList = [];
 
+
+window.popolaSelectAziendaAppartenenzaDocente = async function(selectedValue = '') {
+    const select = document.getElementById('doc-azienda-appartenenza');
+    if (!select) return;
+    if (!window.aziendeList || !window.aziendeList.length) {
+        window.aziendeList = await window.getAziende();
+    }
+
+    const selected = String(selectedValue || '');
+    const ragioni = (window.aziendeList || [])
+        .map(a => a.ragione_sociale || '')
+        .filter(Boolean);
+
+    let html = '<option value="">-- Seleziona azienda da Anagrafica Aziende Clienti --</option>';
+    ragioni.forEach(r => {
+        html += `<option value="${window.dashEscape(r)}" ${selected === r ? 'selected' : ''}>${window.dashEscape(r)}</option>`;
+    });
+
+    if (selected && !ragioni.includes(selected)) {
+        html += `<option value="${window.dashEscape(selected)}" selected>${window.dashEscape(selected)} (non presente in aziende clienti)</option>`;
+    }
+
+    select.innerHTML = html;
+};
+
 window.loadDocentiTable = async function() {
     const tbody = document.getElementById('tabella-docenti');
     if(!tbody) return;
     
     tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-slate-400 italic"><i data-lucide="loader-2" class="w-5 h-5 animate-spin mx-auto mb-2"></i> Caricamento...</td></tr>';
     if(typeof lucide !== 'undefined') lucide.createIcons();
+
+    window.aziendeList = await window.getAziende();
+    await window.popolaSelectAziendaAppartenenzaDocente();
 
     window.docentiList = await window.getDocenti();
 
@@ -714,14 +742,14 @@ window.salvaDocenteDB = async function() {
     }
 };
 
-window.modificaDocente = function(id) {
+window.modificaDocente = async function(id) {
     const doc = window.docentiList.find(d => d.id === id);
     if(!doc) return;
     document.getElementById('doc-id').value = doc.id;
     document.getElementById('doc-nome').value = doc.nome_cognome;
     document.getElementById('doc-cf').value = doc.cf;
     document.getElementById('doc-qualifica').value = doc.qualifica;
-    if(document.getElementById('doc-azienda-appartenenza')) document.getElementById('doc-azienda-appartenenza').value = doc.azienda_appartenenza || "";
+    await window.popolaSelectAziendaAppartenenzaDocente(doc.azienda_appartenenza || "");
     document.getElementById('doc-email').value = doc.email || "";
     document.getElementById('doc-telefono').value = doc.telefono || "";
 };
@@ -734,9 +762,10 @@ window.eliminaDocente = async function(id) {
     }
 };
 
-window.resetFormDocente = function() {
+window.resetFormDocente = async function() {
     document.getElementById('doc-id').value = "";
     document.getElementById('form-docente').reset();
+    await window.popolaSelectAziendaAppartenenzaDocente();
 };
 
 window.filtraDocenti = function() {

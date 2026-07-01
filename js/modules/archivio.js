@@ -78,7 +78,12 @@ window.renderArchivioCorsi = function() {
                                 <p class="text-[10px] text-slate-500 uppercase mt-0.5">Esame: ${window.formatDataToItalian(p.data_esame)} · Corsisti: ${iscritti.length}</p>
                                 ${p.documenti_firmati_url ? `<a href="${window.dashEscape(p.documenti_firmati_url)}" target="_blank" class="inline-block mt-2 text-[10px] font-black text-blue-700 hover:underline uppercase">Apri scansioni documenti firmati</a>` : ''}
                             </div>
-                            <span class="px-3 py-1 rounded-full ${badge} text-[9px] font-black uppercase self-start">${window.dashEscape(stato)}</span>
+                            <div class="flex flex-wrap gap-2 self-start justify-start lg:justify-end">
+                                <button type="button" onclick="window.stampaFoglioProgetto('${p.id}')" class="px-3 py-1 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-[9px] font-black uppercase inline-flex items-center gap-1">
+                                    <i data-lucide="printer" class="w-3 h-3"></i> Stampa corso/corsisti
+                                </button>
+                                <span class="px-3 py-1 rounded-full ${badge} text-[9px] font-black uppercase">${window.dashEscape(stato)}</span>
+                            </div>
                         </div>
                         <div class="mt-3 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
                             ${iscritti.length ? iscritti.map(isc => `<div class="border border-slate-200 bg-slate-50 rounded-lg p-2">
