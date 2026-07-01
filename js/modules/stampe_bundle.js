@@ -104,3 +104,93 @@ window.stampaFascicoloCompletoDaProgetti = async function(projectId) {
     await window.stampaFascicoloCompletoPDF(projectId);
 };
 
+
+
+window.stampaModuloProgettoRapido = async function(projectId, moduleId, label = 'documento') {
+    if (!projectId) return alert('Progetto non selezionato.');
+    const printArea = document.getElementById('print-area-temp');
+    if (!printArea) return alert('Area di stampa non disponibile.');
+
+    try {
+        await window.caricaDatiStampa(projectId);
+        printArea.innerHTML = '';
+        const pages = await window.renderPrintModuleToTemp(moduleId, null);
+        pages.forEach(p => printArea.appendChild(p));
+        alert(`Ora si aprirà la stampa del ${label}. Seleziona "Salva come PDF" per salvarlo.`);
+        document.body.classList.add('is-printing-temp');
+        setTimeout(() => {
+            window.print();
+            document.body.classList.remove('is-printing-temp');
+            printArea.innerHTML = '';
+        }, 900);
+    } catch (e) {
+        console.error(e);
+        alert('Errore nella preparazione stampa: ' + (e.message || e));
+        document.body.classList.remove('is-printing-temp');
+        printArea.innerHTML = '';
+    }
+};
+
+window.stampaProgettoFormativoDaProgetto = async function(projectId) {
+    await window.stampaModuloProgettoRapido(projectId, 'progetto_formativo', 'progetto formativo');
+};
+
+window.stampaAttestatiProgetto = async function(projectId) {
+    if (!projectId) return alert('Progetto non selezionato.');
+    const printArea = document.getElementById('print-area-temp');
+    if (!printArea) return alert('Area di stampa non disponibile.');
+
+    try {
+        await window.caricaDatiStampa(projectId);
+        const n = (window.currentSessionCorsisti || []).length;
+        if (!n) return alert('Nessun corsista iscritto a questo progetto.');
+        printArea.innerHTML = '';
+        if (typeof window.renderAttestatiMultipli === 'function') {
+            await window.renderAttestatiMultipli(printArea, { preview: false });
+        } else {
+            for (const c of [...window.currentSessionCorsisti]) {
+                const pages = await window.renderPrintModuleToTemp('attestato', c);
+                pages.forEach(p => printArea.appendChild(p));
+            }
+        }
+        alert(`Ora si aprirà la stampa degli attestati: ${n} corsisti.`);
+        document.body.classList.add('is-printing-temp');
+        setTimeout(() => {
+            window.print();
+            document.body.classList.remove('is-printing-temp');
+            printArea.innerHTML = '';
+        }, 1000);
+    } catch (e) {
+        console.error(e);
+        alert('Errore nella preparazione attestati: ' + (e.message || e));
+        document.body.classList.remove('is-printing-temp');
+        printArea.innerHTML = '';
+    }
+};
+
+window.stampaAttestatoCorsista = async function(projectId, corsistaId) {
+    if (!projectId || !corsistaId) return alert('Progetto o corsista non selezionato.');
+    const printArea = document.getElementById('print-area-temp');
+    if (!printArea) return alert('Area di stampa non disponibile.');
+
+    try {
+        await window.caricaDatiStampa(projectId);
+        const corsista = (window.currentSessionCorsisti || []).find(c => c.corsista_id === corsistaId || c.corsista_id == corsistaId);
+        if (!corsista) return alert('Corsista non trovato tra gli iscritti del progetto selezionato.');
+        printArea.innerHTML = '';
+        const pages = await window.renderPrintModuleToTemp('attestato', corsista);
+        pages.forEach(p => printArea.appendChild(p));
+        alert(`Ora si aprirà la stampa dell'attestato di ${corsista.nome || 'corsista'}.`);
+        document.body.classList.add('is-printing-temp');
+        setTimeout(() => {
+            window.print();
+            document.body.classList.remove('is-printing-temp');
+            printArea.innerHTML = '';
+        }, 900);
+    } catch (e) {
+        console.error(e);
+        alert('Errore nella preparazione attestato: ' + (e.message || e));
+        document.body.classList.remove('is-printing-temp');
+        printArea.innerHTML = '';
+    }
+};

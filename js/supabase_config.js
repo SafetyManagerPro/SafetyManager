@@ -47,29 +47,32 @@ window.getAziende = async function() {
 
 // Crea o aggiorna un'azienda
 window.saveAzienda = async function(record) {
-    try {
-        let result;
-        if (record.id) {
-            // Se c'è un ID, fa un UPDATE (Modifica)
-            result = await supabaseClient
+    const runSave = async (payload) => {
+        if (payload.id) {
+            return await supabaseClient
                 .from('aziende')
-                .update(record)
-                .eq('id', record.id)
-                .select();
-        } else {
-            // Se NON c'è un ID, fa un INSERT (Creazione nuovo)
-            result = await supabaseClient
-                .from('aziende')
-                .insert(record)
+                .update(payload)
+                .eq('id', payload.id)
                 .select();
         }
-            
+        return await supabaseClient
+            .from('aziende')
+            .insert(payload)
+            .select();
+    };
+
+    try {
+        let result = await runSave(record);
+        if (result.error && record.sede_operativa && String(result.error.message || '').includes('sede_operativa')) {
+            console.warn('Colonna sede_operativa non presente: salvataggio fallback senza sede operativa. Applicare la migration Step 29 per salvarla nel database.');
+            const fallback = { ...record };
+            delete fallback.sede_operativa;
+            result = await runSave(fallback);
+        }
         if (result.error) throw result.error;
         return result.data;
-        
     } catch (err) {
         console.error("Errore salvataggio Azienda:", err);
-        // Questo Alert ci dirà ESATTAMENTE qual è il problema se fallisce!
         alert("ERRORE DATABASE: " + err.message); 
         return false;
     }

@@ -386,6 +386,7 @@ window.loadAziendeTable = async function() {
                         ${window.dashEscape(az.ragione_sociale || '')}
                     </button>
                     <p class="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Clicca per progetti e corsisti</p>
+                    ${az.sede_operativa ? `<p class="text-[9px] text-emerald-700 font-black uppercase mt-0.5">Sede operativa: ${window.dashEscape(az.sede_operativa)}</p>` : ''}
                 </td>
                 <td class="p-3 border-b font-mono text-[10px] text-slate-600">${az.piva_cf || '-'}</td>
                 <td class="p-3 border-b font-mono text-[10px] text-slate-500">${az.ateco || '-'}</td>
@@ -406,6 +407,7 @@ window.salvaAziendaDB = async function() {
         ragione_sociale: document.getElementById('az-ragione-sociale').value.trim(),
         piva_cf: document.getElementById('az-piva').value.trim(),
         indirizzo: document.getElementById('az-indirizzo').value.trim(),
+        sede_operativa: document.getElementById('az-sede-operativa') ? document.getElementById('az-sede-operativa').value.trim() : null,
         ateco: document.getElementById('az-ateco').value.trim(),
         referente: document.getElementById('az-referente').value.trim()
     };
@@ -425,6 +427,7 @@ window.modificaAzienda = function(id) {
     document.getElementById('az-ragione-sociale').value = az.ragione_sociale;
     document.getElementById('az-piva').value = az.piva_cf;
     document.getElementById('az-indirizzo').value = az.indirizzo || "";
+    if(document.getElementById('az-sede-operativa')) document.getElementById('az-sede-operativa').value = az.sede_operativa || "";
     document.getElementById('az-ateco').value = az.ateco || "";
     document.getElementById('az-referente').value = az.referente || "";
 };
@@ -514,6 +517,12 @@ window.renderAziendaProjectCard = function(p, iscritti = []) {
                 </span>
                 <button type="button" onclick="window.openProjectFromAziendaPopup('${p.id}')" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded-lg text-[9px] font-black uppercase inline-flex items-center gap-1">
                     <i data-lucide="external-link" class="w-3 h-3"></i> Apri progetto
+                </button>
+                <button type="button" onclick="window.stampaProgettoFormativoDaProgetto('${p.id}')" class="bg-indigo-700 hover:bg-indigo-600 text-white px-3 py-2 rounded-lg text-[9px] font-black uppercase inline-flex items-center gap-1">
+                    <i data-lucide="file-text" class="w-3 h-3"></i> Stampa progetto
+                </button>
+                <button type="button" onclick="window.stampaAttestatiProgetto('${p.id}')" class="bg-emerald-700 hover:bg-emerald-600 text-white px-3 py-2 rounded-lg text-[9px] font-black uppercase inline-flex items-center gap-1">
+                    <i data-lucide="award" class="w-3 h-3"></i> Stampa attestati
                 </button>
             </div>
         </div>
@@ -606,7 +615,8 @@ window.apriPopupRelazioniAzienda = async function(aziendaId) {
                 <p class="text-[8px] font-black uppercase tracking-widest">Azienda committente</p>
                 <h3 class="font-black uppercase text-lg leading-tight mt-1">${window.dashEscape(azienda.ragione_sociale || '-')}</h3>
                 <p class="font-mono text-[10px] mt-2">${window.dashEscape(azienda.piva_cf || '-')}</p>
-                <p class="text-[10px] font-bold mt-1">${window.dashEscape(azienda.indirizzo || '')}</p>
+                <p class="text-[10px] font-bold mt-1">Sede legale: ${window.dashEscape(azienda.indirizzo || '-')}</p>
+                <p class="text-[10px] font-bold mt-1">Sede operativa: ${window.dashEscape(azienda.sede_operativa || azienda.indirizzo || '-')}</p>
                 <p class="text-[10px] font-bold mt-1">ATECO: ${window.dashEscape(azienda.ateco || '-')}</p>
                 <p class="text-[10px] font-bold mt-1">Referente: ${window.dashEscape(azienda.referente || '-')}</p>
             </div>
@@ -812,7 +822,11 @@ window.loadCorsistiTable = async function() {
                     const dFine = window.formatDataToItalian(isc.progetti.data_esame);
                     const projectId = isc.progetti.id || isc.progetto_id;
                     const codice = isc.progetti.codice || '';
-                    cArr.push(`<button type="button" onclick="window.apriProgettoDaCorsoSvolto('${projectId}', '${cor.id}')" class="block text-left font-black text-blue-700 hover:text-blue-900 hover:underline text-[11px] truncate max-w-[260px]" title="Apri progetto esistente ${codice}">• ${window.dashEscape(tCorso)} <span class="font-mono text-[9px] text-slate-500">${window.dashEscape(codice)}</span></button>`);
+                    const siglaCorso = cInfo ? cInfo.code : (isc.progetti.corso_id || 'CRS');
+                    cArr.push(`<div class="flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1">
+                        <button type="button" onclick="window.apriProgettoDaCorsoSvolto('${projectId}', '${cor.id}')" class="min-w-0 block text-left font-black text-blue-700 hover:text-blue-900 hover:underline text-[11px] truncate" title="Apri progetto esistente ${codice}">• <span class="font-mono text-slate-900">[${window.dashEscape(siglaCorso)}]</span> ${window.dashEscape(tCorso)} <span class="font-mono text-[9px] text-slate-500">${window.dashEscape(codice)}</span></button>
+                        <button type="button" onclick="window.stampaAttestatoCorsista('${projectId}', '${cor.id}')" class="shrink-0 bg-emerald-700 hover:bg-emerald-600 text-white rounded px-2 py-1 text-[8px] font-black uppercase" title="Stampa attestato corsista">Attestato</button>
+                    </div>`);
                     dArr.push(`<button type="button" onclick="window.apriProgettoDaCorsoSvolto('${projectId}', '${cor.id}')" class="font-mono text-blue-700 hover:underline text-[10px]" title="Apri progetto esistente">${dFine}</button>`);
                 }
             });
@@ -1091,10 +1105,12 @@ window.ensureCnaPresetState = function() {
     if (!window.AppState['cfg-ente-contatti']) window.AppState['cfg-ente-contatti'] = p.contatti;
     if (!window.AppState['cfg-luogo-emissione']) window.AppState['cfg-luogo-emissione'] = p.luogo_emissione;
     window.AppState['cfg-logo'] = p.logo_url;
+    window.AppState['cfg-timbro'] = 'timbrocna.png';
     localStorage.setItem('SafetyManager.cnaLogoDefault', p.logo_url);
+    localStorage.setItem('SafetyManager.cnaTimbroDefault', 'timbrocna.png');
 
     const logoInput = document.getElementById('cfg-logo');
-    if (logoInput && !logoInput.value) logoInput.value = p.logo_url;
+    if (logoInput) logoInput.value = p.logo_url;
     return true;
 };
 
@@ -1117,7 +1133,7 @@ window.getEffectiveLogoSrc = function() {
 window.getEffectiveTimbroSrc = function() {
     const erogatore = window.getVal('cfg-ente-erogatore') || 'ente';
     if (erogatore === 'azienda') return '';
-    return window.isCnaErogatore() ? 'timbrocna.png' : '';
+    return window.isCnaErogatore() ? (localStorage.getItem('SafetyManager.cnaTimbroDefault') || 'timbrocna.png') : '';
 };
 
 window.getDefaultEnteValidatore = function() {
@@ -2087,6 +2103,7 @@ window.renderProjectDesktopRows = function(p, iscritti, issues) {
             <td class="p-3 border-b border-slate-700 font-bold text-center text-slate-200 align-top">${window.formatDataToItalian(p.data_esame)}</td>
             <td class="p-3 border-b border-slate-700 text-center whitespace-nowrap align-top">
                 <button onclick="window.apriPopupProgettoById('${p.id}', 'progetti')" class="text-white hover:bg-blue-500 bg-blue-600 p-2 rounded-lg transition shadow-sm" title="Modifica progetto"><i data-lucide="edit" class="w-3 h-3"></i></button>
+                <button onclick="window.stampaAttestatiProgetto('${p.id}')" class="text-white hover:bg-emerald-500 bg-emerald-700 p-2 rounded-lg transition shadow-sm ml-1" title="Stampa attestati"><i data-lucide="award" class="w-3 h-3"></i></button>
                 <button onclick="window.stampaFascicoloCompletoDaProgetti('${p.id}')" class="text-white hover:bg-indigo-500 bg-indigo-700 p-2 rounded-lg transition shadow-sm ml-1" title="Stampa PDF fascicolo completo"><i data-lucide="file-archive" class="w-3 h-3"></i></button>
                 <button onclick="window.eliminaProgetto('${p.id}')" class="text-white hover:bg-red-500 bg-red-700 p-2 rounded-lg transition shadow-sm ml-1" title="Elimina progetto"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
             </td>
@@ -2118,6 +2135,7 @@ window.renderProjectMobileCard = function(p, iscritti, issues) {
             </div>
             <div class="flex gap-2 shrink-0">
                 <button onclick="window.apriPopupProgettoById('${p.id}', 'progetti')" class="text-white bg-blue-600 hover:bg-blue-500 p-2 rounded-lg" title="Modifica progetto"><i data-lucide="edit" class="w-4 h-4"></i></button>
+                <button onclick="window.stampaAttestatiProgetto('${p.id}')" class="text-white bg-emerald-700 hover:bg-emerald-600 p-2 rounded-lg" title="Stampa attestati"><i data-lucide="award" class="w-4 h-4"></i></button>
                 <button onclick="window.stampaFascicoloCompletoDaProgetti('${p.id}')" class="text-white bg-indigo-700 hover:bg-indigo-600 p-2 rounded-lg" title="Stampa fascicolo"><i data-lucide="file-archive" class="w-4 h-4"></i></button>
                 <button onclick="window.eliminaProgetto('${p.id}')" class="text-white bg-red-700 hover:bg-red-600 p-2 rounded-lg" title="Elimina progetto"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
             </div>
@@ -2556,7 +2574,7 @@ window.rimuoviIscrizione = async function(id, projectId = null) {
 };
 
 
-window.applicaPresetCNAAvellino = function() {
+window.applicaPresetCNAAvellino = function(showAlert = true) {
     const p = window.CNA_AVELLINO_PRESET;
     const set = (id, value) => {
         const el = document.getElementById(id);
@@ -2575,14 +2593,16 @@ window.applicaPresetCNAAvellino = function() {
     window.AppState['cfg-ente-contatti'] = p.contatti;
     window.AppState['cfg-luogo-emissione'] = p.luogo_emissione;
     window.AppState['cfg-logo'] = p.logo_url;
+    window.AppState['cfg-timbro'] = 'timbrocna.png';
     localStorage.setItem('SafetyManager.cnaLogoDefault', p.logo_url);
+    localStorage.setItem('SafetyManager.cnaTimbroDefault', 'timbrocna.png');
 
     const legale = document.getElementById('ente-legale-nome');
     if (legale && !legale.value) legale.placeholder = "Inserire nominativo del legale rappresentante";
     const nascita = document.getElementById('ente-legale-nascita');
     if (nascita && !nascita.value) nascita.placeholder = "Inserire luogo e data di nascita";
 
-    alert("Dati CNA Avellino caricati. Verifica/integra il legale rappresentante, poi salva l'ente.");
+    if (showAlert) alert("Dati CNA Avellino caricati. Verifica/integra il legale rappresentante, poi salva l'ente. Logo logocna.png e timbro timbrocna.png sono già impostati.");
 };
 
 // ==========================================
@@ -2590,6 +2610,10 @@ window.applicaPresetCNAAvellino = function() {
 // ==========================================
 window.loadEnteData = async function() {
     const ente = await window.getEnte();
+    if(!ente && typeof window.applicaPresetCNAAvellino === 'function') {
+        window.applicaPresetCNAAvellino(false);
+        return;
+    }
     if(ente) {
         document.getElementById('ente-id').value = ente.id;
         document.getElementById('ente-ragione').value = ente.ragione_sociale || "";
@@ -2611,6 +2635,15 @@ window.loadEnteData = async function() {
         window.AppState['cfg-luogo-emissione'] = ente.luogo_emissione;
         window.AppState['cfg-legale-nome'] = ente.legale_nome;
         window.AppState['cfg-legale-nascita'] = ente.legale_nascita;
+
+        if (window.isCnaName(ente.ragione_sociale)) {
+            window.AppState['cfg-logo'] = window.CNA_AVELLINO_PRESET.logo_url;
+            window.AppState['cfg-timbro'] = 'timbrocna.png';
+            localStorage.setItem('SafetyManager.cnaLogoDefault', window.CNA_AVELLINO_PRESET.logo_url);
+            localStorage.setItem('SafetyManager.cnaTimbroDefault', 'timbrocna.png');
+            const logoInput = document.getElementById('cfg-logo');
+            if (logoInput) logoInput.value = window.CNA_AVELLINO_PRESET.logo_url;
+        }
     }
 };
 
