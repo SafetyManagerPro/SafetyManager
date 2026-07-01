@@ -3105,8 +3105,11 @@ window.updateAll = function() {
     document.querySelectorAll('.val-ente-indirizzo-dinamico').forEach(el => el.innerText = isAzienda ? window.getVal('cfg-azienda-indirizzo') : window.getVal('cfg-ente-indirizzo'));
     document.querySelectorAll('.val-ente-contatti-dinamico').forEach(el => el.innerText = isAzienda ? "Ateco: " + window.getVal('cfg-ateco') : window.getVal('cfg-ente-contatti'));
     
-    document.querySelectorAll('.val-ruolo-firma-3').forEach(el => el.innerText = isAzienda ? "Referente formazione / Responsabile progetto formativo" : "Il Legale Rappresentante dell'Ente");
-    document.querySelectorAll('.val-firma-3-nome').forEach(el => el.innerText = isAzienda ? (respProgetto || window.getVal('cfg-azienda-referente') || "---") : (window.getVal('cfg-legale-nome') || respProgetto || "---"));
+    const referenteAziendaCommittente = window.getVal('cfg-azienda-referente') || respProgetto || "Referente azienda committente";
+    const responsabileAttivitaFormativeEnte = respProgetto || window.getVal('cfg-legale-nome') || "Responsabile attività formative ente";
+    document.querySelectorAll('.val-referente-azienda-committente').forEach(el => el.innerText = referenteAziendaCommittente);
+    document.querySelectorAll('.val-ruolo-firma-3').forEach(el => el.innerText = isAzienda ? "Referente formazione / Responsabile progetto formativo" : "Responsabile Attività Formative Ente");
+    document.querySelectorAll('.val-firma-3-nome').forEach(el => el.innerText = isAzienda ? (respProgetto || window.getVal('cfg-azienda-referente') || "---") : responsabileAttivitaFormativeEnte);
     document.querySelectorAll('.val-testo-timbro').forEach(el => el.innerHTML = isAzienda ? "TIMBRO<br>AZIENDA" : "TIMBRO<br>EROGATORE");
 
     const sedeToDisplay = window.getVal('cfg-sede-corso') || window.getVal('cfg-azienda-indirizzo') || "Sede Aziendale";
