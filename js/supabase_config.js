@@ -107,7 +107,19 @@ window.saveDocente = async function(record) {
     try {
         const { data, error } = await supabaseClient.from('docenti').upsert(record).select();
         if (error) throw error; return data;
-    } catch (err) { console.error(err); return false; }
+    } catch (err) {
+        const msg = String(err?.message || err || '');
+        if (record.azienda_appartenenza !== undefined && (msg.includes('azienda_appartenenza') || msg.includes('schema cache'))) {
+            console.warn('Campo docenti.azienda_appartenenza non presente: applica la migration Step 30. Riprovo senza campo.');
+            const fallback = { ...record };
+            delete fallback.azienda_appartenenza;
+            try {
+                const { data, error } = await supabaseClient.from('docenti').upsert(fallback).select();
+                if (error) throw error; return data;
+            } catch (err2) { console.error(err2); return false; }
+        }
+        console.error(err); return false;
+    }
 };
 
 window.deleteDocente = async function(id) {
@@ -124,7 +136,7 @@ window.getCorsisti = async function() {
     try {
         const { data, error } = await supabaseClient
             .from('corsisti')
-            .select('*, aziende(ragione_sociale, piva_cf, indirizzo, ateco, referente)')
+            .select('*, aziende(ragione_sociale, piva_cf, indirizzo, sede_operativa, ateco, referente)')
             .order('nome_cognome');
         if (error) throw error; return data || [];
     } catch (err) { console.error(err); return []; }
@@ -178,7 +190,7 @@ window.getProgetti = async function() {
     try {
         const { data, error } = await supabaseClient
             .from('progetti')
-            .select('*, aziende(ragione_sociale, piva_cf, indirizzo, ateco, referente)')
+            .select('*, aziende(ragione_sociale, piva_cf, indirizzo, sede_operativa, ateco, referente)')
             .order('data_esame', { ascending: false });
         if (error) throw error; return data || [];
     } catch (err) { console.error(err); return []; }

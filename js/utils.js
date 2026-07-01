@@ -665,13 +665,13 @@ window.loadDocentiTable = async function() {
     const tbody = document.getElementById('tabella-docenti');
     if(!tbody) return;
     
-    tbody.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-slate-400 italic"><i data-lucide="loader-2" class="w-5 h-5 animate-spin mx-auto mb-2"></i> Caricamento...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-slate-400 italic"><i data-lucide="loader-2" class="w-5 h-5 animate-spin mx-auto mb-2"></i> Caricamento...</td></tr>';
     if(typeof lucide !== 'undefined') lucide.createIcons();
 
     window.docentiList = await window.getDocenti();
 
     if (window.docentiList.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-slate-500 italic">Nessun docente registrato.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-slate-500 italic">Nessun docente registrato.</td></tr>';
         return;
     }
 
@@ -682,6 +682,7 @@ window.loadDocentiTable = async function() {
                 <td class="p-3 border-b font-bold text-slate-800">${doc.nome_cognome}</td>
                 <td class="p-3 border-b font-mono text-[10px] text-slate-600">${doc.cf}</td>
                 <td class="p-3 border-b text-[10px] text-slate-500 truncate max-w-[150px]">${doc.qualifica}</td>
+                <td class="p-3 border-b text-[10px] text-slate-600 font-bold uppercase">${window.dashEscape(doc.azienda_appartenenza || '-')}</td>
                 <td class="p-3 border-b text-center whitespace-nowrap">
                     <button onclick="window.modificaDocente('${doc.id}')" class="text-blue-600 hover:bg-blue-200 bg-blue-100 p-1.5 rounded transition shadow-sm"><i data-lucide="edit" class="w-4 h-4"></i></button>
                     <button onclick="window.eliminaDocente('${doc.id}')" class="text-red-600 hover:bg-red-200 bg-red-100 p-1.5 rounded transition shadow-sm ml-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
@@ -699,6 +700,7 @@ window.salvaDocenteDB = async function() {
         nome_cognome: document.getElementById('doc-nome').value.trim(),
         cf: document.getElementById('doc-cf').value.trim().toUpperCase(),
         qualifica: document.getElementById('doc-qualifica').value,
+        azienda_appartenenza: document.getElementById('doc-azienda-appartenenza') ? document.getElementById('doc-azienda-appartenenza').value.trim() : '',
         email: document.getElementById('doc-email').value.trim(),
         telefono: document.getElementById('doc-telefono').value.trim()
     };
@@ -719,6 +721,7 @@ window.modificaDocente = function(id) {
     document.getElementById('doc-nome').value = doc.nome_cognome;
     document.getElementById('doc-cf').value = doc.cf;
     document.getElementById('doc-qualifica').value = doc.qualifica;
+    if(document.getElementById('doc-azienda-appartenenza')) document.getElementById('doc-azienda-appartenenza').value = doc.azienda_appartenenza || "";
     document.getElementById('doc-email').value = doc.email || "";
     document.getElementById('doc-telefono').value = doc.telefono || "";
 };
@@ -777,7 +780,7 @@ window.loadCorsistiTable = async function() {
             luogo_data_nascita,
             mansione_storica,
             azienda_id,
-            aziende ( ragione_sociale ),
+            aziende ( ragione_sociale, sede_operativa ),
             iscrizioni (
                 id_certificato,
                 progetto_id,
@@ -2668,6 +2671,18 @@ window.salvaEnteDB = async function() {
     }
 };
 
+
+window.getProjectSelectLabel = function(p) {
+    const corso = window.DB_CORSI?.[p.corso_id] || {};
+    const sigla = corso.code || p.corso_id || 'CRS';
+    const dateStr = window.formatDataToItalian(p.data_esame || p.data_inizio || '');
+    const committente = p.aziende?.ragione_sociale || 'Privato / azienda non indicata';
+    const enteFormazione = (p.ente_erogatore === 'azienda')
+        ? `DL aziendale${p.ente_validatore ? ' / Valid. ' + p.ente_validatore : ''}`
+        : (window.AppState?.['cfg-ente'] || window.CNA_AVELLINO_PRESET?.ragione_sociale || 'Ente formatore');
+    return `[${sigla}] ${dateStr || 'data n.d.'} · Ente: ${enteFormazione} · Committente: ${committente} · ${p.codice || ''}`;
+};
+
 window.initStampe = async function() {
     const filterSelect = document.getElementById('filter-stampe-corso');
     if(!filterSelect) return;
@@ -2701,12 +2716,158 @@ window.filtraStampe = function() {
     window.progettiList.forEach(p => {
         if (filterVal !== "" && p.corso_id !== filterVal) return; 
 
-        const azName = p.aziende ? p.aziende.ragione_sociale : 'Privato';
-        const dateStr = window.formatDataToItalian(p.data_esame);
-        html += `<option value="${p.id}">${p.codice} - ${azName} (${dateStr})</option>`;
+        html += `<option value="${p.id}">${window.dashEscape(window.getProjectSelectLabel ? window.getProjectSelectLabel(p) : (p.codice || 'Progetto'))}</option>`;
     });
     
     selProg.innerHTML = html;
+};
+
+
+// ==========================================
+// FOGLIO PROGETTI / CORSISTI TIPO EXCEL
+// ==========================================
+window.foglioProgettiState = window.foglioProgettiState || { selectedProjectId: null, iscritti: [] };
+
+window.initFogliProgetti = async function() {
+    const select = document.getElementById('foglio-progetto-select');
+    if (!select) return;
+
+    if (!window.AppState['cfg-ente'] && typeof window.getEnte === 'function') {
+        const enteCfg = await window.getEnte();
+        if (enteCfg) {
+            window.AppState['cfg-ente'] = enteCfg.ragione_sociale || '';
+            window.AppState['cfg-ente-indirizzo'] = enteCfg.indirizzo || '';
+            window.AppState['cfg-ente-contatti'] = enteCfg.contatti || '';
+            window.AppState['cfg-luogo-emissione'] = enteCfg.luogo_emissione || '';
+        }
+    }
+
+    window.progettiList = await window.getProgetti();
+    window.progettiList.sort((a, b) => new Date(b.data_esame || b.data_inizio || '1970-01-01') - new Date(a.data_esame || a.data_inizio || '1970-01-01'));
+
+    select.innerHTML = '<option value="">-- Seleziona progetto --</option>' + window.progettiList.map(p => {
+        const label = window.getProjectSelectLabel ? window.getProjectSelectLabel(p) : (p.codice || 'Progetto');
+        return `<option value="${p.id}">${window.dashEscape(label)}</option>`;
+    }).join('');
+
+    const preview = document.getElementById('foglio-progetto-preview');
+    if (preview) preview.innerHTML = '<div class="p-8 text-center text-slate-400 font-bold uppercase text-xs">Seleziona un progetto per visualizzare il foglio corsisti.</div>';
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+};
+
+window.buildFoglioProgettoHtml = function(project, iscritti, printMode = false) {
+    const corso = window.DB_CORSI?.[project.corso_id] || {};
+    const sigla = corso.code || project.corso_id || '';
+    const enteFormazione = (project.ente_erogatore === 'azienda')
+        ? `DL aziendale${project.ente_validatore ? ' / Valid. ' + project.ente_validatore : ''}`
+        : (window.AppState?.['cfg-ente'] || window.CNA_AVELLINO_PRESET?.ragione_sociale || 'Ente formatore');
+    const azienda = project.aziende?.ragione_sociale || 'Privato / non indicata';
+    const sede = project.sede || project.aziende?.sede_operativa || project.aziende?.indirizzo || '';
+    const rows = (iscritti || []).map((isc, idx) => {
+        const c = isc.corsisti || {};
+        const even = idx % 2 === 0;
+        return `<tr class="${even ? 'bg-white' : 'bg-slate-100'}">
+            <td class="border border-slate-300 p-2 text-center font-black">${idx + 1}</td>
+            <td class="border border-slate-300 p-2 font-black uppercase">${window.dashEscape(c.nome_cognome || '')}</td>
+            <td class="border border-slate-300 p-2 font-mono">${window.dashEscape(c.cf || '')}</td>
+            <td class="border border-slate-300 p-2">${window.dashEscape(c.luogo_data_nascita || '')}</td>
+            <td class="border border-slate-300 p-2">${window.dashEscape(isc.mansione_storica || c.mansione_storica || '')}</td>
+            <td class="border border-slate-300 p-2 font-mono">${window.dashEscape(isc.id_certificato || '')}</td>
+            <td class="border border-slate-300 p-2 text-center">${window.dashEscape(isc.esito || '')}</td>
+            <td class="border border-slate-300 p-2 text-center">${isc.percentuale_frequenza !== null && isc.percentuale_frequenza !== undefined ? isc.percentuale_frequenza + '%' : ''}</td>
+            <td class="border border-slate-300 p-2">${window.dashEscape(isc.note_verifica || '')}</td>
+        </tr>`;
+    }).join('');
+
+    const pageClass = printMode ? 'export-print-page' : 'p-5';
+    return `<div class="${pageClass}">
+        <div class="mb-4">
+            <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+                <div>
+                    <h1 class="text-xl font-black uppercase text-slate-900">Foglio progetto formativo / corsisti</h1>
+                    <p class="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-1">${window.dashEscape(project.codice || '')}</p>
+                </div>
+                <div class="text-left md:text-right text-[10px] font-bold text-slate-600">
+                    <p><strong>Data corso/esame:</strong> ${window.formatDataToItalian(project.data_esame || project.data_inizio || '')}</p>
+                    <p><strong>N. partecipanti:</strong> ${(iscritti || []).length}</p>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mt-4 text-[10px]">
+                <div class="rounded-lg border border-blue-300 bg-blue-50 p-3"><strong class="uppercase text-blue-900">Corso</strong><br>[${window.dashEscape(sigla)}] ${window.dashEscape(corso.t || project.corso_id || '')}</div>
+                <div class="rounded-lg border border-emerald-300 bg-emerald-50 p-3"><strong class="uppercase text-emerald-900">Ente formazione</strong><br>${window.dashEscape(enteFormazione)}</div>
+                <div class="rounded-lg border border-amber-300 bg-amber-50 p-3"><strong class="uppercase text-amber-900">Committente</strong><br>${window.dashEscape(azienda)}</div>
+                <div class="rounded-lg border border-slate-300 bg-slate-50 p-3"><strong class="uppercase text-slate-900">Sede</strong><br>${window.dashEscape(sede || '-')}</div>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full border-collapse text-[10px]">
+                <thead>
+                    <tr class="bg-slate-900 text-white uppercase">
+                        <th class="border border-slate-700 p-2 text-center">#</th>
+                        <th class="border border-slate-700 p-2 text-left">Corsista</th>
+                        <th class="border border-slate-700 p-2 text-left">Codice fiscale</th>
+                        <th class="border border-slate-700 p-2 text-left">Nascita</th>
+                        <th class="border border-slate-700 p-2 text-left">Mansione</th>
+                        <th class="border border-slate-700 p-2 text-left">ID certificato</th>
+                        <th class="border border-slate-700 p-2 text-center">Esito</th>
+                        <th class="border border-slate-700 p-2 text-center">Frequenza</th>
+                        <th class="border border-slate-700 p-2 text-left">Note</th>
+                    </tr>
+                </thead>
+                <tbody>${rows || `<tr><td colspan="9" class="border border-slate-300 p-6 text-center text-slate-500 italic">Nessun corsista iscritto.</td></tr>`}</tbody>
+            </table>
+        </div>
+
+        <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-8 text-[10px] text-center">
+            <div><p class="uppercase font-black text-slate-500">Responsabile progetto</p><p class="border-b border-slate-400 mt-8"></p><p class="font-bold uppercase mt-1">${window.dashEscape(project.resp_progetto || '')}</p></div>
+            <div><p class="uppercase font-black text-slate-500">Docente / Formatore</p><p class="border-b border-slate-400 mt-8"></p><p class="font-bold uppercase mt-1">Firma</p></div>
+            <div><p class="uppercase font-black text-slate-500">Committente</p><p class="border-b border-slate-400 mt-8"></p><p class="font-bold uppercase mt-1">${window.dashEscape(project.aziende?.referente || '')}</p></div>
+        </div>
+    </div>`;
+};
+
+window.caricaFoglioProgetto = async function(projectId) {
+    const preview = document.getElementById('foglio-progetto-preview');
+    if (!preview) return;
+    window.foglioProgettiState.selectedProjectId = projectId || null;
+    if (!projectId) {
+        preview.innerHTML = '<div class="p-8 text-center text-slate-400 font-bold uppercase text-xs">Seleziona un progetto per visualizzare il foglio corsisti.</div>';
+        return;
+    }
+
+    preview.innerHTML = '<div class="p-8 text-center text-slate-400 font-bold uppercase text-xs"><i data-lucide="loader-2" class="w-5 h-5 animate-spin mx-auto mb-2"></i> Caricamento foglio...</div>';
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+
+    if (!window.progettiList || !window.progettiList.length) window.progettiList = await window.getProgetti();
+    const p = window.progettiList.find(x => x.id === projectId);
+    if (!p) {
+        preview.innerHTML = '<div class="p-8 text-center text-red-500 font-bold uppercase text-xs">Progetto non trovato.</div>';
+        return;
+    }
+    const iscritti = await window.getIscrizioni(projectId);
+    window.foglioProgettiState.iscritti = iscritti;
+    preview.innerHTML = window.buildFoglioProgettoHtml(p, iscritti, false);
+};
+
+window.stampaFoglioProgetto = async function(projectId = null) {
+    const id = projectId || window.foglioProgettiState.selectedProjectId || document.getElementById('foglio-progetto-select')?.value;
+    if (!id) return alert('Seleziona prima un progetto formativo.');
+    if (!window.progettiList || !window.progettiList.length) window.progettiList = await window.getProgetti();
+    const p = window.progettiList.find(x => x.id === id);
+    if (!p) return alert('Progetto non trovato.');
+
+    const iscritti = await window.getIscrizioni(id);
+    const printArea = document.getElementById('print-area-temp');
+    if (!printArea) return alert('Area di stampa non disponibile.');
+
+    printArea.innerHTML = window.buildFoglioProgettoHtml(p, iscritti, true);
+    document.body.classList.add('is-printing-temp');
+    setTimeout(() => {
+        window.print();
+        document.body.classList.remove('is-printing-temp');
+        printArea.innerHTML = '';
+    }, 800);
 };
 
 window.currentPrintModule = "";

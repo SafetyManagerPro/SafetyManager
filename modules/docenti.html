@@ -30,6 +30,11 @@
                         <option value="Docente Tecnico (Medico, Ingegnere, ecc.)">Docente Tecnico (Medico, Ingegnere, ecc.)</option>
                     </select>
                 </div>
+
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase">Azienda di appartenenza</label>
+                    <input type="text" id="doc-azienda-appartenenza" class="input-field text-sm" placeholder="Es. CNA Avellino / Azienda / Studio professionale">
+                </div>
                 
                 <div class="grid grid-cols-2 gap-3">
                     <div>
@@ -64,11 +69,12 @@
                             <th class="p-3 border-b font-bold uppercase tracking-wider">Nome Cognome</th>
                             <th class="p-3 border-b font-bold uppercase tracking-wider">C.F.</th>
                             <th class="p-3 border-b font-bold uppercase tracking-wider">Qualifica</th>
+                            <th class="p-3 border-b font-bold uppercase tracking-wider">Azienda appartenenza</th>
                             <th class="p-3 border-b font-bold uppercase tracking-wider text-center">Azioni</th>
                         </tr>
                     </thead>
                     <tbody id="tabella-docenti" class="divide-y divide-slate-100">
-                        <tr><td colspan="4" class="p-6 text-center text-slate-400 italic">Caricamento in corso...</td></tr>
+                        <tr><td colspan="5" class="p-6 text-center text-slate-400 italic">Caricamento in corso...</td></tr>
                     </tbody>
                 </table>
             </div>

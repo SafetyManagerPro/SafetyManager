@@ -79,6 +79,7 @@ window.loadModule = async function(moduleId) {
         if (moduleId === 'scadenze' && typeof window.loadScadenzeTable === 'function') window.loadScadenzeTable();
         if (moduleId === 'ente' && typeof window.loadEnteData === 'function') window.loadEnteData();
         if (moduleId === 'stampe' && typeof window.initStampe === 'function') window.initStampe();
+        if (moduleId === 'fogli_progetti' && typeof window.initFogliProgetti === 'function') window.initFogliProgetti();
         if (moduleId === 'procedure' && typeof window.initProcedureDigitali === 'function') window.initProcedureDigitali();
         if (moduleId === 'migrazione' && typeof window.initMigrazione === 'function') window.initMigrazione();
         if (moduleId === 'archivio_corsi' && typeof window.loadArchivioCorsi === 'function') window.loadArchivioCorsi();
