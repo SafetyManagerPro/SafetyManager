@@ -697,42 +697,48 @@ window.popolaSelectAziendaAppartenenzaDocente = async function(selectedValue = '
     select.innerHTML = html;
 };
 
+
 window.loadDocentiTable = async function() {
     const tbody = document.getElementById('tabella-docenti');
     if(!tbody) return;
-    
+
     tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-slate-400 italic"><i data-lucide="loader-2" class="w-5 h-5 animate-spin mx-auto mb-2"></i> Caricamento...</td></tr>';
     if(typeof lucide !== 'undefined') lucide.createIcons();
 
-    window.aziendeList = await window.getAziende();
-    await window.popolaSelectAziendaAppartenenzaDocente();
+    try {
+        window.aziendeList = await window.getAziende();
+        await window.popolaSelectAziendaAppartenenzaDocente();
 
-    window.docentiList = await window.getDocenti();
+        window.docentiList = await window.getDocenti();
 
-    if (window.docentiList.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-slate-500 italic">Nessun docente registrato.</td></tr>';
-        return;
+        if (window.docentiList.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-slate-500 italic">Nessun docente registrato.</td></tr>';
+            return;
+        }
+
+        let html = '';
+        window.docentiList.forEach(doc => {
+            html += `
+                <tr class="hover:bg-slate-50 transition-colors">
+                    <td class="p-3 border-b font-bold text-slate-800">${window.dashEscape(doc.nome_cognome || '')}</td>
+                    <td class="p-3 border-b font-mono text-[10px] text-slate-600">${window.dashEscape(doc.cf || '')}</td>
+                    <td class="p-3 border-b text-[10px] text-slate-500 truncate max-w-[150px]">${window.dashEscape(doc.qualifica || '')}</td>
+                    <td class="p-3 border-b text-[10px] text-slate-600 font-bold uppercase">${window.dashEscape(doc.azienda_appartenenza || '-')}</td>
+                    <td class="p-3 border-b text-center whitespace-nowrap">
+                        <button onclick="window.modificaDocente('${doc.id}')" class="text-blue-600 hover:bg-blue-200 bg-blue-100 p-1.5 rounded transition shadow-sm" title="Modifica docente"><i data-lucide="edit" class="w-4 h-4"></i></button>
+                        <button onclick="window.eliminaDocente('${doc.id}')" class="text-red-600 hover:bg-red-200 bg-red-100 p-1.5 rounded transition shadow-sm ml-1" title="Elimina docente"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                    </td>
+                </tr>
+            `;
+        });
+        tbody.innerHTML = html;
+        if(typeof lucide !== 'undefined') lucide.createIcons();
+    } catch (err) {
+        console.error('Errore caricamento docenti:', err);
+        tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-red-600 font-bold">
+            Errore nel caricamento docenti: ${window.dashEscape(err?.message || String(err))}
+        </td></tr>`;
     }
-
-    let html = '';
-    window.docentiList.forEach(doc => {
-        const corsiIds = (cor.iscrizioni || []).map(isc => isc.progetti?.corso_id || '').filter(Boolean).join('|');
-
-        html += `
-            <tr class="hover:bg-slate-50 transition-colors" data-corsista-azienda="${cor.azienda_id || ''}" data-corsista-corsi="${window.dashEscape(corsiIds)}">
-                <td class="p-3 border-b font-bold text-slate-800">${doc.nome_cognome}</td>
-                <td class="p-3 border-b font-mono text-[10px] text-slate-600">${doc.cf}</td>
-                <td class="p-3 border-b text-[10px] text-slate-500 truncate max-w-[150px]">${doc.qualifica}</td>
-                <td class="p-3 border-b text-[10px] text-slate-600 font-bold uppercase">${window.dashEscape(doc.azienda_appartenenza || '-')}</td>
-                <td class="p-3 border-b text-center whitespace-nowrap">
-                    <button onclick="window.modificaDocente('${doc.id}')" class="text-blue-600 hover:bg-blue-200 bg-blue-100 p-1.5 rounded transition shadow-sm"><i data-lucide="edit" class="w-4 h-4"></i></button>
-                    <button onclick="window.eliminaDocente('${doc.id}')" class="text-red-600 hover:bg-red-200 bg-red-100 p-1.5 rounded transition shadow-sm ml-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-                </td>
-            </tr>
-        `;
-    });
-    tbody.innerHTML = html;
-    if(typeof lucide !== 'undefined') lucide.createIcons();
 };
 
 window.salvaDocenteDB = async function() {

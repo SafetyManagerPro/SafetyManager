@@ -73,7 +73,7 @@ window.loadModule = async function(moduleId) {
         
         if (moduleId === 'admin' && typeof window.loadDashboardStats === 'function') window.loadDashboardStats();
         if (moduleId === 'aziende' && typeof window.loadAziendeTable === 'function') window.loadAziendeTable();
-        if (moduleId === 'docenti' && typeof window.loadDocentiTable === 'function') window.loadDocentiTable();
+        if (moduleId === 'docenti' && typeof window.loadDocentiTable === 'function') await window.loadDocentiTable();
         if (moduleId === 'corsisti' && typeof window.loadCorsistiTable === 'function') window.loadCorsistiTable();
         if (moduleId === 'progetti' && typeof window.loadProgettiTable === 'function') await window.loadProgettiTable();
         if (moduleId === 'scadenze' && typeof window.loadScadenzeTable === 'function') window.loadScadenzeTable();
