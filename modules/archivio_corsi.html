@@ -13,8 +13,14 @@
         </button>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
+    <div class="grid grid-cols-1 md:grid-cols-5 gap-3 mb-6">
         <input id="archivio-search" onkeyup="window.renderArchivioCorsi()" type="text" placeholder="Cerca azienda, corso, codice, corsista..." class="md:col-span-2 px-4 py-3 bg-white border border-slate-300 rounded-xl text-sm outline-none focus:border-blue-500 shadow-sm">
+        <select id="archivio-filter-azienda" onchange="window.renderArchivioCorsi()" class="px-4 py-3 bg-white border border-slate-300 rounded-xl text-sm outline-none focus:border-blue-500 shadow-sm font-bold text-slate-700">
+            <option value="">Tutte le aziende / enti</option>
+        </select>
+        <select id="archivio-filter-corso" onchange="window.renderArchivioCorsi()" class="px-4 py-3 bg-white border border-slate-300 rounded-xl text-sm outline-none focus:border-blue-500 shadow-sm font-bold text-slate-700">
+            <option value="">Tutti i corsi</option>
+        </select>
         <select id="archivio-filter-stato" onchange="window.renderArchivioCorsi()" class="px-4 py-3 bg-white border border-slate-300 rounded-xl text-sm outline-none focus:border-blue-500 shadow-sm font-bold text-slate-700">
             <option value="">Tutti gli stati</option>
             <option value="aperto">Aperti</option>

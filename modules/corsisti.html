@@ -49,9 +49,17 @@
                 <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Registro storico dei lavoratori e dei relativi titoli formativi conseguiti</p>
             </div>
             
-            <div class="w-full sm:w-72 relative">
-                <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-slate-400"></i>
-                <input type="text" id="search-corsisti" onkeyup="window.filtraCorsisti()" class="w-full pl-9 pr-3 py-2 bg-white border border-slate-300 rounded text-xs outline-none focus:border-blue-500 shadow-sm transition" placeholder="Cerca allievo, CF, azienda o corso...">
+            <div class="w-full sm:w-[620px] grid grid-cols-1 md:grid-cols-3 gap-2">
+                <div class="relative">
+                    <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-slate-400"></i>
+                    <input type="text" id="search-corsisti" onkeyup="window.filtraCorsisti()" class="w-full pl-9 pr-3 py-2 bg-white border border-slate-300 rounded text-xs outline-none focus:border-blue-500 shadow-sm transition" placeholder="Cerca allievo, CF, azienda o corso...">
+                </div>
+                <select id="filter-corsisti-azienda" onchange="window.filtraCorsisti()" class="w-full px-3 py-2 bg-white border border-slate-300 rounded text-xs outline-none focus:border-blue-500 shadow-sm font-bold text-slate-700">
+                    <option value="">Tutte le aziende</option>
+                </select>
+                <select id="filter-corsisti-corso" onchange="window.filtraCorsisti()" class="w-full px-3 py-2 bg-white border border-slate-300 rounded text-xs outline-none focus:border-blue-500 shadow-sm font-bold text-slate-700">
+                    <option value="">Tutti i corsi</option>
+                </select>
             </div>
         </div>
 

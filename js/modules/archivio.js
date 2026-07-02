@@ -10,11 +10,47 @@ window.loadArchivioCorsi = async function() {
     const [progetti, aziende] = await Promise.all([window.getProgetti(), window.getAziende()]);
     window.archivioCorsiState.progetti = progetti || [];
     window.archivioCorsiState.aziende = aziende || [];
+    window.archivioCorsiState.collapsedGroups = window.archivioCorsiState.collapsedGroups || {};
     const ids = window.archivioCorsiState.progetti.map(p => p.id).filter(Boolean);
     window.archivioCorsiState.iscrizioniByProject = window.getIscrizioniPerProgetti
         ? await window.getIscrizioniPerProgetti(ids)
         : await window.buildIscrizioniMapFallback(window.archivioCorsiState.progetti);
 
+    if (typeof window.populateArchivioFilters === 'function') window.populateArchivioFilters();
+    window.renderArchivioCorsi();
+};
+
+
+window.populateArchivioFilters = function() {
+    const azSel = document.getElementById('archivio-filter-azienda');
+    const corsoSel = document.getElementById('archivio-filter-corso');
+    const progetti = window.archivioCorsiState.progetti || [];
+    const aziende = window.archivioCorsiState.aziende || [];
+
+    if (azSel) {
+        const prev = azSel.value || '';
+        let html = '<option value="">Tutte le aziende / enti</option><option value="__ente__">Ente formatore / erogatore</option>';
+        aziende.forEach(a => html += `<option value="${a.id}">${window.dashEscape(a.ragione_sociale || '')}</option>`);
+        azSel.innerHTML = html;
+        if (prev) azSel.value = prev;
+    }
+
+    if (corsoSel) {
+        const prev = corsoSel.value || '';
+        const used = [...new Set(progetti.map(p => p.corso_id).filter(Boolean))];
+        let html = '<option value="">Tutti i corsi</option>';
+        used.forEach(id => {
+            const c = window.DB_CORSI?.[id] || {};
+            html += `<option value="${id}">[${window.dashEscape(c.code || id)}] ${window.dashEscape(c.t || id)}</option>`;
+        });
+        corsoSel.innerHTML = html;
+        if (prev) corsoSel.value = prev;
+    }
+};
+
+window.toggleArchivioGroup = function(groupKey) {
+    window.archivioCorsiState.collapsedGroups = window.archivioCorsiState.collapsedGroups || {};
+    window.archivioCorsiState.collapsedGroups[groupKey] = !window.archivioCorsiState.collapsedGroups[groupKey];
     window.renderArchivioCorsi();
 };
 
@@ -23,28 +59,52 @@ window.renderArchivioCorsi = function() {
     if (!container) return;
 
     const q = (document.getElementById('archivio-search')?.value || '').toLowerCase();
-    const stato = document.getElementById('archivio-filter-stato')?.value || '';
+    const statoFilter = document.getElementById('archivio-filter-stato')?.value || '';
+    const aziendaFilter = document.getElementById('archivio-filter-azienda')?.value || '';
+    const corsoFilter = document.getElementById('archivio-filter-corso')?.value || '';
     const progetti = window.archivioCorsiState.progetti || [];
     const aziende = window.archivioCorsiState.aziende || [];
     const iscrizioniByProject = window.archivioCorsiState.iscrizioniByProject || {};
+    const collapsed = window.archivioCorsiState.collapsedGroups || {};
+
+    const projectOk = (p) => {
+        const statoOk = !statoFilter || (p.stato_corso || 'aperto') === statoFilter;
+        const corsoOk = !corsoFilter || p.corso_id === corsoFilter;
+        const aziendaOk = !aziendaFilter ||
+            (aziendaFilter === '__ente__' ? p.ente_erogatore === 'ente' : p.azienda_id === aziendaFilter);
+        return statoOk && corsoOk && aziendaOk;
+    };
 
     const groups = [];
     aziende.forEach(az => {
-        const ps = progetti.filter(p => p.azienda_id === az.id && (!stato || (p.stato_corso || 'aperto') === stato));
+        const ps = progetti.filter(p => p.azienda_id === az.id && projectOk(p));
         if (!ps.length) return;
-        groups.push({ type: 'azienda', title: az.ragione_sociale, subtitle: `${az.piva_cf || ''} ${az.ateco ? '· ATECO ' + az.ateco : ''}`, progetti: ps });
+        groups.push({
+            key: `azienda-${az.id}`,
+            type: 'azienda',
+            title: az.ragione_sociale,
+            subtitle: `${az.piva_cf || ''} ${az.ateco ? '· ATECO ' + az.ateco : ''}`,
+            progetti: ps
+        });
     });
 
-    const enteProjects = progetti.filter(p => p.ente_erogatore === 'ente' && (!stato || (p.stato_corso || 'aperto') === stato));
+    const enteProjects = progetti.filter(p => p.ente_erogatore === 'ente' && projectOk(p));
     if (enteProjects.length) {
-        groups.unshift({ type: 'ente', title: window.getVal('cfg-ente') || 'Ente formatore / erogatore', subtitle: 'Corsi erogati come associazione/ente di diretta emanazione', progetti: enteProjects });
+        groups.unshift({
+            key: 'ente-formatore',
+            type: 'ente',
+            title: window.getVal('cfg-ente') || 'Ente formatore / erogatore',
+            subtitle: 'Corsi erogati come associazione/ente di diretta emanazione',
+            progetti: enteProjects
+        });
     }
 
     const filtered = groups.map(g => {
         const ps = g.progetti.filter(p => {
             const course = window.DB_CORSI[p.corso_id]?.t || p.corso_id;
+            const ccode = window.DB_CORSI[p.corso_id]?.code || '';
             const iscritti = iscrizioniByProject[p.id] || [];
-            const hay = [g.title, g.subtitle, p.codice, course, p.aziende?.ragione_sociale, ...iscritti.map(i => `${i.corsisti?.nome_cognome || ''} ${i.corsisti?.cf || ''}`)].join(' ').toLowerCase();
+            const hay = [g.title, g.subtitle, p.codice, course, ccode, p.aziende?.ragione_sociale, ...iscritti.map(i => `${i.corsisti?.nome_cognome || ''} ${i.corsisti?.cf || ''}`)].join(' ').toLowerCase();
             return !q || hay.includes(q);
         });
         return { ...g, progetti: ps };
@@ -55,18 +115,27 @@ window.renderArchivioCorsi = function() {
         return;
     }
 
-    container.innerHTML = filtered.map(g => `
+    container.innerHTML = filtered.map(g => {
+        const isCollapsed = !!collapsed[g.key];
+        return `
         <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-            <div class="p-4 ${g.type === 'ente' ? 'bg-emerald-50 border-emerald-100' : 'bg-blue-50 border-blue-100'} border-b flex justify-between items-start gap-4">
-                <div>
-                    <p class="font-black uppercase ${g.type === 'ente' ? 'text-emerald-900' : 'text-blue-900'}">${window.dashEscape(g.title)}</p>
-                    <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">${window.dashEscape(g.subtitle || '')}</p>
+            <button type="button" onclick="window.toggleArchivioGroup('${g.key}')" class="w-full p-4 ${g.type === 'ente' ? 'bg-emerald-50 border-emerald-100' : 'bg-blue-50 border-blue-100'} border-b flex justify-between items-start gap-4 text-left hover:brightness-95 transition">
+                <div class="flex items-start gap-3 min-w-0">
+                    <span class="shrink-0 w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center">
+                        <i data-lucide="${isCollapsed ? 'chevron-down' : 'chevron-up'}" class="w-4 h-4 ${g.type === 'ente' ? 'text-emerald-700' : 'text-blue-700'}"></i>
+                    </span>
+                    <div class="min-w-0">
+                        <p class="font-black uppercase ${g.type === 'ente' ? 'text-emerald-900' : 'text-blue-900'}">${window.dashEscape(g.title)}</p>
+                        <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">${window.dashEscape(g.subtitle || '')}</p>
+                        <p class="text-[9px] text-slate-400 font-black uppercase mt-1">${isCollapsed ? 'Apri dettaglio corsi e corsisti' : 'Chiudi dettaglio corsi e corsisti'}</p>
+                    </div>
                 </div>
                 <span class="px-3 py-1 rounded-full bg-white border border-slate-200 text-[10px] font-black uppercase text-slate-700">${g.progetti.length} corsi</span>
-            </div>
-            <div class="divide-y divide-slate-100">
+            </button>
+            <div class="${isCollapsed ? 'hidden' : ''} divide-y divide-slate-100">
                 ${g.progetti.map(p => {
                     const course = window.DB_CORSI[p.corso_id]?.t || p.corso_id;
+                    const ccode = window.DB_CORSI[p.corso_id]?.code || '';
                     const iscritti = iscrizioniByProject[p.id] || [];
                     const stato = p.stato_corso || 'aperto';
                     const badge = stato === 'chiuso' ? 'bg-slate-900 text-white' : (stato === 'svolto' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800');
@@ -74,7 +143,7 @@ window.renderArchivioCorsi = function() {
                         <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3">
                             <div>
                                 <button onclick="window.apriPopupProgettoById('${p.id}', 'progetti')" class="font-mono text-rose-700 hover:underline font-black text-xs">${window.dashEscape(p.codice || '')}</button>
-                                <p class="font-black text-slate-900 uppercase text-sm mt-1">${window.dashEscape(course)}</p>
+                                <p class="font-black text-slate-900 uppercase text-sm mt-1"><span class="font-mono text-blue-700">[${window.dashEscape(ccode)}]</span> ${window.dashEscape(course)}</p>
                                 <p class="text-[10px] text-slate-500 uppercase mt-0.5">Esame: ${window.formatDataToItalian(p.data_esame)} · Corsisti: ${iscritti.length}</p>
                                 ${p.documenti_firmati_url ? `<a href="${window.dashEscape(p.documenti_firmati_url)}" target="_blank" class="inline-block mt-2 text-[10px] font-black text-blue-700 hover:underline uppercase">Apri scansioni documenti firmati</a>` : ''}
                             </div>
@@ -86,7 +155,7 @@ window.renderArchivioCorsi = function() {
                             </div>
                         </div>
                         <div class="mt-3 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
-                            ${iscritti.length ? iscritti.map(isc => `<div class="border border-slate-200 bg-slate-50 rounded-lg p-2">
+                            ${iscritti.length ? iscritti.map((isc, idx) => `<div class="border border-slate-200 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'} rounded-lg p-2">
                                 <p class="font-black uppercase text-slate-900 text-[11px]">${window.dashEscape(isc.corsisti?.nome_cognome || '-')}</p>
                                 <p class="font-mono text-[9px] text-slate-500">${window.dashEscape(isc.corsisti?.cf || '-')}</p>
                                 <p class="text-[9px] text-slate-500 mt-1">${window.dashEscape(isc.mansione_storica || isc.corsisti?.mansione_storica || '-')}</p>
@@ -95,12 +164,11 @@ window.renderArchivioCorsi = function() {
                     </div>`;
                 }).join('')}
             </div>
-        </div>
-    `).join('');
+        </div>`;
+    }).join('');
 
     if (typeof lucide !== 'undefined') lucide.createIcons();
 };
-
 
 // ==========================================
 // STAMPA PDF COMPLETA PROGETTO + ATTESTATI

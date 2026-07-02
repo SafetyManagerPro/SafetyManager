@@ -320,8 +320,12 @@ window.loadDashboardCompliance = async function() {
     if (!document.getElementById(panelId)) return;
 
     const el = document.getElementById(panelId);
+    const raccoltaEl = document.getElementById('dash-raccolta-errori-checks');
     if (el) {
         el.innerHTML = '<div class="text-center text-slate-400 py-6"><i data-lucide="loader-2" class="w-5 h-5 animate-spin mx-auto mb-2"></i> Verifica in corso...</div>';
+    }
+    if (raccoltaEl) {
+        raccoltaEl.innerHTML = '<div class="text-center text-slate-400 py-6"><i data-lucide="loader-2" class="w-5 h-5 animate-spin mx-auto mb-2"></i> Raccolta errori in corso...</div>';
     }
     if (typeof lucide !== 'undefined') lucide.createIcons();
 
@@ -347,6 +351,13 @@ window.loadDashboardCompliance = async function() {
             });
         }
     }
+
+    window.dashRenderPanel(
+        'dash-raccolta-errori-checks',
+        'dash-raccolta-errori-badge',
+        projectIssues,
+        'Nessun errore operativo rilevato nei controlli automatici.'
+    );
 
     window.dashRenderPanel(
         'dash-progetti-formativi-checks',
@@ -705,8 +716,10 @@ window.loadDocentiTable = async function() {
 
     let html = '';
     window.docentiList.forEach(doc => {
+        const corsiIds = (cor.iscrizioni || []).map(isc => isc.progetti?.corso_id || '').filter(Boolean).join('|');
+
         html += `
-            <tr class="hover:bg-slate-50 transition-colors">
+            <tr class="hover:bg-slate-50 transition-colors" data-corsista-azienda="${cor.azienda_id || ''}" data-corsista-corsi="${window.dashEscape(corsiIds)}">
                 <td class="p-3 border-b font-bold text-slate-800">${doc.nome_cognome}</td>
                 <td class="p-3 border-b font-mono text-[10px] text-slate-600">${doc.cf}</td>
                 <td class="p-3 border-b text-[10px] text-slate-500 truncate max-w-[150px]">${doc.qualifica}</td>
@@ -800,6 +813,29 @@ window.loadCorsistiTable = async function() {
         selectAzienda.innerHTML = optHtml;
     }
 
+    const filtroAzienda = document.getElementById('filter-corsisti-azienda');
+    if (filtroAzienda) {
+        const prevAz = filtroAzienda.value || '';
+        let fHtml = '<option value="">Tutte le aziende</option>';
+        window.aziendeList.forEach(az => {
+            fHtml += `<option value="${az.id}">${window.dashEscape(az.ragione_sociale || '')}</option>`;
+        });
+        filtroAzienda.innerHTML = fHtml;
+        if (prevAz) filtroAzienda.value = prevAz;
+    }
+
+    const filtroCorso = document.getElementById('filter-corsisti-corso');
+    if (filtroCorso) {
+        const prevCourse = filtroCorso.value || '';
+        let cHtml = '<option value="">Tutti i corsi</option>';
+        const corsiEntries = window.getActiveCorsiEntries ? window.getActiveCorsiEntries() : Object.entries(window.DB_CORSI || {}).filter(([_, c]) => !c.deprecated);
+        corsiEntries.forEach(([key, c]) => {
+            cHtml += `<option value="${key}">[${window.dashEscape(c.code || key)}] ${window.dashEscape(c.t || key)}</option>`;
+        });
+        filtroCorso.innerHTML = cHtml;
+        if (prevCourse) filtroCorso.value = prevCourse;
+    }
+
     const { data, error } = await supabaseClient
         .from('corsisti')
         .select(`
@@ -868,8 +904,10 @@ window.loadCorsistiTable = async function() {
             }
         }
 
+        const corsiIds = (cor.iscrizioni || []).map(isc => isc.progetti?.corso_id || '').filter(Boolean).join('|');
+
         html += `
-            <tr class="hover:bg-slate-50 transition-colors">
+            <tr class="hover:bg-slate-50 transition-colors" data-corsista-azienda="${cor.azienda_id || ''}" data-corsista-corsi="${window.dashEscape(corsiIds)}">
                 <td class="p-3 border-b font-bold text-slate-800 text-xs">${cor.nome_cognome}</td>
                 <td class="p-3 border-b font-mono text-[10px] text-slate-600">${cor.cf}</td>
                 <td class="p-3 border-b text-[10px] text-slate-600">
@@ -935,15 +973,22 @@ window.resetFormCorsista = function() {
     document.getElementById('form-corsista').reset();
 };
 
+
 window.filtraCorsisti = function() {
-    const filter = document.getElementById('search-corsisti').value.toLowerCase();
-    const rows = document.getElementById('tabella-corsisti').getElementsByTagName('tr');
+    const textFilter = (document.getElementById('search-corsisti')?.value || '').toLowerCase();
+    const aziendaFilter = document.getElementById('filter-corsisti-azienda')?.value || '';
+    const corsoFilter = document.getElementById('filter-corsisti-corso')?.value || '';
+    const rows = document.getElementById('tabella-corsisti')?.getElementsByTagName('tr') || [];
+
     for (let i = 0; i < rows.length; i++) {
-        if(rows[i].cells.length === 1) continue; 
-        rows[i].style.display = rows[i].innerText.toLowerCase().includes(filter) ? "" : "none";
+        if(rows[i].cells.length === 1) continue;
+        const textOk = !textFilter || rows[i].innerText.toLowerCase().includes(textFilter);
+        const azOk = !aziendaFilter || rows[i].getAttribute('data-corsista-azienda') === aziendaFilter;
+        const corsi = rows[i].getAttribute('data-corsista-corsi') || '';
+        const corsoOk = !corsoFilter || corsi.split('|').includes(corsoFilter);
+        rows[i].style.display = (textOk && azOk && corsoOk) ? "" : "none";
     }
 };
-
 
 // ==========================================
 // POPUPS (QUICK ADD) LOGIC
@@ -1987,6 +2032,7 @@ window.renderInlineIscrittiCards = function(projectId, iscritti, showAll = false
                             <p class="font-mono text-[9px] text-slate-300 mt-0.5">${window.dashEscape(c.cf || '-')}</p>
                         </div>
                         <div class="flex gap-1 shrink-0">
+                            <button onclick="window.stampaAttestatoCorsista('${projectId}', '${c.id || isc.corsista_id}')" class="p-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white" title="Stampa attestato individuale"><i data-lucide="award" class="w-3 h-3"></i></button>
                             <button onclick="window.modificaCorsistaDaProgetto('${c.id || isc.corsista_id}','${projectId}')" class="p-2 rounded-lg bg-blue-500 hover:bg-blue-400 text-white" title="Modifica corsista"><i data-lucide="edit-3" class="w-3 h-3"></i></button>
                             <button onclick="window.rimuoviIscrizione('${isc.id}', '${projectId}')" class="p-2 rounded-lg bg-red-600 hover:bg-red-500 text-white" title="Rimuovi dal corso"><i data-lucide="user-minus" class="w-3 h-3"></i></button>
                         </div>
@@ -2009,8 +2055,8 @@ window.renderInlineIscrittiControls = function(p, view = 'desk') {
     const projectId = p.id;
     return `<div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-3">
         <div>
-            <p class="font-black uppercase text-white text-xs flex items-center gap-2"><i data-lucide="users" class="w-4 h-4 text-amber-400"></i> Corsisti iscritti</p>
-            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">${(window.progettiIscrizioniMap[projectId] || []).length} iscritti abbinati al progetto ${window.dashEscape(p.codice || '')}</p>
+            <p class="font-black uppercase text-white text-xs flex items-center gap-2"><i data-lucide="link-2" class="w-4 h-4 text-amber-400"></i> Corsisti iscritti a questo specifico progetto</p>
+            <p class="text-[10px] text-amber-200 font-bold uppercase tracking-widest">${(window.progettiIscrizioniMap[projectId] || []).length} partecipanti collegati a ${window.dashEscape(p.codice || '')}</p>
         </div>
         <div class="flex flex-col md:flex-row gap-2 md:items-center">
             <select id="inline-sel-iscrivi-${projectId}-${view}" data-inline-select="${projectId}" class="min-w-0 md:min-w-[260px] px-3 py-2 bg-slate-950 border border-slate-600 rounded-lg text-xs outline-none focus:border-amber-400 font-bold text-white">
@@ -2142,8 +2188,17 @@ window.renderProjectDesktopRows = function(p, iscritti, issues) {
         </tr>
         <tr class="bg-slate-950" data-corso="${p.corso_id}" data-azienda="${p.azienda_id || ''}" data-project-id="${p.id}" data-inline-iscritti-project="${p.id}">
             <td colspan="4" class="p-4 border-b border-slate-700">
-                ${window.renderInlineIscrittiControls(p, 'desk')}
-                ${window.renderInlineIscrittiCards(p.id, iscritti, showAll)}
+                <div class="rounded-2xl border-2 border-amber-400/70 bg-slate-950 p-4 shadow-inner">
+                    <div class="mb-3 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                        <div>
+                            <p class="text-[9px] font-black uppercase tracking-[0.2em] text-amber-300">Area partecipanti collegata al progetto sopra</p>
+                            <p class="text-[10px] text-slate-300 font-bold">Questi corsisti appartengono al corso <span class="text-blue-300 font-black">[${siglaCorso}]</span> per <span class="text-amber-300 font-black">${window.dashEscape(nomeAzienda || '')}</span>.</p>
+                        </div>
+                        <span class="px-3 py-1 rounded-full bg-amber-400 text-slate-950 font-black text-[9px] uppercase">${iscritti.length} iscritti</span>
+                    </div>
+                    ${window.renderInlineIscrittiControls(p, 'desk')}
+                    ${window.renderInlineIscrittiCards(p.id, iscritti, showAll)}
+                </div>
             </td>
         </tr>`;
 };
@@ -2181,7 +2236,11 @@ window.renderProjectMobileCard = function(p, iscritti, issues) {
                 <p class="text-[8px] font-black uppercase tracking-widest text-amber-950 mb-1">Azienda committente</p>
                 <p class="font-black text-xs text-slate-950 uppercase leading-tight">${window.dashEscape(nomeAzienda || '')}</p>
             </div>
-            <div class="rounded-xl bg-slate-950 border border-slate-700 p-3">
+            <div class="rounded-xl bg-slate-950 border-2 border-amber-400/70 p-3">
+                <div class="mb-3 rounded-lg bg-amber-400 text-slate-950 px-3 py-2">
+                    <p class="text-[8px] font-black uppercase tracking-widest">Corsisti collegati a questo corso/azienda</p>
+                    <p class="text-[10px] font-bold">${iscritti.length} partecipanti iscritti a [${siglaCorso}] · ${window.dashEscape(nomeAzienda || '')}</p>
+                </div>
                 ${window.renderInlineIscrittiControls(p, 'mob')}
                 ${window.renderInlineIscrittiCards(p.id, iscritti, showAll)}
             </div>
