@@ -54,6 +54,233 @@ window.toggleArchivioGroup = function(groupKey) {
     window.renderArchivioCorsi();
 };
 
+
+window.getSchedaClienteCommittenteData = async function(aziendaId) {
+    if (!aziendaId) return null;
+
+    if (!window.archivioCorsiState?.aziende?.length || !window.archivioCorsiState?.progetti?.length) {
+        const [progetti, aziende] = await Promise.all([window.getProgetti(), window.getAziende()]);
+        window.archivioCorsiState = window.archivioCorsiState || {};
+        window.archivioCorsiState.progetti = progetti || [];
+        window.archivioCorsiState.aziende = aziende || [];
+    }
+
+    const azienda = (window.archivioCorsiState.aziende || []).find(a => a.id === aziendaId);
+    if (!azienda) return null;
+
+    const progetti = (window.archivioCorsiState.progetti || []).filter(p => p.azienda_id === aziendaId);
+    const ids = progetti.map(p => p.id).filter(Boolean);
+
+    let iscrizioniByProject = window.archivioCorsiState.iscrizioniByProject || {};
+    const missing = ids.filter(id => !Array.isArray(iscrizioniByProject[id]));
+    if (missing.length) {
+        const loaded = window.getIscrizioniPerProgetti
+            ? await window.getIscrizioniPerProgetti(ids)
+            : await window.buildIscrizioniMapFallback(progetti);
+        iscrizioniByProject = { ...iscrizioniByProject, ...loaded };
+        window.archivioCorsiState.iscrizioniByProject = iscrizioniByProject;
+    }
+
+    const rows = [];
+    const corsistiMap = {};
+    progetti.forEach(p => {
+        const corso = window.DB_CORSI?.[p.corso_id] || {};
+        const iscritti = iscrizioniByProject[p.id] || [];
+        iscritti.forEach(isc => {
+            const c = isc.corsisti || {};
+            const cid = c.id || isc.corsista_id || `${c.cf || ''}-${c.nome_cognome || ''}`;
+            if (cid) corsistiMap[cid] = c;
+            rows.push({
+                azienda: azienda.ragione_sociale || '',
+                piva_cf: azienda.piva_cf || '',
+                sede_legale: azienda.indirizzo || '',
+                sede_operativa: azienda.sede_operativa || azienda.indirizzo || '',
+                ateco: azienda.ateco || '',
+                referente: azienda.referente || '',
+                corsista: c.nome_cognome || '',
+                cf: c.cf || '',
+                nascita: c.luogo_data_nascita || '',
+                mansione: isc.mansione_storica || c.mansione_storica || '',
+                codice_progetto: p.codice || '',
+                codice_corso: corso.code || p.corso_id || '',
+                corso: corso.t || p.corso_id || '',
+                data_inizio: p.data_inizio || '',
+                data_attestato: p.data_esame || '',
+                scadenza_attestato: isc.data_scadenza || '',
+                id_certificato: isc.id_certificato || '',
+                esito: isc.esito || '',
+                frequenza: (isc.percentuale_frequenza !== null && isc.percentuale_frequenza !== undefined) ? `${isc.percentuale_frequenza}%` : '',
+                stato_corso: p.stato_corso || 'aperto',
+                sede_corso: p.sede || ''
+            });
+        });
+    });
+
+    const corsisti = Object.values(corsistiMap);
+    return {
+        azienda,
+        progetti,
+        rows,
+        corsisti,
+        stats: {
+            progetti: progetti.length,
+            corsisti: corsisti.length,
+            attestati: rows.filter(r => r.id_certificato).length,
+            scadenze: rows.filter(r => r.scadenza_attestato).length
+        }
+    };
+};
+
+window.buildSchedaClienteCommittenteHtml = function(data, printMode = false) {
+    const az = data.azienda || {};
+    const rows = data.rows || [];
+    const generated = new Date().toLocaleDateString('it-IT');
+    const pageClass = printMode ? 'export-print-page print-show' : 'p-5';
+
+    const rowsHtml = rows.length ? rows.map((r, idx) => `
+        <tr class="${idx % 2 === 0 ? 'bg-white' : 'bg-slate-100'}">
+            <td>${idx + 1}</td>
+            <td><strong>${window.dashEscape(r.corsista)}</strong><br><span style="font-family:monospace">${window.dashEscape(r.cf)}</span></td>
+            <td>${window.dashEscape(r.nascita || '-')}</td>
+            <td>${window.dashEscape(r.mansione || '-')}</td>
+            <td><strong>[${window.dashEscape(r.codice_corso)}]</strong><br>${window.dashEscape(r.corso)}</td>
+            <td><span style="font-family:monospace">${window.dashEscape(r.codice_progetto)}</span><br>${window.formatDataToItalian(r.data_inizio)}</td>
+            <td>${window.formatDataToItalian(r.data_attestato)}</td>
+            <td>${window.formatDataToItalian(r.scadenza_attestato)}</td>
+            <td><span style="font-family:monospace">${window.dashEscape(r.id_certificato || '-')}</span></td>
+            <td>${window.dashEscape(r.esito || '-')}<br>${window.dashEscape(r.frequenza || '')}</td>
+        </tr>`).join('') : `
+        <tr><td colspan="10" style="text-align:center;padding:18px;color:#64748b">Nessun corsista/attestato collegato a questa azienda.</td></tr>`;
+
+    return `<div class="${pageClass}">
+        <h1>Scheda cliente / committente</h1>
+        <p style="font-size:8pt;text-transform:uppercase;color:#64748b;font-weight:900;letter-spacing:.12em;margin-bottom:5mm">Generata il ${generated}</p>
+
+        <div style="display:grid;grid-template-columns:1.25fr .75fr;gap:6mm;margin-bottom:5mm">
+            <div style="border:1px solid #cbd5e1;border-radius:10px;padding:10px;background:#f8fafc">
+                <h2 style="margin-top:0">Dati cliente</h2>
+                <p style="font-size:14pt;font-weight:900;text-transform:uppercase;margin:0 0 2mm">${window.dashEscape(az.ragione_sociale || '-')}</p>
+                <p><strong>P.IVA / C.F.:</strong> ${window.dashEscape(az.piva_cf || '-')}</p>
+                <p><strong>Sede legale:</strong> ${window.dashEscape(az.indirizzo || '-')}</p>
+                <p><strong>Sede operativa:</strong> ${window.dashEscape(az.sede_operativa || az.indirizzo || '-')}</p>
+                <p><strong>ATECO:</strong> ${window.dashEscape(az.ateco || '-')}</p>
+                <p><strong>Referente formazione / Legale rappresentante:</strong> ${window.dashEscape(az.referente || '-')}</p>
+            </div>
+            <div style="border:1px solid #bfdbfe;border-radius:10px;padding:10px;background:#eff6ff">
+                <h2 style="margin-top:0;color:#1d4ed8">Riepilogo</h2>
+                <p><strong>Progetti formativi:</strong> ${data.stats.progetti}</p>
+                <p><strong>Corsisti aziendali formati:</strong> ${data.stats.corsisti}</p>
+                <p><strong>Attestati presenti:</strong> ${data.stats.attestati}</p>
+                <p><strong>Scadenze registrate:</strong> ${data.stats.scadenze}</p>
+            </div>
+        </div>
+
+        <h2>Elenco corsisti, corsi, attestati e scadenze</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Corsista / CF</th>
+                    <th>Nascita</th>
+                    <th>Mansione</th>
+                    <th>Corso</th>
+                    <th>Progetto / Inizio</th>
+                    <th>Data attestato</th>
+                    <th>Scadenza</th>
+                    <th>ID certificato</th>
+                    <th>Esito / Freq.</th>
+                </tr>
+            </thead>
+            <tbody>${rowsHtml}</tbody>
+        </table>
+
+        <div style="margin-top:8mm;display:grid;grid-template-columns:1fr 1fr;gap:20mm;font-size:8pt;text-align:center">
+            <div><p style="text-transform:uppercase;font-weight:900;color:#64748b">Per presa visione cliente/committente</p><p style="border-bottom:1px solid #94a3b8;margin-top:12mm"></p></div>
+            <div><p style="text-transform:uppercase;font-weight:900;color:#64748b">Responsabile attività formative ente</p><p style="border-bottom:1px solid #94a3b8;margin-top:12mm"></p></div>
+        </div>
+    </div>`;
+};
+
+window.stampaSchedaClienteCommittente = async function(aziendaId) {
+    const printArea = document.getElementById('print-area-temp');
+    if (!printArea) return alert('Area di stampa non disponibile.');
+
+    try {
+        const data = await window.getSchedaClienteCommittenteData(aziendaId);
+        if (!data) return alert('Cliente/committente non trovato.');
+        printArea.innerHTML = window.buildSchedaClienteCommittenteHtml(data, true);
+        alert('Ora si aprirà la stampa della scheda cliente. Seleziona "Salva come PDF" per archiviarla.');
+        document.body.classList.add('is-printing-temp');
+        setTimeout(() => {
+            window.print();
+            document.body.classList.remove('is-printing-temp');
+            printArea.innerHTML = '';
+        }, 900);
+    } catch (e) {
+        console.error(e);
+        alert('Errore nella preparazione scheda cliente: ' + (e.message || e));
+        document.body.classList.remove('is-printing-temp');
+        printArea.innerHTML = '';
+    }
+};
+
+window.esportaSchedaClienteCommittenteXLS = async function(aziendaId) {
+    if (typeof XLSX === 'undefined') {
+        return alert('Libreria XLSX non disponibile. Verifica la connessione o esporta in PDF.');
+    }
+
+    const data = await window.getSchedaClienteCommittenteData(aziendaId);
+    if (!data) return alert('Cliente/committente non trovato.');
+
+    const az = data.azienda || {};
+    const rows = (data.rows || []).map(r => ({
+        'Azienda': r.azienda,
+        'P.IVA / C.F.': r.piva_cf,
+        'Sede legale': r.sede_legale,
+        'Sede operativa': r.sede_operativa,
+        'ATECO': r.ateco,
+        'Referente': r.referente,
+        'Corsista': r.corsista,
+        'Codice fiscale': r.cf,
+        'Nascita': r.nascita,
+        'Mansione': r.mansione,
+        'Codice progetto': r.codice_progetto,
+        'Codice corso': r.codice_corso,
+        'Corso': r.corso,
+        'Data inizio': r.data_inizio,
+        'Data attestato': r.data_attestato,
+        'Scadenza attestato': r.scadenza_attestato,
+        'ID certificato': r.id_certificato,
+        'Esito': r.esito,
+        'Frequenza': r.frequenza,
+        'Stato corso': r.stato_corso,
+        'Sede corso': r.sede_corso
+    }));
+
+    const summary = [
+        ['Scheda cliente / committente', az.ragione_sociale || ''],
+        ['P.IVA / C.F.', az.piva_cf || ''],
+        ['Sede legale', az.indirizzo || ''],
+        ['Sede operativa', az.sede_operativa || az.indirizzo || ''],
+        ['ATECO', az.ateco || ''],
+        ['Referente', az.referente || ''],
+        ['Progetti formativi', data.stats.progetti],
+        ['Corsisti formati', data.stats.corsisti],
+        ['Attestati presenti', data.stats.attestati],
+        ['Scadenze registrate', data.stats.scadenze],
+        ['Data export', new Date().toLocaleString('it-IT')]
+    ];
+
+    const wb = XLSX.utils.book_new();
+    const wsSummary = XLSX.utils.aoa_to_sheet(summary);
+    const wsRows = XLSX.utils.json_to_sheet(rows.length ? rows : [{ 'Note': 'Nessun corsista/attestato collegato' }]);
+    XLSX.utils.book_append_sheet(wb, wsSummary, 'Riepilogo Cliente');
+    XLSX.utils.book_append_sheet(wb, wsRows, 'Corsisti Attestati');
+
+    const safeName = String(az.ragione_sociale || 'cliente').replace(/[^a-z0-9_\-]+/gi, '_').substring(0, 60);
+    XLSX.writeFile(wb, `Scheda_cliente_${safeName}.xlsx`);
+};
+
 window.renderArchivioCorsi = function() {
     const container = document.getElementById('archivio-corsi-container');
     if (!container) return;
@@ -82,6 +309,7 @@ window.renderArchivioCorsi = function() {
         groups.push({
             key: `azienda-${az.id}`,
             type: 'azienda',
+            azienda_id: az.id,
             title: az.ragione_sociale,
             subtitle: `${az.piva_cf || ''} ${az.ateco ? '· ATECO ' + az.ateco : ''}`,
             progetti: ps
@@ -132,6 +360,18 @@ window.renderArchivioCorsi = function() {
                 </div>
                 <span class="px-3 py-1 rounded-full bg-white border border-slate-200 text-[10px] font-black uppercase text-slate-700">${g.progetti.length} corsi</span>
             </button>
+            ${g.type === 'azienda' ? `
+            <div class="px-4 py-3 bg-white border-b border-slate-100 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                <p class="text-[9px] font-black uppercase tracking-widest text-slate-500">Scheda cliente / committente: dati azienda, corsisti, attestati e scadenze</p>
+                <div class="flex flex-wrap gap-2">
+                    <button type="button" onclick="window.stampaSchedaClienteCommittente('${g.azienda_id}')" class="px-3 py-2 rounded-lg bg-blue-700 hover:bg-blue-600 text-white text-[9px] font-black uppercase inline-flex items-center gap-1">
+                        <i data-lucide="file-text" class="w-3 h-3"></i> Scheda cliente PDF
+                    </button>
+                    <button type="button" onclick="window.esportaSchedaClienteCommittenteXLS('${g.azienda_id}')" class="px-3 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-[9px] font-black uppercase inline-flex items-center gap-1">
+                        <i data-lucide="file-spreadsheet" class="w-3 h-3"></i> Scheda XLS
+                    </button>
+                </div>
+            </div>` : ''}
             <div class="${isCollapsed ? 'hidden' : ''} divide-y divide-slate-100">
                 ${g.progetti.map(p => {
                     const course = window.DB_CORSI[p.corso_id]?.t || p.corso_id;
