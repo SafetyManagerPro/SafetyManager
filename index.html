@@ -156,6 +156,25 @@
             .export-print-page td { padding: 4px; border: 1px solid #cbd5e1; vertical-align: top; }
         }
 
+        @media print {
+            @page schedaClienteLandscape { size: A4 landscape; margin: 0mm; }
+            .scheda-landscape {
+                page: schedaClienteLandscape;
+                width: 296mm !important;
+                min-height: 210mm !important;
+                height: auto !important;
+                padding: 8mm !important;
+                box-sizing: border-box !important;
+                font-size: 7pt !important;
+                overflow: visible !important;
+            }
+            .scheda-landscape table { width: 100% !important; border-collapse: collapse !important; font-size: 5.8pt !important; }
+            .scheda-landscape th { background: #0f172a !important; color: #fff !important; padding: 3px !important; border: 1px solid #334155 !important; }
+            .scheda-landscape td { padding: 3px !important; border: 1px solid #cbd5e1 !important; vertical-align: top !important; }
+            .scheda-landscape h1 { font-size: 15pt !important; margin: 0 0 1mm !important; }
+            .scheda-landscape h2 { font-size: 8pt !important; margin: 2mm 0 1mm !important; color: #1e3a8a !important; }
+        }
+
         /* --- MOTORE DI STAMPA PDF --- */
         body.is-printing-temp #print-area-temp { display: block !important; position: absolute; top: 0; left: 0; width: 100%; background: white; z-index: 99999; }
         body.is-printing-temp nav, body.is-printing-temp aside, body.is-printing-temp main { display: none !important; }
