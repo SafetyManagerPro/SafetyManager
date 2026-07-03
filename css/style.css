@@ -61,9 +61,39 @@ body { background-color: #f8fafc; color: #1e293b; }
 
 #print-area-temp { display: none; }
 
-.btn-tab { @apply flex flex-col items-center justify-center p-2 rounded-xl transition-all border-2 border-transparent hover:bg-slate-100 cursor-pointer; }
-.btn-tab.active { @apply border-blue-500 bg-blue-50 text-blue-900 shadow-sm; }
-.input-field { @apply w-full bg-white border border-slate-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-sm; }
+.btn-tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem;
+    border-radius: 0.75rem;
+    transition: all .2s ease;
+    border: 2px solid transparent;
+    cursor: pointer;
+}
+.btn-tab:hover { background-color: #f1f5f9; }
+.btn-tab.active {
+    border-color: #3b82f6;
+    background-color: #eff6ff;
+    color: #1e3a8a;
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+}
+.input-field {
+    width: 100%;
+    background-color: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 0.25rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    outline: none;
+    transition: all .2s ease;
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+}
+.input-field:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgb(59 130 246 / 0.35);
+}
 .certificate-border { border: 12px double #1e3a8a; height: 100%; padding: 20px; position: relative; box-sizing: border-box; z-index: 10; flex: 1; display: flex; flex-direction: column;}
 .table-base th, .table-base td { border: 1px solid #cbd5e1; padding: 6px; text-align: left; }
 .table-base th { background-color: #f1f5f9; font-weight: bold; }

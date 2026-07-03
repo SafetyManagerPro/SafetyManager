@@ -88,7 +88,8 @@ window.loadModule = async function(moduleId) {
         if (typeof window.updateNavOffset === 'function') setTimeout(window.updateNavOffset, 50);
 
     } catch (error) {
-        contentDiv.innerHTML = `<div class="p-10 text-center text-red-500 font-bold flex flex-col items-center mt-20"><i data-lucide="alert-triangle" class="w-10 h-10 mb-2"></i> Errore Modulo: ${error.message}</div>`;
+        const safeMessage = (window.dashEscape ? window.dashEscape(error?.message || String(error)) : (error?.message || String(error)));
+        contentDiv.innerHTML = `<div class="p-10 text-center text-red-500 font-bold flex flex-col items-center mt-20"><i data-lucide="alert-triangle" class="w-10 h-10 mb-2"></i> Errore Modulo: ${safeMessage}</div>`;
         if (typeof lucide !== 'undefined') lucide.createIcons();
     }
 };

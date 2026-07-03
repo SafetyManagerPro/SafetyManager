@@ -1,28 +1,62 @@
 // js/supabase_config.js
 
 // Configurazione Supabase lato client.
-// In produzione su Vercel è preferibile valorizzare queste variabili tramite un file
-// pubblico generato in build, ad esempio window.SAFETY_SUPABASE_URL e
-// window.SAFETY_SUPABASE_ANON_KEY, oppure salvarle da pannello admin in localStorage.
-// L'anon key non è una chiave segreta: la sicurezza reale deve essere garantita da RLS
-// e policy Supabase coerenti con ente/azienda/ruolo utente.
+// STEP 36: rimosse URL e anon key hardcodate dal codice sorgente.
+// Valorizzare in produzione tramite variabili iniettate nel runtime:
+//   window.SAFETY_SUPABASE_URL
+//   window.SAFETY_SUPABASE_ANON_KEY
+// oppure, solo per test locali, tramite localStorage.
+// Esempio console locale:
+//   localStorage.setItem('SAFETY_SUPABASE_URL', 'https://xxxxx.supabase.co')
+//   localStorage.setItem('SAFETY_SUPABASE_ANON_KEY', 'ey...')
 const SUPABASE_URL =
     window.SAFETY_SUPABASE_URL ||
     localStorage.getItem('SAFETY_SUPABASE_URL') ||
-    'https://gblcedkfnasqlnrxupzx.supabase.co';
+    '';
 
 const SUPABASE_ANON_KEY =
     window.SAFETY_SUPABASE_ANON_KEY ||
     localStorage.getItem('SAFETY_SUPABASE_ANON_KEY') ||
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdibGNlZGtmbmFzcWxucnh1cHp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3NDU3NzksImV4cCI6MjA5NzMyMTc3OX0.KKt8nVCPnYsdHBITY0w901CvLweIVdmxJWVgEVCPDNs';
+    '';
 
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-    console.warn('Configurazione Supabase mancante: impostare URL e anon key prima del deploy.');
+window.isSupabaseConfigured = !!(SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase);
+
+window.setSafetySupabaseConfig = function(url, anonKey) {
+    if (!url || !anonKey) {
+        alert('Inserire URL Supabase e anon key.');
+        return false;
+    }
+    localStorage.setItem('SAFETY_SUPABASE_URL', url);
+    localStorage.setItem('SAFETY_SUPABASE_ANON_KEY', anonKey);
+    alert('Configurazione Supabase salvata nel browser. Ricarica la pagina.');
+    return true;
+};
+
+window.clearSafetySupabaseConfig = function() {
+    localStorage.removeItem('SAFETY_SUPABASE_URL');
+    localStorage.removeItem('SAFETY_SUPABASE_ANON_KEY');
+    alert('Configurazione Supabase rimossa dal browser. Ricarica la pagina.');
+};
+
+if (!window.isSupabaseConfigured) {
+    console.warn('Configurazione Supabase mancante: impostare window.SAFETY_SUPABASE_URL e window.SAFETY_SUPABASE_ANON_KEY oppure localStorage.');
 }
 
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    auth: { persistSession: true, autoRefreshToken: true }
-});
+const supabaseClient = window.isSupabaseConfigured
+    ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        auth: { persistSession: true, autoRefreshToken: true }
+    })
+    : {
+        from() { throw new Error('Configurazione Supabase mancante. Impostare SAFETY_SUPABASE_URL e SAFETY_SUPABASE_ANON_KEY.'); },
+        storage: {
+            from() { throw new Error('Configurazione Supabase mancante.'); }
+        },
+        auth: {
+            getSession: async () => ({ data: { session: null }, error: null }),
+            onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } })
+        }
+    };
+
 window.supabaseClient = supabaseClient;
 
 // ==========================================
