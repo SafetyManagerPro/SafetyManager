@@ -1,0 +1,13 @@
+{
+  "step": 23,
+  "main_file": "js/utils.js",
+  "modules": [
+    { "file": "js/modules/scadenze.js", "area": "Scadenze", "description": "Caricamento e rendering delle scadenze" },
+    { "file": "js/modules/migrazione.js", "area": "Migrazione", "description": "Importazione CSV/JSON e mappatura colonne" },
+    { "file": "js/modules/archivio.js", "area": "Archivio", "description": "Archivio imprese/enti con corsi e corsisti" },
+    { "file": "js/modules/stampe_bundle.js", "area": "Stampe", "description": "Stampa fascicolo completo progetto + attestati" },
+    { "file": "js/modules/backup.js", "area": "Backup", "description": "Backup locale e ripristino conservativo" },
+    { "file": "js/modules/export_sezioni.js", "area": "Export", "description": "Export XLSX e stampa PDF delle sezioni operative" },
+    { "file": "js/modules/collaudo.js", "area": "Collaudo", "description": "Collaudo sistema e report JSON" }
+  ]
+}

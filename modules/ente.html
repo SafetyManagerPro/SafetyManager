@@ -1,0 +1,76 @@
+<!-- modules/ente.html -->
+<div id="view-ente" class="w-full max-w-4xl mx-auto mt-4 mb-10">
+    <div class="border-b-2 border-slate-900 pb-3 mb-6">
+        <h1 class="text-3xl font-black uppercase text-slate-900 tracking-tighter">Mio Ente Formatore</h1>
+        <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Dati che compariranno in tutti gli attestati e registri</p>
+    </div>
+
+    <div class="bg-white p-8 rounded-xl shadow-md border border-slate-200">
+        <form id="form-ente" onsubmit="event.preventDefault(); window.salvaEnteDB();" class="space-y-6">
+            <input type="hidden" id="ente-id" value="">
+            
+<div class="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3 shadow-sm">
+    <div>
+        <p class="font-black uppercase text-blue-900 text-sm flex items-center gap-2">
+            <i data-lucide="sparkles" class="w-4 h-4"></i> Selezione rapida ente CNA
+        </p>
+        <p class="text-[10px] text-blue-800 leading-snug mt-1">
+            Autocompila i dati noti di CNA Artigiani Imprenditori D'Italia Avellino, logo e luogo di emissione.
+            Il legale rappresentante resta da verificare se non già inserito.
+        </p>
+    </div>
+    <button type="button" onclick="window.applicaPresetCNAAvellino()" class="bg-blue-700 hover:bg-blue-800 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 justify-center shadow">
+        <i data-lucide="building-2" class="w-4 h-4"></i> Usa dati CNA Avellino
+    </button>
+</div>
+
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-500 uppercase">Ragione Sociale Ente *</label>
+                        <input type="text" id="ente-ragione" required class="input-field font-bold text-blue-900" placeholder="Es. CNA Avellino">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-500 uppercase">P.IVA / Codice Fiscale *</label>
+                        <input type="text" id="ente-piva" required class="input-field uppercase">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-500 uppercase">Indirizzo Sede Principale</label>
+                        <input type="text" id="ente-indirizzo" class="input-field" placeholder="Via, CAP, Città">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-500 uppercase">Contatti (Email / Telefono)</label>
+                        <input type="text" id="ente-contatti" class="input-field" placeholder="info@ente.it | 0825 123456">
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="bg-slate-50 p-4 border rounded-lg">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1 mb-2"><i data-lucide="award" class="w-3 h-3"></i> Legale Rappresentante</label>
+                        <input type="text" id="ente-legale-nome" class="input-field text-sm mb-2" placeholder="Nome e Cognome">
+                        <input type="text" id="ente-legale-nascita" class="input-field text-sm mb-2" placeholder="Luogo e data di nascita">
+                        <input type="text" id="ente-luogo-emissione" class="input-field text-sm" placeholder="Città di emissione attestati">
+                    </div>
+                    
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-500 uppercase">Logo Ente (Immagine base64)</label>
+                        <input type="file" id="cfg-logo-file" accept="image/*" class="mb-2 block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" onchange="window.caricaLogoFile(event)">
+                        <input type="hidden" id="cfg-logo" value="logocna.png">
+                        <div class="mt-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-[10px] text-emerald-900 font-bold leading-relaxed">
+                            <p class="uppercase font-black tracking-widest">Preset automatico CNA</p>
+                            <p>Logo: <span class="font-mono">logocna.png</span></p>
+                            <p>Timbro: <span class="font-mono">timbrocna.png</span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-6 border-t border-slate-200 flex justify-end">
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl text-sm font-black uppercase tracking-widest flex items-center gap-2 transition shadow-lg">
+                    <i data-lucide="check-circle" class="w-5 h-5"></i> Aggiorna Dati Ente
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

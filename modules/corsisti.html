@@ -1,0 +1,86 @@
+<div class="w-full max-w-7xl mx-auto mt-4 mb-10 flex flex-col lg:flex-row gap-6">
+    
+    <div class="w-full lg:w-96 shrink-0">
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 sticky top-24">
+            <h2 class="font-black text-sm uppercase text-slate-800 mb-4 border-b border-slate-100 pb-2 flex items-center gap-2">
+                <i data-lucide="user-plus" class="w-4 h-4 text-emerald-500"></i> Gestione Corsista
+            </h2>
+            <form id="form-corsista" onsubmit="event.preventDefault(); window.salvaCorsistaDB();" class="space-y-4 text-xs">
+                <input type="hidden" id="cor-id" value="">
+
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Nome e Cognome</label>
+                    <input type="text" id="cor-nome" required class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded outline-none focus:border-blue-500 focus:bg-white transition font-semibold" placeholder="Es. Mario Rossi">
+                </div>
+
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Codice Fiscale</label>
+                    <input type="text" id="cor-cf" required maxlength="16" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded outline-none focus:border-blue-500 focus:bg-white transition font-mono uppercase tracking-wider" placeholder="Es. RSSMRA80A01H501W">
+                </div>
+
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Luogo e Data di Nascita</label>
+                    <input type="text" id="cor-nascita" required class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded outline-none focus:border-blue-500 focus:bg-white transition" placeholder="Es. Roma (RM), 15/03/1985">
+                </div>
+
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Mansione Aziendale</label>
+                    <input type="text" id="cor-mansione" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded outline-none focus:border-blue-500 focus:bg-white transition" placeholder="Es. Magazziniere, Saldatore, Impiegato">
+                </div>
+
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Azienda di Appartenenza</label>
+                    <select id="cor-azienda" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded outline-none focus:border-blue-500 focus:bg-white transition font-semibold text-slate-700">
+                        </select>
+                </div>
+
+                <div class="pt-2 flex gap-2">
+                    <button type="submit" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold uppercase py-2 px-4 rounded shadow transition text-center block">Salva Record</button>
+                    <button type="button" onclick="window.resetFormCorsista()" class="bg-slate-200 hover:bg-slate-300 text-slate-600 font-bold uppercase py-2 px-3 rounded transition">Annulla</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="flex-1 w-full">
+        <div class="border-b-2 border-slate-900 pb-3 mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-3">
+            <div>
+                <h1 class="text-3xl font-black uppercase text-slate-900 tracking-tighter">Anagrafica Corsisti</h1>
+                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Registro storico dei lavoratori e dei relativi titoli formativi conseguiti</p>
+            </div>
+            
+            <div class="w-full sm:w-[620px] grid grid-cols-1 md:grid-cols-3 gap-2">
+                <div class="relative">
+                    <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-slate-400"></i>
+                    <input type="text" id="search-corsisti" onkeyup="window.filtraCorsisti()" class="w-full pl-9 pr-3 py-2 bg-white border border-slate-300 rounded text-xs outline-none focus:border-blue-500 shadow-sm transition" placeholder="Cerca allievo, CF, azienda o corso...">
+                </div>
+                <select id="filter-corsisti-azienda" onchange="window.filtraCorsisti()" class="w-full px-3 py-2 bg-white border border-slate-300 rounded text-xs outline-none focus:border-blue-500 shadow-sm font-bold text-slate-700">
+                    <option value="">Tutte le aziende</option>
+                </select>
+                <select id="filter-corsisti-corso" onchange="window.filtraCorsisti()" class="w-full px-3 py-2 bg-white border border-slate-300 rounded text-xs outline-none focus:border-blue-500 shadow-sm font-bold text-slate-700">
+                    <option value="">Tutti i corsi</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs border-collapse">
+                    <thead class="bg-slate-800 text-white">
+                        <tr>
+                            <th class="p-3 font-bold uppercase tracking-wider w-44">Nome Allievo</th>
+                            <th class="p-3 font-bold uppercase tracking-wider w-36">Codice Fiscale</th>
+                            <th class="p-3 font-bold uppercase tracking-wider w-48">Mansione & Azienda</th>
+                            <th class="p-3 font-bold uppercase tracking-wider">Corsi Svolti (Storico)</th>
+                            <th class="p-3 font-bold uppercase tracking-wider text-center w-28">Data Fine</th>
+                            <th class="p-3 font-bold uppercase tracking-wider text-center w-20">Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabella-corsisti" class="divide-y divide-slate-100">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
