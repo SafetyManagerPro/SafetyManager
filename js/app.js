@@ -94,52 +94,12 @@ window.loadModule = async function(moduleId) {
     }
 };
 
-
-window.clearSafetyProCache = async function() {
-    try {
-        if ('caches' in window) {
-            const keys = await caches.keys();
-            await Promise.all(keys.map(k => caches.delete(k)));
-        }
-        if (navigator.serviceWorker?.controller) {
-            navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_SAFETY_CACHE' });
-        }
-        alert('Cache SafetyPRO pulita. La pagina verrà ricaricata.');
-        window.location.reload();
-    } catch (e) {
-        console.error(e);
-        alert('Impossibile pulire la cache automaticamente: ' + (e.message || e));
-    }
-};
-
-
 let deferredPrompt;
 
 document.addEventListener("DOMContentLoaded", async () => {
     if ('serviceWorker' in navigator) {
-        let refreshing = false;
-        navigator.serviceWorker.addEventListener('controllerchange', () => {
-            if (refreshing) return;
-            refreshing = true;
-            if (!sessionStorage.getItem('SafetyManager.swReloaded.step40')) {
-                sessionStorage.setItem('SafetyManager.swReloaded.step40', '1');
-                window.location.reload();
-            }
-        });
-
-        navigator.serviceWorker.register('sw.js?v=40').then((reg) => {
-            console.log('Service Worker registrato per PWA.', window.SAFETY_BUILD_VERSION || '');
-            reg.update().catch(() => {});
-            if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-            reg.addEventListener('updatefound', () => {
-                const nw = reg.installing;
-                if (!nw) return;
-                nw.addEventListener('statechange', () => {
-                    if (nw.state === 'installed' && navigator.serviceWorker.controller) {
-                        nw.postMessage({ type: 'SKIP_WAITING' });
-                    }
-                });
-            });
+        navigator.serviceWorker.register('sw.js').then((reg) => {
+            console.log('Service Worker registrato per PWA.');
         }).catch((err) => {
             console.log('Errore Service Worker', err);
         });
