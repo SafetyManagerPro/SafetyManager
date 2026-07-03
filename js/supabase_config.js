@@ -39,7 +39,7 @@ window.clearSafetySupabaseConfig = function() {
 };
 
 if (!window.isSupabaseConfigured) {
-    console.warn('Configurazione Supabase mancante: impostare window.SAFETY_SUPABASE_URL e window.SAFETY_SUPABASE_ANON_KEY oppure localStorage.');
+    console.warn('Configurazione Supabase mancante: verificare che js/safety_env.js sia caricato prima di js/supabase_config.js oppure impostare window/localStorage.');
 }
 
 const supabaseClient = window.isSupabaseConfigured
