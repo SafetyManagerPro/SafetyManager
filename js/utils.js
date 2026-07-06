@@ -777,6 +777,7 @@ window.loadDocentiTable = async function() {
                         <div class="flex flex-wrap gap-1 mt-2">
                             ${window.getDocumentoLinkHtml(doc.documento_identita_url, 'Doc. identità')}
                             ${window.getDocumentoLinkHtml(doc.codice_fiscale_url, 'Cod. fiscale')}
+                            ${window.getDocumentoLinkHtml(doc.firma_docente_url, 'Firma')}
                         </div>
                     </td>
                     <td class="p-3 border-b text-center whitespace-nowrap">
@@ -806,7 +807,8 @@ window.salvaDocenteDB = async function() {
         email: document.getElementById('doc-email').value.trim(),
         telefono: document.getElementById('doc-telefono').value.trim(),
         documento_identita_url: document.getElementById('doc-doc-identita-url') ? document.getElementById('doc-doc-identita-url').value.trim() : '',
-        codice_fiscale_url: document.getElementById('doc-doc-cf-url') ? document.getElementById('doc-doc-cf-url').value.trim() : ''
+        codice_fiscale_url: document.getElementById('doc-doc-cf-url') ? document.getElementById('doc-doc-cf-url').value.trim() : '',
+        firma_docente_url: document.getElementById('doc-firma-url') ? document.getElementById('doc-firma-url').value.trim() : ''
     };
     if (id && id !== "") record.id = id;
 
@@ -830,6 +832,10 @@ window.modificaDocente = async function(id) {
     document.getElementById('doc-telefono').value = doc.telefono || "";
     if(document.getElementById('doc-doc-identita-url')) document.getElementById('doc-doc-identita-url').value = doc.documento_identita_url || "";
     if(document.getElementById('doc-doc-cf-url')) document.getElementById('doc-doc-cf-url').value = doc.codice_fiscale_url || "";
+    if(document.getElementById('doc-firma-url')) {
+        document.getElementById('doc-firma-url').value = doc.firma_docente_url || "";
+        window.showFirmaPreview('doc-firma-url', 'doc-firma-preview');
+    }
 };
 
 window.eliminaDocente = async function(id) {
@@ -844,7 +850,8 @@ window.resetFormDocente = async function() {
     document.getElementById('doc-id').value = "";
     document.getElementById('form-docente').reset();
     await window.popolaSelectAziendaAppartenenzaDocente();
-    ['doc-doc-identita-file','doc-doc-cf-file'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    ['doc-doc-identita-file','doc-doc-cf-file','doc-firma-file'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    if(document.getElementById('doc-firma-preview')) window.showFirmaPreview('doc-firma-url', 'doc-firma-preview');
 };
 
 window.filtraDocenti = function() {
@@ -1275,13 +1282,15 @@ window.parseJSONSafe = function(value, fallback = {}) {
 window.SAFETY_DOCUMENT_BUCKETS = {
     corsisti: 'documenti-corsisti',
     aziende: 'documenti-aziende',
-    docenti: 'documenti-docenti'
+    docenti: 'documenti-docenti',
+    ente: 'documenti-ente'
 };
 
 window.SAFETY_DOCUMENT_FOLDERS = {
     corsisti: 'Documenti Corsisti',
     aziende: 'Documenti Aziende',
-    docenti: 'Documenti Docenti'
+    docenti: 'Documenti Docenti',
+    ente: 'Documenti Ente'
 };
 
 window.slugArchivioDocumento = function(value = 'record') {
@@ -1319,6 +1328,12 @@ window.getDocumentoArchivioOwnerKey = function(entityType) {
             document.getElementById('doc-cf')?.value ||
             document.getElementById('doc-nome')?.value ||
             `docente_${Date.now()}`;
+    }
+    if (entityType === 'ente') {
+        return document.getElementById('ente-id')?.value ||
+            document.getElementById('ente-piva')?.value ||
+            document.getElementById('ente-ragione')?.value ||
+            `ente_${Date.now()}`;
     }
     return `record_${Date.now()}`;
 };
@@ -1360,6 +1375,122 @@ window.uploadDocumentoArchivio = async function(entityType, docType, fileInputId
         alert('Errore caricamento documento. Verifica bucket Supabase, policy Storage e connessione. Dettaglio: ' + (err.message || err));
         return '';
     }
+};
+
+
+window.firmaManualeState = window.firmaManualeState || {};
+
+window.showFirmaPreview = function(inputId, previewId) {
+    const input = document.getElementById(inputId);
+    const preview = document.getElementById(previewId);
+    if (!input || !preview) return;
+    const url = input.value || '';
+    if (!url) {
+        preview.innerHTML = '<span class="text-slate-400 italic text-[9px]">Nessuna firma caricata o disegnata.</span>';
+        return;
+    }
+    preview.innerHTML = `<div class="rounded-lg border border-slate-200 bg-white p-2">
+        <img src="${window.dashEscape ? window.dashEscape(url) : url}" alt="Firma" class="max-h-16 object-contain mx-auto">
+        <p class="text-[8px] text-slate-400 font-bold uppercase text-center mt-1">Anteprima firma</p>
+    </div>`;
+};
+
+window.openFirmaManuale = function(canvasId, targetInputId, previewId) {
+    const box = document.getElementById(`${canvasId}-box`);
+    const canvas = document.getElementById(canvasId);
+    if (!box || !canvas) return alert('Area firma manuale non disponibile.');
+    box.classList.remove('hidden');
+    window.setupFirmaCanvas(canvasId, targetInputId, previewId);
+    const st = window.firmaManualeState[canvasId];
+    if (st && typeof st.resetCanvas === 'function') setTimeout(() => st.resetCanvas(), 60);
+};
+
+window.closeFirmaManuale = function(canvasId) {
+    const box = document.getElementById(`${canvasId}-box`);
+    if (box) box.classList.add('hidden');
+};
+
+window.setupFirmaCanvas = function(canvasId, targetInputId, previewId) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    const state = window.firmaManualeState[canvasId] || {};
+    if (state.bound) return;
+
+    const ctx = canvas.getContext('2d');
+    const resetCanvas = () => {
+        const rect = canvas.getBoundingClientRect();
+        const ratio = window.devicePixelRatio || 1;
+        canvas.width = Math.max(1, Math.floor(rect.width * ratio));
+        canvas.height = Math.max(1, Math.floor(rect.height * ratio));
+        ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, rect.width, rect.height);
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 2.2;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        window.firmaManualeState[canvasId].hasInk = false;
+    };
+    const pos = (ev) => {
+        const e = ev.touches ? ev.touches[0] : ev;
+        const r = canvas.getBoundingClientRect();
+        return { x: e.clientX - r.left, y: e.clientY - r.top };
+    };
+    const start = (ev) => {
+        ev.preventDefault();
+        const p = pos(ev);
+        const st = window.firmaManualeState[canvasId];
+        st.drawing = true;
+        st.last = p;
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y);
+    };
+    const move = (ev) => {
+        const st = window.firmaManualeState[canvasId];
+        if (!st.drawing) return;
+        ev.preventDefault();
+        const p = pos(ev);
+        ctx.lineTo(p.x, p.y);
+        ctx.stroke();
+        st.last = p;
+        st.hasInk = true;
+    };
+    const end = () => {
+        const st = window.firmaManualeState[canvasId];
+        st.drawing = false;
+        st.last = null;
+    };
+
+    window.firmaManualeState[canvasId] = { ...state, bound: true, drawing: false, hasInk: false, targetInputId, previewId, resetCanvas };
+    setTimeout(resetCanvas, 50);
+
+    canvas.addEventListener('mousedown', start);
+    canvas.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', end);
+    canvas.addEventListener('touchstart', start, { passive: false });
+    canvas.addEventListener('touchmove', move, { passive: false });
+    canvas.addEventListener('touchend', end);
+};
+
+window.clearFirmaManuale = function(canvasId) {
+    const st = window.firmaManualeState[canvasId];
+    if (st && typeof st.resetCanvas === 'function') st.resetCanvas();
+};
+
+window.saveFirmaManuale = function(canvasId) {
+    const st = window.firmaManualeState[canvasId];
+    const canvas = document.getElementById(canvasId);
+    if (!st || !canvas) return alert('Firma manuale non disponibile.');
+    if (!st.hasInk) return alert('Disegna prima la firma nello spazio bianco.');
+    const dataUrl = canvas.toDataURL('image/png');
+    const input = document.getElementById(st.targetInputId);
+    if (input) {
+        input.value = dataUrl;
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    window.showFirmaPreview(st.targetInputId, st.previewId);
+    window.closeFirmaManuale(canvasId);
+    alert('Firma manuale salvata nel campo. Ricorda di salvare la scheda.');
 };
 
 window.DEFAULT_ENTE_VALIDATORE = "CNA Artigiani Imprenditori D'Italia Avellino";
@@ -1417,6 +1548,10 @@ window.getEffectiveTimbroSrc = function() {
     const erogatore = window.getVal('cfg-ente-erogatore') || 'ente';
     if (erogatore === 'azienda') return '';
     return window.isCnaErogatore() ? (localStorage.getItem('SafetyManager.cnaTimbroDefault') || 'timbrocna.png') : '';
+};
+
+window.getEffectiveLegaleFirmaSrc = function() {
+    return window.getVal('cfg-legale-firma-url') || window.AppState?.['cfg-legale-firma-url'] || '';
 };
 
 window.getDefaultEnteValidatore = function() {
@@ -3329,6 +3464,10 @@ window.loadEnteData = async function() {
             document.getElementById('cfg-logo').value = ente.logo_url;
             window.AppState['cfg-logo'] = ente.logo_url;
         }
+        if(document.getElementById('ente-legale-firma-url')) {
+            document.getElementById('ente-legale-firma-url').value = ente.legale_firma_url || '';
+            window.showFirmaPreview('ente-legale-firma-url', 'ente-legale-firma-preview');
+        }
         
         window.AppState['cfg-ente'] = ente.ragione_sociale;
         window.AppState['cfg-ente-indirizzo'] = ente.indirizzo;
@@ -3336,6 +3475,7 @@ window.loadEnteData = async function() {
         window.AppState['cfg-luogo-emissione'] = ente.luogo_emissione;
         window.AppState['cfg-legale-nome'] = ente.legale_nome;
         window.AppState['cfg-legale-nascita'] = ente.legale_nascita;
+        window.AppState['cfg-legale-firma-url'] = ente.legale_firma_url || '';
 
         if (window.isCnaName(ente.ragione_sociale)) {
             window.AppState['cfg-logo'] = window.CNA_AVELLINO_PRESET.logo_url;
@@ -3358,7 +3498,8 @@ window.salvaEnteDB = async function() {
         legale_nome: document.getElementById('ente-legale-nome').value.trim(),
         legale_nascita: document.getElementById('ente-legale-nascita').value.trim(),
         luogo_emissione: document.getElementById('ente-luogo-emissione').value.trim(),
-        logo_url: window.isCnaName(document.getElementById('ente-ragione').value) ? window.CNA_AVELLINO_PRESET.logo_url : document.getElementById('cfg-logo').value 
+        logo_url: window.isCnaName(document.getElementById('ente-ragione').value) ? window.CNA_AVELLINO_PRESET.logo_url : document.getElementById('cfg-logo').value,
+        legale_firma_url: document.getElementById('ente-legale-firma-url') ? document.getElementById('ente-legale-firma-url').value.trim() : ''
     };
     if (id && id !== "") record.id = id;
 

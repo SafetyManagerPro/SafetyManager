@@ -110,12 +110,13 @@ window.saveDocente = async function(record) {
         if (error) throw error; return data;
     } catch (err) {
         const msg = String(err?.message || err || '');
-        if ((record.azienda_appartenenza !== undefined || record.documento_identita_url !== undefined || record.codice_fiscale_url !== undefined) && (msg.includes('azienda_appartenenza') || msg.includes('documento_identita_url') || msg.includes('codice_fiscale_url') || msg.includes('schema cache'))) {
-            console.warn('Campi opzionali docenti non presenti: applica le migration Step 30/47. Riprovo senza campi opzionali.');
+        if ((record.azienda_appartenenza !== undefined || record.documento_identita_url !== undefined || record.codice_fiscale_url !== undefined || record.firma_docente_url !== undefined) && (msg.includes('azienda_appartenenza') || msg.includes('documento_identita_url') || msg.includes('codice_fiscale_url') || msg.includes('firma_docente_url') || msg.includes('schema cache'))) {
+            console.warn('Campi opzionali docenti non presenti: applica le migration Step 30/47/48. Riprovo senza campi opzionali.');
             const fallback = { ...record };
             delete fallback.azienda_appartenenza;
             delete fallback.documento_identita_url;
             delete fallback.codice_fiscale_url;
+            delete fallback.firma_docente_url;
             try {
                 const { data, error } = await supabaseClient.from('docenti').upsert(fallback).select();
                 if (error) throw error; return data;
@@ -312,7 +313,14 @@ window.getEnte = async function() {
 window.saveEnteData = async function(record) {
     try {
         // Usa upsert. Assicurati che l'ID sia passato per sovrascrivere l'unico record esistente.
-        const { data, error } = await supabaseClient.from('enti').upsert(record).select().single();
+        let { data, error } = await supabaseClient.from('enti').upsert(record).select().single();
+        if (error && (String(error.message || '').includes('legale_firma_url') || String(error.message || '').includes('schema cache'))) {
+            console.warn('Campo enti.legale_firma_url non presente: applicare migration Step 48. Riprovo senza firma.');
+            const fallback = { ...record };
+            delete fallback.legale_firma_url;
+            const retry = await supabaseClient.from('enti').upsert(fallback).select().single();
+            data = retry.data; error = retry.error;
+        }
         if (error) throw error; return data;
     } catch (err) { console.error(err); return null; }
 };
