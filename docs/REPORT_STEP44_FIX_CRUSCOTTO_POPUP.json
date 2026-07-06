@@ -1,0 +1,13 @@
+{
+  "step": 44,
+  "fix": "Cruscotto qualità compatto nel popup e azioni sicure",
+  "checks": {
+    "handle_quality_action": true,
+    "popup_compact_branch": true,
+    "popup_details_hidden_by_default": true,
+    "no_direct_apri_popup_relazioni_in_quality_items": true,
+    "error_box_hidden": true,
+    "autoscroll_removed": true,
+    "node_check_utils_ok": true
+  }
+}

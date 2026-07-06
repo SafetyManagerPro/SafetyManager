@@ -1833,13 +1833,12 @@ window.applyProjectPopupValidation = async function(projectId) {
 
     if (box) {
         if (!errors.length) {
-            box.className = 'mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-[10px] text-emerald-800 leading-snug';
-            box.innerHTML = '<p class="font-black uppercase flex items-center gap-2"><i data-lucide="badge-check" class="w-4 h-4"></i> Verified</p><p class="mt-1">Il progetto non presenta errori nei controlli minimi.</p>';
+            box.className = 'hidden';
+            box.innerHTML = '';
         } else {
-            box.className = 'mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-[10px] text-amber-900 leading-snug';
-            box.innerHTML = `<p class="font-black uppercase flex items-center gap-2"><i data-lucide="circle-alert" class="w-4 h-4"></i> Segnalazioni non bloccanti</p><p class="mt-1 font-bold">Puoi continuare a lavorare in fase test. Questi punti aiutano solo a migliorare la qualità del fascicolo.</p><ul class="list-disc ml-4 mt-1 space-y-0.5">${errors.map(e => `<li>${window.dashEscape ? window.dashEscape(e.message) : e.message}</li>`).join('')}</ul>`;
+            box.className = 'hidden';
+            box.innerHTML = `<p class="font-black uppercase flex items-center gap-2"><i data-lucide="circle-alert" class="w-4 h-4"></i> Segnalazioni non bloccanti</p><ul class="list-disc ml-4 mt-1 space-y-0.5">${errors.map(e => `<li>${window.dashEscape ? window.dashEscape(e.message) : e.message}</li>`).join('')}</ul>`;
         }
-        box.classList.remove('hidden');
     }
     if (typeof lucide !== 'undefined') lucide.createIcons();
 };
@@ -1998,13 +1997,8 @@ window.openProjectEditPopup = async function(projectId, target = 'progetti') {
 
     window.switchProjectPopupTab(target === 'corsi_svolti' ? 'corsisti' : 'dati');
 
-    const firstError = document.querySelector('[data-project-field-error="1"]');
-    if (target !== 'corsi_svolti' && firstError && firstError.scrollIntoView) {
-        firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    } else {
-        const first = document.getElementById('prog-azienda');
-        if (first && target !== 'corsi_svolti') setTimeout(() => first.focus(), 100);
-    }
+    const first = document.getElementById('prog-azienda');
+    if (first && target !== 'corsi_svolti') setTimeout(() => first.focus(), 100);
     if (typeof lucide !== 'undefined') lucide.createIcons();
 };
 
@@ -2288,7 +2282,7 @@ window.getProjectQualityItems = function(p = {}, iscritti = []) {
         title: 'Azienda / committente',
         status: missingAzienda.length ? 'attention' : 'complete',
         detail: missingAzienda.length ? `Verificare: ${missingAzienda.join(', ')}.` : 'Anagrafica committente completa per i dati principali.',
-        action: p.azienda_id ? `window.apriPopupRelazioniAzienda('${p.azienda_id}')` : `window.apriPopupProgettoById('${p.id}', 'progetti')`,
+        action: `window.handleProjectQualityAction('${p.id}', 'azienda')`,
         actionLabel: p.azienda_id ? 'Apri azienda' : 'Seleziona azienda'
     });
 
@@ -2393,15 +2387,128 @@ window.getProjectQualitySummary = function(items = []) {
     return { total, complete, attention, info, percent };
 };
 
+
+window.projectQualityExpanded = window.projectQualityExpanded || {};
+
+window.toggleProjectQualityDetails = function(projectId) {
+    if (!projectId) return;
+    window.projectQualityExpanded[projectId] = !window.projectQualityExpanded[projectId];
+    const node = document.querySelector(`[data-quality-details="${projectId}"]`);
+    const btn = document.querySelector(`[data-quality-toggle="${projectId}"]`);
+    if (node) node.classList.toggle('hidden', !window.projectQualityExpanded[projectId]);
+    if (btn) btn.innerText = window.projectQualityExpanded[projectId] ? 'Nascondi dettagli' : 'Mostra dettagli';
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+};
+
+window.handleProjectQualityAction = async function(projectId, key, mode = 'desktop') {
+    const isPopup = mode === 'popup' || !!window.projectEditOpenedAsPopup;
+
+    const focusField = (selector) => {
+        const el = document.querySelector(selector);
+        if (el) {
+            if (typeof window.switchProjectPopupTab === 'function') window.switchProjectPopupTab('dati');
+            setTimeout(() => {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                if (typeof el.focus === 'function') el.focus();
+                el.classList.add('ring-2', 'ring-amber-400');
+                setTimeout(() => el.classList.remove('ring-2', 'ring-amber-400'), 2200);
+            }, 120);
+        }
+    };
+
+    if (key === 'corsisti') {
+        if (isPopup && typeof window.switchProjectPopupTab === 'function') {
+            window.switchProjectPopupTab('corsisti');
+        } else {
+            await window.apriPopupProgettoById(projectId, 'corsi_svolti');
+        }
+        return;
+    }
+
+    if (key === 'documenti') {
+        if (typeof window.stampaFascicoloCompletoDaProgetti === 'function') {
+            await window.stampaFascicoloCompletoDaProgetti(projectId);
+        }
+        return;
+    }
+
+    if (isPopup) {
+        const fields = {
+            dati: '#prog-codice, #prog-corso, #prog-inizio, #prog-esame, #prog-modalita, #prog-sede',
+            azienda: '#prog-azienda',
+            docenti: '#prog-docenti-container, .prog-docente-ud',
+            compliance: '#prog-compliance-note-free, #prog-erogatore, #prog-validazione-esito, #prog-op-esito',
+            chiusura: '#prog-stato-corso, #prog-documenti-url, #prog-chiuso-at, #prog-note-chiusura'
+        };
+        focusField(fields[key] || '#form-progetto');
+        return;
+    }
+
+    if (key === 'azienda') {
+        const p = (window.progettiList || []).find(x => x.id === projectId);
+        if (p?.azienda_id && document.getElementById('azienda-relazioni-modal') && typeof window.apriPopupRelazioniAzienda === 'function') {
+            await window.apriPopupRelazioniAzienda(p.azienda_id);
+        } else {
+            await window.apriPopupProgettoById(projectId, 'progetti');
+        }
+        return;
+    }
+
+    await window.apriPopupProgettoById(projectId, 'progetti');
+};
+
 window.renderProjectQualityDashboard = function(p = {}, iscritti = [], mode = 'desktop') {
     const items = window.getProjectQualityItems(p, iscritti);
     const summary = window.getProjectQualitySummary(items);
+    const isPopup = mode === 'popup';
     const compact = mode === 'compact' || mode === 'mobile';
-    const bg = mode === 'popup' ? 'bg-slate-50 border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-700 text-white';
-    const subText = mode === 'popup' ? 'text-slate-500' : 'text-slate-400';
-    const grid = compact ? 'grid-cols-1' : (mode === 'popup' ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1 md:grid-cols-2 xl:grid-cols-4');
+    const bg = isPopup ? 'bg-slate-50 border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-700 text-white';
+    const subText = isPopup ? 'text-slate-500' : 'text-slate-400';
+    const grid = compact ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 xl:grid-cols-4';
+    const projectId = p.id || '';
+    const detailsVisible = !!window.projectQualityExpanded[projectId];
 
-    return `<section class="rounded-2xl border ${bg} p-4 shadow-sm" data-quality-dashboard-project="${p.id || ''}">
+    if (isPopup) {
+        const chips = items.map(item => {
+            const meta = window.getProjectQualityStatusMeta(item.status);
+            const safeTitle = window.dashEscape ? window.dashEscape(item.title || '') : (item.title || '');
+            return `<button type="button" onclick="window.handleProjectQualityAction('${projectId}', '${item.key}', 'popup')" title="${safeTitle}" class="px-2 py-1 rounded-full border ${meta.cls} text-[8px] font-black uppercase whitespace-nowrap inline-flex items-center gap-1">
+                <i data-lucide="${meta.icon}" class="w-3 h-3"></i>${safeTitle.replace(' / ', '/').replace('unità didattiche', 'UD').substring(0, 22)}
+            </button>`;
+        }).join('');
+
+        return `<section class="rounded-xl border ${bg} p-3 shadow-sm" data-quality-dashboard-project="${projectId}">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                <div class="min-w-0">
+                    <p class="font-black uppercase text-xs flex items-center gap-2">
+                        <i data-lucide="route" class="w-4 h-4 text-amber-500"></i>
+                        Cruscotto qualità corso
+                        <span class="px-2 py-0.5 rounded-full bg-blue-600 text-white text-[8px] font-black uppercase">non bloccante</span>
+                    </p>
+                    <p class="${subText} text-[9px] font-bold uppercase tracking-widest mt-1">${summary.complete}/${summary.total} complete · ${summary.attention} da verificare · ${summary.percent}%</p>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                    <div class="w-28 h-2 rounded-full bg-slate-300 overflow-hidden border border-slate-300">
+                        <div class="h-full bg-emerald-400" style="width:${summary.percent}%"></div>
+                    </div>
+                    <button type="button" data-quality-toggle="${projectId}" onclick="window.toggleProjectQualityDetails('${projectId}')" class="px-2 py-1 rounded-lg bg-slate-900 text-white text-[8px] font-black uppercase">
+                        ${detailsVisible ? 'Nascondi dettagli' : 'Mostra dettagli'}
+                    </button>
+                </div>
+            </div>
+            <div data-quality-details="${projectId}" class="${detailsVisible ? '' : 'hidden'} mt-3">
+                <div class="flex flex-wrap gap-1.5 mb-2">${chips}</div>
+                <div class="rounded-lg border border-slate-200 bg-white p-2 text-[9px] text-slate-600 font-semibold leading-snug">
+                    ${items.filter(i => i.status !== 'complete').slice(0, 3).map(i => {
+                        const meta = window.getProjectQualityStatusMeta(i.status);
+                        return `<p class="mb-1"><span class="font-black uppercase">${window.dashEscape(i.title)}:</span> ${window.dashEscape(i.detail)}</p>`;
+                    }).join('') || '<p>Tutti i controlli principali risultano completi.</p>'}
+                </div>
+            </div>
+        </section>`;
+    }
+
+    return `<section class="rounded-2xl border ${bg} p-4 shadow-sm" data-quality-dashboard-project="${projectId}">
         <div class="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3 mb-3">
             <div>
                 <p class="font-black uppercase text-sm flex items-center gap-2">
@@ -2428,7 +2535,7 @@ window.renderProjectQualityDashboard = function(p = {}, iscritti = [], mode = 'd
                         <span class="shrink-0 px-2 py-0.5 rounded-full border ${meta.cls} text-[8px] font-black uppercase">${meta.label}</span>
                     </div>
                     <p class="text-[10px] leading-snug font-semibold opacity-90 flex-1">${safeDetail}</p>
-                    <button type="button" onclick="${item.action}" class="self-start px-2 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-[8px] font-black uppercase inline-flex items-center gap-1">
+                    <button type="button" onclick="window.handleProjectQualityAction('${projectId}', '${item.key}', '${mode}')" class="self-start px-2 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-[8px] font-black uppercase inline-flex items-center gap-1">
                         <i data-lucide="arrow-right" class="w-3 h-3"></i> ${window.dashEscape ? window.dashEscape(item.actionLabel || 'Apri') : (item.actionLabel || 'Apri')}
                     </button>
                 </div>`;
@@ -2442,7 +2549,7 @@ window.ensureProjectQualityPopupBox = function() {
     if (!errorBox || document.getElementById('popup-project-quality')) return;
     const box = document.createElement('div');
     box.id = 'popup-project-quality';
-    box.className = 'mb-4 shrink-0';
+    box.className = 'mb-2 shrink-0';
     errorBox.insertAdjacentElement('beforebegin', box);
 };
 
