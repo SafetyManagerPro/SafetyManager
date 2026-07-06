@@ -2393,10 +2393,15 @@ window.projectQualityExpanded = window.projectQualityExpanded || {};
 window.toggleProjectQualityDetails = function(projectId) {
     if (!projectId) return;
     window.projectQualityExpanded[projectId] = !window.projectQualityExpanded[projectId];
-    const node = document.querySelector(`[data-quality-details="${projectId}"]`);
-    const btn = document.querySelector(`[data-quality-toggle="${projectId}"]`);
-    if (node) node.classList.toggle('hidden', !window.projectQualityExpanded[projectId]);
-    if (btn) btn.innerText = window.projectQualityExpanded[projectId] ? 'Nascondi dettagli' : 'Mostra dettagli';
+    const open = !!window.projectQualityExpanded[projectId];
+    document.querySelectorAll(`[data-quality-details="${projectId}"]`).forEach(node => node.classList.toggle('hidden', !open));
+    document.querySelectorAll(`[data-quality-toggle="${projectId}"]`).forEach(btn => {
+        const label = btn.querySelector('[data-quality-toggle-label]');
+        if (label) label.innerText = open ? 'Chiudi cruscotto' : 'Apri cruscotto';
+    });
+    document.querySelectorAll(`[data-quality-chevron="${projectId}"]`).forEach(icon => {
+        icon.setAttribute('data-lucide', open ? 'chevron-up' : 'chevron-down');
+    });
     if (typeof lucide !== 'undefined') lucide.createIcons();
 };
 
@@ -2457,6 +2462,7 @@ window.handleProjectQualityAction = async function(projectId, key, mode = 'deskt
     await window.apriPopupProgettoById(projectId, 'progetti');
 };
 
+
 window.renderProjectQualityDashboard = function(p = {}, iscritti = [], mode = 'desktop') {
     const items = window.getProjectQualityItems(p, iscritti);
     const summary = window.getProjectQualitySummary(items);
@@ -2468,15 +2474,15 @@ window.renderProjectQualityDashboard = function(p = {}, iscritti = [], mode = 'd
     const projectId = p.id || '';
     const detailsVisible = !!window.projectQualityExpanded[projectId];
 
-    if (isPopup) {
-        const chips = items.map(item => {
-            const meta = window.getProjectQualityStatusMeta(item.status);
-            const safeTitle = window.dashEscape ? window.dashEscape(item.title || '') : (item.title || '');
-            return `<button type="button" onclick="window.handleProjectQualityAction('${projectId}', '${item.key}', 'popup')" title="${safeTitle}" class="px-2 py-1 rounded-full border ${meta.cls} text-[8px] font-black uppercase whitespace-nowrap inline-flex items-center gap-1">
-                <i data-lucide="${meta.icon}" class="w-3 h-3"></i>${safeTitle.replace(' / ', '/').replace('unità didattiche', 'UD').substring(0, 22)}
-            </button>`;
-        }).join('');
+    const statusChips = items.map(item => {
+        const meta = window.getProjectQualityStatusMeta(item.status);
+        const safeTitle = window.dashEscape ? window.dashEscape(item.title || '') : (item.title || '');
+        return `<button type="button" onclick="window.handleProjectQualityAction('${projectId}', '${item.key}', '${mode}')" title="${safeTitle}" class="px-2 py-1 rounded-full border ${meta.cls} text-[8px] font-black uppercase whitespace-nowrap inline-flex items-center gap-1">
+            <i data-lucide="${meta.icon}" class="w-3 h-3"></i>${safeTitle.replace(' / ', '/').replace('unità didattiche', 'UD').substring(0, 22)}
+        </button>`;
+    }).join('');
 
+    if (isPopup) {
         return `<section class="rounded-xl border ${bg} p-3 shadow-sm" data-quality-dashboard-project="${projectId}">
             <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
                 <div class="min-w-0">
@@ -2491,26 +2497,24 @@ window.renderProjectQualityDashboard = function(p = {}, iscritti = [], mode = 'd
                     <div class="w-28 h-2 rounded-full bg-slate-300 overflow-hidden border border-slate-300">
                         <div class="h-full bg-emerald-400" style="width:${summary.percent}%"></div>
                     </div>
-                    <button type="button" data-quality-toggle="${projectId}" onclick="window.toggleProjectQualityDetails('${projectId}')" class="px-2 py-1 rounded-lg bg-slate-900 text-white text-[8px] font-black uppercase">
-                        ${detailsVisible ? 'Nascondi dettagli' : 'Mostra dettagli'}
+                    <button type="button" data-quality-toggle="${projectId}" onclick="window.toggleProjectQualityDetails('${projectId}')" class="px-2 py-1 rounded-lg bg-slate-900 text-white text-[8px] font-black uppercase inline-flex items-center gap-1">
+                        <i data-quality-chevron="${projectId}" data-lucide="${detailsVisible ? 'chevron-up' : 'chevron-down'}" class="w-3 h-3"></i>
+                        <span data-quality-toggle-label>${detailsVisible ? 'Chiudi cruscotto' : 'Apri cruscotto'}</span>
                     </button>
                 </div>
             </div>
             <div data-quality-details="${projectId}" class="${detailsVisible ? '' : 'hidden'} mt-3">
-                <div class="flex flex-wrap gap-1.5 mb-2">${chips}</div>
+                <div class="flex flex-wrap gap-1.5 mb-2">${statusChips}</div>
                 <div class="rounded-lg border border-slate-200 bg-white p-2 text-[9px] text-slate-600 font-semibold leading-snug">
-                    ${items.filter(i => i.status !== 'complete').slice(0, 3).map(i => {
-                        const meta = window.getProjectQualityStatusMeta(i.status);
-                        return `<p class="mb-1"><span class="font-black uppercase">${window.dashEscape(i.title)}:</span> ${window.dashEscape(i.detail)}</p>`;
-                    }).join('') || '<p>Tutti i controlli principali risultano completi.</p>'}
+                    ${items.filter(i => i.status !== 'complete').slice(0, 3).map(i => `<p class="mb-1"><span class="font-black uppercase">${window.dashEscape(i.title)}:</span> ${window.dashEscape(i.detail)}</p>`).join('') || '<p>Tutti i controlli principali risultano completi.</p>'}
                 </div>
             </div>
         </section>`;
     }
 
-    return `<section class="rounded-2xl border ${bg} p-4 shadow-sm" data-quality-dashboard-project="${projectId}">
-        <div class="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3 mb-3">
-            <div>
+    return `<section class="rounded-2xl border ${bg} p-3 shadow-sm" data-quality-dashboard-project="${projectId}">
+        <div class="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3">
+            <div class="min-w-0">
                 <p class="font-black uppercase text-sm flex items-center gap-2">
                     <i data-lucide="route" class="w-4 h-4 text-amber-400"></i>
                     Cruscotto qualità corso
@@ -2518,28 +2522,38 @@ window.renderProjectQualityDashboard = function(p = {}, iscritti = [], mode = 'd
                 </p>
                 <p class="${subText} text-[10px] font-bold uppercase tracking-widest mt-1">Percorso guidato: ${summary.complete}/${summary.total} aree complete · ${summary.attention} da verificare · avanzamento ${summary.percent}%</p>
             </div>
-            <div class="w-full xl:w-48">
-                <div class="h-2 rounded-full bg-slate-700 overflow-hidden border border-slate-600">
-                    <div class="h-full bg-emerald-400" style="width:${summary.percent}%"></div>
+            <div class="flex items-center gap-3 shrink-0">
+                <div class="w-28 md:w-40">
+                    <div class="h-2 rounded-full bg-slate-700 overflow-hidden border border-slate-600">
+                        <div class="h-full bg-emerald-400" style="width:${summary.percent}%"></div>
+                    </div>
                 </div>
+                <button type="button" data-quality-toggle="${projectId}" onclick="window.toggleProjectQualityDetails('${projectId}')" class="px-3 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-[9px] font-black uppercase inline-flex items-center gap-1 shadow">
+                    <i data-quality-chevron="${projectId}" data-lucide="${detailsVisible ? 'chevron-up' : 'chevron-down'}" class="w-4 h-4"></i>
+                    <span data-quality-toggle-label>${detailsVisible ? 'Chiudi cruscotto' : 'Apri cruscotto'}</span>
+                </button>
             </div>
         </div>
-        <div class="grid ${grid} gap-2">
-            ${items.map(item => {
-                const meta = window.getProjectQualityStatusMeta(item.status);
-                const safeDetail = window.dashEscape ? window.dashEscape(item.detail || '') : (item.detail || '');
-                const safeTitle = window.dashEscape ? window.dashEscape(item.title || '') : (item.title || '');
-                return `<div class="rounded-xl border ${meta.soft} p-3 flex flex-col gap-2 min-h-[112px]">
-                    <div class="flex items-start justify-between gap-2">
-                        <p class="font-black uppercase text-[10px] leading-tight flex items-center gap-1"><i data-lucide="${meta.icon}" class="w-3.5 h-3.5"></i>${safeTitle}</p>
-                        <span class="shrink-0 px-2 py-0.5 rounded-full border ${meta.cls} text-[8px] font-black uppercase">${meta.label}</span>
-                    </div>
-                    <p class="text-[10px] leading-snug font-semibold opacity-90 flex-1">${safeDetail}</p>
-                    <button type="button" onclick="window.handleProjectQualityAction('${projectId}', '${item.key}', '${mode}')" class="self-start px-2 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-[8px] font-black uppercase inline-flex items-center gap-1">
-                        <i data-lucide="arrow-right" class="w-3 h-3"></i> ${window.dashEscape ? window.dashEscape(item.actionLabel || 'Apri') : (item.actionLabel || 'Apri')}
-                    </button>
-                </div>`;
-            }).join('')}
+
+        <div data-quality-details="${projectId}" class="${detailsVisible ? '' : 'hidden'} mt-3">
+            <div class="flex flex-wrap gap-1.5 mb-3">${statusChips}</div>
+            <div class="grid ${grid} gap-2">
+                ${items.map(item => {
+                    const meta = window.getProjectQualityStatusMeta(item.status);
+                    const safeDetail = window.dashEscape ? window.dashEscape(item.detail || '') : (item.detail || '');
+                    const safeTitle = window.dashEscape ? window.dashEscape(item.title || '') : (item.title || '');
+                    return `<div class="rounded-xl border ${meta.soft} p-3 flex flex-col gap-2 min-h-[112px]">
+                        <div class="flex items-start justify-between gap-2">
+                            <p class="font-black uppercase text-[10px] leading-tight flex items-center gap-1"><i data-lucide="${meta.icon}" class="w-3.5 h-3.5"></i>${safeTitle}</p>
+                            <span class="shrink-0 px-2 py-0.5 rounded-full border ${meta.cls} text-[8px] font-black uppercase">${meta.label}</span>
+                        </div>
+                        <p class="text-[10px] leading-snug font-semibold opacity-90 flex-1">${safeDetail}</p>
+                        <button type="button" onclick="window.handleProjectQualityAction('${projectId}', '${item.key}', '${mode}')" class="self-start px-2 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-[8px] font-black uppercase inline-flex items-center gap-1">
+                            <i data-lucide="arrow-right" class="w-3 h-3"></i> ${window.dashEscape ? window.dashEscape(item.actionLabel || 'Apri') : (item.actionLabel || 'Apri')}
+                        </button>
+                    </div>`;
+                }).join('')}
+            </div>
         </div>
     </section>`;
 };
@@ -2575,9 +2589,27 @@ window.renderProjectDesktopRows = function(p, iscritti, issues) {
         ? '<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-slate-950 text-white border border-slate-600 font-black text-[8px] uppercase">Chiuso</span>'
         : (p.stato_corso === 'svolto' ? '<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-300 text-amber-950 border border-amber-400 font-black text-[8px] uppercase">Da chiudere</span>' : '');
     const qualityDashboard = window.renderProjectQualityDashboard ? window.renderProjectQualityDashboard(p, iscritti, 'desktop') : '';
+    const projectMarker = `${window.dashEscape(p.codice || 'Progetto')} · ${window.dashEscape(nomeAzienda || '')} · ${window.formatDataToItalian(p.data_esame)}`;
 
     return `
-        <tr class="hover:bg-slate-800 transition-colors bg-slate-900" data-corso="${p.corso_id}" data-azienda="${p.azienda_id || ''}" data-project-id="${p.id}">
+        <tr class="bg-slate-950" data-corso="${p.corso_id}" data-azienda="${p.azienda_id || ''}" data-project-id="${p.id}" data-project-separator="${p.id}">
+            <td colspan="4" class="pt-9 pb-4">
+                <div class="rounded-2xl overflow-hidden border-4 border-yellow-300 shadow-xl shadow-yellow-950/40">
+                    <div class="h-4 bg-yellow-300"></div>
+                    <div class="bg-yellow-400 text-slate-950 px-4 py-2 flex flex-col md:flex-row md:items-center md:justify-between gap-1">
+                        <p class="text-[10px] md:text-xs font-black uppercase tracking-[0.28em] flex items-center gap-2">
+                            <i data-lucide="minus" class="w-4 h-4"></i>
+                            Separazione progetto
+                        </p>
+                        <p class="text-[9px] md:text-[10px] font-black uppercase tracking-widest md:text-right">
+                            Inizio progetto · ${projectMarker}
+                        </p>
+                    </div>
+                    <div class="h-2 bg-yellow-300"></div>
+                </div>
+            </td>
+        </tr>
+        <tr class="hover:bg-slate-800 transition-colors bg-slate-900 border-l-8 border-l-yellow-300 border-r-8 border-r-yellow-300" data-corso="${p.corso_id}" data-azienda="${p.azienda_id || ''}" data-project-id="${p.id}">
             <td class="p-3 border-b border-slate-700 font-mono font-bold text-[10px] text-slate-100 align-top">
                 <div class="flex flex-col gap-1">
                     <button type="button" onclick="window.apriPopupProgettoById('${p.id}', 'progetti')" class="text-left text-rose-300 hover:underline font-black">${window.dashEscape(p.codice || '')}</button>
@@ -2604,7 +2636,7 @@ window.renderProjectDesktopRows = function(p, iscritti, issues) {
                 <button onclick="window.eliminaProgetto('${p.id}')" class="text-white hover:bg-red-500 bg-red-700 p-2 rounded-lg transition shadow-sm ml-1" title="Elimina progetto"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
             </td>
         </tr>
-        <tr class="bg-slate-950" data-corso="${p.corso_id}" data-azienda="${p.azienda_id || ''}" data-project-id="${p.id}" data-inline-iscritti-project="${p.id}">
+        <tr class="bg-slate-950 border-l-8 border-l-yellow-300 border-r-8 border-r-yellow-300 border-b-8 border-b-yellow-300" data-corso="${p.corso_id}" data-azienda="${p.azienda_id || ''}" data-project-id="${p.id}" data-inline-iscritti-project="${p.id}">
             <td colspan="4" class="p-4 border-b border-slate-700">
                 <div class="mb-4">${qualityDashboard}</div>
                 <div class="rounded-2xl border-2 border-amber-400/70 bg-slate-950 p-4 shadow-inner">
@@ -2633,7 +2665,12 @@ window.renderProjectMobileCard = function(p, iscritti, issues) {
         : (p.stato_corso === 'svolto' ? '<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-300 text-amber-950 border border-amber-400 font-black text-[8px] uppercase">Da chiudere</span>' : '');
     const qualityDashboard = window.renderProjectQualityDashboard ? window.renderProjectQualityDashboard(p, iscritti, 'mobile') : '';
 
-    return `<article class="rounded-2xl border border-slate-700 bg-slate-900 shadow-xl overflow-hidden" data-corso="${p.corso_id}" data-azienda="${p.azienda_id || ''}" data-mobile-project-id="${p.id}" data-project-id="${p.id}">
+    return `<article class="mt-10 rounded-2xl border-8 border-yellow-300 bg-slate-900 shadow-2xl shadow-yellow-950/30 overflow-hidden" data-corso="${p.corso_id}" data-azienda="${p.azienda_id || ''}" data-mobile-project-id="${p.id}" data-project-id="${p.id}">
+        <div class="h-3 bg-yellow-300"></div>
+        <div class="bg-yellow-400 text-slate-950 px-4 py-2 text-[9px] font-black uppercase tracking-widest flex items-center justify-between gap-2">
+            <span>Inizio progetto</span>
+            <span class="font-mono">${window.dashEscape(p.codice || '')}</span>
+        </div>
         <div class="p-4 border-b border-slate-700 flex items-start justify-between gap-3">
             <div class="min-w-0">
                 <button onclick="window.apriPopupProgettoById('${p.id}', 'progetti')" class="font-mono text-rose-300 font-black text-xs hover:underline">${window.dashEscape(p.codice || '')}</button>
@@ -2673,6 +2710,10 @@ window.loadProgettiTable = async function() {
     const tbody = document.getElementById('tabella-progetti');
     const mobileBox = document.getElementById('progetti-mobile-cards');
     if(!tbody && !mobileBox) return;
+
+    // Step 46: nella lista Progetti Attivi il cruscotto qualità deve partire sempre chiuso.
+    // L'utente può aprirlo manualmente con la freccia/pulsante "Apri cruscotto".
+    window.projectQualityExpanded = {};
     
     // Step 42: ricarico sempre anagrafiche collegate, così modifiche a clienti/docenti/corsisti
     // si propagano subito nella vista Progetti e nelle successive stampe.
