@@ -441,8 +441,11 @@ window.loadAziendeTable = async function() {
                     <p class="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Clicca per progetti e corsisti</p>
                     ${az.sede_operativa ? `<p class="text-[9px] text-emerald-700 font-black uppercase mt-0.5">Sede operativa: ${window.dashEscape(az.sede_operativa)}</p>` : ''}
                 </td>
-                <td class="p-3 border-b font-mono text-[10px] text-slate-600">${az.piva_cf || '-'}</td>
-                <td class="p-3 border-b font-mono text-[10px] text-slate-500">${az.ateco || '-'}</td>
+                <td class="p-3 border-b font-mono text-[10px] text-slate-600">
+                    ${window.dashEscape(az.piva_cf || '-')}
+                    <div class="mt-2">${window.getDocumentoLinkHtml(az.legale_documento_url, 'Doc. legale')}</div>
+                </td>
+                <td class="p-3 border-b font-mono text-[10px] text-slate-500">${window.dashEscape(az.ateco || '-')}</td>
                 <td class="p-3 border-b text-center whitespace-nowrap">
                     <button onclick="window.modificaAzienda('${az.id}')" class="text-blue-600 hover:bg-blue-200 bg-blue-100 p-1.5 rounded transition shadow-sm" title="Modifica"><i data-lucide="edit" class="w-4 h-4"></i></button>
                     <button onclick="window.eliminaAzienda('${az.id}')" class="text-red-600 hover:bg-red-200 bg-red-100 p-1.5 rounded transition shadow-sm ml-1" title="Elimina"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
@@ -462,7 +465,8 @@ window.salvaAziendaDB = async function() {
         indirizzo: document.getElementById('az-indirizzo').value.trim(),
         sede_operativa: document.getElementById('az-sede-operativa') ? document.getElementById('az-sede-operativa').value.trim() : null,
         ateco: document.getElementById('az-ateco').value.trim(),
-        referente: document.getElementById('az-referente').value.trim()
+        referente: document.getElementById('az-referente').value.trim(),
+        legale_documento_url: document.getElementById('az-legale-doc-url') ? document.getElementById('az-legale-doc-url').value.trim() : ''
     };
     if (id && id !== "") record.id = id;
 
@@ -483,6 +487,7 @@ window.modificaAzienda = function(id) {
     if(document.getElementById('az-sede-operativa')) document.getElementById('az-sede-operativa').value = az.sede_operativa || "";
     document.getElementById('az-ateco').value = az.ateco || "";
     document.getElementById('az-referente').value = az.referente || "";
+    if(document.getElementById('az-legale-doc-url')) document.getElementById('az-legale-doc-url').value = az.legale_documento_url || "";
 };
 
 window.eliminaAzienda = async function(id) {
@@ -498,6 +503,7 @@ window.eliminaAzienda = async function(id) {
 window.resetFormAzienda = function() {
     document.getElementById('az-id').value = "";
     document.getElementById('form-azienda').reset();
+    ['az-legale-doc-file'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
 };
 
 window.filtraAziende = function() {
@@ -672,6 +678,7 @@ window.apriPopupRelazioniAzienda = async function(aziendaId) {
                 <p class="text-[10px] font-bold mt-1">Sede operativa: ${window.dashEscape(azienda.sede_operativa || azienda.indirizzo || '-')}</p>
                 <p class="text-[10px] font-bold mt-1">ATECO: ${window.dashEscape(azienda.ateco || '-')}</p>
                 <p class="text-[10px] font-bold mt-1">Referente: ${window.dashEscape(azienda.referente || '-')}</p>
+                <div class="mt-2">${window.getDocumentoLinkHtml(azienda.legale_documento_url, 'Documento legale rappresentante')}</div>
             </div>
             <div class="rounded-2xl border border-blue-500 bg-blue-700 p-4 text-white">
                 <p class="text-[8px] font-black uppercase tracking-widest text-blue-100">Progetti collegati</p>
@@ -765,7 +772,13 @@ window.loadDocentiTable = async function() {
                     <td class="p-3 border-b font-bold text-slate-800">${window.dashEscape(doc.nome_cognome || '')}</td>
                     <td class="p-3 border-b font-mono text-[10px] text-slate-600">${window.dashEscape(doc.cf || '')}</td>
                     <td class="p-3 border-b text-[10px] text-slate-500 truncate max-w-[150px]">${window.dashEscape(doc.qualifica || '')}</td>
-                    <td class="p-3 border-b text-[10px] text-slate-600 font-bold uppercase">${window.dashEscape(doc.azienda_appartenenza || '-')}</td>
+                    <td class="p-3 border-b text-[10px] text-slate-600 font-bold uppercase">
+                        ${window.dashEscape(doc.azienda_appartenenza || '-')}
+                        <div class="flex flex-wrap gap-1 mt-2">
+                            ${window.getDocumentoLinkHtml(doc.documento_identita_url, 'Doc. identità')}
+                            ${window.getDocumentoLinkHtml(doc.codice_fiscale_url, 'Cod. fiscale')}
+                        </div>
+                    </td>
                     <td class="p-3 border-b text-center whitespace-nowrap">
                         <button onclick="window.modificaDocente('${doc.id}')" class="text-blue-600 hover:bg-blue-200 bg-blue-100 p-1.5 rounded transition shadow-sm" title="Modifica docente"><i data-lucide="edit" class="w-4 h-4"></i></button>
                         <button onclick="window.eliminaDocente('${doc.id}')" class="text-red-600 hover:bg-red-200 bg-red-100 p-1.5 rounded transition shadow-sm ml-1" title="Elimina docente"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
@@ -791,7 +804,9 @@ window.salvaDocenteDB = async function() {
         qualifica: document.getElementById('doc-qualifica').value,
         azienda_appartenenza: document.getElementById('doc-azienda-appartenenza') ? document.getElementById('doc-azienda-appartenenza').value.trim() : '',
         email: document.getElementById('doc-email').value.trim(),
-        telefono: document.getElementById('doc-telefono').value.trim()
+        telefono: document.getElementById('doc-telefono').value.trim(),
+        documento_identita_url: document.getElementById('doc-doc-identita-url') ? document.getElementById('doc-doc-identita-url').value.trim() : '',
+        codice_fiscale_url: document.getElementById('doc-doc-cf-url') ? document.getElementById('doc-doc-cf-url').value.trim() : ''
     };
     if (id && id !== "") record.id = id;
 
@@ -813,6 +828,8 @@ window.modificaDocente = async function(id) {
     await window.popolaSelectAziendaAppartenenzaDocente(doc.azienda_appartenenza || "");
     document.getElementById('doc-email').value = doc.email || "";
     document.getElementById('doc-telefono').value = doc.telefono || "";
+    if(document.getElementById('doc-doc-identita-url')) document.getElementById('doc-doc-identita-url').value = doc.documento_identita_url || "";
+    if(document.getElementById('doc-doc-cf-url')) document.getElementById('doc-doc-cf-url').value = doc.codice_fiscale_url || "";
 };
 
 window.eliminaDocente = async function(id) {
@@ -827,6 +844,7 @@ window.resetFormDocente = async function() {
     document.getElementById('doc-id').value = "";
     document.getElementById('form-docente').reset();
     await window.popolaSelectAziendaAppartenenzaDocente();
+    ['doc-doc-identita-file','doc-doc-cf-file'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
 };
 
 window.filtraDocenti = function() {
@@ -884,7 +902,7 @@ window.loadCorsistiTable = async function() {
         if (prevCourse) filtroCorso.value = prevCourse;
     }
 
-    const { data, error } = await supabaseClient
+    let { data, error } = await supabaseClient
         .from('corsisti')
         .select(`
             id,
@@ -893,6 +911,8 @@ window.loadCorsistiTable = async function() {
             luogo_data_nascita,
             mansione_storica,
             azienda_id,
+            documento_identita_url,
+            codice_fiscale_url,
             aziende ( ragione_sociale, sede_operativa ),
             iscrizioni (
                 id_certificato,
@@ -907,6 +927,35 @@ window.loadCorsistiTable = async function() {
             )
         `)
         .order('nome_cognome', { ascending: true });
+
+    if (error && (String(error.message || '').includes('documento_identita_url') || String(error.message || '').includes('codice_fiscale_url') || String(error.message || '').includes('schema cache'))) {
+        console.warn('Campi documentali corsisti non ancora presenti: applica la migration Step 47. Riprovo senza colonne documentali.');
+        const retry = await supabaseClient
+            .from('corsisti')
+            .select(`
+                id,
+                cf,
+                nome_cognome,
+                luogo_data_nascita,
+                mansione_storica,
+                azienda_id,
+                aziende ( ragione_sociale, sede_operativa ),
+                iscrizioni (
+                    id_certificato,
+                    progetto_id,
+                    progetti (
+                        id,
+                        codice,
+                        corso_id,
+                        data_esame,
+                        azienda_id
+                    )
+                )
+            `)
+            .order('nome_cognome', { ascending: true });
+        data = retry.data;
+        error = retry.error;
+    }
 
     if (error) {
         console.error("Errore relazionale corsisti:", error);
@@ -959,8 +1008,12 @@ window.loadCorsistiTable = async function() {
                 <td class="p-3 border-b font-bold text-slate-800 text-xs">${cor.nome_cognome}</td>
                 <td class="p-3 border-b font-mono text-[10px] text-slate-600">${cor.cf}</td>
                 <td class="p-3 border-b text-[10px] text-slate-600">
-                    <p class="font-bold text-slate-700">${cor.mansione_storica || '-'}</p>
+                    <p class="font-bold text-slate-700">${window.dashEscape(cor.mansione_storica || '-')}</p>
                     <p class="text-[9px] text-blue-700 uppercase font-black mt-0.5 tracking-wider">${nomeAzienda}</p>
+                    <div class="flex flex-wrap gap-1 mt-2">
+                        ${window.getDocumentoLinkHtml(cor.documento_identita_url, 'Doc. identità')}
+                        ${window.getDocumentoLinkHtml(cor.codice_fiscale_url, 'Cod. fiscale')}
+                    </div>
                 </td>
                 <td class="p-3 border-b">${corsiHtml}</td>
                 <td class="p-3 border-b text-center">${dateHtml}</td>
@@ -982,7 +1035,9 @@ window.salvaCorsistaDB = async function() {
         cf: document.getElementById('cor-cf').value.trim().toUpperCase(),
         luogo_data_nascita: document.getElementById('cor-nascita').value.trim(),
         mansione_storica: document.getElementById('cor-mansione') ? document.getElementById('cor-mansione').value.trim() : "",
-        azienda_id: document.getElementById('cor-azienda').value || null 
+        azienda_id: document.getElementById('cor-azienda').value || null,
+        documento_identita_url: document.getElementById('cor-doc-identita-url') ? document.getElementById('cor-doc-identita-url').value.trim() : '',
+        codice_fiscale_url: document.getElementById('cor-doc-cf-url') ? document.getElementById('cor-doc-cf-url').value.trim() : ''
     };
     if (id && id !== "") record.id = id;
 
@@ -1012,6 +1067,8 @@ window.modificaCorsista = function(id) {
         document.getElementById('cor-mansione').value = cor.mansione_storica || "";
     }
     document.getElementById('cor-azienda').value = cor.azienda_id || "";
+    if(document.getElementById('cor-doc-identita-url')) document.getElementById('cor-doc-identita-url').value = cor.documento_identita_url || "";
+    if(document.getElementById('cor-doc-cf-url')) document.getElementById('cor-doc-cf-url').value = cor.codice_fiscale_url || "";
 };
 
 window.eliminaCorsistaData = async function(id) {
@@ -1025,6 +1082,7 @@ window.eliminaCorsistaData = async function(id) {
 window.resetFormCorsista = function() {
     document.getElementById('cor-id').value = "";
     document.getElementById('form-corsista').reset();
+    ['cor-doc-identita-file','cor-doc-cf-file'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
 };
 
 
@@ -1208,6 +1266,100 @@ window.parseJSONSafe = function(value, fallback = {}) {
     if (!value) return fallback;
     if (typeof value === 'object') return value;
     try { return JSON.parse(value); } catch(e) { return fallback; }
+};
+
+
+// ==========================================
+// STEP 47 - GESTIONE DOCUMENTI ANAGRAFICHE
+// ==========================================
+window.SAFETY_DOCUMENT_BUCKETS = {
+    corsisti: 'documenti-corsisti',
+    aziende: 'documenti-aziende',
+    docenti: 'documenti-docenti'
+};
+
+window.SAFETY_DOCUMENT_FOLDERS = {
+    corsisti: 'Documenti Corsisti',
+    aziende: 'Documenti Aziende',
+    docenti: 'Documenti Docenti'
+};
+
+window.slugArchivioDocumento = function(value = 'record') {
+    return String(value || 'record')
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-zA-Z0-9_-]+/g, '_')
+        .replace(/^_+|_+$/g, '')
+        .substring(0, 90) || 'record';
+};
+
+window.getDocumentoLinkHtml = function(url, label = 'Documento') {
+    if (!url) return '<span class="text-slate-400 italic text-[9px]">Nessun documento</span>';
+    const safeUrl = window.dashEscape ? window.dashEscape(url) : url;
+    const safeLabel = window.dashEscape ? window.dashEscape(label) : label;
+    return `<a href="${safeUrl}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-black text-[8px] uppercase">
+        <i data-lucide="external-link" class="w-3 h-3"></i>${safeLabel}
+    </a>`;
+};
+
+window.getDocumentoArchivioOwnerKey = function(entityType) {
+    if (entityType === 'corsisti') {
+        return document.getElementById('cor-id')?.value ||
+            document.getElementById('cor-cf')?.value ||
+            document.getElementById('cor-nome')?.value ||
+            `corsista_${Date.now()}`;
+    }
+    if (entityType === 'aziende') {
+        return document.getElementById('az-id')?.value ||
+            document.getElementById('az-piva')?.value ||
+            document.getElementById('az-ragione-sociale')?.value ||
+            `azienda_${Date.now()}`;
+    }
+    if (entityType === 'docenti') {
+        return document.getElementById('doc-id')?.value ||
+            document.getElementById('doc-cf')?.value ||
+            document.getElementById('doc-nome')?.value ||
+            `docente_${Date.now()}`;
+    }
+    return `record_${Date.now()}`;
+};
+
+window.uploadDocumentoArchivio = async function(entityType, docType, fileInputId, targetInputId) {
+    const fileInput = document.getElementById(fileInputId);
+    const targetInput = document.getElementById(targetInputId);
+    if (!fileInput || !targetInput) return alert('Campo file/link non trovato.');
+    const file = fileInput.files && fileInput.files[0];
+    if (!file) return alert('Seleziona un file prima di caricare.');
+
+    const bucket = window.SAFETY_DOCUMENT_BUCKETS[entityType];
+    if (!bucket) return alert('Archivio documentale non configurato per questa sezione.');
+
+    const ownerKey = window.slugArchivioDocumento(window.getDocumentoArchivioOwnerKey(entityType));
+    const originalName = window.slugArchivioDocumento(file.name.replace(/\.[^.]+$/, ''));
+    const ext = (file.name.match(/\.[^.]+$/)?.[0] || '').toLowerCase();
+    const safeDocType = window.slugArchivioDocumento(docType || 'documento');
+    const path = `${ownerKey}/${safeDocType}_${new Date().toISOString().replace(/[:.]/g, '-')}_${originalName}${ext}`;
+
+    try {
+        const { data, error } = await supabaseClient
+            .storage
+            .from(bucket)
+            .upload(path, file, { cacheControl: '3600', upsert: true, contentType: file.type || 'application/octet-stream' });
+
+        if (error) throw error;
+
+        const pub = supabaseClient.storage.from(bucket).getPublicUrl(data?.path || path);
+        const url = pub?.data?.publicUrl || '';
+        if (!url) throw new Error('URL pubblico non generato. Verifica bucket/policy Supabase.');
+
+        targetInput.value = url;
+        targetInput.dispatchEvent(new Event('input', { bubbles: true }));
+        alert(`Documento caricato in ${window.SAFETY_DOCUMENT_FOLDERS[entityType] || bucket}. Ricorda di salvare la scheda.`);
+        return url;
+    } catch (err) {
+        console.error('Errore upload documento:', err);
+        alert('Errore caricamento documento. Verifica bucket Supabase, policy Storage e connessione. Dettaglio: ' + (err.message || err));
+        return '';
+    }
 };
 
 window.DEFAULT_ENTE_VALIDATORE = "CNA Artigiani Imprenditori D'Italia Avellino";

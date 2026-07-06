@@ -63,10 +63,11 @@ window.saveAzienda = async function(record) {
 
     try {
         let result = await runSave(record);
-        if (result.error && record.sede_operativa && String(result.error.message || '').includes('sede_operativa')) {
-            console.warn('Colonna sede_operativa non presente: salvataggio fallback senza sede operativa. Applicare la migration Step 29 per salvarla nel database.');
+        if (result.error && (String(result.error.message || '').includes('sede_operativa') || String(result.error.message || '').includes('legale_documento_url') || String(result.error.message || '').includes('schema cache'))) {
+            console.warn('Colonne opzionali azienda non presenti: salvataggio fallback senza campi documentali/sede operativa. Applicare le migration Step 29/47.');
             const fallback = { ...record };
             delete fallback.sede_operativa;
+            delete fallback.legale_documento_url;
             result = await runSave(fallback);
         }
         if (result.error) throw result.error;
@@ -109,10 +110,12 @@ window.saveDocente = async function(record) {
         if (error) throw error; return data;
     } catch (err) {
         const msg = String(err?.message || err || '');
-        if (record.azienda_appartenenza !== undefined && (msg.includes('azienda_appartenenza') || msg.includes('schema cache'))) {
-            console.warn('Campo docenti.azienda_appartenenza non presente: applica la migration Step 30. Riprovo senza campo.');
+        if ((record.azienda_appartenenza !== undefined || record.documento_identita_url !== undefined || record.codice_fiscale_url !== undefined) && (msg.includes('azienda_appartenenza') || msg.includes('documento_identita_url') || msg.includes('codice_fiscale_url') || msg.includes('schema cache'))) {
+            console.warn('Campi opzionali docenti non presenti: applica le migration Step 30/47. Riprovo senza campi opzionali.');
             const fallback = { ...record };
             delete fallback.azienda_appartenenza;
+            delete fallback.documento_identita_url;
+            delete fallback.codice_fiscale_url;
             try {
                 const { data, error } = await supabaseClient.from('docenti').upsert(fallback).select();
                 if (error) throw error; return data;
@@ -173,7 +176,15 @@ window.saveCorsistaData = async function(record) {
             alert(`Codice fiscale già presente: ${duplicato.nome_cognome || 'corsista esistente'} (${duplicato.cf}). Operazione annullata per evitare doppioni.`);
             return false;
         }
-        const { data, error } = await supabaseClient.from('corsisti').upsert(record).select();
+        let { data, error } = await supabaseClient.from('corsisti').upsert(record).select();
+        if (error && (String(error.message || '').includes('documento_identita_url') || String(error.message || '').includes('codice_fiscale_url') || String(error.message || '').includes('schema cache'))) {
+            console.warn('Campi documentali corsista non presenti: applica la migration Step 47. Riprovo senza link documenti.');
+            const fallback = { ...record };
+            delete fallback.documento_identita_url;
+            delete fallback.codice_fiscale_url;
+            const retry = await supabaseClient.from('corsisti').upsert(fallback).select();
+            data = retry.data; error = retry.error;
+        }
         if (error) throw error; return data;
     } catch (err) { console.error(err); return false; }
 };
