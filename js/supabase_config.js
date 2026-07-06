@@ -248,6 +248,29 @@ window.getIscrizioniPerProgetti = async function(progettoIds = []) {
     }
 };
 
+
+window.updateIscrizioniCorsistaSnapshot = async function(corsistaId, corsistaRecord = {}) {
+    if (!corsistaId) return true;
+    const payload = {};
+    // In iscrizioni è presente almeno la mansione storica: va riallineata quando si modifica il corsista.
+    if (corsistaRecord.mansione_storica !== undefined) {
+        payload.mansione_storica = corsistaRecord.mansione_storica || '';
+    }
+    if (!Object.keys(payload).length) return true;
+
+    try {
+        const { error } = await supabaseClient
+            .from('iscrizioni')
+            .update(payload)
+            .eq('corsista_id', corsistaId);
+        if (error) throw error;
+        return true;
+    } catch (err) {
+        console.error('Errore propagazione dati corsista nelle iscrizioni:', err);
+        return false;
+    }
+};
+
 window.saveIscrizione = async function(record) {
     try {
         const { data, error } = await supabaseClient.from('iscrizioni').insert(record).select();

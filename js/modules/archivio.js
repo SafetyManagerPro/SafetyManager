@@ -59,12 +59,12 @@ window.toggleArchivioGroup = function(groupKey) {
 window.getSchedaClienteCommittenteData = async function(subjectId) {
     if (!subjectId) return null;
 
-    if (!window.archivioCorsiState?.aziende?.length || !window.archivioCorsiState?.progetti?.length) {
-        const [progetti, aziende] = await Promise.all([window.getProgetti(), window.getAziende()]);
-        window.archivioCorsiState = window.archivioCorsiState || {};
-        window.archivioCorsiState.progetti = progetti || [];
-        window.archivioCorsiState.aziende = aziende || [];
-    }
+    // Step 42: la scheda cliente/ente deve sempre leggere dati freschi, non la cache archivio.
+    const [progettiFresh, aziendeFresh] = await Promise.all([window.getProgetti(), window.getAziende()]);
+    window.archivioCorsiState = window.archivioCorsiState || {};
+    window.archivioCorsiState.progetti = progettiFresh || [];
+    window.archivioCorsiState.aziende = aziendeFresh || [];
+    window.archivioCorsiState.iscrizioniByProject = {};
 
     const isEnte = subjectId === '__ente__';
     let subject = null;

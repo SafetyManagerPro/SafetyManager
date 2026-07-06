@@ -80,6 +80,48 @@ window.dashEscape = function(value) {
     return String(value ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 };
 
+
+window.invalidateSafetyDataCaches = function(reason = '') {
+    const collapsedGroups = window.archivioCorsiState?.collapsedGroups || {};
+    window.aziendeList = [];
+    window.docentiList = [];
+    window.corsistiList = [];
+    window.progettiList = [];
+    window.progettiIscrizioniMap = {};
+    window.archivioCorsiState = { progetti: [], aziende: [], iscrizioniByProject: {}, collapsedGroups };
+    window.foglioProgettiState = { selectedProjectId: null, iscritti: [] };
+    console.info('[SafetyPRO] Cache dati invalidate', reason || '');
+};
+
+window.reloadLinkedViewsAfterMutation = async function(reason = '', options = {}) {
+    window.invalidateSafetyDataCaches(reason);
+
+    const jobs = [];
+    const safeJob = (fn) => {
+        if (typeof fn === 'function') jobs.push(fn().catch(err => console.warn('Reload vista collegata non riuscito:', err)));
+    };
+
+    if (document.getElementById('tabella-aziende')) safeJob(window.loadAziendeTable);
+    if (document.getElementById('tabella-docenti')) safeJob(window.loadDocentiTable);
+    if (document.getElementById('tabella-corsisti')) safeJob(window.loadCorsistiTable);
+    if (document.getElementById('tabella-progetti') || document.getElementById('progetti-mobile-cards')) safeJob(window.loadProgettiTable);
+    if (document.getElementById('archivio-corsi-container')) safeJob(window.loadArchivioCorsi);
+    if (document.getElementById('filter-stampe-corso')) safeJob(window.initStampe);
+    if (document.getElementById('foglio-progetto-select')) safeJob(window.initFogliProgetti);
+
+    await Promise.allSettled(jobs);
+
+    const selectedProjectForPrint = options.projectId || document.getElementById('stampa-progetto')?.value || window.currentProgettoStampaId;
+    if (selectedProjectForPrint && document.getElementById('print-preview-container') && window.currentPrintModule) {
+        await window.caricaDatiStampa(selectedProjectForPrint);
+        if (typeof window.loadPrintPreview === 'function') await window.loadPrintPreview(window.currentPrintModule);
+    }
+
+    if (document.getElementById('dash-progetti-formativi-checks') && typeof window.loadDashboardCompliance === 'function') {
+        await window.loadDashboardCompliance();
+    }
+};
+
 window.dashIsPastOrToday = function(dateString) {
     if (!dateString) return false;
     const today = new Date();
@@ -427,7 +469,7 @@ window.salvaAziendaDB = async function() {
     const result = await window.saveAzienda(record);
     if (result) {
         window.resetFormAzienda();
-        await window.loadAziendeTable();
+        await window.reloadLinkedViewsAfterMutation('azienda', { aziendaId: record.id });
     } 
 };
 
@@ -446,7 +488,7 @@ window.modificaAzienda = function(id) {
 window.eliminaAzienda = async function(id) {
     if(confirm("Sei sicuro di voler eliminare questa azienda? \n\nTutti i progetti ad essa collegati verranno eliminati.")) {
         if(await window.deleteAzienda(id)) {
-            await window.loadAziendeTable();
+            await window.reloadLinkedViewsAfterMutation('azienda-delete', { aziendaId: id });
         } else {
             alert("Errore durante l'eliminazione.");
         }
@@ -590,7 +632,7 @@ window.apriPopupRelazioniAzienda = async function(aziendaId) {
     content.innerHTML = '<div class="text-center text-slate-400 p-8"><i data-lucide="loader-2" class="w-6 h-6 animate-spin mx-auto mb-2"></i> Caricamento relazioni azienda...</div>';
     if (typeof lucide !== 'undefined') lucide.createIcons();
 
-    if (!window.aziendeList || !window.aziendeList.length) window.aziendeList = await window.getAziende();
+    window.aziendeList = await window.getAziende();
     const azienda = (window.aziendeList || []).find(a => a.id === aziendaId);
     if (!azienda) {
         content.innerHTML = '<div class="text-red-300 font-bold p-6">Azienda non trovata.</div>';
@@ -754,8 +796,8 @@ window.salvaDocenteDB = async function() {
     if (id && id !== "") record.id = id;
 
     if (await window.saveDocente(record)) {
-        window.resetFormDocente();
-        await window.loadDocentiTable();
+        await window.resetFormDocente();
+        await window.reloadLinkedViewsAfterMutation('docente', { docenteId: record.id });
     } else {
         alert("Errore nel salvataggio del docente.");
     }
@@ -776,7 +818,7 @@ window.modificaDocente = async function(id) {
 window.eliminaDocente = async function(id) {
     if(confirm("Sei sicuro di voler eliminare questo docente?")) {
         if(await window.deleteDocente(id)) {
-            await window.loadDocentiTable();
+            await window.reloadLinkedViewsAfterMutation('docente-delete', { docenteId: id });
         }
     }
 };
@@ -944,9 +986,15 @@ window.salvaCorsistaDB = async function() {
     };
     if (id && id !== "") record.id = id;
 
-    if (await window.saveCorsistaData(record)) {
+    const savedCorsista = await window.saveCorsistaData(record);
+    if (savedCorsista) {
+        const saved = Array.isArray(savedCorsista) ? savedCorsista[0] : savedCorsista;
+        const corsistaId = saved?.id || record.id;
+        if (corsistaId && typeof window.updateIscrizioniCorsistaSnapshot === 'function') {
+            await window.updateIscrizioniCorsistaSnapshot(corsistaId, record);
+        }
         window.resetFormCorsista();
-        await window.loadCorsistiTable();
+        await window.reloadLinkedViewsAfterMutation('corsista', { corsistaId });
     } else {
         alert("Errore nel salvataggio. Assicurati che il Codice Fiscale non sia già registrato.");
     }
@@ -969,7 +1017,7 @@ window.modificaCorsista = function(id) {
 window.eliminaCorsistaData = async function(id) {
     if(confirm("Sicuro di voler eliminare questo corsista? Tutti i suoi attestati e le iscrizioni verranno perse irreversibilmente.")) {
         if(await window.deleteCorsistaData(id)) {
-            await window.loadCorsistiTable();
+            await window.reloadLinkedViewsAfterMutation('corsista-delete', { corsistaId: id });
         }
     }
 };
@@ -2259,8 +2307,10 @@ window.loadProgettiTable = async function() {
     const mobileBox = document.getElementById('progetti-mobile-cards');
     if(!tbody && !mobileBox) return;
     
-    if(window.aziendeList.length === 0) window.aziendeList = await window.getAziende();
-    if(window.docentiList.length === 0) window.docentiList = await window.getDocenti();
+    // Step 42: ricarico sempre anagrafiche collegate, così modifiche a clienti/docenti/corsisti
+    // si propagano subito nella vista Progetti e nelle successive stampe.
+    window.aziendeList = await window.getAziende();
+    window.docentiList = await window.getDocenti();
     window.corsistiList = await window.getCorsisti();
     
     const selAzienda = document.getElementById('prog-azienda');
@@ -2467,10 +2517,7 @@ window.salvaProgettoDB = async function() {
         const wasPopup = !!window.projectEditOpenedAsPopup;
         window.resetFormProgetto();
         if (wasPopup && typeof window.chiudiPopupProgetto === 'function') window.chiudiPopupProgetto();
-        await window.loadProgettiTable();
-        if (typeof window.loadDashboardCompliance === 'function' && document.getElementById('dash-progetti-formativi-checks')) {
-            await window.loadDashboardCompliance();
-        }
+        await window.reloadLinkedViewsAfterMutation('progetto', { projectId: savedProject?.id || record.id });
     } else alert("Errore nel salvataggio del progetto formativo. Verifica di aver applicato tutte le migration Supabase, inclusa quella Step 5 per validazione CNA/OPTA.");
 };
 
@@ -2554,7 +2601,7 @@ window.modificaProgetto = function(id) {
 window.eliminaProgetto = async function(id) {
     if(confirm("Sei sicuro di voler cancellare questo corso?")) {
         if(await window.deleteProgetto(id)) {
-            await window.loadProgettiTable();
+            await window.reloadLinkedViewsAfterMutation('progetto-delete', { projectId: id });
         }
     }
 };
@@ -2659,13 +2706,10 @@ window.aggiungiIscrizione = async function() {
 window.rimuoviIscrizione = async function(id, projectId = null) {
     if(confirm("Rimuovere l'allievo dal corso?")) {
         if(await window.deleteIscrizione(id)) {
-            if (projectId) {
-                await window.loadProgettiTable();
-            } else if (typeof window.loadIscrittiTable === 'function' && document.getElementById('tabella-iscritti')) {
+            if (typeof window.loadIscrittiTable === 'function' && document.getElementById('tabella-iscritti')) {
                 await window.loadIscrittiTable();
-            } else if (typeof window.loadProgettiTable === 'function') {
-                await window.loadProgettiTable();
             }
+            await window.reloadLinkedViewsAfterMutation('iscrizione-delete', { projectId });
         }
     }
 };
@@ -2762,6 +2806,7 @@ window.salvaEnteDB = async function() {
     if(salvato) {
         alert("Dati Ente aggiornati con successo!");
         await window.loadEnteData();
+        await window.reloadLinkedViewsAfterMutation('ente', {});
     }
 };
 
@@ -2970,11 +3015,13 @@ window.caricaDatiStampa = async function(projectId = null) {
     const progId = projectId || document.getElementById('stampa-progetto')?.value;
     if(!progId) return;
 
-    if (!window.progettiList || !window.progettiList.length) window.progettiList = await window.getProgetti();
+    // Step 42: per le stampe non uso cache già presenti. Le stampe devono riflettere
+    // sempre l'ultima modifica di azienda/corsista/docente/progetto.
+    window.progettiList = await window.getProgetti();
     const p = window.progettiList.find(x => x.id === progId);
     if(!p) return;
 
-    if (!window.AppState['cfg-ente'] && typeof window.getEnte === 'function') {
+    if (typeof window.getEnte === 'function') {
         const enteCfg = await window.getEnte();
         if (enteCfg) {
             window.AppState['cfg-ente'] = enteCfg.ragione_sociale || '';
@@ -2984,9 +3031,11 @@ window.caricaDatiStampa = async function(projectId = null) {
             window.AppState['cfg-legale-nome'] = enteCfg.legale_nome || '';
             window.AppState['cfg-legale-nascita'] = enteCfg.legale_nascita || '';
             window.AppState['cfg-logo'] = enteCfg.logo_url || '';
+        } else if (typeof window.ensureCnaPresetState === 'function') {
+            window.ensureCnaPresetState();
         }
     }
-    if(window.docentiList.length === 0) window.docentiList = await window.getDocenti();
+    window.docentiList = await window.getDocenti();
     const iscritti = await window.getIscrizioni(progId);
 
     window.AppState['cfg-corso'] = p.corso_id;
@@ -3020,22 +3069,25 @@ window.caricaDatiStampa = async function(projectId = null) {
     window.AppState['cfg-validazione-note'] = p.note_validazione_ente || "";
 
     window.currentProgettoStampaId = progId;
-    window.currentSessionCorsisti = iscritti.map(isc => ({
-        iscrizione_id: isc.id,
-        corsista_id: isc.corsista_id,
-        nome: isc.corsisti.nome_cognome,
-        cf: isc.corsisti.cf,
-        nascita: isc.corsisti.luogo_data_nascita,
-        mansione: isc.mansione_storica || isc.corsisti.mansione_storica || "N/D",
-        id_certificato: isc.id_certificato,
-        data_scadenza: isc.data_scadenza,
-        ore_frequentate: isc.ore_frequentate,
-        percentuale_frequenza: isc.percentuale_frequenza,
-        voto_test: isc.voto_test,
-        esito_pratica: isc.esito_pratica,
-        note_verifica: isc.note_verifica,
-        esito: isc.esito || "Idoneo"
-    }));
+    window.currentSessionCorsisti = iscritti.map(isc => {
+        const c = isc.corsisti || {};
+        return {
+            iscrizione_id: isc.id,
+            corsista_id: isc.corsista_id,
+            nome: c.nome_cognome || "Corsista non disponibile",
+            cf: c.cf || "",
+            nascita: c.luogo_data_nascita || "",
+            mansione: isc.mansione_storica || c.mansione_storica || "N/D",
+            id_certificato: isc.id_certificato,
+            data_scadenza: isc.data_scadenza,
+            ore_frequentate: isc.ore_frequentate,
+            percentuale_frequenza: isc.percentuale_frequenza,
+            voto_test: isc.voto_test,
+            esito_pratica: isc.esito_pratica,
+            note_verifica: isc.note_verifica,
+            esito: isc.esito || "Idoneo"
+        };
+    });
 
     if(window.currentPrintModule && !projectId && document.getElementById('stampa-progetto') && document.getElementById('print-preview-container')) {
         window.loadPrintPreview(window.currentPrintModule);

@@ -1,0 +1,16 @@
+{
+  "step": 42,
+  "verified": true,
+  "checks": {
+    "invalidate_cache_function": true,
+    "reload_linked_views_function": true,
+    "save_azienda_calls_reload": true,
+    "save_corsista_calls_reload": true,
+    "save_docente_calls_reload": true,
+    "save_progetto_calls_reload": true,
+    "update_iscrizioni_snapshot": true,
+    "stampe_fresh_data": true,
+    "archivio_scheda_fresh_data": true,
+    "current_session_robust_join": true
+  }
+}
