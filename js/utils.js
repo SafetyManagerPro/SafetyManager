@@ -1719,9 +1719,9 @@ window.markProjectPopupFieldError = function(selector) {
             el.dataset.prevShadow = el.style.boxShadow || '';
         }
         el.dataset.projectFieldError = '1';
-        el.style.backgroundColor = '#fef2f2';
-        el.style.borderColor = '#ef4444';
-        el.style.boxShadow = '0 0 0 2px rgba(239,68,68,.25)';
+        el.style.backgroundColor = '#fffbeb';
+        el.style.borderColor = '#f59e0b';
+        el.style.boxShadow = '0 0 0 2px rgba(245,158,11,.25)';
     });
 };
 
@@ -1821,6 +1821,11 @@ window.applyProjectPopupValidation = async function(projectId) {
     const p = window.collectProjectFormSnapshot(projectId);
     const iscritti = projectId ? await window.getIscrizioni(projectId) : [];
     const box = document.getElementById('popup-project-errors');
+    if (typeof window.ensureProjectQualityPopupBox === 'function') window.ensureProjectQualityPopupBox();
+    const qualityBox = document.getElementById('popup-project-quality');
+    if (qualityBox && typeof window.renderProjectQualityDashboard === 'function') {
+        qualityBox.innerHTML = window.renderProjectQualityDashboard(p, iscritti, 'popup');
+    }
     window.clearProjectPopupFieldErrors();
     const errors = window.getProjectPopupFieldErrors(p, iscritti);
 
@@ -1831,8 +1836,8 @@ window.applyProjectPopupValidation = async function(projectId) {
             box.className = 'mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-[10px] text-emerald-800 leading-snug';
             box.innerHTML = '<p class="font-black uppercase flex items-center gap-2"><i data-lucide="badge-check" class="w-4 h-4"></i> Verified</p><p class="mt-1">Il progetto non presenta errori nei controlli minimi.</p>';
         } else {
-            box.className = 'mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-[10px] text-red-800 leading-snug';
-            box.innerHTML = `<p class="font-black uppercase flex items-center gap-2"><i data-lucide="alert-triangle" class="w-4 h-4"></i> Campi da correggere</p><ul class="list-disc ml-4 mt-1 space-y-0.5">${errors.map(e => `<li>${window.dashEscape ? window.dashEscape(e.message) : e.message}</li>`).join('')}</ul>`;
+            box.className = 'mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-[10px] text-amber-900 leading-snug';
+            box.innerHTML = `<p class="font-black uppercase flex items-center gap-2"><i data-lucide="circle-alert" class="w-4 h-4"></i> Segnalazioni non bloccanti</p><p class="mt-1 font-bold">Puoi continuare a lavorare in fase test. Questi punti aiutano solo a migliorare la qualità del fascicolo.</p><ul class="list-disc ml-4 mt-1 space-y-0.5">${errors.map(e => `<li>${window.dashEscape ? window.dashEscape(e.message) : e.message}</li>`).join('')}</ul>`;
         }
         box.classList.remove('hidden');
     }
@@ -1972,6 +1977,7 @@ window.openProjectEditPopup = async function(projectId, target = 'progetti') {
     if (header) header.classList.add('shrink-0');
     if (errorBox) errorBox.classList.add('shrink-0');
 
+    if (typeof window.ensureProjectQualityPopupBox === 'function') window.ensureProjectQualityPopupBox();
     window.ensureProjectPopupTabs();
 
     if (form) {
@@ -2011,6 +2017,7 @@ window.chiudiPopupProgetto = function() {
     const corsistiBox = document.getElementById('popup-corsisti-box');
     const form = document.getElementById('form-progetto');
     const tabs = document.getElementById('popup-project-tabs');
+    const qualityBox = document.getElementById('popup-project-quality');
 
     window.clearProjectPopupFieldErrors();
 
@@ -2024,6 +2031,7 @@ window.chiudiPopupProgetto = function() {
     if (errorBox) errorBox.classList.add('hidden');
     if (corsistiBox) corsistiBox.classList.add('hidden');
     if (tabs) tabs.remove();
+    if (qualityBox) qualityBox.remove();
 
     window.projectEditOpenedAsPopup = false;
     if (typeof lucide !== 'undefined') lucide.createIcons();
@@ -2199,6 +2207,254 @@ window.modificaCorsistaDaProgetto = function(corsistaId, projectId) {
     if (typeof lucide !== 'undefined') lucide.createIcons();
 };
 
+
+// ==========================================
+// STEP 43 - CRUSCOTTO QUALITÀ CORSO / PERCORSO GUIDATO NON BLOCCANTE
+// ==========================================
+window.getProjectQualityStatusMeta = function(status) {
+    const map = {
+        complete: {
+            label: 'Completo',
+            cls: 'bg-emerald-500 text-white border-emerald-400',
+            soft: 'bg-emerald-50 border-emerald-200 text-emerald-900',
+            icon: 'check-circle-2'
+        },
+        attention: {
+            label: 'Da verificare',
+            cls: 'bg-amber-400 text-slate-950 border-amber-300',
+            soft: 'bg-amber-50 border-amber-200 text-amber-950',
+            icon: 'circle-alert'
+        },
+        info: {
+            label: 'In corso',
+            cls: 'bg-blue-500 text-white border-blue-400',
+            soft: 'bg-blue-50 border-blue-200 text-blue-950',
+            icon: 'info'
+        },
+        idle: {
+            label: 'Non iniziato',
+            cls: 'bg-slate-300 text-slate-900 border-slate-200',
+            soft: 'bg-slate-50 border-slate-200 text-slate-700',
+            icon: 'circle'
+        },
+        na: {
+            label: 'N/A',
+            cls: 'bg-slate-600 text-white border-slate-500',
+            soft: 'bg-slate-100 border-slate-200 text-slate-600',
+            icon: 'minus-circle'
+        }
+    };
+    return map[status] || map.info;
+};
+
+window.getProjectQualityItems = function(p = {}, iscritti = []) {
+    const course = window.DB_CORSI?.[p.corso_id] || null;
+    const docentiUd = window.parseJSONSafe ? window.parseJSONSafe(p.docenti_ud || p.docente_principale || '{}', {}) : {};
+    const udList = course?.prog || [];
+    const assignedUd = Object.values(docentiUd || {}).filter(Boolean).length;
+    const missingUd = udList.length ? udList.filter(ud => !docentiUd[ud.ud]).length : 0;
+    const azienda = p.aziende || {};
+    const isDL = p.ente_erogatore === 'azienda';
+    const maxDiscenti = window.ASR2025_POLICY?.maxDiscentiAula || 30;
+
+    const items = [];
+
+    const missingProject = [];
+    if (!p.codice) missingProject.push('codice');
+    if (!p.corso_id || !course) missingProject.push('corso');
+    if (!p.data_inizio) missingProject.push('data inizio');
+    if (!p.data_esame) missingProject.push('data verifica/fine');
+    if (!p.modalita) missingProject.push('modalità');
+    if (!p.sede) missingProject.push('sede');
+    items.push({
+        key: 'dati',
+        title: 'Dati progetto',
+        status: missingProject.length ? 'attention' : 'complete',
+        detail: missingProject.length ? `Da completare: ${missingProject.join(', ')}.` : 'Codice, corso, date, modalità e sede presenti.',
+        action: `window.apriPopupProgettoById('${p.id}', 'progetti')`,
+        actionLabel: 'Apri dati'
+    });
+
+    const missingAzienda = [];
+    if (!p.azienda_id) missingAzienda.push('azienda collegata');
+    if (p.azienda_id && !azienda.ragione_sociale) missingAzienda.push('ragione sociale');
+    if (p.azienda_id && !azienda.piva_cf) missingAzienda.push('P.IVA/C.F.');
+    if (p.azienda_id && !azienda.indirizzo) missingAzienda.push('sede legale');
+    if (p.azienda_id && !azienda.sede_operativa) missingAzienda.push('sede operativa');
+    if (p.azienda_id && !azienda.ateco) missingAzienda.push('ATECO');
+    if (p.azienda_id && !azienda.referente) missingAzienda.push('referente');
+    items.push({
+        key: 'azienda',
+        title: 'Azienda / committente',
+        status: missingAzienda.length ? 'attention' : 'complete',
+        detail: missingAzienda.length ? `Verificare: ${missingAzienda.join(', ')}.` : 'Anagrafica committente completa per i dati principali.',
+        action: p.azienda_id ? `window.apriPopupRelazioniAzienda('${p.azienda_id}')` : `window.apriPopupProgettoById('${p.id}', 'progetti')`,
+        actionLabel: p.azienda_id ? 'Apri azienda' : 'Seleziona azienda'
+    });
+
+    items.push({
+        key: 'docenti',
+        title: 'Docenti / unità didattiche',
+        status: !udList.length ? 'attention' : (missingUd ? 'attention' : 'complete'),
+        detail: !udList.length
+            ? 'Il corso non ha unità didattiche riconosciute o il catalogo va verificato.'
+            : (missingUd ? `${missingUd} unità didattiche senza docente assegnato. Assegnati ${assignedUd}/${udList.length}.` : `Docenti assegnati a tutte le unità didattiche (${assignedUd}/${udList.length}).`),
+        action: `window.apriPopupProgettoById('${p.id}', 'progetti')`,
+        actionLabel: 'Apri docenti'
+    });
+
+    const iscrittiCount = iscritti.length;
+    const missingCf = iscritti.filter(isc => !isc.corsisti?.cf).length;
+    const missingMansione = iscritti.filter(isc => !(isc.mansione_storica || isc.corsisti?.mansione_storica)).length;
+    const missingCert = iscritti.filter(isc => !isc.id_certificato).length;
+    const missingScadenza = iscritti.filter(isc => !isc.data_scadenza).length;
+    const fuoriAzienda = isDL ? iscritti.filter(isc => isc.corsisti?.azienda_id && isc.corsisti.azienda_id !== p.azienda_id).length : 0;
+    const tooMany = !String(p.modalita || '').toLowerCase().includes('learning') && iscrittiCount > maxDiscenti;
+
+    const corsistiWarnings = [];
+    if (!iscrittiCount) corsistiWarnings.push('nessun corsista iscritto');
+    if (missingCf) corsistiWarnings.push(`${missingCf} senza CF`);
+    if (missingMansione) corsistiWarnings.push(`${missingMansione} senza mansione`);
+    if (missingCert) corsistiWarnings.push(`${missingCert} senza ID certificato`);
+    if (missingScadenza) corsistiWarnings.push(`${missingScadenza} senza scadenza`);
+    if (fuoriAzienda) corsistiWarnings.push(`${fuoriAzienda} fuori azienda`);
+    if (tooMany) corsistiWarnings.push(`oltre ${maxDiscenti} partecipanti`);
+
+    items.push({
+        key: 'corsisti',
+        title: 'Corsisti / attestati',
+        status: corsistiWarnings.length ? 'attention' : 'complete',
+        detail: corsistiWarnings.length ? `${iscrittiCount} iscritti · ${corsistiWarnings.join(', ')}.` : `${iscrittiCount} iscritti con dati essenziali presenti.`,
+        action: `window.apriPopupProgettoById('${p.id}', 'corsi_svolti')`,
+        actionLabel: 'Gestisci corsisti'
+    });
+
+    const complianceNotes = [];
+    const modeCheck = window.getModalitaCompliance ? window.getModalitaCompliance(p.corso_id, p.modalita || '') : { ok: true };
+    if (modeCheck && modeCheck.ok === false) complianceNotes.push(modeCheck.message || 'modalità da verificare');
+    if (p.omogeneita_aula === false && !p.compliance_note) complianceNotes.push('aula non omogenea senza nota');
+    if (isDL) {
+        if (!p.ente_validatore) complianceNotes.push('ente validatore mancante');
+        if (!p.validazione_ente_esito || p.validazione_ente_esito === 'da_valutare') complianceNotes.push('validazione ente da completare');
+        if (!p.esito_richiesta_op) complianceNotes.push('iter OPRA/OPTA da verificare');
+    }
+
+    items.push({
+        key: 'compliance',
+        title: 'Compliance ASR / OP',
+        status: complianceNotes.length ? 'attention' : 'complete',
+        detail: complianceNotes.length ? complianceNotes.join(' · ') + '.' : 'Controlli principali ASR/OP coerenti con i dati inseriti.',
+        action: `window.apriPopupProgettoById('${p.id}', 'progetti')`,
+        actionLabel: 'Vedi compliance'
+    });
+
+    const documentiPresenti = !!p.documenti_firmati_url;
+    const stampabile = p.id && p.corso_id && iscrittiCount;
+    items.push({
+        key: 'documenti',
+        title: 'Stampe / documenti',
+        status: documentiPresenti ? 'complete' : (stampabile ? 'info' : 'attention'),
+        detail: documentiPresenti
+            ? 'Documenti firmati/scansioni collegati al progetto.'
+            : (stampabile ? 'Documenti generabili. Caricare poi scansioni o link documenti firmati.' : 'Prima di stampare servono corso e corsisti.'),
+        action: `window.stampaFascicoloCompletoDaProgetti('${p.id}')`,
+        actionLabel: 'Stampa fascicolo'
+    });
+
+    const stato = p.stato_corso || 'aperto';
+    let chiusuraStatus = 'info';
+    let chiusuraDetail = 'Corso aperto: completare dati, corsisti e documenti prima della chiusura.';
+    if (stato === 'svolto') {
+        chiusuraStatus = 'attention';
+        chiusuraDetail = 'Corso svolto: consigliata verifica documenti e chiusura fascicolo.';
+    }
+    if (stato === 'chiuso') {
+        chiusuraStatus = p.documenti_firmati_url ? 'complete' : 'info';
+        chiusuraDetail = p.documenti_firmati_url ? 'Corso chiuso con documenti collegati.' : 'Corso chiuso: documenti firmati non ancora collegati.';
+    }
+    items.push({
+        key: 'chiusura',
+        title: 'Chiusura corso',
+        status: chiusuraStatus,
+        detail: chiusuraDetail,
+        action: `window.apriPopupProgettoById('${p.id}', 'progetti')`,
+        actionLabel: stato === 'chiuso' ? 'Apri chiusura' : 'Gestisci chiusura'
+    });
+
+    return items;
+};
+
+window.getProjectQualitySummary = function(items = []) {
+    const total = items.length || 1;
+    const complete = items.filter(i => i.status === 'complete').length;
+    const attention = items.filter(i => i.status === 'attention').length;
+    const info = items.filter(i => i.status === 'info').length;
+    const percent = Math.round((complete / total) * 100);
+    return { total, complete, attention, info, percent };
+};
+
+window.renderProjectQualityDashboard = function(p = {}, iscritti = [], mode = 'desktop') {
+    const items = window.getProjectQualityItems(p, iscritti);
+    const summary = window.getProjectQualitySummary(items);
+    const compact = mode === 'compact' || mode === 'mobile';
+    const bg = mode === 'popup' ? 'bg-slate-50 border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-700 text-white';
+    const subText = mode === 'popup' ? 'text-slate-500' : 'text-slate-400';
+    const grid = compact ? 'grid-cols-1' : (mode === 'popup' ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1 md:grid-cols-2 xl:grid-cols-4');
+
+    return `<section class="rounded-2xl border ${bg} p-4 shadow-sm" data-quality-dashboard-project="${p.id || ''}">
+        <div class="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3 mb-3">
+            <div>
+                <p class="font-black uppercase text-sm flex items-center gap-2">
+                    <i data-lucide="route" class="w-4 h-4 text-amber-400"></i>
+                    Cruscotto qualità corso
+                    <span class="px-2 py-0.5 rounded-full bg-blue-600 text-white text-[8px] font-black uppercase">non bloccante</span>
+                </p>
+                <p class="${subText} text-[10px] font-bold uppercase tracking-widest mt-1">Percorso guidato: ${summary.complete}/${summary.total} aree complete · ${summary.attention} da verificare · avanzamento ${summary.percent}%</p>
+            </div>
+            <div class="w-full xl:w-48">
+                <div class="h-2 rounded-full bg-slate-700 overflow-hidden border border-slate-600">
+                    <div class="h-full bg-emerald-400" style="width:${summary.percent}%"></div>
+                </div>
+            </div>
+        </div>
+        <div class="grid ${grid} gap-2">
+            ${items.map(item => {
+                const meta = window.getProjectQualityStatusMeta(item.status);
+                const safeDetail = window.dashEscape ? window.dashEscape(item.detail || '') : (item.detail || '');
+                const safeTitle = window.dashEscape ? window.dashEscape(item.title || '') : (item.title || '');
+                return `<div class="rounded-xl border ${meta.soft} p-3 flex flex-col gap-2 min-h-[112px]">
+                    <div class="flex items-start justify-between gap-2">
+                        <p class="font-black uppercase text-[10px] leading-tight flex items-center gap-1"><i data-lucide="${meta.icon}" class="w-3.5 h-3.5"></i>${safeTitle}</p>
+                        <span class="shrink-0 px-2 py-0.5 rounded-full border ${meta.cls} text-[8px] font-black uppercase">${meta.label}</span>
+                    </div>
+                    <p class="text-[10px] leading-snug font-semibold opacity-90 flex-1">${safeDetail}</p>
+                    <button type="button" onclick="${item.action}" class="self-start px-2 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-[8px] font-black uppercase inline-flex items-center gap-1">
+                        <i data-lucide="arrow-right" class="w-3 h-3"></i> ${window.dashEscape ? window.dashEscape(item.actionLabel || 'Apri') : (item.actionLabel || 'Apri')}
+                    </button>
+                </div>`;
+            }).join('')}
+        </div>
+    </section>`;
+};
+
+window.ensureProjectQualityPopupBox = function() {
+    const errorBox = document.getElementById('popup-project-errors');
+    if (!errorBox || document.getElementById('popup-project-quality')) return;
+    const box = document.createElement('div');
+    box.id = 'popup-project-quality';
+    box.className = 'mb-4 shrink-0';
+    errorBox.insertAdjacentElement('beforebegin', box);
+};
+
+window.updateProjectQualityPopup = async function(projectId) {
+    const box = document.getElementById('popup-project-quality');
+    if (!box) return;
+    const p = window.collectProjectFormSnapshot ? window.collectProjectFormSnapshot(projectId) : ((window.progettiList || []).find(x => x.id === projectId) || {});
+    const iscritti = projectId ? await window.getIscrizioni(projectId) : [];
+    box.innerHTML = window.renderProjectQualityDashboard(p, iscritti, 'popup');
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+};
+
 window.renderProjectDesktopRows = function(p, iscritti, issues) {
     const showAll = !!window.inlineIscrittiExpanded[p.id];
     const nomeAzienda = p.aziende ? p.aziende.ragione_sociale : 'Privato';
@@ -2211,6 +2467,7 @@ window.renderProjectDesktopRows = function(p, iscritti, issues) {
     const chiusuraBadge = p.stato_corso === 'chiuso'
         ? '<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-slate-950 text-white border border-slate-600 font-black text-[8px] uppercase">Chiuso</span>'
         : (p.stato_corso === 'svolto' ? '<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-300 text-amber-950 border border-amber-400 font-black text-[8px] uppercase">Da chiudere</span>' : '');
+    const qualityDashboard = window.renderProjectQualityDashboard ? window.renderProjectQualityDashboard(p, iscritti, 'desktop') : '';
 
     return `
         <tr class="hover:bg-slate-800 transition-colors bg-slate-900" data-corso="${p.corso_id}" data-azienda="${p.azienda_id || ''}" data-project-id="${p.id}">
@@ -2242,6 +2499,7 @@ window.renderProjectDesktopRows = function(p, iscritti, issues) {
         </tr>
         <tr class="bg-slate-950" data-corso="${p.corso_id}" data-azienda="${p.azienda_id || ''}" data-project-id="${p.id}" data-inline-iscritti-project="${p.id}">
             <td colspan="4" class="p-4 border-b border-slate-700">
+                <div class="mb-4">${qualityDashboard}</div>
                 <div class="rounded-2xl border-2 border-amber-400/70 bg-slate-950 p-4 shadow-inner">
                     <div class="mb-3 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
                         <div>
@@ -2266,6 +2524,7 @@ window.renderProjectMobileCard = function(p, iscritti, issues) {
     const chiusuraBadge = p.stato_corso === 'chiuso'
         ? '<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-slate-950 text-white border border-slate-600 font-black text-[8px] uppercase">Chiuso</span>'
         : (p.stato_corso === 'svolto' ? '<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-300 text-amber-950 border border-amber-400 font-black text-[8px] uppercase">Da chiudere</span>' : '');
+    const qualityDashboard = window.renderProjectQualityDashboard ? window.renderProjectQualityDashboard(p, iscritti, 'mobile') : '';
 
     return `<article class="rounded-2xl border border-slate-700 bg-slate-900 shadow-xl overflow-hidden" data-corso="${p.corso_id}" data-azienda="${p.azienda_id || ''}" data-mobile-project-id="${p.id}" data-project-id="${p.id}">
         <div class="p-4 border-b border-slate-700 flex items-start justify-between gap-3">
@@ -2290,6 +2549,7 @@ window.renderProjectMobileCard = function(p, iscritti, issues) {
                 <p class="text-[8px] font-black uppercase tracking-widest text-amber-950 mb-1">Azienda committente</p>
                 <p class="font-black text-xs text-slate-950 uppercase leading-tight">${window.dashEscape(nomeAzienda || '')}</p>
             </div>
+            <div>${qualityDashboard}</div>
             <div class="rounded-xl bg-slate-950 border-2 border-amber-400/70 p-3">
                 <div class="mb-3 rounded-lg bg-amber-400 text-slate-950 px-3 py-2">
                     <p class="text-[8px] font-black uppercase tracking-widest">Corsisti collegati a questo corso/azienda</p>
