@@ -42,6 +42,19 @@
                     </div>
                 </div>
 
+                <div class="rounded-xl border border-amber-200 bg-amber-50 p-3 space-y-2">
+                    <p class="text-[10px] font-black text-amber-900 uppercase flex items-center gap-1">
+                        <i data-lucide="folder-open" class="w-3.5 h-3.5"></i> Documento legale rappresentante
+                    </p>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase">Link documento identità legale / referente</label>
+                    <input type="url" id="az-legale-doc-url" class="input-field text-xs bg-white" placeholder="https://...">
+                    <div class="flex gap-2">
+                        <input type="file" id="az-legale-doc-file" accept=".pdf,.jpg,.jpeg,.png,.webp" class="min-w-0 flex-1 text-[10px]">
+                        <button type="button" onclick="window.uploadDocumentoArchivio('aziende','documento_legale_rappresentante','az-legale-doc-file','az-legale-doc-url')" class="shrink-0 bg-amber-600 hover:bg-amber-500 text-white px-2 py-1 rounded text-[9px] font-black uppercase">Carica</button>
+                    </div>
+                    <p class="text-[9px] text-amber-800 font-bold uppercase">Archivio: Documenti Aziende / legale rappresentante.</p>
+                </div>
+
                 <div class="pt-4 border-t border-slate-100 flex gap-2">
                     <button type="button" onclick="window.resetFormAzienda()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-2 rounded-lg text-xs font-bold transition">Annulla</button>
                     <button type="submit" class="flex-[2] bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition shadow">
