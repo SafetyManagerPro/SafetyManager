@@ -75,6 +75,27 @@
                             <button type="button" onclick="window.uploadDocumentoArchivio('docenti','codice_fiscale','doc-doc-cf-file','doc-doc-cf-url')" class="shrink-0 bg-emerald-700 hover:bg-emerald-600 text-white px-2 py-1 rounded text-[9px] font-black uppercase">Carica</button>
                         </div>
                     </div>
+
+                    <div class="pt-2 border-t border-emerald-200">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase">Firma docente</label>
+                        <input type="url" id="doc-firma-url" class="input-field text-xs bg-white" placeholder="Link immagine firma docente">
+                        <div class="mt-2 flex gap-2">
+                            <input type="file" id="doc-firma-file" accept="image/*,.pdf" class="min-w-0 flex-1 text-[10px]">
+                            <button type="button" onclick="window.uploadDocumentoArchivio('docenti','firma_docente','doc-firma-file','doc-firma-url').then(()=>window.showFirmaPreview('doc-firma-url','doc-firma-preview'))" class="shrink-0 bg-emerald-700 hover:bg-emerald-600 text-white px-2 py-1 rounded text-[9px] font-black uppercase">Carica</button>
+                        </div>
+                        <div id="doc-firma-preview" class="min-h-[34px] mt-2"></div>
+                        <button type="button" onclick="window.openFirmaManuale('doc-firma-canvas','doc-firma-url','doc-firma-preview')" class="w-full bg-slate-900 hover:bg-slate-800 text-white px-3 py-2 rounded-lg text-[9px] font-black uppercase inline-flex items-center justify-center gap-1 mt-2">
+                            <i data-lucide="pen-line" class="w-3.5 h-3.5"></i> Firma manualmente
+                        </button>
+                        <div id="doc-firma-canvas-box" class="hidden rounded-xl border border-slate-300 bg-white p-2 mt-2">
+                            <canvas id="doc-firma-canvas" class="w-full h-32 border border-slate-200 rounded bg-white touch-none"></canvas>
+                            <div class="flex gap-2 mt-2">
+                                <button type="button" onclick="window.saveFirmaManuale('doc-firma-canvas')" class="flex-1 bg-emerald-700 hover:bg-emerald-600 text-white px-2 py-1 rounded text-[9px] font-black uppercase">Salva firma</button>
+                                <button type="button" onclick="window.clearFirmaManuale('doc-firma-canvas')" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-2 py-1 rounded text-[9px] font-black uppercase">Pulisci</button>
+                                <button type="button" onclick="window.closeFirmaManuale('doc-firma-canvas')" class="bg-red-100 hover:bg-red-200 text-red-700 px-2 py-1 rounded text-[9px] font-black uppercase">Chiudi</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="pt-4 border-t border-slate-100 flex gap-2">
