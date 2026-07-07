@@ -55,7 +55,7 @@
                         <p class="text-[10px] font-black text-emerald-900 uppercase flex items-center gap-1">
                             <i data-lucide="folder-open" class="w-3.5 h-3.5"></i> Documenti Docenti
                         </p>
-                        <p class="text-[9px] text-emerald-800 font-bold uppercase mt-1">Carica o incolla i link ai documenti anagrafici del docente.</p>
+                        <p class="text-[9px] text-emerald-800 font-bold uppercase mt-1">Incolla i link o aggancia il nome file locale ai documenti anagrafici del docente.</p>
                     </div>
 
                     <div>
@@ -63,7 +63,7 @@
                         <input type="url" id="doc-doc-identita-url" class="input-field text-xs bg-white" placeholder="https://...">
                         <div class="mt-2 flex gap-2">
                             <input type="file" id="doc-doc-identita-file" accept=".pdf,.jpg,.jpeg,.png,.webp" class="min-w-0 flex-1 text-[10px]">
-                            <button type="button" onclick="window.uploadDocumentoArchivio('docenti','documento_identita','doc-doc-identita-file','doc-doc-identita-url')" class="shrink-0 bg-emerald-700 hover:bg-emerald-600 text-white px-2 py-1 rounded text-[9px] font-black uppercase">Carica</button>
+                            <button type="button" onclick="window.uploadDocumentoArchivio('docenti','documento_identita','doc-doc-identita-file','doc-doc-identita-url')" class="shrink-0 bg-emerald-700 hover:bg-emerald-600 text-white px-2 py-1 rounded text-[9px] font-black uppercase">Collega</button>
                         </div>
                     </div>
 
@@ -72,7 +72,7 @@
                         <input type="url" id="doc-doc-cf-url" class="input-field text-xs bg-white" placeholder="https://...">
                         <div class="mt-2 flex gap-2">
                             <input type="file" id="doc-doc-cf-file" accept=".pdf,.jpg,.jpeg,.png,.webp" class="min-w-0 flex-1 text-[10px]">
-                            <button type="button" onclick="window.uploadDocumentoArchivio('docenti','codice_fiscale','doc-doc-cf-file','doc-doc-cf-url')" class="shrink-0 bg-emerald-700 hover:bg-emerald-600 text-white px-2 py-1 rounded text-[9px] font-black uppercase">Carica</button>
+                            <button type="button" onclick="window.uploadDocumentoArchivio('docenti','codice_fiscale','doc-doc-cf-file','doc-doc-cf-url')" class="shrink-0 bg-emerald-700 hover:bg-emerald-600 text-white px-2 py-1 rounded text-[9px] font-black uppercase">Collega</button>
                         </div>
                     </div>
 
@@ -81,7 +81,7 @@
                         <input type="url" id="doc-firma-url" class="input-field text-xs bg-white" placeholder="Link immagine firma docente">
                         <div class="mt-2 flex gap-2">
                             <input type="file" id="doc-firma-file" accept="image/*,.pdf" class="min-w-0 flex-1 text-[10px]">
-                            <button type="button" onclick="window.uploadDocumentoArchivio('docenti','firma_docente','doc-firma-file','doc-firma-url').then(()=>window.showFirmaPreview('doc-firma-url','doc-firma-preview'))" class="shrink-0 bg-emerald-700 hover:bg-emerald-600 text-white px-2 py-1 rounded text-[9px] font-black uppercase">Carica</button>
+                            <button type="button" onclick="window.uploadDocumentoArchivio('docenti','firma_docente','doc-firma-file','doc-firma-url').then(()=>window.showFirmaPreview('doc-firma-url','doc-firma-preview'))" class="shrink-0 bg-emerald-700 hover:bg-emerald-600 text-white px-2 py-1 rounded text-[9px] font-black uppercase">Collega</button>
                         </div>
                         <div id="doc-firma-preview" class="min-h-[34px] mt-2"></div>
                         <button type="button" onclick="window.openFirmaManuale('doc-firma-canvas','doc-firma-url','doc-firma-preview')" class="w-full bg-slate-900 hover:bg-slate-800 text-white px-3 py-2 rounded-lg text-[9px] font-black uppercase inline-flex items-center justify-center gap-1 mt-2">

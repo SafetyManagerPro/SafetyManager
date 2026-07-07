@@ -58,12 +58,12 @@
                             <p class="text-[10px] font-black text-blue-900 uppercase flex items-center gap-1">
                                 <i data-lucide="signature" class="w-3.5 h-3.5"></i> Firma legale rappresentante
                             </p>
-                            <p class="text-[9px] text-blue-700 font-bold uppercase mt-1">Carica immagine firma oppure firma manualmente se il file non è disponibile.</p>
+                            <p class="text-[9px] text-blue-700 font-bold uppercase mt-1">Inserisci link/percorso firma oppure firma manualmente se il file non è disponibile. Nessun file viene caricato sul server.</p>
                         </div>
                         <input type="url" id="ente-legale-firma-url" class="input-field text-xs bg-white" placeholder="Link immagine firma legale rappresentante">
                         <div class="flex gap-2">
                             <input type="file" id="ente-legale-firma-file" accept="image/*,.pdf" class="min-w-0 flex-1 text-[10px]">
-                            <button type="button" onclick="window.uploadDocumentoArchivio('ente','firma_legale_rappresentante','ente-legale-firma-file','ente-legale-firma-url').then(()=>window.showFirmaPreview('ente-legale-firma-url','ente-legale-firma-preview'))" class="shrink-0 bg-blue-700 hover:bg-blue-600 text-white px-2 py-1 rounded text-[9px] font-black uppercase">Carica</button>
+                            <button type="button" onclick="window.uploadDocumentoArchivio('ente','firma_legale_rappresentante','ente-legale-firma-file','ente-legale-firma-url').then(()=>window.showFirmaPreview('ente-legale-firma-url','ente-legale-firma-preview'))" class="shrink-0 bg-blue-700 hover:bg-blue-600 text-white px-2 py-1 rounded text-[9px] font-black uppercase">Collega</button>
                         </div>
                         <div id="ente-legale-firma-preview" class="min-h-[34px]"></div>
                         <button type="button" onclick="window.openFirmaManuale('ente-legale-firma-canvas','ente-legale-firma-url','ente-legale-firma-preview')" class="w-full bg-slate-900 hover:bg-slate-800 text-white px-3 py-2 rounded-lg text-[9px] font-black uppercase inline-flex items-center justify-center gap-1">
