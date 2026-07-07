@@ -1303,9 +1303,17 @@ window.slugArchivioDocumento = function(value = 'record') {
 
 window.getDocumentoLinkHtml = function(url, label = 'Documento') {
     if (!url) return '<span class="text-slate-400 italic text-[9px]">Nessun documento</span>';
-    const safeUrl = window.dashEscape ? window.dashEscape(url) : url;
+    const raw = String(url || '').trim();
     const safeLabel = window.dashEscape ? window.dashEscape(label) : label;
-    return `<a href="${safeUrl}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-black text-[8px] uppercase">
+    if (raw.startsWith('LOCAL_FILE::')) {
+        const fileName = raw.replace('LOCAL_FILE::', '');
+        return `<span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-200 font-black text-[8px] uppercase" title="${window.dashEscape(fileName)}">
+            <i data-lucide="hard-drive" class="w-3 h-3"></i>${safeLabel}: locale
+        </span>`;
+    }
+    const href = window.normalizzaDocumentoHref ? window.normalizzaDocumentoHref(raw) : raw;
+    const safeUrl = window.dashEscape ? window.dashEscape(href) : href;
+    return `<a href="${safeUrl}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-black text-[8px] uppercase" title="${window.dashEscape(raw)}">
         <i data-lucide="external-link" class="w-3 h-3"></i>${safeLabel}
     </a>`;
 };
@@ -1338,45 +1346,36 @@ window.getDocumentoArchivioOwnerKey = function(entityType) {
     return `record_${Date.now()}`;
 };
 
-window.uploadDocumentoArchivio = async function(entityType, docType, fileInputId, targetInputId) {
+
+window.isLocalDocumentReference = function(url = '') {
+    return String(url || '').startsWith('LOCAL_FILE::') || /^[A-Z]:\\/i.test(String(url || '')) || String(url || '').startsWith('file://');
+};
+
+window.normalizzaDocumentoHref = function(url = '') {
+    const v = String(url || '').trim();
+    if (!v) return '';
+    if (v.startsWith('LOCAL_FILE::')) return '';
+    if (/^[A-Z]:\\/i.test(v)) return 'file:///' + v.replaceAll('\\', '/');
+    return v;
+};
+
+window.collegaDocumentoLocaleDaFile = function(fileInputId, targetInputId) {
     const fileInput = document.getElementById(fileInputId);
     const targetInput = document.getElementById(targetInputId);
     if (!fileInput || !targetInput) return alert('Campo file/link non trovato.');
     const file = fileInput.files && fileInput.files[0];
-    if (!file) return alert('Seleziona un file prima di caricare.');
-
-    const bucket = window.SAFETY_DOCUMENT_BUCKETS[entityType];
-    if (!bucket) return alert('Archivio documentale non configurato per questa sezione.');
-
-    const ownerKey = window.slugArchivioDocumento(window.getDocumentoArchivioOwnerKey(entityType));
-    const originalName = window.slugArchivioDocumento(file.name.replace(/\.[^.]+$/, ''));
-    const ext = (file.name.match(/\.[^.]+$/)?.[0] || '').toLowerCase();
-    const safeDocType = window.slugArchivioDocumento(docType || 'documento');
-    const path = `${ownerKey}/${safeDocType}_${new Date().toISOString().replace(/[:.]/g, '-')}_${originalName}${ext}`;
-
-    try {
-        const { data, error } = await supabaseClient
-            .storage
-            .from(bucket)
-            .upload(path, file, { cacheControl: '3600', upsert: true, contentType: file.type || 'application/octet-stream' });
-
-        if (error) throw error;
-
-        const pub = supabaseClient.storage.from(bucket).getPublicUrl(data?.path || path);
-        const url = pub?.data?.publicUrl || '';
-        if (!url) throw new Error('URL pubblico non generato. Verifica bucket/policy Supabase.');
-
-        targetInput.value = url;
-        targetInput.dispatchEvent(new Event('input', { bubbles: true }));
-        alert(`Documento caricato in ${window.SAFETY_DOCUMENT_FOLDERS[entityType] || bucket}. Ricorda di salvare la scheda.`);
-        return url;
-    } catch (err) {
-        console.error('Errore upload documento:', err);
-        alert('Errore caricamento documento. Verifica bucket Supabase, policy Storage e connessione. Dettaglio: ' + (err.message || err));
-        return '';
-    }
+    if (!file) return alert('Seleziona un file. Per sicurezza il browser non consente di salvare il percorso completo: verrà salvato solo il nome file. Se vuoi un link apribile, incolla manualmente il percorso o un link di rete nel campo.');
+    targetInput.value = `LOCAL_FILE::${file.name}`;
+    targetInput.dispatchEvent(new Event('input', { bubbles: true }));
+    alert('File agganciato senza upload server. È stato salvato solo il nome file. Per avere un richiamo apribile, incolla nel campo un percorso tipo file:///C:/... oppure un link a cartella condivisa/NAS/Drive.');
+    return targetInput.value;
 };
 
+window.uploadDocumentoArchivio = async function(entityType, docType, fileInputId, targetInputId) {
+    // Step 49: disattivato upload a Supabase/Server per i documenti anagrafici.
+    // La webapp salva solo il link/percorso inserito nel campo o il nome del file scelto.
+    return window.collegaDocumentoLocaleDaFile(fileInputId, targetInputId);
+};
 
 window.firmaManualeState = window.firmaManualeState || {};
 
