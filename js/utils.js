@@ -3721,7 +3721,8 @@ window.stampaFoglioProgetto = async function(projectId = null) {
 
 window.currentPrintModule = "";
 
-window.caricaDatiStampa = async function(projectId = null) {
+window.caricaDatiStampa = async function(projectId = null, options = {}) {
+    const suppressPreviewRefresh = !!options.suppressPreviewRefresh;
     const progId = projectId || document.getElementById('stampa-progetto')?.value;
     if(!progId) return;
 
@@ -3799,7 +3800,7 @@ window.caricaDatiStampa = async function(projectId = null) {
         };
     });
 
-    if(window.currentPrintModule && !projectId && document.getElementById('stampa-progetto') && document.getElementById('print-preview-container')) {
+    if(!suppressPreviewRefresh && window.currentPrintModule && !projectId && document.getElementById('stampa-progetto') && document.getElementById('print-preview-container')) {
         window.loadPrintPreview(window.currentPrintModule);
     }
 };
@@ -3870,7 +3871,7 @@ window.creaPaginaTestManualeCorso = function(courseId, type = 'blank', options =
         : 'Allegato al progetto formativo: copia cartacea da stampare, consegnare al corsista, far compilare e poi correggere/verificare.';
 
     const page = document.createElement('div');
-    page.className = 'doc-page landscape bg-white';
+    page.className = 'doc-page landscape bg-white manual-test-page';
     page.dataset.manualTestPage = isCorrected ? 'corrected' : 'blank';
     if (!isCorrected && options.corsista) page.dataset.corsistaId = options.corsista.corsista_id || options.corsista.id || '';
     page.style.cssText = 'width:296mm;min-height:209mm;height:209mm;padding:5mm;box-sizing:border-box;margin:0 auto;font-family:Arial,sans-serif;color:#0f172a;overflow:hidden;';
@@ -3997,7 +3998,7 @@ window.renderPrintModulePages = async function(moduleId, singleCorsista = null, 
             clone.classList.add('scale-[0.8]', 'origin-top');
         } else {
             clone.classList.add('print-show', 'temp-page');
-            if (page.classList.contains('landscape')) clone.classList.add('landscape-force');
+            if (page.classList.contains('landscape') || page.classList.contains('manual-test-page')) clone.classList.add('landscape-force');
             else clone.classList.add('portrait');
         }
         return clone;

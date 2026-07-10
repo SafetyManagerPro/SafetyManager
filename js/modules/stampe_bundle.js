@@ -44,7 +44,7 @@ window.stampaFascicoloCompletoPDF = async function(projectId = null) {
     const progId = projectId || document.getElementById('stampa-progetto')?.value;
     if (!progId) return alert('Seleziona prima un progetto formativo.');
 
-    await window.caricaDatiStampa(progId);
+    await window.caricaDatiStampa(progId, { suppressPreviewRefresh: true });
     const printArea = document.getElementById('print-area-temp');
     printArea.innerHTML = '';
 
@@ -104,7 +104,32 @@ window.stampaFascicoloCompletoPDF = async function(projectId = null) {
             alert('Attenzione: il PDF unico non ha generato correttamente tutti i test manuali. Verifica che il progetto abbia corsisti iscritti e che il corso sia selezionato. Procedo comunque con la stampa dei documenti disponibili.');
         }
 
-        allPages.forEach(p => printArea.appendChild(p));
+        allPages.forEach(p => {
+            if (p?.dataset?.manualTestPage) {
+                // Step 58: forzo classi e stile stampabile delle pagine test per evitare che vengano nascoste
+                // o trattate come pagine portrait dal CSS di stampa storico.
+                p.classList.add('print-show', 'temp-page', 'landscape-force', 'manual-test-page');
+                p.classList.remove('hidden', 'scale-[0.8]', 'origin-top');
+                p.style.display = 'block';
+                p.style.position = 'relative';
+                p.style.transform = 'none';
+                p.style.width = '296mm';
+                p.style.height = '209mm';
+                p.style.maxHeight = '209mm';
+                p.style.pageBreakAfter = 'always';
+                p.style.breakAfter = 'page';
+            }
+            printArea.appendChild(p);
+        });
+
+        printArea.dataset.blankTests = String(blankTests);
+        printArea.dataset.correctedTests = String(correctedTests);
+        console.info('PDF unico progetto: pagine totali/test manuali', {
+            pages: allPages.length,
+            blankTests,
+            correctedTests,
+            corsisti: backupSession.length
+        });
 
         alert(`Ora si aprirà la stampa. Seleziona "Salva come PDF" per salvare sul PC il PDF unico progetto. Sono inclusi ${blankTests} test manuali da consegnare ai corsisti e ${correctedTests} correttore/i per i valutatori. Gli attestati NON sono inclusi: usa il pulsante "PDF solo attestati". Corsisti: ${backupSession.length}.`);
         document.body.classList.add('is-printing-temp');
