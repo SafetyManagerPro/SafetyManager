@@ -3946,6 +3946,23 @@ window.renderManualTestCoursePages = function(courseId, options = {}) {
     return pages;
 };
 
+
+window.renderManualTestsForCurrentPrintProject = function(options = {}) {
+    if (typeof window.renderManualTestCoursePages !== 'function') return [];
+    const courseId =
+        window.AppState?.['cfg-corso'] ||
+        window.getVal?.('cfg-corso') ||
+        document.getElementById('cfg-corso')?.value ||
+        document.getElementById('stampa-corso')?.value ||
+        '';
+
+    const sessionSnapshot = [...(options.session || window.currentSessionCorsisti || [])];
+    return window.renderManualTestCoursePages(courseId, {
+        preview: !!options.preview,
+        session: sessionSnapshot
+    });
+};
+
 window.renderPrintModulePages = async function(moduleId, singleCorsista = null, options = {}) {
     const preview = !!options.preview;
     const resp = await fetch(`modules/${moduleId}.html`);
@@ -3986,7 +4003,7 @@ window.renderPrintModulePages = async function(moduleId, singleCorsista = null, 
         return clone;
     });
 
-    if (moduleId === 'progetto_formativo' && typeof window.renderManualTestCoursePages === 'function') {
+    if (moduleId === 'progetto_formativo' && options.includeProjectFormativoTests !== false && typeof window.renderManualTestCoursePages === 'function') {
         const courseId = window.AppState?.['cfg-corso'] || window.getVal?.('cfg-corso') || '';
         const sessionSnapshot = [...(window.currentSessionCorsisti || [])];
         pages.push(...window.renderManualTestCoursePages(courseId, { preview, session: sessionSnapshot }));

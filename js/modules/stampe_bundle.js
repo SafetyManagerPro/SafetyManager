@@ -65,24 +65,44 @@ window.stampaFascicoloCompletoPDF = async function(projectId = null) {
         // updateAll delle stampe successive sovrascriva le pagine già preparate.
         const allPages = [];
 
-        for (const m of docs) {
-            const pages = await window.renderPrintModuleToTemp(m, null, {
-                includeFascicoloTests: m === 'fascicolo_corso' ? false : true
-            });
-            allPages.push(...pages);
-        }
-
         const backupSession = [...(window.currentSessionCorsisti || [])];
 
-        // Verifica di sicurezza Step 55: il PDF unico deve contenere sempre i test manuali
+        for (const m of docs) {
+            const pages = await window.renderPrintModuleToTemp(m, null, {
+                // Step 57: nel PDF unico i test vengono inseriti esplicitamente subito dopo il Progetto Formativo,
+                // così funzionano sia da Centro Stampe sia dal pulsante in Progetti.
+                includeProjectFormativoTests: false,
+                includeFascicoloTests: false
+            });
+            allPages.push(...pages);
+
+            if (m === 'progetto_formativo') {
+                const testPages = (typeof window.renderManualTestsForCurrentPrintProject === 'function')
+                    ? window.renderManualTestsForCurrentPrintProject({ preview: false, session: backupSession })
+                    : (typeof window.renderManualTestCoursePages === 'function'
+                        ? window.renderManualTestCoursePages(window.AppState?.['cfg-corso'] || '', { preview: false, session: backupSession })
+                        : []);
+                allPages.push(...testPages);
+            }
+        }
+
+        // Verifica di sicurezza Step 57: il PDF unico deve contenere sempre i test manuali
         // da far compilare ai corsisti e il correttore allegato al progetto formativo.
         const hasManualTests = allPages.some(p => p?.dataset?.manualTestPage);
-        if (!hasManualTests && typeof window.renderManualTestCoursePages === 'function') {
-            allPages.push(...window.renderManualTestCoursePages(window.AppState?.['cfg-corso'] || '', { preview: false, session: backupSession }));
+        if (!hasManualTests) {
+            const fallbackTests = (typeof window.renderManualTestsForCurrentPrintProject === 'function')
+                ? window.renderManualTestsForCurrentPrintProject({ preview: false, session: backupSession })
+                : [];
+            allPages.push(...fallbackTests);
         }
 
         const blankTests = allPages.filter(p => p?.dataset?.manualTestPage === 'blank').length;
         const correctedTests = allPages.filter(p => p?.dataset?.manualTestPage === 'corrected').length;
+
+        if (!blankTests || !correctedTests) {
+            console.warn('PDF unico progetto senza test manuali completi:', { blankTests, correctedTests, allPages });
+            alert('Attenzione: il PDF unico non ha generato correttamente tutti i test manuali. Verifica che il progetto abbia corsisti iscritti e che il corso sia selezionato. Procedo comunque con la stampa dei documenti disponibili.');
+        }
 
         allPages.forEach(p => printArea.appendChild(p));
 
