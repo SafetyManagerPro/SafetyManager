@@ -286,7 +286,43 @@
     line-height: 1.12 !important;
 }
             @page { size: A4 portrait; margin: 0mm; }
-            .landscape-force { transform: rotate(-90deg) translate(-296mm, 0); transform-origin: top left; width: 296mm !important; height: 210mm !important; position: absolute; top: 0; left: 0; }
+            @page landscapePage { size: A4 landscape; margin: 0mm; }
+
+            /* STEP 58 - Fix stampa A4 orizzontale:
+               prima .landscape-force era position:absolute + rotate, quindi le pagine test si sovrapponevano
+               e potevano sparire dal PDF unico. Ora restano nel flusso normale della stampa. */
+            .landscape-force {
+                page: landscapePage !important;
+                transform: none !important;
+                position: relative !important;
+                top: auto !important;
+                left: auto !important;
+                width: 296mm !important;
+                height: 209mm !important;
+                max-height: 209mm !important;
+                margin: 0 auto !important;
+                padding: 5mm !important;
+                overflow: hidden !important;
+                page-break-after: always !important;
+                break-after: page !important;
+                display: block !important;
+            }
+
+            .manual-test-page {
+                page: landscapePage !important;
+                width: 296mm !important;
+                height: 209mm !important;
+                max-height: 209mm !important;
+                padding: 5mm !important;
+                overflow: hidden !important;
+                box-sizing: border-box !important;
+                position: relative !important;
+                transform: none !important;
+                display: block !important;
+                page-break-after: always !important;
+                break-after: page !important;
+            }
+
             .print-show { display: block !important; }
         }
     </style>
