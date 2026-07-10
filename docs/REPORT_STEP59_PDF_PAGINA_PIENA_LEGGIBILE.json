@@ -1,0 +1,14 @@
+{
+  "step": 59,
+  "feature": "PDF a pagina piena e test manuali leggibili",
+  "checks": {
+    "step59_css_present": true,
+    "no_print_scale": true,
+    "manual_test_inner_full_page": true,
+    "manual_test_grid_full_height": true,
+    "manual_test_font_improved": true,
+    "preview_no_scale": true,
+    "bundle_forces_297_210": true,
+    "old_rotate_absent_from_new_block": true
+  }
+}

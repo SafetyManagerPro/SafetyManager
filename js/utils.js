@@ -3859,6 +3859,7 @@ window.getManualTestCorsistaLabel = function(corsista = null) {
     };
 };
 
+
 window.creaPaginaTestManualeCorso = function(courseId, type = 'blank', options = {}) {
     const questions = window.getManualTestQuestionsForCourse(courseId);
     const c = window.DB_CORSI?.[courseId] || {};
@@ -3867,14 +3868,25 @@ window.creaPaginaTestManualeCorso = function(courseId, type = 'blank', options =
     const corsista = window.getManualTestCorsistaLabel(options.corsista || null);
     const title = isCorrected ? 'TEST MANUALE - CORRETTORE PER VALUTATORI' : 'TEST MANUALE DA EROGARE AI CORSISTI - 30 QUESITI';
     const subtitle = isCorrected
-        ? 'Allegato al progetto formativo: copia interna con risposte corrette evidenziate per aiutare i valutatori nella correzione.'
-        : 'Allegato al progetto formativo: copia cartacea da stampare, consegnare al corsista, far compilare e poi correggere/verificare.';
+        ? 'Allegato al progetto formativo: risposte corrette evidenziate per aiutare i valutatori nella correzione.'
+        : 'Allegato al progetto formativo: stampare, consegnare al corsista, far compilare e poi correggere/verificare.';
 
     const page = document.createElement('div');
     page.className = 'doc-page landscape bg-white manual-test-page';
     page.dataset.manualTestPage = isCorrected ? 'corrected' : 'blank';
     if (!isCorrected && options.corsista) page.dataset.corsistaId = options.corsista.corsista_id || options.corsista.id || '';
-    page.style.cssText = 'width:296mm;min-height:209mm;height:209mm;padding:5mm;box-sizing:border-box;margin:0 auto;font-family:Arial,sans-serif;color:#0f172a;overflow:hidden;';
+    page.style.cssText = [
+        'width:297mm',
+        'min-height:210mm',
+        'height:210mm',
+        'padding:0',
+        'box-sizing:border-box',
+        'margin:0 auto',
+        'font-family:Arial,sans-serif',
+        'color:#0f172a',
+        'overflow:hidden',
+        'background:#fff'
+    ].join(';') + ';';
 
     const rows = questions.map((q, idx) => {
         const answers = (q.a || []).map((a, ai) => {
@@ -3883,14 +3895,14 @@ window.creaPaginaTestManualeCorso = function(courseId, type = 'blank', options =
             const bg = isCorrected && ok ? '#dcfce7' : '#ffffff';
             const border = isCorrected && ok ? '#16a34a' : '#cbd5e1';
             const mark = isCorrected && ok ? '✓' : '□';
-            return `<span style="display:block;border:1px solid ${border};background:${bg};border-radius:4px;padding:1px 3px;margin:1px 0;font-size:5.55px;line-height:1.0;">
+            return `<span style="display:block;border:1px solid ${border};background:${bg};border-radius:3px;padding:1px 2.6px;margin:0.7px 0;font-size:6.55px;line-height:1.08;box-sizing:border-box;">
                 <strong>${mark} ${letter})</strong> ${esc(a)}
             </span>`;
         }).join('');
 
-        return `<div style="page-break-inside:avoid;break-inside:avoid;border:1px solid #e2e8f0;border-radius:5px;padding:2.3px;margin:0 0 2.4px;">
-            <p style="font-weight:900;font-size:6.25px;margin:0 0 1.6px;text-transform:uppercase;color:#1e3a8a;line-height:1.0;">${idx + 1}. ${esc(q.q)}</p>
-            ${answers}
+        return `<div class="manual-test-question" style="border:1px solid #cbd5e1;border-radius:5px;padding:2.2px 3px;background:#ffffff;display:flex;flex-direction:column;justify-content:flex-start;box-sizing:border-box;min-height:0;">
+            <p style="font-weight:900;font-size:7.15px;margin:0 0 1.5px;text-transform:uppercase;color:#1e3a8a;line-height:1.08;">${idx + 1}. ${esc(q.q)}</p>
+            <div style="min-height:0;">${answers}</div>
         </div>`;
     }).join('');
 
@@ -3899,29 +3911,36 @@ window.creaPaginaTestManualeCorso = function(courseId, type = 'blank', options =
         : `<div><strong>Corsista:</strong> ${esc(corsista.nome)}</div><div><strong>Codice fiscale:</strong> ${esc(corsista.cf || '______________________________')}</div><div><strong>Esito:</strong> ___ / 30</div>`;
 
     page.innerHTML = `
-        <div style="border-bottom:2px solid #0f172a;padding-bottom:3.5px;margin-bottom:4px;display:flex;justify-content:space-between;gap:10px;align-items:flex-start;">
-            <div style="min-width:0;">
-                <h1 style="font-size:13px;margin:0;font-weight:900;text-transform:uppercase;letter-spacing:.02em;">${title}</h1>
-                <p style="font-size:6.5px;margin:2px 0 0;text-transform:uppercase;color:#64748b;font-weight:800;">${subtitle}</p>
+        <div class="manual-test-inner" style="width:297mm;height:210mm;padding:6mm;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;background:#fff;">
+            <div style="border-bottom:2px solid #0f172a;padding-bottom:4px;margin-bottom:4px;display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex:0 0 auto;">
+                <div style="min-width:0;">
+                    <h1 style="font-size:15px;margin:0;font-weight:900;text-transform:uppercase;letter-spacing:.02em;line-height:1.05;">${title}</h1>
+                    <p style="font-size:7.4px;margin:2px 0 0;text-transform:uppercase;color:#64748b;font-weight:800;line-height:1.08;">${subtitle}</p>
+                </div>
+                <div style="text-align:right;font-size:7.2px;font-weight:800;color:#64748b;min-width:66mm;line-height:1.18;">
+                    Progetto: ${esc(window.AppState?.['cfg-codice'] || '')}<br>
+                    Data: ${esc(window.formatDataToItalian ? window.formatDataToItalian(window.AppState?.['cfg-data-esame']) : (window.AppState?.['cfg-data-esame'] || ''))}
+                </div>
             </div>
-            <div style="text-align:right;font-size:6.5px;font-weight:800;color:#64748b;min-width:66mm;">
-                Progetto: ${esc(window.AppState?.['cfg-codice'] || '')}<br>
-                Data: ${esc(window.formatDataToItalian ? window.formatDataToItalian(window.AppState?.['cfg-data-esame']) : (window.AppState?.['cfg-data-esame'] || ''))}
+
+            <div style="border:1px solid #cbd5e1;background:#f8fafc;border-radius:6px;padding:4px;margin-bottom:4px;font-size:7.2px;display:grid;grid-template-columns:1.25fr 1fr 1fr .55fr;gap:4px;flex:0 0 auto;line-height:1.15;">
+                <div><strong>Corso:</strong> ${esc(c.code || courseId)} · ${esc(c.t || courseId)}</div>
+                ${corsistaBox}
             </div>
-        </div>
-        <div style="border:1px solid #cbd5e1;background:#f8fafc;border-radius:6px;padding:3.5px;margin-bottom:4px;font-size:6.6px;display:grid;grid-template-columns:1.25fr 1fr 1fr .55fr;gap:4px;">
-            <div><strong>Corso:</strong> ${esc(c.code || courseId)} · ${esc(c.t || courseId)}</div>
-            ${corsistaBox}
-        </div>
-        <div style="columns:3;column-gap:4mm;">${rows}</div>
-        <div style="margin-top:3px;display:flex;justify-content:space-between;font-size:6.7px;">
-            <div style="width:35%;text-align:center;"><div style="border-bottom:1px solid #334155;height:10px;"></div><strong>Firma corsista</strong></div>
-            <div style="width:35%;text-align:center;"><div style="border-bottom:1px solid #334155;height:10px;"></div><strong>Firma valutatore</strong></div>
+
+            <div class="manual-test-grid" style="flex:1 1 auto;min-height:0;display:grid;grid-template-rows:repeat(10,1fr);grid-auto-flow:column;grid-auto-columns:1fr;gap:1.15mm 2.3mm;">
+                ${rows}
+            </div>
+
+            <div style="margin-top:4px;display:flex;justify-content:space-between;font-size:7.2px;flex:0 0 auto;">
+                <div style="width:35%;text-align:center;"><div style="border-bottom:1px solid #334155;height:10px;"></div><strong>Firma corsista</strong></div>
+                <div style="width:35%;text-align:center;"><div style="border-bottom:1px solid #334155;height:10px;"></div><strong>Firma valutatore</strong></div>
+            </div>
         </div>`;
 
     if (options.preview) {
-        page.classList.add('scale-[0.8]', 'origin-top');
-        page.style.margin = '0 auto 16px auto';
+        // Step 59: niente miniaturizzazione interna della pagina; la preview può scorrere.
+        page.style.margin = '0 auto 18px auto';
     } else {
         page.classList.add('print-show', 'temp-page', 'landscape-force');
         page.style.margin = '0 auto';

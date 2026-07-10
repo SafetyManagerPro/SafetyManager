@@ -113,9 +113,10 @@ window.stampaFascicoloCompletoPDF = async function(projectId = null) {
                 p.style.display = 'block';
                 p.style.position = 'relative';
                 p.style.transform = 'none';
-                p.style.width = '296mm';
-                p.style.height = '209mm';
-                p.style.maxHeight = '209mm';
+                p.style.width = '297mm';
+                p.style.height = '210mm';
+                p.style.maxHeight = '210mm';
+                p.style.padding = '0';
                 p.style.pageBreakAfter = 'always';
                 p.style.breakAfter = 'page';
             }
