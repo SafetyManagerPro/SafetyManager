@@ -1,0 +1,31 @@
+{
+  "step": 51,
+  "feature": "Firme trasparenti ottimizzate e auto-richiamate",
+  "checks": {
+    "signature_files_present": true,
+    "signature_png_alpha": true,
+    "signature_css_added": true,
+    "auto_signature_map": true,
+    "auto_signature_apply": true,
+    "auto_signature_input_defaults": true,
+    "signature_assets_paths": true
+  },
+  "meta": {
+    "firma_berardino_pesce.png": {
+      "size": [
+        950,
+        301
+      ],
+      "bytes": 9669,
+      "mode": "P"
+    },
+    "firma_centrella_alberto.png": {
+      "size": [
+        820,
+        473
+      ],
+      "bytes": 137537,
+      "mode": "P"
+    }
+  }
+}

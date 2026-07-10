@@ -834,6 +834,10 @@ window.modificaDocente = async function(id) {
     if(document.getElementById('doc-doc-cf-url')) document.getElementById('doc-doc-cf-url').value = doc.codice_fiscale_url || "";
     if(document.getElementById('doc-firma-url')) {
         document.getElementById('doc-firma-url').value = doc.firma_docente_url || "";
+        if (!document.getElementById('doc-firma-url').value) {
+            const autoFirma = window.getAutoSignaturePathByNameAndRole(doc.nome || '', 'docente');
+            if (autoFirma) document.getElementById('doc-firma-url').value = autoFirma;
+        }
         window.showFirmaPreview('doc-firma-url', 'doc-firma-preview');
     }
 };
@@ -1506,6 +1510,8 @@ window.CNA_AVELLINO_PRESET = window.CNA_AVELLINO_PRESET || {
 window.isCnaName = function(value) {
     return String(value || '').toUpperCase().includes('CNA ARTIGIANI IMPRENDITORI') || String(value || '').toUpperCase().includes('CNA');
 };
+
+window.applyDefaultSignatureInputs = window.applyDefaultSignatureInputs || function(){};
 
 window.ensureCnaPresetState = function() {
     const p = window.CNA_AVELLINO_PRESET;
@@ -3465,6 +3471,10 @@ window.loadEnteData = async function() {
         }
         if(document.getElementById('ente-legale-firma-url')) {
             document.getElementById('ente-legale-firma-url').value = ente.legale_firma_url || '';
+            if (!document.getElementById('ente-legale-firma-url').value) {
+                const autoFirma = window.getAutoSignaturePathByNameAndRole(ente.legale_nome || '', 'legale');
+                if (autoFirma) document.getElementById('ente-legale-firma-url').value = autoFirma;
+            }
             window.showFirmaPreview('ente-legale-firma-url', 'ente-legale-firma-preview');
         }
         
@@ -4133,8 +4143,124 @@ window.preparaEStampaMassiva = async function(tabId) {
 // ==========================================
 // RENDER DOCUMENTI E SYLLABUS MULTIDOCENTE
 // ==========================================
+
+// ==========================================
+// STEP 51 - FIRME PREDEFINITE AUTO-RICHIAMATE
+// ==========================================
+
+window.AUTO_SIGNATURES = window.AUTO_SIGNATURES || {
+    'BERARDINO PESCE': 'assets/firme/firma_berardino_pesce.png',
+    'PESCE BERARDINO': 'assets/firme/firma_berardino_pesce.png',
+    'CENTRELLA ALBERTO': 'assets/firme/firma_centrella_alberto.png',
+    'ALBERTO CENTRELLA': 'assets/firme/firma_centrella_alberto.png'
+};
+
+window.AUTO_SIGNATURE_ROLE_MAP = window.AUTO_SIGNATURE_ROLE_MAP || {
+    'BERARDINO PESCE': {
+        docente: 'assets/firme/firma_berardino_pesce.png',
+        resp_progetto: 'assets/firme/firma_berardino_pesce.png',
+        legale: 'assets/firme/firma_berardino_pesce.png'
+    },
+    'PESCE BERARDINO': {
+        docente: 'assets/firme/firma_berardino_pesce.png',
+        resp_progetto: 'assets/firme/firma_berardino_pesce.png',
+        legale: 'assets/firme/firma_berardino_pesce.png'
+    },
+    'CENTRELLA ALBERTO': {
+        docente: 'assets/firme/firma_centrella_alberto.png',
+        resp_corso: 'assets/firme/firma_centrella_alberto.png'
+    },
+    'ALBERTO CENTRELLA': {
+        docente: 'assets/firme/firma_centrella_alberto.png',
+        resp_corso: 'assets/firme/firma_centrella_alberto.png'
+    }
+};
+
+window.normalizeSignatureName = function(name = '') {
+    return String(name || '')
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .toUpperCase();
+};
+
+window.getAutoSignaturePathByName = function(name = '') {
+    const key = window.normalizeSignatureName(name);
+    return window.AUTO_SIGNATURES[key] || '';
+};
+
+window.getAutoSignaturePathByNameAndRole = function(name = '', role = '') {
+    const key = window.normalizeSignatureName(name);
+    const roleKey = String(role || '').trim().toLowerCase();
+    const roleMap = window.AUTO_SIGNATURE_ROLE_MAP[key] || null;
+    if (roleMap && roleMap[roleKey]) return roleMap[roleKey];
+    return '';
+};
+
+window.applyDefaultSignatureInputs = function() {
+    try {
+        const enteLegaleName = document.getElementById('ente-legale-nome')?.value || '';
+        const enteFirmaInput = document.getElementById('ente-legale-firma-url');
+        if (enteFirmaInput && !String(enteFirmaInput.value || '').trim()) {
+            const auto = window.getAutoSignaturePathByNameAndRole(enteLegaleName, 'legale');
+            if (auto) enteFirmaInput.value = auto;
+        }
+
+        const docNome = document.getElementById('doc-nome')?.value || '';
+        const docFirmaInput = document.getElementById('doc-firma-url');
+        if (docFirmaInput && !String(docFirmaInput.value || '').trim()) {
+            const auto = window.getAutoSignaturePathByNameAndRole(docNome, 'docente');
+            if (auto) docFirmaInput.value = auto;
+        }
+    } catch (e) {
+        console.warn('applyDefaultSignatureInputs:', e);
+    }
+};
+
+window.upsertAutoSignatureInParent = function(targetEl, signaturePath, signerName = '') {
+    if (!targetEl || !targetEl.parentElement) return;
+    const parent = targetEl.parentElement;
+    let holder = parent.querySelector('.auto-signature-holder');
+    if (!signaturePath) {
+        if (holder) holder.remove();
+        return;
+    }
+    if (!holder) {
+        holder = document.createElement('div');
+        holder.className = 'auto-signature-holder';
+        const img = document.createElement('img');
+        img.className = 'auto-signature-img';
+        img.alt = 'Firma ' + signerName;
+        holder.appendChild(img);
+        parent.insertBefore(holder, parent.firstChild);
+    }
+    const img = holder.querySelector('img');
+    img.src = signaturePath;
+    img.alt = 'Firma ' + signerName;
+};
+
+window.applyRoleSignatureToSelector = function(selector, role) {
+    document.querySelectorAll(selector).forEach(el => {
+        const name = String(el.textContent || el.innerText || '').trim();
+        const src = window.getAutoSignaturePathByNameAndRole(name, role);
+        window.upsertAutoSignatureInParent(el, src, name);
+    });
+};
+
+window.applyAutomaticSignatureImages = function() {
+    // Pesce Berardino: Docente e/o Responsabile Progetto e/o Legale Rappresentante
+    window.applyRoleSignatureToSelector('.val-docente-main', 'docente');
+    window.applyRoleSignatureToSelector('.val-resp-progetto', 'resp_progetto');
+    window.applyRoleSignatureToSelector('.val-legale-nome', 'legale');
+
+    // Centrella Alberto: Responsabile del Corso e/o Docente
+    window.applyRoleSignatureToSelector('.val-resp-corso', 'resp_corso');
+    window.applyRoleSignatureToSelector('.val-docente-main', 'docente');
+};
+
 window.updateAll = function() {
     if (typeof window.ensureCnaPresetState === 'function') window.ensureCnaPresetState();
+    if (typeof window.applyDefaultSignatureInputs === 'function') window.applyDefaultSignatureInputs();
     const courseId = window.getVal('cfg-corso', 'lav_basso');
     const c = window.DB_CORSI[courseId];
     if(!c || !c.prog) return;
@@ -4366,6 +4492,7 @@ window.updateAll = function() {
             window.aggiornaTabelleSessione();
         }
     }
+    if (typeof window.applyAutomaticSignatureImages === 'function') window.applyAutomaticSignatureImages();
 };
 
 window.aggiornaTabelleSessione = function() {
