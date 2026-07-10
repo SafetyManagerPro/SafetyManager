@@ -86,7 +86,7 @@
 
 
 /* STEP 51 - firme PNG trasparenti auto-richiamate */
-.auto-signature-holder {
+.auto-signature-holder, .auto-signature-slot {
     display: flex;
     justify-content: center;
     align-items: center;
@@ -106,6 +106,13 @@
 .doc-page .auto-signature-img {
     max-width: 42mm;
     max-height: 13mm;
+}
+.auto-signature-slot {
+    min-height: 12mm;
+    line-height: 0;
+}
+.auto-signature-slot.hidden {
+    display: none !important;
 }
 
         /* --- Stili Pulsanti Navbar --- */

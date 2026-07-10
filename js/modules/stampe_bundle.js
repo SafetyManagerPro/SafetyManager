@@ -3,135 +3,7 @@
 
 
 
-window.getTestDigitaliProgetto = async function(projectId) {
-    let local = [];
-    try {
-        local = JSON.parse(localStorage.getItem('SafetyManager.digitalTests.v1') || '[]')
-            .filter(t => t && t.progetto_id === projectId);
-    } catch (e) {
-        console.warn('Impossibile leggere test digitali locali:', e);
-    }
-
-    let remote = [];
-    try {
-        if (window.supabaseClient) {
-            const { data, error } = await supabaseClient
-                .from('test_digitali')
-                .select('*')
-                .eq('progetto_id', projectId);
-            if (!error) remote = data || [];
-        }
-    } catch (e) {
-        console.warn('Test digitali remoti non disponibili:', e.message || e);
-    }
-
-    const map = new Map();
-    [...remote, ...local].forEach(t => {
-        if (!t) return;
-        const key = t.key || `${t.progetto_id || projectId}::${t.iscrizione_id || t.corsista_id || t.corsista_nome || Math.random()}`;
-        map.set(key, t);
-    });
-    return [...map.values()];
-};
-
-window.creaPaginaTestCorsista = function(test, corsista, type = 'compilato') {
-    const esc = window.dashEscape || ((v) => String(v ?? ''));
-    const isCorrected = type === 'corretto';
-    const page = document.createElement('div');
-    page.className = 'doc-page portrait print-show temp-page bg-white';
-    page.style.cssText = 'width:210mm;min-height:296mm;padding:10mm;box-sizing:border-box;margin:0 auto;font-family:Arial,sans-serif;color:#0f172a;';
-
-    const nome = esc(corsista?.nome || test?.corsista_nome || 'Corsista');
-    const cf = esc(corsista?.cf || '');
-    const corso = esc(window.AppState?.['cfg-titolo-corso'] || window.AppState?.['cfg-corso'] || '');
-    const codice = esc(window.AppState?.['cfg-codice'] || '');
-    const data = esc(window.formatDataToItalian ? window.formatDataToItalian(window.AppState?.['cfg-data-esame']) : (window.AppState?.['cfg-data-esame'] || ''));
-    const title = isCorrected ? 'TEST CORRETTO / SOLUZIONI' : 'TEST COMPILATO DAL CORSISTA';
-
-    if (!test) {
-        page.innerHTML = `
-            <div style="border-bottom:3px solid #0f172a;padding-bottom:8px;margin-bottom:16px;display:flex;justify-content:space-between;gap:16px;">
-                <div>
-                    <h1 style="font-size:18px;margin:0;font-weight:900;text-transform:uppercase;">${title}</h1>
-                    <p style="font-size:10px;margin:3px 0 0;text-transform:uppercase;color:#64748b;font-weight:700;">${codice} · ${corso}</p>
-                </div>
-                <div style="text-align:right;font-size:10px;font-weight:700;color:#64748b;">Data: ${data}</div>
-            </div>
-            <div style="border:1px solid #cbd5e1;background:#f8fafc;border-radius:10px;padding:10px;margin-bottom:16px;font-size:12px;">
-                <strong>Allievo:</strong> ${nome}<br>
-                <strong>Codice fiscale:</strong> ${cf}
-            </div>
-            <div style="border:2px dashed #f59e0b;background:#fffbeb;border-radius:12px;padding:18px;font-size:13px;line-height:1.5;">
-                <strong>Test digitale non trovato per questo corsista.</strong><br>
-                Se il test è stato svolto su carta, allegare la scansione nel fascicolo corso.
-                Se il test è stato svolto nelle Procedure digitali, verificare che sia stato salvato per questo progetto/corsista nello stesso browser.
-            </div>`;
-        return page;
-    }
-
-    const questions = test.domande || [];
-    const answers = test.risposte || [];
-    const rows = questions.map((q, idx) => {
-        const selected = answers[idx];
-        const correct = q.correct;
-        const options = (q.a || []).map((a, ai) => {
-            const chosen = selected === ai;
-            const ok = correct === ai;
-            let bg = '#ffffff', border = '#cbd5e1', prefix = '□';
-            if (isCorrected && ok) { bg = '#dcfce7'; border = '#22c55e'; prefix = '✓'; }
-            if (chosen && !isCorrected) { bg = '#dbeafe'; border = '#3b82f6'; prefix = '■'; }
-            if (isCorrected && chosen && !ok) { bg = '#fee2e2'; border = '#ef4444'; prefix = '✕'; }
-            if (isCorrected && chosen && ok) { prefix = '✓■'; }
-            return `<div style="border:1px solid ${border};background:${bg};border-radius:8px;padding:6px 8px;margin:4px 0;font-size:10.5px;">
-                <strong>${prefix}</strong> ${esc(a)}
-            </div>`;
-        }).join('');
-
-        return `<div style="page-break-inside:avoid;border:1px solid #e2e8f0;border-radius:10px;padding:9px;margin-bottom:9px;">
-            <p style="font-weight:900;font-size:11px;margin:0 0 5px;text-transform:uppercase;color:#1e3a8a;">Domanda ${idx + 1}</p>
-            <p style="font-weight:700;font-size:11px;margin:0 0 7px;">${esc(q.q)}</p>
-            ${options}
-        </div>`;
-    }).join('');
-
-    page.innerHTML = `
-        <div style="border-bottom:3px solid #0f172a;padding-bottom:8px;margin-bottom:12px;display:flex;justify-content:space-between;gap:16px;">
-            <div>
-                <h1 style="font-size:18px;margin:0;font-weight:900;text-transform:uppercase;">${title}</h1>
-                <p style="font-size:10px;margin:3px 0 0;text-transform:uppercase;color:#64748b;font-weight:700;">${codice} · ${corso}</p>
-            </div>
-            <div style="text-align:right;font-size:10px;font-weight:700;color:#64748b;">Data: ${data}</div>
-        </div>
-        <div style="border:1px solid #cbd5e1;background:#f8fafc;border-radius:10px;padding:8px;margin-bottom:12px;font-size:11px;display:grid;grid-template-columns:1.4fr .8fr .8fr;gap:8px;">
-            <div><strong>Allievo:</strong><br>${nome}<br><span style="font-family:monospace">${cf}</span></div>
-            <div><strong>Punteggio:</strong><br>${esc(test.punteggio)} / ${esc(test.totale)} (${esc(test.percentuale)}%)</div>
-            <div><strong>Esito:</strong><br>${esc(test.esito || '')}</div>
-        </div>
-        ${rows}
-        <div style="margin-top:14px;display:flex;justify-content:space-between;font-size:10px;">
-            <div style="width:42%;text-align:center;"><div style="border-bottom:1px solid #334155;height:26px;"></div><strong>Firma allievo</strong></div>
-            <div style="width:42%;text-align:center;"><div style="border-bottom:1px solid #334155;height:26px;"></div><strong>Firma docente / correttore</strong></div>
-        </div>`;
-    return page;
-};
-
-window.renderTestDigitaliProgettoPages = async function(projectId) {
-    const pages = [];
-    const tests = await window.getTestDigitaliProgetto(projectId);
-    const session = [...(window.currentSessionCorsisti || [])];
-
-    session.forEach(corsista => {
-        const test = tests.find(t =>
-            t.iscrizione_id === corsista.iscrizione_id ||
-            t.corsista_id === corsista.corsista_id ||
-            String(t.corsista_nome || '').toLowerCase() === String(corsista.nome || '').toLowerCase()
-        );
-        pages.push(window.creaPaginaTestCorsista(test, corsista, 'compilato'));
-        pages.push(window.creaPaginaTestCorsista(test, corsista, 'corretto'));
-    });
-
-    return pages;
-};
+// Step 54: test digitale disattivato nel PDF unico progetto. Si usano solo test manuali cartacei generati dal Progetto Formativo.
 
 window.renderPrintModuleToTemp = async function(moduleId, singleCorsista = null) {
     if (typeof window.renderPrintModulePages === 'function') {
@@ -196,15 +68,12 @@ window.stampaFascicoloCompletoPDF = async function(projectId = null) {
         for (const m of docs) {
             const pages = await window.renderPrintModuleToTemp(m, null);
             allPages.push(...pages);
-            if (m === 'verbale' && typeof window.renderTestDigitaliProgettoPages === 'function') {
-                allPages.push(...await window.renderTestDigitaliProgettoPages(progId));
-            }
         }
 
         const backupSession = [...(window.currentSessionCorsisti || [])];
         allPages.forEach(p => printArea.appendChild(p));
 
-        alert(`Ora si aprirà la stampa. Seleziona "Salva come PDF" per salvare sul PC il PDF unico progetto con test e correttori. Gli attestati NON sono inclusi: usa il pulsante "PDF solo attestati". Corsisti: ${backupSession.length}.`);
+        alert(`Ora si aprirà la stampa. Seleziona "Salva come PDF" per salvare sul PC il PDF unico progetto con test manuale cartaceo e correttore. Gli attestati NON sono inclusi: usa il pulsante "PDF solo attestati". Corsisti: ${backupSession.length}.`);
         document.body.classList.add('is-printing-temp');
         setTimeout(() => {
             window.print();

@@ -59,9 +59,10 @@
     </div>
 
     <div class="mt-auto pt-8 border-t-2 border-slate-900 grid grid-cols-3 gap-4 text-center text-[9px]">
-        <div>
+        <div data-signature-block>
             <p class="font-black uppercase text-slate-500">Responsabile progetto</p>
-            <p class="val-resp-progetto font-black uppercase mt-2 mb-6">---</p>
+            <div class="auto-signature-slot hidden" data-signature-role="resp_progetto" data-signature-name-selector=".val-resp-progetto"></div>
+            <p class="val-resp-progetto font-black uppercase mt-2 mb-2">---</p>
             <span class="border-b border-slate-500 block w-36 mx-auto"></span>
             <p class="text-[7px] text-slate-400 mt-1">Firma</p>
         </div>
@@ -71,9 +72,10 @@
             <span class="border-b border-slate-500 block w-36 mx-auto"></span>
             <p class="text-[7px] text-slate-400 mt-1">Firma / timbro</p>
         </div>
-        <div>
+        <div data-signature-block>
             <p class="font-black uppercase text-slate-500">Datore di lavoro</p>
-            <p class="val-firma-3-nome font-black uppercase mt-2 mb-6">---</p>
+            <div class="auto-signature-slot hidden" data-signature-role="legale" data-signature-name-selector=".val-firma-3-nome"></div>
+            <p class="val-firma-3-nome font-black uppercase mt-2 mb-2">---</p>
             <span class="border-b border-slate-500 block w-36 mx-auto"></span>
             <p class="text-[7px] text-slate-400 mt-1">Firma</p>
         </div>

@@ -3812,6 +3812,7 @@ window.caricaDatiStampa = async function(projectId = null) {
 // ==========================================
 // STEP 50 - TEST MANUALE STANDARD DEL CORSO + CORRETTORE
 // ==========================================
+
 window.getManualTestQuestionsForCourse = function(courseId = '') {
     const id = String(courseId || '');
     let pool = [...(window.POOL_GENERALE || [])];
@@ -3823,6 +3824,17 @@ window.getManualTestQuestionsForCourse = function(courseId = '') {
     else if (id.includes('confinati')) pool = pool.concat(window.POOL_CONFINATI || []);
     else if (id.includes('attr_') || id.includes('attrezzature')) pool = pool.concat(window.POOL_ATTREZZATURE || []);
 
+    // Se il corso specifico ha meno domande, completo da tutti i pool disponibili.
+    const allPools = []
+        .concat(window.POOL_GENERALE || [])
+        .concat(window.POOL_BASSO || [])
+        .concat(window.POOL_ALTO || [])
+        .concat(window.POOL_DIRIGENTI || [])
+        .concat(window.POOL_CANTIERI || [])
+        .concat(window.POOL_CONFINATI || [])
+        .concat(window.POOL_ATTREZZATURE || []);
+    pool = pool.concat(allPools);
+
     const seen = new Set();
     const unique = [];
     pool.forEach(q => {
@@ -3832,8 +3844,8 @@ window.getManualTestQuestionsForCourse = function(courseId = '') {
         unique.push(q);
     });
 
-    // Test uguale per tutti i corsisti del corso richiamato.
-    return unique.slice(0, 15);
+    // Step 54: test manuale unico per corso, 30 quesiti su un solo foglio.
+    return unique.slice(0, 30);
 };
 
 window.creaPaginaTestManualeCorso = function(courseId, type = 'blank', options = {}) {
@@ -3841,61 +3853,61 @@ window.creaPaginaTestManualeCorso = function(courseId, type = 'blank', options =
     const c = window.DB_CORSI?.[courseId] || {};
     const esc = window.dashEscape || ((v) => String(v ?? ''));
     const isCorrected = type === 'corrected';
-    const title = isCorrected ? 'TEST MANUALE - CORRETTORE PER VALUTATORI' : 'TEST MANUALE DA EROGARE AI CORSISTI';
+    const title = isCorrected ? 'TEST MANUALE - CORRETTORE PER VALUTATORI' : 'TEST MANUALE DA EROGARE AI CORSISTI - 30 QUESITI';
     const subtitle = isCorrected
         ? 'Copia interna con risposte corrette evidenziate. Non consegnare ai corsisti.'
-        : 'Test uguale per tutti i corsisti iscritti al progetto formativo. Consegnare una copia per corsista.';
+        : 'Test cartaceo uguale per tutti i corsisti iscritti al progetto formativo. Una copia per corsista.';
 
     const page = document.createElement('div');
-    page.className = 'doc-page portrait bg-white';
-    page.style.cssText = 'width:210mm;min-height:296mm;height:296mm;padding:9mm;box-sizing:border-box;margin:0 auto;font-family:Arial,sans-serif;color:#0f172a;overflow:hidden;';
+    page.className = 'doc-page landscape bg-white';
+    page.style.cssText = 'width:296mm;min-height:209mm;height:209mm;padding:6mm;box-sizing:border-box;margin:0 auto;font-family:Arial,sans-serif;color:#0f172a;overflow:hidden;';
 
     const rows = questions.map((q, idx) => {
         const answers = (q.a || []).map((a, ai) => {
             const ok = q.correct === ai;
             const letter = String.fromCharCode(65 + ai);
             const bg = isCorrected && ok ? '#dcfce7' : '#ffffff';
-            const border = isCorrected && ok ? '#22c55e' : '#cbd5e1';
+            const border = isCorrected && ok ? '#16a34a' : '#cbd5e1';
             const mark = isCorrected && ok ? '✓' : '□';
-            return `<div style="border:1px solid ${border};background:${bg};border-radius:6px;padding:4px 6px;margin:2px 0;font-size:8.5px;line-height:1.15;">
+            return `<span style="display:block;border:1px solid ${border};background:${bg};border-radius:4px;padding:1px 3px;margin:1px 0;font-size:5.9px;line-height:1.03;">
                 <strong>${mark} ${letter})</strong> ${esc(a)}
-            </div>`;
+            </span>`;
         }).join('');
 
-        return `<div style="page-break-inside:avoid;border:1px solid #e2e8f0;border-radius:8px;padding:6px;margin-bottom:5px;">
-            <p style="font-weight:900;font-size:9px;margin:0 0 4px;text-transform:uppercase;color:#1e3a8a;">Domanda ${idx + 1}</p>
-            <p style="font-weight:700;font-size:9px;margin:0 0 5px;line-height:1.2;">${esc(q.q)}</p>
+        return `<div style="page-break-inside:avoid;break-inside:avoid;border:1px solid #e2e8f0;border-radius:5px;padding:3px;margin:0 0 3px;">
+            <p style="font-weight:900;font-size:6.6px;margin:0 0 2px;text-transform:uppercase;color:#1e3a8a;line-height:1.05;">${idx + 1}. ${esc(q.q)}</p>
             ${answers}
         </div>`;
     }).join('');
 
     page.innerHTML = `
-        <div style="border-bottom:3px solid #0f172a;padding-bottom:6px;margin-bottom:8px;display:flex;justify-content:space-between;gap:12px;">
-            <div>
-                <h1 style="font-size:16px;margin:0;font-weight:900;text-transform:uppercase;">${title}</h1>
-                <p style="font-size:8px;margin:3px 0 0;text-transform:uppercase;color:#64748b;font-weight:800;">${subtitle}</p>
+        <div style="border-bottom:2px solid #0f172a;padding-bottom:4px;margin-bottom:5px;display:flex;justify-content:space-between;gap:12px;align-items:flex-start;">
+            <div style="min-width:0;">
+                <h1 style="font-size:14px;margin:0;font-weight:900;text-transform:uppercase;letter-spacing:.02em;">${title}</h1>
+                <p style="font-size:7px;margin:2px 0 0;text-transform:uppercase;color:#64748b;font-weight:800;">${subtitle}</p>
             </div>
-            <div style="text-align:right;font-size:8px;font-weight:800;color:#64748b;">
+            <div style="text-align:right;font-size:7px;font-weight:800;color:#64748b;min-width:70mm;">
                 Progetto: ${esc(window.AppState?.['cfg-codice'] || '')}<br>
                 Data: ${esc(window.formatDataToItalian ? window.formatDataToItalian(window.AppState?.['cfg-data-esame']) : (window.AppState?.['cfg-data-esame'] || ''))}
             </div>
         </div>
-        <div style="border:1px solid #cbd5e1;background:#f8fafc;border-radius:8px;padding:6px;margin-bottom:8px;font-size:9px;display:grid;grid-template-columns:1.1fr 1fr 1fr;gap:6px;">
-            <div><strong>Corso:</strong><br>${esc(c.code || courseId)} · ${esc(c.t || courseId)}</div>
-            <div><strong>Corsista:</strong><br>__________________________________</div>
-            <div><strong>Codice fiscale:</strong><br>__________________________________</div>
+        <div style="border:1px solid #cbd5e1;background:#f8fafc;border-radius:6px;padding:4px;margin-bottom:5px;font-size:7px;display:grid;grid-template-columns:1.4fr 1fr 1fr .55fr;gap:5px;">
+            <div><strong>Corso:</strong> ${esc(c.code || courseId)} · ${esc(c.t || courseId)}</div>
+            <div><strong>Corsista:</strong> __________________________________</div>
+            <div><strong>Codice fiscale:</strong> ______________________________</div>
+            <div><strong>Esito:</strong> ___ / 30</div>
         </div>
-        <div style="columns:2;column-gap:7mm;">${rows}</div>
-        <div style="margin-top:7px;display:flex;justify-content:space-between;font-size:8px;">
-            <div style="width:42%;text-align:center;"><div style="border-bottom:1px solid #334155;height:20px;"></div><strong>Firma corsista</strong></div>
-            <div style="width:42%;text-align:center;"><div style="border-bottom:1px solid #334155;height:20px;"></div><strong>Firma valutatore</strong></div>
+        <div style="columns:3;column-gap:4.5mm;">${rows}</div>
+        <div style="margin-top:4px;display:flex;justify-content:space-between;font-size:7px;">
+            <div style="width:35%;text-align:center;"><div style="border-bottom:1px solid #334155;height:12px;"></div><strong>Firma corsista</strong></div>
+            <div style="width:35%;text-align:center;"><div style="border-bottom:1px solid #334155;height:12px;"></div><strong>Firma valutatore</strong></div>
         </div>`;
 
     if (options.preview) {
         page.classList.add('scale-[0.8]', 'origin-top');
         page.style.margin = '0 auto 16px auto';
     } else {
-        page.classList.add('print-show', 'temp-page', 'portrait');
+        page.classList.add('print-show', 'temp-page', 'landscape-force');
         page.style.margin = '0 auto';
     }
     return page;
@@ -4217,45 +4229,39 @@ window.applyDefaultSignatureInputs = function() {
     }
 };
 
-window.upsertAutoSignatureInParent = function(targetEl, signaturePath, signerName = '') {
-    if (!targetEl || !targetEl.parentElement) return;
-    const parent = targetEl.parentElement;
-    let holder = parent.querySelector('.auto-signature-holder');
+
+window.renderAutoSignatureSlot = function(slot, signaturePath, signerName = '') {
+    if (!slot) return;
+    slot.innerHTML = '';
     if (!signaturePath) {
-        if (holder) holder.remove();
+        slot.classList.add('hidden');
         return;
     }
-    if (!holder) {
-        holder = document.createElement('div');
-        holder.className = 'auto-signature-holder';
-        const img = document.createElement('img');
-        img.className = 'auto-signature-img';
-        img.alt = 'Firma ' + signerName;
-        holder.appendChild(img);
-        parent.insertBefore(holder, parent.firstChild);
-    }
-    const img = holder.querySelector('img');
+    slot.classList.remove('hidden');
+    const img = document.createElement('img');
+    img.className = 'auto-signature-img';
     img.src = signaturePath;
     img.alt = 'Firma ' + signerName;
+    slot.appendChild(img);
 };
 
-window.applyRoleSignatureToSelector = function(selector, role) {
-    document.querySelectorAll(selector).forEach(el => {
-        const name = String(el.textContent || el.innerText || '').trim();
-        const src = window.getAutoSignaturePathByNameAndRole(name, role);
-        window.upsertAutoSignatureInParent(el, src, name);
-    });
+window.getSignatureNameForSlot = function(slot) {
+    const selector = slot?.getAttribute('data-signature-name-selector') || '';
+    const block = slot?.closest('[data-signature-block]') || slot?.parentElement || document;
+    let nameEl = selector ? block.querySelector(selector) : null;
+    if (!nameEl && selector) nameEl = document.querySelector(selector);
+    return String(nameEl?.textContent || nameEl?.innerText || slot?.getAttribute('data-signature-name') || '').trim();
 };
 
 window.applyAutomaticSignatureImages = function() {
-    // Pesce Berardino: Docente e/o Responsabile Progetto e/o Legale Rappresentante
-    window.applyRoleSignatureToSelector('.val-docente-main', 'docente');
-    window.applyRoleSignatureToSelector('.val-resp-progetto', 'resp_progetto');
-    window.applyRoleSignatureToSelector('.val-legale-nome', 'legale');
-
-    // Centrella Alberto: Responsabile del Corso e/o Docente
-    window.applyRoleSignatureToSelector('.val-resp-corso', 'resp_corso');
-    window.applyRoleSignatureToSelector('.val-docente-main', 'docente');
+    // Step 54: le firme automatiche vengono inserite SOLO negli slot firma espliciti.
+    // Non vengono più agganciate a ogni occorrenza del nome nei documenti.
+    document.querySelectorAll('.auto-signature-slot').forEach(slot => {
+        const role = slot.getAttribute('data-signature-role') || '';
+        const name = window.getSignatureNameForSlot(slot);
+        const src = window.getAutoSignaturePathByNameAndRole(name, role);
+        window.renderAutoSignatureSlot(slot, src, name);
+    });
 };
 
 window.updateAll = function() {
