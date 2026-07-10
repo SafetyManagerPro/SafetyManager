@@ -1,0 +1,19 @@
+{
+  "step": 50,
+  "feature": "Responsive, firme responsabili e test manuale/correttore nel progetto formativo",
+  "checks": {
+    "responsive_css_index": true,
+    "responsive_css_file": true,
+    "attestato_no_docente_formatore_signature": true,
+    "attestato_resp_progetto": true,
+    "attestato_resp_corso": true,
+    "progetto_formativo_resp_corso": true,
+    "verbale_no_docente_commissione_signature": true,
+    "verbale_resp_progetto_corso": true,
+    "fascicolo_resp_corso": true,
+    "manual_test_functions": true,
+    "manual_test_added_to_project_formativo": true,
+    "manual_test_preview": true,
+    "print_all_preview_pages": true
+  }
+}

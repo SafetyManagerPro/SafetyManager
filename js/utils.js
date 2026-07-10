@@ -3798,6 +3798,106 @@ window.caricaDatiStampa = async function(projectId = null) {
 // ==========================================
 // STAMPA MULTIPLA ATTESTATI - FIX STEP 26
 // ==========================================
+
+// ==========================================
+// STEP 50 - TEST MANUALE STANDARD DEL CORSO + CORRETTORE
+// ==========================================
+window.getManualTestQuestionsForCourse = function(courseId = '') {
+    const id = String(courseId || '');
+    let pool = [...(window.POOL_GENERALE || [])];
+
+    if (id.includes('basso')) pool = pool.concat(window.POOL_BASSO || []);
+    else if (id.includes('alto') || id.includes('medio')) pool = pool.concat(window.POOL_ALTO || []);
+    else if (id.includes('dirigente') || id.includes('preposto') || id.includes('dl_')) pool = pool.concat(window.POOL_DIRIGENTI || []);
+    else if (id.includes('cantieri') || id.includes('costruzioni')) pool = pool.concat(window.POOL_CANTIERI || []);
+    else if (id.includes('confinati')) pool = pool.concat(window.POOL_CONFINATI || []);
+    else if (id.includes('attr_') || id.includes('attrezzature')) pool = pool.concat(window.POOL_ATTREZZATURE || []);
+
+    const seen = new Set();
+    const unique = [];
+    pool.forEach(q => {
+        const key = String(q?.q || '').trim().toLowerCase();
+        if (!key || seen.has(key)) return;
+        seen.add(key);
+        unique.push(q);
+    });
+
+    // Test uguale per tutti i corsisti del corso richiamato.
+    return unique.slice(0, 15);
+};
+
+window.creaPaginaTestManualeCorso = function(courseId, type = 'blank', options = {}) {
+    const questions = window.getManualTestQuestionsForCourse(courseId);
+    const c = window.DB_CORSI?.[courseId] || {};
+    const esc = window.dashEscape || ((v) => String(v ?? ''));
+    const isCorrected = type === 'corrected';
+    const title = isCorrected ? 'TEST MANUALE - CORRETTORE PER VALUTATORI' : 'TEST MANUALE DA EROGARE AI CORSISTI';
+    const subtitle = isCorrected
+        ? 'Copia interna con risposte corrette evidenziate. Non consegnare ai corsisti.'
+        : 'Test uguale per tutti i corsisti iscritti al progetto formativo. Consegnare una copia per corsista.';
+
+    const page = document.createElement('div');
+    page.className = 'doc-page portrait bg-white';
+    page.style.cssText = 'width:210mm;min-height:296mm;height:296mm;padding:9mm;box-sizing:border-box;margin:0 auto;font-family:Arial,sans-serif;color:#0f172a;overflow:hidden;';
+
+    const rows = questions.map((q, idx) => {
+        const answers = (q.a || []).map((a, ai) => {
+            const ok = q.correct === ai;
+            const letter = String.fromCharCode(65 + ai);
+            const bg = isCorrected && ok ? '#dcfce7' : '#ffffff';
+            const border = isCorrected && ok ? '#22c55e' : '#cbd5e1';
+            const mark = isCorrected && ok ? '✓' : '□';
+            return `<div style="border:1px solid ${border};background:${bg};border-radius:6px;padding:4px 6px;margin:2px 0;font-size:8.5px;line-height:1.15;">
+                <strong>${mark} ${letter})</strong> ${esc(a)}
+            </div>`;
+        }).join('');
+
+        return `<div style="page-break-inside:avoid;border:1px solid #e2e8f0;border-radius:8px;padding:6px;margin-bottom:5px;">
+            <p style="font-weight:900;font-size:9px;margin:0 0 4px;text-transform:uppercase;color:#1e3a8a;">Domanda ${idx + 1}</p>
+            <p style="font-weight:700;font-size:9px;margin:0 0 5px;line-height:1.2;">${esc(q.q)}</p>
+            ${answers}
+        </div>`;
+    }).join('');
+
+    page.innerHTML = `
+        <div style="border-bottom:3px solid #0f172a;padding-bottom:6px;margin-bottom:8px;display:flex;justify-content:space-between;gap:12px;">
+            <div>
+                <h1 style="font-size:16px;margin:0;font-weight:900;text-transform:uppercase;">${title}</h1>
+                <p style="font-size:8px;margin:3px 0 0;text-transform:uppercase;color:#64748b;font-weight:800;">${subtitle}</p>
+            </div>
+            <div style="text-align:right;font-size:8px;font-weight:800;color:#64748b;">
+                Progetto: ${esc(window.AppState?.['cfg-codice'] || '')}<br>
+                Data: ${esc(window.formatDataToItalian ? window.formatDataToItalian(window.AppState?.['cfg-data-esame']) : (window.AppState?.['cfg-data-esame'] || ''))}
+            </div>
+        </div>
+        <div style="border:1px solid #cbd5e1;background:#f8fafc;border-radius:8px;padding:6px;margin-bottom:8px;font-size:9px;display:grid;grid-template-columns:1.1fr 1fr 1fr;gap:6px;">
+            <div><strong>Corso:</strong><br>${esc(c.code || courseId)} · ${esc(c.t || courseId)}</div>
+            <div><strong>Corsista:</strong><br>__________________________________</div>
+            <div><strong>Codice fiscale:</strong><br>__________________________________</div>
+        </div>
+        <div style="columns:2;column-gap:7mm;">${rows}</div>
+        <div style="margin-top:7px;display:flex;justify-content:space-between;font-size:8px;">
+            <div style="width:42%;text-align:center;"><div style="border-bottom:1px solid #334155;height:20px;"></div><strong>Firma corsista</strong></div>
+            <div style="width:42%;text-align:center;"><div style="border-bottom:1px solid #334155;height:20px;"></div><strong>Firma valutatore</strong></div>
+        </div>`;
+
+    if (options.preview) {
+        page.classList.add('scale-[0.8]', 'origin-top');
+        page.style.margin = '0 auto 16px auto';
+    } else {
+        page.classList.add('print-show', 'temp-page', 'portrait');
+        page.style.margin = '0 auto';
+    }
+    return page;
+};
+
+window.renderManualTestCoursePages = function(courseId, options = {}) {
+    return [
+        window.creaPaginaTestManualeCorso(courseId, 'blank', options),
+        window.creaPaginaTestManualeCorso(courseId, 'corrected', options)
+    ];
+};
+
 window.renderPrintModulePages = async function(moduleId, singleCorsista = null, options = {}) {
     const preview = !!options.preview;
     const resp = await fetch(`modules/${moduleId}.html`);
@@ -3837,6 +3937,10 @@ window.renderPrintModulePages = async function(moduleId, singleCorsista = null, 
         }
         return clone;
     });
+
+    if (moduleId === 'progetto_formativo' && typeof window.renderManualTestCoursePages === 'function') {
+        pages.push(...window.renderManualTestCoursePages(window.AppState?.['cfg-corso'] || window.getVal?.('cfg-corso') || '', { preview }));
+    }
 
     holder.remove();
     window.currentPrintModule = prevModule;
@@ -3926,6 +4030,13 @@ window.loadPrintPreview = async function(modulo) {
             return;
         }
 
+        if (modulo === 'progetto_formativo' && typeof window.renderPrintModulePages === 'function') {
+            const pages = await window.renderPrintModulePages('progetto_formativo', null, { preview: true });
+            container.innerHTML = '';
+            pages.forEach(p => container.appendChild(p));
+            return;
+        }
+
         const response = await fetch(`modules/${modulo}.html`);
         if(!response.ok) throw new Error("File del documento non trovato.");
         const html = await response.text();
@@ -3956,21 +4067,22 @@ window.stampaSezioneAttuale = async function() {
     const printArea = document.getElementById('print-area-temp');
     printArea.innerHTML = '';
 
-    const docOriginale = document.querySelector('#print-preview-container .doc-page');
-    if(!docOriginale) return;
+    const docOriginali = document.querySelectorAll('#print-preview-container .doc-page');
+    if(!docOriginali.length) return;
 
     if(window.currentPrintModule === 'esame' && window.currentSessionCorsisti.length > 0) {
         window.preparaEStampaMassiva(window.currentPrintModule);
         return;
     }
 
-    const clone = docOriginale.cloneNode(true);
-    clone.classList.remove('scale-[0.8]', 'origin-top');
-    clone.classList.add('print-show', 'temp-page');
-    if(docOriginale.classList.contains('landscape')) clone.classList.add('landscape-force');
-    else clone.classList.add('portrait');
-
-    printArea.appendChild(clone);
+    docOriginali.forEach(docOriginale => {
+        const clone = docOriginale.cloneNode(true);
+        clone.classList.remove('scale-[0.8]', 'origin-top');
+        clone.classList.add('print-show', 'temp-page');
+        if(docOriginale.classList.contains('landscape')) clone.classList.add('landscape-force');
+        else clone.classList.add('portrait');
+        printArea.appendChild(clone);
+    });
 
     document.body.classList.add('is-printing-temp');
     setTimeout(() => { 

@@ -70,3 +70,17 @@ body { background-color: #f8fafc; color: #1e293b; }
 .correct-answer.show-correct { background-color: #dcfce7; color: #065f46; font-weight: bold; border-radius: 4px; padding: 2px 4px; }
 aside::-webkit-scrollbar { width: 6px; }
 aside::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 4px; }
+
+
+/* STEP 50 - ampiezza video adattiva */
+@media screen {
+    #app-content { width: 100% !important; max-width: none !important; }
+    #app-content > div[class*="max-w-"] { max-width: min(98vw, 1920px) !important; width: 100% !important; }
+    @media (min-width: 1536px) {
+        #app-content > div[class*="max-w-"] { max-width: min(98vw, 2200px) !important; }
+    }
+    @media (max-width: 1024px) {
+        #app-content > div[class*="max-w-"] { max-width: 100% !important; margin-left: 0 !important; margin-right: 0 !important; }
+    }
+}
+
