@@ -5,9 +5,9 @@
 
 // Step 54: test digitale disattivato nel PDF unico progetto. Si usano solo test manuali cartacei generati dal Progetto Formativo.
 
-window.renderPrintModuleToTemp = async function(moduleId, singleCorsista = null) {
+window.renderPrintModuleToTemp = async function(moduleId, singleCorsista = null, options = {}) {
     if (typeof window.renderPrintModulePages === 'function') {
-        return await window.renderPrintModulePages(moduleId, singleCorsista, { preview: false });
+        return await window.renderPrintModulePages(moduleId, singleCorsista, { preview: false, ...options });
     }
 
     const resp = await fetch(`modules/${moduleId}.html`);
@@ -66,7 +66,9 @@ window.stampaFascicoloCompletoPDF = async function(projectId = null) {
         const allPages = [];
 
         for (const m of docs) {
-            const pages = await window.renderPrintModuleToTemp(m, null);
+            const pages = await window.renderPrintModuleToTemp(m, null, {
+                includeFascicoloTests: m === 'fascicolo_corso' ? false : true
+            });
             allPages.push(...pages);
         }
 

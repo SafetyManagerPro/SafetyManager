@@ -3992,6 +3992,12 @@ window.renderPrintModulePages = async function(moduleId, singleCorsista = null, 
         pages.push(...window.renderManualTestCoursePages(courseId, { preview, session: sessionSnapshot }));
     }
 
+    if (moduleId === 'fascicolo_corso' && options.includeFascicoloTests !== false && typeof window.renderManualTestCoursePages === 'function') {
+        const courseId = window.AppState?.['cfg-corso'] || window.getVal?.('cfg-corso') || '';
+        const sessionSnapshot = [...(window.currentSessionCorsisti || [])];
+        pages.push(...window.renderManualTestCoursePages(courseId, { preview, session: sessionSnapshot }));
+    }
+
     holder.remove();
     window.currentPrintModule = prevModule;
     window.currentSessionCorsisti = prevSession;
@@ -4080,8 +4086,8 @@ window.loadPrintPreview = async function(modulo) {
             return;
         }
 
-        if (modulo === 'progetto_formativo' && typeof window.renderPrintModulePages === 'function') {
-            const pages = await window.renderPrintModulePages('progetto_formativo', null, { preview: true });
+        if ((modulo === 'progetto_formativo' || modulo === 'fascicolo_corso') && typeof window.renderPrintModulePages === 'function') {
+            const pages = await window.renderPrintModulePages(modulo, null, { preview: true });
             container.innerHTML = '';
             pages.forEach(p => container.appendChild(p));
             return;

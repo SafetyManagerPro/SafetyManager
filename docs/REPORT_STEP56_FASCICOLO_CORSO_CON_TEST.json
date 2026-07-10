@@ -1,0 +1,12 @@
+{
+  "step": 56,
+  "feature": "Fascicolo corso con test corsisti e correttore",
+  "checks": {
+    "fascicolo_corso_appends_tests": true,
+    "fascicolo_preview_includes_tests": true,
+    "pdf_unico_avoids_duplicate_tests": true,
+    "renderPrintModuleToTemp_options": true,
+    "manual_tests_still_per_corsista": true,
+    "single_corrector_still_present": true
+  }
+}
