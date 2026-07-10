@@ -3813,6 +3813,7 @@ window.caricaDatiStampa = async function(projectId = null) {
 // STEP 50 - TEST MANUALE STANDARD DEL CORSO + CORRETTORE
 // ==========================================
 
+
 window.getManualTestQuestionsForCourse = function(courseId = '') {
     const id = String(courseId || '');
     let pool = [...(window.POOL_GENERALE || [])];
@@ -3844,8 +3845,17 @@ window.getManualTestQuestionsForCourse = function(courseId = '') {
         unique.push(q);
     });
 
-    // Step 54: test manuale unico per corso, 30 quesiti su un solo foglio.
+    // Test manuale unico per corso, 30 quesiti su un solo foglio.
     return unique.slice(0, 30);
+};
+
+window.getManualTestCorsistaLabel = function(corsista = null) {
+    if (!corsista) return { nome: '__________________________________', cf: '______________________________', mansione: '' };
+    return {
+        nome: corsista.nome || corsista.nome_cognome || '__________________________________',
+        cf: corsista.cf || '',
+        mansione: corsista.mansione || corsista.mansione_storica || ''
+    };
 };
 
 window.creaPaginaTestManualeCorso = function(courseId, type = 'blank', options = {}) {
@@ -3853,14 +3863,17 @@ window.creaPaginaTestManualeCorso = function(courseId, type = 'blank', options =
     const c = window.DB_CORSI?.[courseId] || {};
     const esc = window.dashEscape || ((v) => String(v ?? ''));
     const isCorrected = type === 'corrected';
+    const corsista = window.getManualTestCorsistaLabel(options.corsista || null);
     const title = isCorrected ? 'TEST MANUALE - CORRETTORE PER VALUTATORI' : 'TEST MANUALE DA EROGARE AI CORSISTI - 30 QUESITI';
     const subtitle = isCorrected
-        ? 'Copia interna con risposte corrette evidenziate. Non consegnare ai corsisti.'
-        : 'Test cartaceo uguale per tutti i corsisti iscritti al progetto formativo. Una copia per corsista.';
+        ? 'Allegato al progetto formativo: copia interna con risposte corrette evidenziate per aiutare i valutatori nella correzione.'
+        : 'Allegato al progetto formativo: copia cartacea da stampare, consegnare al corsista, far compilare e poi correggere/verificare.';
 
     const page = document.createElement('div');
     page.className = 'doc-page landscape bg-white';
-    page.style.cssText = 'width:296mm;min-height:209mm;height:209mm;padding:6mm;box-sizing:border-box;margin:0 auto;font-family:Arial,sans-serif;color:#0f172a;overflow:hidden;';
+    page.dataset.manualTestPage = isCorrected ? 'corrected' : 'blank';
+    if (!isCorrected && options.corsista) page.dataset.corsistaId = options.corsista.corsista_id || options.corsista.id || '';
+    page.style.cssText = 'width:296mm;min-height:209mm;height:209mm;padding:5mm;box-sizing:border-box;margin:0 auto;font-family:Arial,sans-serif;color:#0f172a;overflow:hidden;';
 
     const rows = questions.map((q, idx) => {
         const answers = (q.a || []).map((a, ai) => {
@@ -3869,38 +3882,40 @@ window.creaPaginaTestManualeCorso = function(courseId, type = 'blank', options =
             const bg = isCorrected && ok ? '#dcfce7' : '#ffffff';
             const border = isCorrected && ok ? '#16a34a' : '#cbd5e1';
             const mark = isCorrected && ok ? '✓' : '□';
-            return `<span style="display:block;border:1px solid ${border};background:${bg};border-radius:4px;padding:1px 3px;margin:1px 0;font-size:5.9px;line-height:1.03;">
+            return `<span style="display:block;border:1px solid ${border};background:${bg};border-radius:4px;padding:1px 3px;margin:1px 0;font-size:5.55px;line-height:1.0;">
                 <strong>${mark} ${letter})</strong> ${esc(a)}
             </span>`;
         }).join('');
 
-        return `<div style="page-break-inside:avoid;break-inside:avoid;border:1px solid #e2e8f0;border-radius:5px;padding:3px;margin:0 0 3px;">
-            <p style="font-weight:900;font-size:6.6px;margin:0 0 2px;text-transform:uppercase;color:#1e3a8a;line-height:1.05;">${idx + 1}. ${esc(q.q)}</p>
+        return `<div style="page-break-inside:avoid;break-inside:avoid;border:1px solid #e2e8f0;border-radius:5px;padding:2.3px;margin:0 0 2.4px;">
+            <p style="font-weight:900;font-size:6.25px;margin:0 0 1.6px;text-transform:uppercase;color:#1e3a8a;line-height:1.0;">${idx + 1}. ${esc(q.q)}</p>
             ${answers}
         </div>`;
     }).join('');
 
+    const corsistaBox = isCorrected
+        ? `<div><strong>Uso:</strong> copia corretta per valutatori</div><div><strong>Risposte:</strong> evidenziate in verde</div><div><strong>Esito minimo:</strong> ___ / 30</div>`
+        : `<div><strong>Corsista:</strong> ${esc(corsista.nome)}</div><div><strong>Codice fiscale:</strong> ${esc(corsista.cf || '______________________________')}</div><div><strong>Esito:</strong> ___ / 30</div>`;
+
     page.innerHTML = `
-        <div style="border-bottom:2px solid #0f172a;padding-bottom:4px;margin-bottom:5px;display:flex;justify-content:space-between;gap:12px;align-items:flex-start;">
+        <div style="border-bottom:2px solid #0f172a;padding-bottom:3.5px;margin-bottom:4px;display:flex;justify-content:space-between;gap:10px;align-items:flex-start;">
             <div style="min-width:0;">
-                <h1 style="font-size:14px;margin:0;font-weight:900;text-transform:uppercase;letter-spacing:.02em;">${title}</h1>
-                <p style="font-size:7px;margin:2px 0 0;text-transform:uppercase;color:#64748b;font-weight:800;">${subtitle}</p>
+                <h1 style="font-size:13px;margin:0;font-weight:900;text-transform:uppercase;letter-spacing:.02em;">${title}</h1>
+                <p style="font-size:6.5px;margin:2px 0 0;text-transform:uppercase;color:#64748b;font-weight:800;">${subtitle}</p>
             </div>
-            <div style="text-align:right;font-size:7px;font-weight:800;color:#64748b;min-width:70mm;">
+            <div style="text-align:right;font-size:6.5px;font-weight:800;color:#64748b;min-width:66mm;">
                 Progetto: ${esc(window.AppState?.['cfg-codice'] || '')}<br>
                 Data: ${esc(window.formatDataToItalian ? window.formatDataToItalian(window.AppState?.['cfg-data-esame']) : (window.AppState?.['cfg-data-esame'] || ''))}
             </div>
         </div>
-        <div style="border:1px solid #cbd5e1;background:#f8fafc;border-radius:6px;padding:4px;margin-bottom:5px;font-size:7px;display:grid;grid-template-columns:1.4fr 1fr 1fr .55fr;gap:5px;">
+        <div style="border:1px solid #cbd5e1;background:#f8fafc;border-radius:6px;padding:3.5px;margin-bottom:4px;font-size:6.6px;display:grid;grid-template-columns:1.25fr 1fr 1fr .55fr;gap:4px;">
             <div><strong>Corso:</strong> ${esc(c.code || courseId)} · ${esc(c.t || courseId)}</div>
-            <div><strong>Corsista:</strong> __________________________________</div>
-            <div><strong>Codice fiscale:</strong> ______________________________</div>
-            <div><strong>Esito:</strong> ___ / 30</div>
+            ${corsistaBox}
         </div>
-        <div style="columns:3;column-gap:4.5mm;">${rows}</div>
-        <div style="margin-top:4px;display:flex;justify-content:space-between;font-size:7px;">
-            <div style="width:35%;text-align:center;"><div style="border-bottom:1px solid #334155;height:12px;"></div><strong>Firma corsista</strong></div>
-            <div style="width:35%;text-align:center;"><div style="border-bottom:1px solid #334155;height:12px;"></div><strong>Firma valutatore</strong></div>
+        <div style="columns:3;column-gap:4mm;">${rows}</div>
+        <div style="margin-top:3px;display:flex;justify-content:space-between;font-size:6.7px;">
+            <div style="width:35%;text-align:center;"><div style="border-bottom:1px solid #334155;height:10px;"></div><strong>Firma corsista</strong></div>
+            <div style="width:35%;text-align:center;"><div style="border-bottom:1px solid #334155;height:10px;"></div><strong>Firma valutatore</strong></div>
         </div>`;
 
     if (options.preview) {
@@ -3914,10 +3929,21 @@ window.creaPaginaTestManualeCorso = function(courseId, type = 'blank', options =
 };
 
 window.renderManualTestCoursePages = function(courseId, options = {}) {
-    return [
-        window.creaPaginaTestManualeCorso(courseId, 'blank', options),
-        window.creaPaginaTestManualeCorso(courseId, 'corrected', options)
-    ];
+    const session = [...(options.session || window.currentSessionCorsisti || [])];
+    const pages = [];
+
+    // Una copia compilabile per ogni corsista iscritto: così nel PDF unico ci sono già i fogli da stampare/consegnare.
+    if (session.length) {
+        session.forEach(corsista => {
+            pages.push(window.creaPaginaTestManualeCorso(courseId, 'blank', { ...options, corsista }));
+        });
+    } else {
+        pages.push(window.creaPaginaTestManualeCorso(courseId, 'blank', options));
+    }
+
+    // Un solo correttore allegato al progetto formativo, utile ai valutatori.
+    pages.push(window.creaPaginaTestManualeCorso(courseId, 'corrected', options));
+    return pages;
 };
 
 window.renderPrintModulePages = async function(moduleId, singleCorsista = null, options = {}) {
@@ -3961,7 +3987,9 @@ window.renderPrintModulePages = async function(moduleId, singleCorsista = null, 
     });
 
     if (moduleId === 'progetto_formativo' && typeof window.renderManualTestCoursePages === 'function') {
-        pages.push(...window.renderManualTestCoursePages(window.AppState?.['cfg-corso'] || window.getVal?.('cfg-corso') || '', { preview }));
+        const courseId = window.AppState?.['cfg-corso'] || window.getVal?.('cfg-corso') || '';
+        const sessionSnapshot = [...(window.currentSessionCorsisti || [])];
+        pages.push(...window.renderManualTestCoursePages(courseId, { preview, session: sessionSnapshot }));
     }
 
     holder.remove();

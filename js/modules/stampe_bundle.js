@@ -71,9 +71,20 @@ window.stampaFascicoloCompletoPDF = async function(projectId = null) {
         }
 
         const backupSession = [...(window.currentSessionCorsisti || [])];
+
+        // Verifica di sicurezza Step 55: il PDF unico deve contenere sempre i test manuali
+        // da far compilare ai corsisti e il correttore allegato al progetto formativo.
+        const hasManualTests = allPages.some(p => p?.dataset?.manualTestPage);
+        if (!hasManualTests && typeof window.renderManualTestCoursePages === 'function') {
+            allPages.push(...window.renderManualTestCoursePages(window.AppState?.['cfg-corso'] || '', { preview: false, session: backupSession }));
+        }
+
+        const blankTests = allPages.filter(p => p?.dataset?.manualTestPage === 'blank').length;
+        const correctedTests = allPages.filter(p => p?.dataset?.manualTestPage === 'corrected').length;
+
         allPages.forEach(p => printArea.appendChild(p));
 
-        alert(`Ora si aprirà la stampa. Seleziona "Salva come PDF" per salvare sul PC il PDF unico progetto con test manuale cartaceo e correttore. Gli attestati NON sono inclusi: usa il pulsante "PDF solo attestati". Corsisti: ${backupSession.length}.`);
+        alert(`Ora si aprirà la stampa. Seleziona "Salva come PDF" per salvare sul PC il PDF unico progetto. Sono inclusi ${blankTests} test manuali da consegnare ai corsisti e ${correctedTests} correttore/i per i valutatori. Gli attestati NON sono inclusi: usa il pulsante "PDF solo attestati". Corsisti: ${backupSession.length}.`);
         document.body.classList.add('is-printing-temp');
         setTimeout(() => {
             window.print();
