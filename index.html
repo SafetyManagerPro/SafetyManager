@@ -84,6 +84,30 @@
     }
 }
 
+
+/* STEP 51 - firme PNG trasparenti auto-richiamate */
+.auto-signature-holder {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0 auto 0.1rem auto;
+    min-height: 1.2rem;
+    pointer-events: none;
+}
+.auto-signature-img {
+    max-width: min(100%, 180px);
+    max-height: 52px;
+    object-fit: contain;
+    opacity: 0.96;
+    mix-blend-mode: multiply;
+    filter: contrast(1.05);
+    image-rendering: auto;
+}
+.doc-page .auto-signature-img {
+    max-width: 42mm;
+    max-height: 13mm;
+}
+
         /* --- Stili Pulsanti Navbar --- */
         .btn-tab { position: relative; transition: all 0.3s ease; }
         .btn-tab.active { background-color: #1e293b !important; color: #ffffff !important; }
