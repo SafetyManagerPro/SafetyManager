@@ -325,6 +325,101 @@
 
             .print-show { display: block !important; }
         }
+
+/* STEP 59 - PDF leggibile a pagina piena, senza riduzioni/rotazioni */
+@media print {
+    @page portraitPageFull { size: A4 portrait; margin: 0mm; }
+    @page landscapePageFull { size: A4 landscape; margin: 0mm; }
+
+    body.is-printing-temp {
+        background: #ffffff !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    body.is-printing-temp #print-area-temp {
+        display: block !important;
+        position: static !important;
+        left: auto !important;
+        top: auto !important;
+        width: auto !important;
+        max-width: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #ffffff !important;
+        z-index: auto !important;
+    }
+
+    body.is-printing-temp #print-area-temp .doc-page {
+        transform: none !important;
+        scale: 1 !important;
+        zoom: 1 !important;
+        box-shadow: none !important;
+        border: 0 !important;
+        margin: 0 auto !important;
+        box-sizing: border-box !important;
+        overflow: hidden !important;
+        background: #ffffff !important;
+        page-break-after: always !important;
+        break-after: page !important;
+        position: relative !important;
+    }
+
+    body.is-printing-temp #print-area-temp .doc-page:not(.landscape-force):not(.manual-test-page) {
+        page: portraitPageFull !important;
+        width: 210mm !important;
+        height: 297mm !important;
+        min-height: 297mm !important;
+        max-height: 297mm !important;
+    }
+
+    body.is-printing-temp #print-area-temp .doc-page.landscape-force,
+    body.is-printing-temp #print-area-temp .doc-page.manual-test-page {
+        page: landscapePageFull !important;
+        width: 297mm !important;
+        height: 210mm !important;
+        min-height: 210mm !important;
+        max-height: 210mm !important;
+        padding: 0 !important;
+        transform: none !important;
+        position: relative !important;
+        display: block !important;
+    }
+
+    body.is-printing-temp #print-area-temp .manual-test-inner {
+        width: 297mm !important;
+        height: 210mm !important;
+        padding: 6mm !important;
+        box-sizing: border-box !important;
+        display: flex !important;
+        flex-direction: column !important;
+        overflow: hidden !important;
+    }
+
+    body.is-printing-temp #print-area-temp .manual-test-grid {
+        flex: 1 1 auto !important;
+        min-height: 0 !important;
+        display: grid !important;
+        grid-template-rows: repeat(10, 1fr) !important;
+        grid-auto-flow: column !important;
+        grid-auto-columns: 1fr !important;
+        gap: 1.15mm 2.3mm !important;
+    }
+
+    body.is-printing-temp #print-area-temp .manual-test-question {
+        overflow: hidden !important;
+        box-sizing: border-box !important;
+    }
+
+    body.is-printing-temp #print-area-temp .manual-test-page:last-child,
+    body.is-printing-temp #print-area-temp .doc-page:last-child {
+        page-break-after: auto !important;
+        break-after: auto !important;
+    }
+}
+
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800">
