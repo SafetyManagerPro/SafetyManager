@@ -1802,6 +1802,7 @@ window.calcolaDettagliProgetto = function() {
     const corsoId = document.getElementById('prog-corso').value;
     window.renderComplianceProgetto(corsoId);
     if (typeof window.renderProgettoDraftCorsistiControls === 'function') window.renderProgettoDraftCorsistiControls();
+    if (typeof window.refreshFabbisogniForCompany === 'function') window.refreshFabbisogniForCompany();
     const dataInizioRaw = document.getElementById('prog-inizio').value;
     if (!corsoId || !dataInizioRaw) return;
 
@@ -2019,8 +2020,12 @@ window.markProjectPopupFieldError = function(selector) {
 
 window.collectProjectFormSnapshot = function(projectId) {
     const original = (window.progettiList || []).find(x => x.id === projectId) || {};
+    const fabbisogniSnapshot = typeof window.collectFabbisogniProjectRecord === 'function'
+        ? window.collectFabbisogniProjectRecord()
+        : {};
     return {
         ...original,
+        ...fabbisogniSnapshot,
         id: projectId || document.getElementById('prog-id')?.value || original.id,
         azienda_id: document.getElementById('prog-azienda')?.value || '',
         ente_erogatore: document.getElementById('prog-erogatore')?.value || 'ente',
@@ -2578,6 +2583,21 @@ window.getProjectQualityItems = function(p = {}, iscritti = []) {
         actionLabel: p.azienda_id ? 'Apri azienda' : 'Seleziona azienda'
     });
 
+    const fabStatus = typeof window.getFabbisogniStatus === 'function'
+        ? window.getFabbisogniStatus(p)
+        : { completed: 0, total: 6, ready: false };
+    const selectedRisks = window.step60Array ? window.step60Array(p.rischi_selezionati) : [];
+    items.push({
+        key: 'fabbisogni',
+        title: 'Fabbisogni / rischi',
+        status: fabStatus.ready ? 'complete' : (fabStatus.completed ? 'info' : 'attention'),
+        detail: fabStatus.ready
+            ? `Analisi compilata · ${selectedRisks.length} rischi selezionati.`
+            : `Compilati ${fabStatus.completed}/${fabStatus.total} campi principali · ${selectedRisks.length} rischi selezionati.`,
+        action: `window.handleProjectQualityAction('${p.id}', 'fabbisogni')`,
+        actionLabel: 'Apri analisi'
+    });
+
     items.push({
         key: 'docenti',
         title: 'Docenti / unità didattiche',
@@ -2729,10 +2749,19 @@ window.handleProjectQualityAction = async function(projectId, key, mode = 'deskt
         return;
     }
 
+    if (key === 'fabbisogni') {
+        if (!isPopup) await window.apriPopupProgettoById(projectId, 'progetti');
+        const panel = document.getElementById('prog-fabbisogni-panel');
+        if (panel) panel.open = true;
+        focusField('#prog-fabbisogni-panel');
+        return;
+    }
+
     if (isPopup) {
         const fields = {
             dati: '#prog-codice, #prog-corso, #prog-inizio, #prog-esame, #prog-modalita, #prog-sede',
             azienda: '#prog-azienda',
+            fabbisogni: '#prog-fabbisogni-panel',
             docenti: '#prog-docenti-container, .prog-docente-ud',
             compliance: '#prog-compliance-note-free, #prog-erogatore, #prog-validazione-esito, #prog-op-esito',
             chiusura: '#prog-stato-corso, #prog-documenti-url, #prog-chiuso-at, #prog-note-chiusura'
@@ -2880,6 +2909,10 @@ window.renderProjectDesktopRows = function(p, iscritti, issues) {
     const chiusuraBadge = p.stato_corso === 'chiuso'
         ? '<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-slate-950 text-white border border-slate-600 font-black text-[8px] uppercase">Chiuso</span>'
         : (p.stato_corso === 'svolto' ? '<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-300 text-amber-950 border border-amber-400 font-black text-[8px] uppercase">Da chiudere</span>' : '');
+    const fabStatus = typeof window.getFabbisogniStatus === 'function' ? window.getFabbisogniStatus(p) : { ready: false };
+    const fabBadge = fabStatus.ready
+        ? '<span class="inline-block mt-1 ml-1 px-1.5 py-0.5 rounded bg-cyan-200 text-cyan-950 font-black text-[8px] uppercase">Fabbisogni verificati</span>'
+        : '<span class="inline-block mt-1 ml-1 px-1.5 py-0.5 rounded bg-slate-700 text-cyan-100 border border-cyan-700 font-black text-[8px] uppercase">Fabbisogni da completare</span>';
     const qualityDashboard = window.renderProjectQualityDashboard ? window.renderProjectQualityDashboard(p, iscritti, 'desktop') : '';
     const projectMarker = `${window.dashEscape(p.codice || 'Progetto')} · ${window.dashEscape(nomeAzienda || '')} · ${window.formatDataToItalian(p.data_esame)}`;
 
@@ -2917,7 +2950,7 @@ window.renderProjectDesktopRows = function(p, iscritti, issues) {
                 <div class="rounded-xl border-2 border-amber-300 bg-amber-400 p-3 mt-2 shadow-md shadow-amber-950/20">
                     <p class="text-[8px] font-black uppercase tracking-widest text-amber-950 mb-1">Azienda committente</p>
                     <p class="font-black text-xs text-slate-950 uppercase leading-tight">${window.dashEscape(nomeAzienda || '')}</p>
-                    ${erogatoreBadge}
+                    ${erogatoreBadge}${fabBadge}
                 </div>
             </td>
             <td class="p-3 border-b border-slate-700 font-bold text-center text-slate-200 align-top">${window.formatDataToItalian(p.data_esame)}</td>
@@ -2955,6 +2988,10 @@ window.renderProjectMobileCard = function(p, iscritti, issues) {
     const chiusuraBadge = p.stato_corso === 'chiuso'
         ? '<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-slate-950 text-white border border-slate-600 font-black text-[8px] uppercase">Chiuso</span>'
         : (p.stato_corso === 'svolto' ? '<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-300 text-amber-950 border border-amber-400 font-black text-[8px] uppercase">Da chiudere</span>' : '');
+    const fabStatus = typeof window.getFabbisogniStatus === 'function' ? window.getFabbisogniStatus(p) : { ready: false };
+    const fabBadge = fabStatus.ready
+        ? '<span class="inline-flex px-2 py-1 rounded-full bg-cyan-200 text-cyan-950 font-black text-[8px] uppercase">Fabbisogni verificati</span>'
+        : '<span class="inline-flex px-2 py-1 rounded-full bg-slate-700 text-cyan-100 border border-cyan-700 font-black text-[8px] uppercase">Fabbisogni da completare</span>';
     const qualityDashboard = window.renderProjectQualityDashboard ? window.renderProjectQualityDashboard(p, iscritti, 'mobile') : '';
 
     return `<article class="mt-10 rounded-2xl border-8 border-yellow-300 bg-slate-900 shadow-2xl shadow-yellow-950/30 overflow-hidden" data-corso="${p.corso_id}" data-azienda="${p.azienda_id || ''}" data-mobile-project-id="${p.id}" data-project-id="${p.id}">
@@ -2967,7 +3004,7 @@ window.renderProjectMobileCard = function(p, iscritti, issues) {
             <div class="min-w-0">
                 <button onclick="window.apriPopupProgettoById('${p.id}', 'progetti')" class="font-mono text-rose-300 font-black text-xs hover:underline">${window.dashEscape(p.codice || '')}</button>
                 <p class="text-[10px] text-slate-400 font-bold uppercase mt-1">Esame: ${window.formatDataToItalian(p.data_esame)}</p>
-                <div class="flex flex-wrap gap-1 mt-2">${statoBadge}${chiusuraBadge}</div>
+                <div class="flex flex-wrap gap-1 mt-2">${statoBadge}${chiusuraBadge}${fabBadge}</div>
             </div>
             <div class="flex gap-2 shrink-0">
                 <button onclick="window.apriPopupProgettoById('${p.id}', 'progetti')" class="text-white bg-blue-600 hover:bg-blue-500 p-2 rounded-lg" title="Modifica progetto"><i data-lucide="edit" class="w-4 h-4"></i></button>
@@ -3069,6 +3106,7 @@ window.loadProgettiTable = async function() {
     }
     if (tbody) tbody.innerHTML = tableHtml;
     if (mobileBox) mobileBox.innerHTML = mobileHtml;
+    if (typeof window.initFabbisogniProjectForm === 'function') window.initFabbisogniProjectForm();
     if(typeof lucide !== 'undefined') lucide.createIcons();
 };
 
@@ -3203,7 +3241,8 @@ window.salvaProgettoDB = async function() {
         stato_corso: statoCorso || 'aperto',
         documenti_firmati_url: documentiFirmatiUrl || null,
         chiuso_at: statoCorso === 'chiuso' ? (chiusoAt || new Date().toISOString().slice(0,10)) : (chiusoAt || null),
-        note_chiusura: noteChiusura || null
+        note_chiusura: noteChiusura || null,
+        ...(typeof window.collectFabbisogniProjectRecord === 'function' ? window.collectFabbisogniProjectRecord() : {})
     };
     if (id && id !== "") record.id = id;
 
@@ -3218,7 +3257,7 @@ window.salvaProgettoDB = async function() {
         window.resetFormProgetto();
         if (wasPopup && typeof window.chiudiPopupProgetto === 'function') window.chiudiPopupProgetto();
         await window.reloadLinkedViewsAfterMutation('progetto', { projectId: savedProject?.id || record.id });
-    } else alert("Errore nel salvataggio del progetto formativo. Verifica di aver applicato tutte le migration Supabase, inclusa quella Step 5 per validazione CNA/OPTA.");
+    } else alert("Errore nel salvataggio del progetto formativo. Verifica di aver applicato tutte le migration Supabase, inclusa la migration Step 60 per fabbisogni e schede rischi.");
 };
 
 
@@ -3265,6 +3304,7 @@ window.modificaProgetto = function(id) {
     set('prog-documenti-url', p.documenti_firmati_url || '');
     set('prog-chiuso-at', p.chiuso_at || '');
     set('prog-note-chiusura', p.note_chiusura || '');
+    if (typeof window.populateFabbisogniProjectForm === 'function') window.populateFabbisogniProjectForm(p);
 
     if(document.getElementById('prog-omogeneita-aula')) {
         document.getElementById('prog-omogeneita-aula').checked = p.omogeneita_aula !== false;
@@ -3321,6 +3361,7 @@ window.resetFormProgetto = function() {
     if(document.getElementById('prog-documenti-url')) document.getElementById('prog-documenti-url').value = '';
     if(document.getElementById('prog-chiuso-at')) document.getElementById('prog-chiuso-at').value = '';
     if(document.getElementById('prog-note-chiusura')) document.getElementById('prog-note-chiusura').value = '';
+    if (typeof window.resetFabbisogniProjectForm === 'function') window.resetFabbisogniProjectForm();
     window.progettoDraftCorsistiIds = [];
     if (typeof window.renderProgettoDraftCorsistiControls === 'function') window.renderProgettoDraftCorsistiControls();
     if(typeof window.syncValidazioneCNAUI === 'function') window.syncValidazioneCNAUI();
@@ -3757,8 +3798,10 @@ window.caricaDatiStampa = async function(projectId = null, options = {}) {
     window.AppState['cfg-sede-corso'] = p.sede;
     
     window.AppState['cfg-azienda'] = p.aziende ? p.aziende.ragione_sociale : "";
+    window.AppState['cfg-azienda-piva'] = p.aziende ? p.aziende.piva_cf : "";
     window.AppState['cfg-ateco'] = p.aziende ? p.aziende.ateco : "";
     window.AppState['cfg-azienda-indirizzo'] = p.aziende ? p.aziende.indirizzo : "";
+    window.AppState['cfg-azienda-sede-operativa'] = p.aziende ? p.aziende.sede_operativa : "";
     window.AppState['cfg-azienda-referente'] = p.aziende ? p.aziende.referente : "";
 
     window.AppState['cfg-ente-erogatore'] = p.ente_erogatore || 'ente';
@@ -3778,6 +3821,7 @@ window.caricaDatiStampa = async function(projectId = null, options = {}) {
     window.AppState['cfg-op-comunicazione'] = p.comunicazione_op_at || "";
     window.AppState['cfg-op-destinatario'] = p.organismo_destinatario || window.DEFAULT_OP_DESTINATARIO;
     window.AppState['cfg-validazione-note'] = p.note_validazione_ente || "";
+    if (typeof window.setFabbisogniPrintState === 'function') window.setFabbisogniPrintState(p);
 
     window.currentProgettoStampaId = progId;
     window.currentSessionCorsisti = iscritti.map(isc => {
@@ -4023,6 +4067,12 @@ window.renderPrintModulePages = async function(moduleId, singleCorsista = null, 
         return clone;
     });
 
+    if ((moduleId === 'progetto_formativo' || moduleId === 'fascicolo_corso') &&
+        options.includeNeedsRiskAnnexes !== false &&
+        typeof window.renderNeedsRiskAnnexPages === 'function') {
+        pages.push(...await window.renderNeedsRiskAnnexPages({ preview }));
+    }
+
     if (moduleId === 'progetto_formativo' && options.includeProjectFormativoTests !== false && typeof window.renderManualTestCoursePages === 'function') {
         const courseId = window.AppState?.['cfg-corso'] || window.getVal?.('cfg-corso') || '';
         const sessionSnapshot = [...(window.currentSessionCorsisti || [])];
@@ -4101,6 +4151,19 @@ window.stampaAttestatiMultipli = async function() {
 };
 
 
+window.adjustPrintPreviewCanvas = function(container) {
+    if (!container) return;
+    const hasLandscape = !!container.querySelector('.doc-page.landscape, .doc-page.landscape-force, .manual-test-page');
+    container.style.width = hasLandscape ? '297mm' : '210mm';
+    container.style.maxWidth = 'none';
+    const viewport = container.parentElement;
+    if (viewport) {
+        viewport.classList.remove('overflow-hidden');
+        viewport.classList.add('overflow-auto');
+        viewport.style.justifyContent = hasLandscape ? 'flex-start' : 'center';
+    }
+};
+
 window.loadPrintPreview = async function(modulo) {
     const progId = document.getElementById('stampa-progetto')?.value;
     if(!progId) return alert("Seleziona prima un Progetto dal menu a tendina!");
@@ -4127,6 +4190,7 @@ window.loadPrintPreview = async function(modulo) {
             const pages = await window.renderPrintModulePages(modulo, null, { preview: true });
             container.innerHTML = '';
             pages.forEach(p => container.appendChild(p));
+            window.adjustPrintPreviewCanvas(container);
             return;
         }
 
@@ -4143,6 +4207,7 @@ window.loadPrintPreview = async function(modulo) {
         if (typeof window.updateAll === 'function') {
             window.updateAll();
         }
+        window.adjustPrintPreviewCanvas(container);
     } catch (error) {
         container.innerHTML = `<p class="text-red-500 font-bold">${error.message}</p>`;
     }
@@ -4470,6 +4535,9 @@ window.updateAll = function() {
     const sedeToDisplay = window.getVal('cfg-sede-corso') || window.getVal('cfg-azienda-indirizzo') || "Sede Aziendale";
     document.querySelectorAll('.val-ente').forEach(el => el.innerText = isAzienda ? (window.getVal('cfg-azienda') || "---") : (window.getVal('cfg-ente') || "---"));
     document.querySelectorAll('.val-azienda').forEach(el => el.innerText = window.getVal('cfg-azienda'));
+    document.querySelectorAll('.val-azienda-piva').forEach(el => el.innerText = window.getVal('cfg-azienda-piva') || '---');
+    document.querySelectorAll('.val-azienda-sede-operativa').forEach(el => el.innerText = window.getVal('cfg-azienda-sede-operativa') || '---');
+    document.querySelectorAll('.val-azienda-referente').forEach(el => el.innerText = window.getVal('cfg-azienda-referente') || '---');
     document.querySelectorAll('.val-ateco').forEach(el => el.innerText = window.getVal('cfg-ateco'));
     document.querySelectorAll('.val-titolo-corso').forEach(el => el.innerText = c.t);
     document.querySelectorAll('.val-ore-corso').forEach(el => el.innerText = c.ore + " ORE");
@@ -4569,6 +4637,7 @@ window.updateAll = function() {
             window.aggiornaTabelleSessione();
         }
     }
+    if (typeof window.applyFabbisogniPrintFields === 'function') window.applyFabbisogniPrintFields();
     if (typeof window.applyAutomaticSignatureImages === 'function') window.applyAutomaticSignatureImages();
 };
 
@@ -4680,4 +4749,3 @@ window.archivioCorsiState = { progetti: [], aziende: [], iscrizioniByProject: {}
 
 
 // [Step 23] Funzioni spostate in js/modules/collaudo.js
-

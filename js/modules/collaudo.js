@@ -37,7 +37,7 @@ window.runCollaudoSistema = async function() {
     const report = {
         meta: {
             app: 'SafetyManager PRO',
-            step: '23',
+            step: '60',
             executed_at: new Date().toISOString(),
             user_agent: navigator.userAgent,
             viewport: { width: window.innerWidth, height: window.innerHeight }
@@ -63,7 +63,9 @@ window.runCollaudoSistema = async function() {
         'esportaBackupDatabaseLocale',
         'ripristinaBackupDatabaseLocale',
         'loadArchivioCorsi',
-        'stampaFascicoloCompletoPDF'
+        'stampaFascicoloCompletoPDF',
+        'collectFabbisogniProjectRecord',
+        'renderNeedsRiskAnnexPages'
     ].forEach(fn => window.collAdd(report, 'Funzioni critiche', fn, typeof window[fn] === 'function' ? 'ok' : 'error', typeof window[fn] === 'function' ? 'Disponibile' : 'Mancante'));
 
 
@@ -73,6 +75,7 @@ window.runCollaudoSistema = async function() {
         'js/modules/migrazione.js',
         'js/modules/archivio.js',
         'js/modules/stampe_bundle.js',
+        'js/modules/fabbisogni_rischi.js',
         'js/modules/backup.js',
         'js/modules/export_sezioni.js',
         'js/modules/collaudo.js'
@@ -87,7 +90,7 @@ window.runCollaudoSistema = async function() {
     }
 
     // Moduli HTML.
-    const modules = ['admin','aziende','corsisti','docenti','progetti','archivio_corsi','scadenze','stampe','migrazione','ente','collaudo','attestato','registro','fascicolo_corso'];
+    const modules = ['admin','aziende','corsisti','docenti','progetti','archivio_corsi','scadenze','stampe','migrazione','ente','collaudo','attestato','registro','fascicolo_corso','analisi_fabbisogni','scheda_rischi_settore'];
     for (const m of modules) {
         try {
             const resp = await fetch(`modules/${m}.html`, { cache: 'no-store' });
@@ -109,6 +112,21 @@ window.runCollaudoSistema = async function() {
             } catch (e) {
                 window.collAdd(report, 'Database', table, 'warn', e.message || String(e));
             }
+        }
+        try {
+            const { error } = await window.supabaseClient
+                .from('progetti')
+                .select('id,fabbisogni_data,fabbisogni_fonti,rischi_settore_id,rischi_selezionati')
+                .limit(1);
+            window.collAdd(
+                report,
+                'Database',
+                'Campi Step 60 fabbisogni/rischi',
+                error ? 'warn' : 'ok',
+                error ? 'Applicare la migration Step 60: ' + error.message : 'Colonne disponibili'
+            );
+        } catch (e) {
+            window.collAdd(report, 'Database', 'Campi Step 60 fabbisogni/rischi', 'warn', e.message || String(e));
         }
     }
 

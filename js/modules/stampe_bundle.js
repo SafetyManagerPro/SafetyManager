@@ -72,11 +72,17 @@ window.stampaFascicoloCompletoPDF = async function(projectId = null) {
                 // Step 57: nel PDF unico i test vengono inseriti esplicitamente subito dopo il Progetto Formativo,
                 // così funzionano sia da Centro Stampe sia dal pulsante in Progetti.
                 includeProjectFormativoTests: false,
-                includeFascicoloTests: false
+                includeFascicoloTests: false,
+                includeNeedsRiskAnnexes: false
             });
             allPages.push(...pages);
 
             if (m === 'progetto_formativo') {
+                const needsRiskPages = (typeof window.renderNeedsRiskAnnexPages === 'function')
+                    ? await window.renderNeedsRiskAnnexPages({ preview: false })
+                    : [];
+                allPages.push(...needsRiskPages);
+
                 const testPages = (typeof window.renderManualTestsForCurrentPrintProject === 'function')
                     ? window.renderManualTestsForCurrentPrintProject({ preview: false, session: backupSession })
                     : (typeof window.renderManualTestCoursePages === 'function'
@@ -132,7 +138,7 @@ window.stampaFascicoloCompletoPDF = async function(projectId = null) {
             corsisti: backupSession.length
         });
 
-        alert(`Ora si aprirà la stampa. Seleziona "Salva come PDF" per salvare sul PC il PDF unico progetto. Sono inclusi ${blankTests} test manuali da consegnare ai corsisti e ${correctedTests} correttore/i per i valutatori. Gli attestati NON sono inclusi: usa il pulsante "PDF solo attestati". Corsisti: ${backupSession.length}.`);
+        alert(`Ora si aprirà la stampa. Seleziona "Salva come PDF" per salvare sul PC il PDF unico progetto. Sono inclusi Analisi Fabbisogni, Scheda Rischi, ${blankTests} test manuali da consegnare ai corsisti e ${correctedTests} correttore/i per i valutatori. Gli attestati NON sono inclusi: usa il pulsante "PDF solo attestati". Corsisti: ${backupSession.length}.`);
         document.body.classList.add('is-printing-temp');
         setTimeout(() => {
             window.print();
