@@ -1,0 +1,54 @@
+{
+  "step": 61,
+  "title": "Questionari di Gradimento e Monitoraggio Qualità",
+  "date": "2026-07-29",
+  "source_base": "SafetyManager_ASR2025_fabbisogni_schede_rischi_step60.zip",
+  "reference_package": "Formazione SSL.zip",
+  "blocking_validation": false,
+  "questionnaire": {
+    "delivery": "cartaceo",
+    "one_copy_per_enrolled_student": true,
+    "digital_signature_required": false,
+    "rating_items": 11,
+    "rating_scale": "1-5",
+    "overall_scale": "1-10"
+  },
+  "monitoring": {
+    "in_progress_items": 5,
+    "final_judgments": [
+      "da_valutare",
+      "conforme",
+      "parzialmente_conforme",
+      "non_conforme"
+    ]
+  },
+  "new_files": [
+    "js/modules/gradimento_monitoraggio.js",
+    "modules/questionario_gradimento.html",
+    "modules/riepilogo_gradimento.html",
+    "modules/monitoraggio_qualita.html",
+    "supabase/migrations/2026-07-29_step61_gradimento_monitoraggio_qualita.sql",
+    "docs/REVISIONE_STEP61_GRADIMENTO_MONITORAGGIO_QUALITA.md",
+    "docs/REPORT_STEP61_GRADIMENTO_MONITORAGGIO_QUALITA.json"
+  ],
+  "integrations": [
+    "Gestione Progetto",
+    "Progetti Attivi",
+    "Cruscotto qualità",
+    "Progetto Formativo",
+    "Fascicolo del Corso",
+    "Centro Stampe",
+    "PDF unico progetto",
+    "Backup/Ripristino",
+    "Collaudo Sistema"
+  ],
+  "database_migration_required": "2026-07-29_step61_gradimento_monitoraggio_qualita.sql",
+  "rls_changed": false,
+  "checks": {
+    "javascript_syntax": "ok",
+    "html_parsing": "ok",
+    "module_links": "ok",
+    "zip_integrity": "ok",
+    "sql_executed_on_remote_supabase": false
+  }
+}
