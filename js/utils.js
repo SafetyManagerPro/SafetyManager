@@ -2026,10 +2026,14 @@ window.collectProjectFormSnapshot = function(projectId) {
     const gradimentoSnapshot = typeof window.collectGradimentoMonitoraggioRecord === 'function'
         ? window.collectGradimentoMonitoraggioRecord()
         : {};
+    const tutorRiesameSnapshot = typeof window.collectTutorRiesameRecord === 'function'
+        ? window.collectTutorRiesameRecord()
+        : {};
     return {
         ...original,
         ...fabbisogniSnapshot,
         ...gradimentoSnapshot,
+        ...tutorRiesameSnapshot,
         id: projectId || document.getElementById('prog-id')?.value || original.id,
         azienda_id: document.getElementById('prog-azienda')?.value || '',
         ente_erogatore: document.getElementById('prog-erogatore')?.value || 'ente',
@@ -2616,6 +2620,18 @@ window.getProjectQualityItems = function(p = {}, iscritti = []) {
         actionLabel: 'Apri qualità'
     });
 
+    const tutorStatus = typeof window.getTutorRiesameStatus === 'function'
+        ? window.getTutorRiesameStatus(p)
+        : { ready: false, tutorReady: false, reviewReady: false, reviewState: 'non_pianificato' };
+    items.push({
+        key: 'tutor_riesame',
+        title: 'Tutor / riesame',
+        status: tutorStatus.ready ? 'complete' : (tutorStatus.tutorReady || tutorStatus.reviewState !== 'non_pianificato' ? 'info' : 'attention'),
+        detail: `${tutorStatus.tutorReady ? 'Relazione tutor completa' : 'Relazione tutor da completare'} · riesame ${tutorStatus.reviewReady ? 'completo/non applicabile' : 'da pianificare o completare'}.`,
+        action: `window.handleProjectQualityAction('${p.id}', 'tutor_riesame')`,
+        actionLabel: 'Apri tutor/riesame'
+    });
+
     items.push({
         key: 'docenti',
         title: 'Docenti / unità didattiche',
@@ -2783,12 +2799,21 @@ window.handleProjectQualityAction = async function(projectId, key, mode = 'deskt
         return;
     }
 
+    if (key === 'tutor_riesame') {
+        if (!isPopup) await window.apriPopupProgettoById(projectId, 'progetti');
+        const panel = document.getElementById('prog-tutor-riesame-panel');
+        if (panel) panel.open = true;
+        focusField('#prog-tutor-riesame-panel');
+        return;
+    }
+
     if (isPopup) {
         const fields = {
             dati: '#prog-codice, #prog-corso, #prog-inizio, #prog-esame, #prog-modalita, #prog-sede',
             azienda: '#prog-azienda',
             fabbisogni: '#prog-fabbisogni-panel',
             gradimento: '#prog-gradimento-panel',
+            tutor_riesame: '#prog-tutor-riesame-panel',
             docenti: '#prog-docenti-container, .prog-docente-ud',
             compliance: '#prog-compliance-note-free, #prog-erogatore, #prog-validazione-esito, #prog-op-esito',
             chiusura: '#prog-stato-corso, #prog-documenti-url, #prog-chiuso-at, #prog-note-chiusura'
@@ -2944,6 +2969,10 @@ window.renderProjectDesktopRows = function(p, iscritti, issues) {
     const gradBadge = gradStatus.ready
         ? '<span class="inline-block mt-1 ml-1 px-1.5 py-0.5 rounded bg-violet-200 text-violet-950 font-black text-[8px] uppercase">Qualità verificata</span>'
         : '<span class="inline-block mt-1 ml-1 px-1.5 py-0.5 rounded bg-slate-700 text-violet-100 border border-violet-700 font-black text-[8px] uppercase">Qualità da completare</span>';
+    const tutorStatus = typeof window.getTutorRiesameStatus === 'function' ? window.getTutorRiesameStatus(p) : { ready: false };
+    const tutorBadge = tutorStatus.ready
+        ? '<span class="inline-block mt-1 ml-1 px-1.5 py-0.5 rounded bg-teal-200 text-teal-950 font-black text-[8px] uppercase">Tutor/riesame verificati</span>'
+        : '<span class="inline-block mt-1 ml-1 px-1.5 py-0.5 rounded bg-slate-700 text-teal-100 border border-teal-700 font-black text-[8px] uppercase">Tutor/riesame da completare</span>';
     const qualityDashboard = window.renderProjectQualityDashboard ? window.renderProjectQualityDashboard(p, iscritti, 'desktop') : '';
     const projectMarker = `${window.dashEscape(p.codice || 'Progetto')} · ${window.dashEscape(nomeAzienda || '')} · ${window.formatDataToItalian(p.data_esame)}`;
 
@@ -2981,7 +3010,7 @@ window.renderProjectDesktopRows = function(p, iscritti, issues) {
                 <div class="rounded-xl border-2 border-amber-300 bg-amber-400 p-3 mt-2 shadow-md shadow-amber-950/20">
                     <p class="text-[8px] font-black uppercase tracking-widest text-amber-950 mb-1">Azienda committente</p>
                     <p class="font-black text-xs text-slate-950 uppercase leading-tight">${window.dashEscape(nomeAzienda || '')}</p>
-                    ${erogatoreBadge}${fabBadge}${gradBadge}
+                    ${erogatoreBadge}${fabBadge}${gradBadge}${tutorBadge}
                 </div>
             </td>
             <td class="p-3 border-b border-slate-700 font-bold text-center text-slate-200 align-top">${window.formatDataToItalian(p.data_esame)}</td>
@@ -3027,6 +3056,10 @@ window.renderProjectMobileCard = function(p, iscritti, issues) {
     const gradBadge = gradStatus.ready
         ? '<span class="inline-flex px-2 py-1 rounded-full bg-violet-200 text-violet-950 font-black text-[8px] uppercase">Qualità verificata</span>'
         : '<span class="inline-flex px-2 py-1 rounded-full bg-slate-700 text-violet-100 border border-violet-700 font-black text-[8px] uppercase">Qualità da completare</span>';
+    const tutorStatus = typeof window.getTutorRiesameStatus === 'function' ? window.getTutorRiesameStatus(p) : { ready: false };
+    const tutorBadge = tutorStatus.ready
+        ? '<span class="inline-flex px-2 py-1 rounded-full bg-teal-200 text-teal-950 font-black text-[8px] uppercase">Tutor/riesame verificati</span>'
+        : '<span class="inline-flex px-2 py-1 rounded-full bg-slate-700 text-teal-100 border border-teal-700 font-black text-[8px] uppercase">Tutor/riesame da completare</span>';
     const qualityDashboard = window.renderProjectQualityDashboard ? window.renderProjectQualityDashboard(p, iscritti, 'mobile') : '';
 
     return `<article class="mt-10 rounded-2xl border-8 border-yellow-300 bg-slate-900 shadow-2xl shadow-yellow-950/30 overflow-hidden" data-corso="${p.corso_id}" data-azienda="${p.azienda_id || ''}" data-mobile-project-id="${p.id}" data-project-id="${p.id}">
@@ -3039,7 +3072,7 @@ window.renderProjectMobileCard = function(p, iscritti, issues) {
             <div class="min-w-0">
                 <button onclick="window.apriPopupProgettoById('${p.id}', 'progetti')" class="font-mono text-rose-300 font-black text-xs hover:underline">${window.dashEscape(p.codice || '')}</button>
                 <p class="text-[10px] text-slate-400 font-bold uppercase mt-1">Esame: ${window.formatDataToItalian(p.data_esame)}</p>
-                <div class="flex flex-wrap gap-1 mt-2">${statoBadge}${chiusuraBadge}${fabBadge}${gradBadge}</div>
+                <div class="flex flex-wrap gap-1 mt-2">${statoBadge}${chiusuraBadge}${fabBadge}${gradBadge}${tutorBadge}</div>
             </div>
             <div class="flex gap-2 shrink-0">
                 <button onclick="window.apriPopupProgettoById('${p.id}', 'progetti')" class="text-white bg-blue-600 hover:bg-blue-500 p-2 rounded-lg" title="Modifica progetto"><i data-lucide="edit" class="w-4 h-4"></i></button>
@@ -3278,7 +3311,8 @@ window.salvaProgettoDB = async function() {
         chiuso_at: statoCorso === 'chiuso' ? (chiusoAt || new Date().toISOString().slice(0,10)) : (chiusoAt || null),
         note_chiusura: noteChiusura || null,
         ...(typeof window.collectFabbisogniProjectRecord === 'function' ? window.collectFabbisogniProjectRecord() : {}),
-        ...(typeof window.collectGradimentoMonitoraggioRecord === 'function' ? window.collectGradimentoMonitoraggioRecord() : {})
+        ...(typeof window.collectGradimentoMonitoraggioRecord === 'function' ? window.collectGradimentoMonitoraggioRecord() : {}),
+        ...(typeof window.collectTutorRiesameRecord === 'function' ? window.collectTutorRiesameRecord() : {})
     };
     if (id && id !== "") record.id = id;
 
@@ -3293,7 +3327,7 @@ window.salvaProgettoDB = async function() {
         window.resetFormProgetto();
         if (wasPopup && typeof window.chiudiPopupProgetto === 'function') window.chiudiPopupProgetto();
         await window.reloadLinkedViewsAfterMutation('progetto', { projectId: savedProject?.id || record.id });
-    } else alert("Errore nel salvataggio del progetto formativo. Verifica di aver applicato tutte le migration Supabase, incluse Step 60 e Step 61.");
+    } else alert("Errore nel salvataggio del progetto formativo. Verifica di aver applicato tutte le migration Supabase, incluse Step 60, Step 61 e Step 62.");
 };
 
 
@@ -3342,6 +3376,7 @@ window.modificaProgetto = function(id) {
     set('prog-note-chiusura', p.note_chiusura || '');
     if (typeof window.populateFabbisogniProjectForm === 'function') window.populateFabbisogniProjectForm(p);
     if (typeof window.populateGradimentoMonitoraggioForm === 'function') window.populateGradimentoMonitoraggioForm(p);
+    if (typeof window.populateTutorRiesameForm === 'function') window.populateTutorRiesameForm(p);
 
     if(document.getElementById('prog-omogeneita-aula')) {
         document.getElementById('prog-omogeneita-aula').checked = p.omogeneita_aula !== false;
@@ -3400,6 +3435,7 @@ window.resetFormProgetto = function() {
     if(document.getElementById('prog-note-chiusura')) document.getElementById('prog-note-chiusura').value = '';
     if (typeof window.resetFabbisogniProjectForm === 'function') window.resetFabbisogniProjectForm();
     if (typeof window.resetGradimentoMonitoraggioForm === 'function') window.resetGradimentoMonitoraggioForm();
+    if (typeof window.resetTutorRiesameForm === 'function') window.resetTutorRiesameForm();
     window.progettoDraftCorsistiIds = [];
     if (typeof window.renderProgettoDraftCorsistiControls === 'function') window.renderProgettoDraftCorsistiControls();
     if(typeof window.syncValidazioneCNAUI === 'function') window.syncValidazioneCNAUI();
@@ -3861,6 +3897,7 @@ window.caricaDatiStampa = async function(projectId = null, options = {}) {
     window.AppState['cfg-validazione-note'] = p.note_validazione_ente || "";
     if (typeof window.setFabbisogniPrintState === 'function') window.setFabbisogniPrintState(p);
     if (typeof window.setGradimentoMonitoraggioPrintState === 'function') window.setGradimentoMonitoraggioPrintState(p);
+    if (typeof window.setTutorRiesamePrintState === 'function') window.setTutorRiesamePrintState(p);
 
     window.currentProgettoStampaId = progId;
     window.currentSessionCorsisti = iscritti.map(isc => {
@@ -4128,6 +4165,12 @@ window.renderPrintModulePages = async function(moduleId, singleCorsista = null, 
         options.includeQualityAnnexes !== false &&
         typeof window.renderGradimentoMonitoraggioAnnexPages === 'function') {
         pages.push(...await window.renderGradimentoMonitoraggioAnnexPages({ preview }));
+    }
+
+    if (moduleId === 'fascicolo_corso' &&
+        options.includeTutorRiesameAnnexes !== false &&
+        typeof window.renderTutorRiesameAnnexPages === 'function') {
+        pages.push(...await window.renderTutorRiesameAnnexPages({ preview }));
     }
 
     holder.remove();
@@ -4694,6 +4737,7 @@ window.updateAll = function() {
     }
     if (typeof window.applyFabbisogniPrintFields === 'function') window.applyFabbisogniPrintFields();
     if (typeof window.applyGradimentoMonitoraggioPrintFields === 'function') window.applyGradimentoMonitoraggioPrintFields();
+    if (typeof window.applyTutorRiesamePrintFields === 'function') window.applyTutorRiesamePrintFields();
     if (typeof window.applyAutomaticSignatureImages === 'function') window.applyAutomaticSignatureImages();
 };
 

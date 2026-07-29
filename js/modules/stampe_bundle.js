@@ -74,7 +74,8 @@ window.stampaFascicoloCompletoPDF = async function(projectId = null) {
                 includeProjectFormativoTests: false,
                 includeFascicoloTests: false,
                 includeNeedsRiskAnnexes: false,
-                includeQualityAnnexes: false
+                includeQualityAnnexes: false,
+                includeTutorRiesameAnnexes: false
             });
             allPages.push(...pages);
 
@@ -99,6 +100,13 @@ window.stampaFascicoloCompletoPDF = async function(projectId = null) {
                 });
                 allPages.push(...qualityPages);
             }
+            if (m === 'verbale' && typeof window.renderTutorRiesameAnnexPages === 'function') {
+                const tutorRiesamePages = await window.renderTutorRiesameAnnexPages({
+                    preview: false,
+                    session: backupSession
+                });
+                allPages.push(...tutorRiesamePages);
+            }
         }
 
         // Verifica di sicurezza Step 57: il PDF unico deve contenere sempre i test manuali
@@ -114,6 +122,8 @@ window.stampaFascicoloCompletoPDF = async function(projectId = null) {
         const blankTests = allPages.filter(p => p?.dataset?.manualTestPage === 'blank').length;
         const correctedTests = allPages.filter(p => p?.dataset?.manualTestPage === 'corrected').length;
         const questionnaires = allPages.filter(p => p?.dataset?.gradimentoQuestionario).length;
+        const tutorPages = allPages.filter(p => p?.dataset?.tutorRelationPage).length;
+        const reviewPages = allPages.filter(p => p?.dataset?.reviewPage).length;
 
         if (!blankTests || !correctedTests) {
             console.warn('PDF unico progetto senza test manuali completi:', { blankTests, correctedTests, allPages });
@@ -146,10 +156,12 @@ window.stampaFascicoloCompletoPDF = async function(projectId = null) {
             blankTests,
             correctedTests,
             questionnaires,
+            tutorPages,
+            reviewPages,
             corsisti: backupSession.length
         });
 
-        alert(`Ora si aprirà la stampa. Seleziona "Salva come PDF" per salvare sul PC il PDF unico progetto. Sono inclusi Analisi Fabbisogni, Scheda Rischi, ${blankTests} test manuali, ${correctedTests} correttore/i, ${questionnaires} questionari di gradimento, riepilogo e monitoraggio qualità. Gli attestati NON sono inclusi: usa il pulsante "PDF solo attestati". Corsisti: ${backupSession.length}.`);
+        alert(`Ora si aprirà la stampa. Seleziona "Salva come PDF" per salvare sul PC il PDF unico progetto. Sono inclusi Analisi Fabbisogni, Scheda Rischi, ${blankTests} test manuali, ${correctedTests} correttore/i, ${questionnaires} questionari di gradimento, riepilogo, monitoraggio qualità, relazione tutor e scheda riesame. Gli attestati NON sono inclusi: usa il pulsante "PDF solo attestati". Corsisti: ${backupSession.length}.`);
         document.body.classList.add('is-printing-temp');
         setTimeout(() => {
             window.print();

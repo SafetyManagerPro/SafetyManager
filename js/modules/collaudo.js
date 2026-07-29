@@ -37,7 +37,7 @@ window.runCollaudoSistema = async function() {
     const report = {
         meta: {
             app: 'SafetyManager PRO',
-            step: '61',
+            step: '62',
             executed_at: new Date().toISOString(),
             user_agent: navigator.userAgent,
             viewport: { width: window.innerWidth, height: window.innerHeight }
@@ -68,7 +68,10 @@ window.runCollaudoSistema = async function() {
         'renderNeedsRiskAnnexPages',
         'collectGradimentoMonitoraggioRecord',
         'renderGradimentoMonitoraggioAnnexPages',
-        'renderQuestionariGradimentoPages'
+        'renderQuestionariGradimentoPages',
+        'collectTutorRiesameRecord',
+        'renderTutorRiesameAnnexPages',
+        'getTutorRiesameStatus'
     ].forEach(fn => window.collAdd(report, 'Funzioni critiche', fn, typeof window[fn] === 'function' ? 'ok' : 'error', typeof window[fn] === 'function' ? 'Disponibile' : 'Mancante'));
 
 
@@ -80,6 +83,7 @@ window.runCollaudoSistema = async function() {
         'js/modules/stampe_bundle.js',
         'js/modules/fabbisogni_rischi.js',
         'js/modules/gradimento_monitoraggio.js',
+        'js/modules/tutor_riesame.js',
         'js/modules/backup.js',
         'js/modules/export_sezioni.js',
         'js/modules/collaudo.js'
@@ -94,7 +98,7 @@ window.runCollaudoSistema = async function() {
     }
 
     // Moduli HTML.
-    const modules = ['admin','aziende','corsisti','docenti','progetti','archivio_corsi','scadenze','stampe','migrazione','ente','collaudo','attestato','registro','fascicolo_corso','analisi_fabbisogni','scheda_rischi_settore','questionario_gradimento','riepilogo_gradimento','monitoraggio_qualita'];
+    const modules = ['admin','aziende','corsisti','docenti','progetti','archivio_corsi','scadenze','stampe','migrazione','ente','collaudo','attestato','registro','fascicolo_corso','analisi_fabbisogni','scheda_rischi_settore','questionario_gradimento','riepilogo_gradimento','monitoraggio_qualita','relazione_tutor','scheda_riesame'];
     for (const m of modules) {
         try {
             const resp = await fetch(`modules/${m}.html`, { cache: 'no-store' });
@@ -146,6 +150,21 @@ window.runCollaudoSistema = async function() {
             );
         } catch (e) {
             window.collAdd(report, 'Database', 'Campi Step 61 gradimento/monitoraggio', 'warn', e.message || String(e));
+        }
+        try {
+            const { error } = await window.supabaseClient
+                .from('progetti')
+                .select('id,tutor_nome,tutor_data_relazione,tutor_giudizio_globale,riesame_stato,riesame_azioni')
+                .limit(1);
+            window.collAdd(
+                report,
+                'Database',
+                'Campi Step 62 tutor/riesame',
+                error ? 'warn' : 'ok',
+                error ? 'Applicare la migration Step 62: ' + error.message : 'Colonne disponibili'
+            );
+        } catch (e) {
+            window.collAdd(report, 'Database', 'Campi Step 62 tutor/riesame', 'warn', e.message || String(e));
         }
     }
 

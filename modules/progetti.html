@@ -204,7 +204,7 @@
                         <input type="text" id="prog-resp-progetto" placeholder="Nome responsabile" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded outline-none focus:border-rose-500 transition">
                     </div>
                     <div>
-                        <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Resp. corso / tutor</label>
+                        <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Responsabile corso</label>
                         <input type="text" id="prog-resp-corso" placeholder="Opzionale" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded outline-none focus:border-rose-500 transition">
                     </div>
                 </div>
@@ -479,6 +479,200 @@
                             <label class="font-black uppercase text-violet-900 block mb-1">Proposte e azioni di miglioramento</label>
                             <textarea id="prog-monitoraggio-miglioramenti" rows="2" class="w-full px-2 py-1.5 bg-white border border-violet-200 rounded outline-none focus:border-violet-600"></textarea>
                         </div>
+                    </div>
+                </details>
+
+                <details id="prog-tutor-riesame-panel" class="group rounded-xl border-2 border-teal-300 bg-teal-50 overflow-hidden">
+                    <summary class="cursor-pointer list-none bg-teal-700 text-white px-3 py-3 flex items-center justify-between gap-3">
+                        <span class="min-w-0">
+                            <span class="block text-[10px] font-black uppercase tracking-wider">Relazione tutor e riesame/miglioramento</span>
+                            <span class="block text-[9px] text-teal-100 mt-0.5">Sezione non bloccante · relazione di edizione e riesame periodico</span>
+                        </span>
+                        <i data-lucide="chevron-down" class="w-4 h-4 shrink-0 transition-transform group-open:rotate-180"></i>
+                    </summary>
+                    <div class="p-3 space-y-4 text-[10px]">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <button type="button" onclick="window.stampaModuloProgettoRapido(document.getElementById('prog-id')?.value, 'relazione_tutor', 'relazione finale tutor')" class="rounded-lg bg-teal-800 hover:bg-teal-700 text-white px-3 py-2 font-black uppercase text-[9px] flex items-center justify-center gap-2">
+                                <i data-lucide="printer" class="w-3.5 h-3.5"></i> Stampa relazione tutor
+                            </button>
+                            <button type="button" onclick="window.stampaModuloProgettoRapido(document.getElementById('prog-id')?.value, 'scheda_riesame', 'scheda riesame')" class="rounded-lg bg-sky-800 hover:bg-sky-700 text-white px-3 py-2 font-black uppercase text-[9px] flex items-center justify-center gap-2">
+                                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Stampa scheda riesame
+                            </button>
+                        </div>
+
+                        <section class="rounded-xl border-2 border-teal-200 bg-white p-3 space-y-3">
+                            <p class="font-black uppercase text-teal-900">Relazione finale del tutor — singola edizione</p>
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                <div>
+                                    <label class="font-bold text-slate-600 block mb-1">Nome tutor</label>
+                                    <input type="text" id="prog-tutor-nome" placeholder="Tutor / referente d'aula" class="w-full px-2 py-1.5 bg-slate-50 border border-teal-200 rounded">
+                                </div>
+                                <div>
+                                    <label class="font-bold text-slate-600 block mb-1">Ruolo/funzione</label>
+                                    <input type="text" id="prog-tutor-ruolo" placeholder="Es. tutor d'aula" class="w-full px-2 py-1.5 bg-slate-50 border border-teal-200 rounded">
+                                </div>
+                                <div>
+                                    <label class="font-bold text-slate-600 block mb-1">Data relazione</label>
+                                    <input type="date" id="prog-tutor-data" class="w-full px-2 py-1.5 bg-slate-50 border border-teal-200 rounded">
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <label class="font-bold text-slate-600">Valutazione docenza
+                                    <select id="prog-tutor-docenza" class="mt-1 w-full px-2 py-1.5 bg-slate-50 border border-teal-200 rounded">
+                                        <option value="da_valutare">Da valutare</option><option value="positivo">Positiva</option><option value="adeguato">Adeguata</option><option value="parziale">Parzialmente adeguata</option><option value="critico">Critica</option>
+                                    </select>
+                                </label>
+                                <label class="font-bold text-slate-600">Frequenza corsisti
+                                    <select id="prog-tutor-frequenza" class="mt-1 w-full px-2 py-1.5 bg-slate-50 border border-teal-200 rounded">
+                                        <option value="da_valutare">Da valutare</option><option value="positivo">Regolare</option><option value="parziale">Parzialmente regolare</option><option value="critico">Critica</option>
+                                    </select>
+                                </label>
+                                <label class="font-bold text-slate-600">Programma e tempi
+                                    <select id="prog-tutor-programma" class="mt-1 w-full px-2 py-1.5 bg-slate-50 border border-teal-200 rounded">
+                                        <option value="da_valutare">Da valutare</option><option value="positivo">Rispettati</option><option value="parziale">Parzialmente rispettati</option><option value="critico">Non rispettati</option>
+                                    </select>
+                                </label>
+                                <label class="font-bold text-slate-600">Partecipazione e interesse
+                                    <select id="prog-tutor-partecipazione" class="mt-1 w-full px-2 py-1.5 bg-slate-50 border border-teal-200 rounded">
+                                        <option value="da_valutare">Da valutare</option><option value="positivo">Positivi</option><option value="adeguato">Adeguati</option><option value="parziale">Parziali</option><option value="critico">Critici</option>
+                                    </select>
+                                </label>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div class="rounded-lg border border-teal-200 bg-teal-50 p-2">
+                                    <p class="font-black uppercase text-teal-900 mb-2">Spazi utilizzati</p>
+                                    <div class="space-y-1">
+                                        <label class="flex gap-2"><input type="checkbox" value="aula_dedicata" class="prog-tutor-spazio"><span>Aula dedicata</span></label>
+                                        <label class="flex gap-2"><input type="checkbox" value="aula_multimediale" class="prog-tutor-spazio"><span>Aula multimediale</span></label>
+                                        <label class="flex gap-2"><input type="checkbox" value="aula_tradizionale" class="prog-tutor-spazio"><span>Aula tradizionale</span></label>
+                                        <label class="flex gap-2"><input type="checkbox" value="sala_riunioni" class="prog-tutor-spazio"><span>Sala riunioni</span></label>
+                                        <label class="flex gap-2"><input type="checkbox" value="laboratorio" class="prog-tutor-spazio"><span>Laboratorio tecnico</span></label>
+                                        <label class="flex gap-2"><input type="checkbox" value="simulazioni" class="prog-tutor-spazio"><span>Area esercitazioni/simulazioni</span></label>
+                                        <label class="flex gap-2"><input type="checkbox" value="lavori_gruppo" class="prog-tutor-spazio"><span>Area lavori di gruppo</span></label>
+                                    </div>
+                                </div>
+                                <div class="rounded-lg border border-teal-200 bg-teal-50 p-2">
+                                    <p class="font-black uppercase text-teal-900 mb-2">Mezzi e strumenti</p>
+                                    <div class="space-y-1">
+                                        <label class="flex gap-2"><input type="checkbox" value="multimedia" class="prog-tutor-strumento"><span>Attrezzature multimediali</span></label>
+                                        <label class="flex gap-2"><input type="checkbox" value="elearning" class="prog-tutor-strumento"><span>Piattaforme e-learning</span></label>
+                                        <label class="flex gap-2"><input type="checkbox" value="materiali" class="prog-tutor-strumento"><span>Materiali digitali/cartacei</span></label>
+                                        <label class="flex gap-2"><input type="checkbox" value="pratica" class="prog-tutor-strumento"><span>Strumenti per prove pratiche</span></label>
+                                        <label class="flex gap-2"><input type="checkbox" value="dispense" class="prog-tutor-strumento"><span>Dispense/checklist</span></label>
+                                        <label class="flex gap-2"><input type="checkbox" value="test" class="prog-tutor-strumento"><span>Test e sistemi valutazione</span></label>
+                                        <label class="flex gap-2"><input type="checkbox" value="lavagne" class="prog-tutor-strumento"><span>Lavagne/flipchart</span></label>
+                                        <label class="flex gap-2"><input type="checkbox" value="casi" class="prog-tutor-strumento"><span>Casi studio/role-play</span></label>
+                                        <label class="flex gap-2"><input type="checkbox" value="repository" class="prog-tutor-strumento"><span>Repository documentale</span></label>
+                                        <label class="flex gap-2"><input type="checkbox" value="gestionale" class="prog-tutor-strumento"><span>Gestionale formazione</span></label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="rounded-lg border border-teal-200 bg-teal-50 p-2">
+                                <p class="font-black uppercase text-teal-900 mb-2">Punti di forza</p>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-1">
+                                    <label class="flex gap-2"><input type="checkbox" value="obiettivi" class="prog-tutor-forza"><span>Obiettivi chiari</span></label>
+                                    <label class="flex gap-2"><input type="checkbox" value="contenuti" class="prog-tutor-forza"><span>Contenuti aggiornati</span></label>
+                                    <label class="flex gap-2"><input type="checkbox" value="metodologie" class="prog-tutor-forza"><span>Metodologie attive</span></label>
+                                    <label class="flex gap-2"><input type="checkbox" value="partecipazione" class="prog-tutor-forza"><span>Partecipazione classe</span></label>
+                                    <label class="flex gap-2"><input type="checkbox" value="personalizzazione" class="prog-tutor-forza"><span>Personalizzazione</span></label>
+                                    <label class="flex gap-2"><input type="checkbox" value="pratica" class="prog-tutor-forza"><span>Applicazione pratica</span></label>
+                                    <label class="flex gap-2"><input type="checkbox" value="materiali" class="prog-tutor-forza"><span>Materiali di qualità</span></label>
+                                    <label class="flex gap-2"><input type="checkbox" value="organizzazione" class="prog-tutor-forza"><span>Organizzazione efficiente</span></label>
+                                    <label class="flex gap-2"><input type="checkbox" value="monitoraggio" class="prog-tutor-forza"><span>Monitoraggio/valutazione</span></label>
+                                    <label class="flex gap-2"><input type="checkbox" value="conformita" class="prog-tutor-forza"><span>Conformità percorso</span></label>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <div>
+                                    <label class="font-black uppercase text-teal-900 block mb-1">Criticità rilevate</label>
+                                    <textarea id="prog-tutor-criticita" rows="3" class="w-full px-2 py-1.5 bg-slate-50 border border-teal-200 rounded"></textarea>
+                                </div>
+                                <div>
+                                    <label class="font-black uppercase text-teal-900 block mb-1">Note del tutor</label>
+                                    <textarea id="prog-tutor-note" rows="3" class="w-full px-2 py-1.5 bg-slate-50 border border-teal-200 rounded"></textarea>
+                                </div>
+                            </div>
+                            <label class="font-black uppercase text-teal-900 block">Giudizio globale efficienza/efficacia
+                                <select id="prog-tutor-giudizio" class="mt-1 w-full px-2 py-1.5 bg-slate-50 border border-teal-200 rounded">
+                                    <option value="da_valutare">Da valutare</option><option value="positivo">Positivo</option><option value="adeguato">Adeguato</option><option value="parziale">Parzialmente adeguato</option><option value="critico">Critico</option>
+                                </select>
+                            </label>
+                        </section>
+
+                        <section class="rounded-xl border-2 border-sky-200 bg-white p-3 space-y-3">
+                            <div>
+                                <p class="font-black uppercase text-sky-900">Riesame periodico e miglioramento</p>
+                                <p class="text-[9px] text-sky-700 mt-1">Il riesame è periodico e non necessariamente dovuto dopo ogni singola edizione. Può essere marcato “Non applicabile”.</p>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <label class="font-bold text-slate-600">Stato riesame
+                                    <select id="prog-riesame-stato" class="mt-1 w-full px-2 py-1.5 bg-slate-50 border border-sky-200 rounded">
+                                        <option value="non_pianificato">Non pianificato</option><option value="pianificato">Pianificato</option><option value="in_corso">In corso</option><option value="completato">Completato</option><option value="non_applicabile">Non applicabile alla singola edizione</option>
+                                    </select>
+                                </label>
+                                <label class="font-bold text-slate-600">Data riesame
+                                    <input type="date" id="prog-riesame-data" class="mt-1 w-full px-2 py-1.5 bg-slate-50 border border-sky-200 rounded">
+                                </label>
+                            </div>
+                            <div class="rounded-lg border border-sky-200 bg-sky-50 p-2">
+                                <p class="font-black uppercase text-sky-900 mb-2">Fonti analizzate</p>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-1">
+                                    <label class="flex gap-2"><input type="checkbox" value="gradimento" class="prog-riesame-fonte"><span>Questionari gradimento</span></label>
+                                    <label class="flex gap-2"><input type="checkbox" value="verifiche" class="prog-riesame-fonte"><span>Test e verifiche</span></label>
+                                    <label class="flex gap-2"><input type="checkbox" value="docente" class="prog-riesame-fonte"><span>Osservazioni docenti</span></label>
+                                    <label class="flex gap-2"><input type="checkbox" value="tutor" class="prog-riesame-fonte"><span>Relazione tutor</span></label>
+                                    <label class="flex gap-2"><input type="checkbox" value="fascicolo" class="prog-riesame-fonte"><span>Controllo fascicolo</span></label>
+                                    <label class="flex gap-2"><input type="checkbox" value="segnalazioni" class="prog-riesame-fonte"><span>Segnalazioni</span></label>
+                                    <label class="flex gap-2"><input type="checkbox" value="altro" class="prog-riesame-fonte"><span>Altro</span></label>
+                                </div>
+                            </div>
+
+                            <p class="font-black uppercase text-sky-900">Criticità e azioni correttive/migliorative</p>
+                            <div class="space-y-3">
+                                <div data-riesame-action-row class="rounded-lg border border-sky-200 bg-sky-50 p-2 grid grid-cols-2 gap-2">
+                                    <input data-riesame-field="area" placeholder="Area/elemento" class="px-2 py-1.5 border border-sky-200 rounded bg-white">
+                                    <input data-riesame-field="fonte" placeholder="Fonte segnalazione" class="px-2 py-1.5 border border-sky-200 rounded bg-white">
+                                    <textarea data-riesame-field="criticita" rows="2" placeholder="Criticità" class="px-2 py-1.5 border border-sky-200 rounded bg-white"></textarea>
+                                    <textarea data-riesame-field="azione" rows="2" placeholder="Misura/azione" class="px-2 py-1.5 border border-sky-200 rounded bg-white"></textarea>
+                                    <select data-riesame-field="tipo" class="px-2 py-1.5 border border-sky-200 rounded bg-white"><option value="migliorativo">Migliorativo</option><option value="correttivo">Correttivo</option></select>
+                                    <input data-riesame-field="tempistica" placeholder="Tempistica" class="px-2 py-1.5 border border-sky-200 rounded bg-white">
+                                    <input data-riesame-field="responsabile" placeholder="Responsabile" class="col-span-2 px-2 py-1.5 border border-sky-200 rounded bg-white">
+                                </div>
+                                <div data-riesame-action-row class="rounded-lg border border-sky-200 bg-sky-50 p-2 grid grid-cols-2 gap-2">
+                                    <input data-riesame-field="area" placeholder="Area/elemento" class="px-2 py-1.5 border border-sky-200 rounded bg-white"><input data-riesame-field="fonte" placeholder="Fonte segnalazione" class="px-2 py-1.5 border border-sky-200 rounded bg-white">
+                                    <textarea data-riesame-field="criticita" rows="2" placeholder="Criticità" class="px-2 py-1.5 border border-sky-200 rounded bg-white"></textarea><textarea data-riesame-field="azione" rows="2" placeholder="Misura/azione" class="px-2 py-1.5 border border-sky-200 rounded bg-white"></textarea>
+                                    <select data-riesame-field="tipo" class="px-2 py-1.5 border border-sky-200 rounded bg-white"><option value="migliorativo">Migliorativo</option><option value="correttivo">Correttivo</option></select><input data-riesame-field="tempistica" placeholder="Tempistica" class="px-2 py-1.5 border border-sky-200 rounded bg-white">
+                                    <input data-riesame-field="responsabile" placeholder="Responsabile" class="col-span-2 px-2 py-1.5 border border-sky-200 rounded bg-white">
+                                </div>
+                                <div data-riesame-action-row class="rounded-lg border border-sky-200 bg-sky-50 p-2 grid grid-cols-2 gap-2">
+                                    <input data-riesame-field="area" placeholder="Area/elemento" class="px-2 py-1.5 border border-sky-200 rounded bg-white"><input data-riesame-field="fonte" placeholder="Fonte segnalazione" class="px-2 py-1.5 border border-sky-200 rounded bg-white">
+                                    <textarea data-riesame-field="criticita" rows="2" placeholder="Criticità" class="px-2 py-1.5 border border-sky-200 rounded bg-white"></textarea><textarea data-riesame-field="azione" rows="2" placeholder="Misura/azione" class="px-2 py-1.5 border border-sky-200 rounded bg-white"></textarea>
+                                    <select data-riesame-field="tipo" class="px-2 py-1.5 border border-sky-200 rounded bg-white"><option value="migliorativo">Migliorativo</option><option value="correttivo">Correttivo</option></select><input data-riesame-field="tempistica" placeholder="Tempistica" class="px-2 py-1.5 border border-sky-200 rounded bg-white">
+                                    <input data-riesame-field="responsabile" placeholder="Responsabile" class="col-span-2 px-2 py-1.5 border border-sky-200 rounded bg-white">
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                <label class="font-bold text-slate-600">Obiettivi soddisfatti
+                                    <select id="prog-riesame-obiettivi" class="mt-1 w-full px-2 py-1.5 bg-slate-50 border border-sky-200 rounded"><option value="da_valutare">Da valutare</option><option value="si">Sì</option><option value="parzialmente">Parzialmente</option><option value="no">No</option></select>
+                                </label>
+                                <label class="font-bold text-slate-600">Azioni urgenti
+                                    <select id="prog-riesame-urgenti" class="mt-1 w-full px-2 py-1.5 bg-slate-50 border border-sky-200 rounded"><option value="da_valutare">Da valutare</option><option value="si">Sì</option><option value="no">No</option></select>
+                                </label>
+                                <label class="font-bold text-slate-600">Proposta
+                                    <select id="prog-riesame-proposta" class="mt-1 w-full px-2 py-1.5 bg-slate-50 border border-sky-200 rounded"><option value="da_valutare">Da valutare</option><option value="ripetere">Ripetere senza modifiche</option><option value="modificare">Ripetere con modifiche</option><option value="sostituire">Sostituire proposta</option></select>
+                                </label>
+                            </div>
+                            <textarea id="prog-riesame-note" rows="2" placeholder="Note e raccomandazioni generali" class="w-full px-2 py-1.5 bg-slate-50 border border-sky-200 rounded"></textarea>
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                <input type="text" id="prog-riesame-compilato" placeholder="Compilato da" class="px-2 py-1.5 bg-slate-50 border border-sky-200 rounded">
+                                <input type="text" id="prog-riesame-ruolo" placeholder="Ruolo" class="px-2 py-1.5 bg-slate-50 border border-sky-200 rounded">
+                                <input type="text" id="prog-riesame-approvato" placeholder="Approvato da" class="px-2 py-1.5 bg-slate-50 border border-sky-200 rounded">
+                            </div>
+                        </section>
                     </div>
                 </details>
 
