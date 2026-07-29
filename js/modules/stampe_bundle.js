@@ -73,7 +73,8 @@ window.stampaFascicoloCompletoPDF = async function(projectId = null) {
                 // così funzionano sia da Centro Stampe sia dal pulsante in Progetti.
                 includeProjectFormativoTests: false,
                 includeFascicoloTests: false,
-                includeNeedsRiskAnnexes: false
+                includeNeedsRiskAnnexes: false,
+                includeQualityAnnexes: false
             });
             allPages.push(...pages);
 
@@ -90,6 +91,14 @@ window.stampaFascicoloCompletoPDF = async function(projectId = null) {
                         : []);
                 allPages.push(...testPages);
             }
+
+            if (m === 'verbale' && typeof window.renderGradimentoMonitoraggioAnnexPages === 'function') {
+                const qualityPages = await window.renderGradimentoMonitoraggioAnnexPages({
+                    preview: false,
+                    session: backupSession
+                });
+                allPages.push(...qualityPages);
+            }
         }
 
         // Verifica di sicurezza Step 57: il PDF unico deve contenere sempre i test manuali
@@ -104,6 +113,7 @@ window.stampaFascicoloCompletoPDF = async function(projectId = null) {
 
         const blankTests = allPages.filter(p => p?.dataset?.manualTestPage === 'blank').length;
         const correctedTests = allPages.filter(p => p?.dataset?.manualTestPage === 'corrected').length;
+        const questionnaires = allPages.filter(p => p?.dataset?.gradimentoQuestionario).length;
 
         if (!blankTests || !correctedTests) {
             console.warn('PDF unico progetto senza test manuali completi:', { blankTests, correctedTests, allPages });
@@ -135,10 +145,11 @@ window.stampaFascicoloCompletoPDF = async function(projectId = null) {
             pages: allPages.length,
             blankTests,
             correctedTests,
+            questionnaires,
             corsisti: backupSession.length
         });
 
-        alert(`Ora si aprirà la stampa. Seleziona "Salva come PDF" per salvare sul PC il PDF unico progetto. Sono inclusi Analisi Fabbisogni, Scheda Rischi, ${blankTests} test manuali da consegnare ai corsisti e ${correctedTests} correttore/i per i valutatori. Gli attestati NON sono inclusi: usa il pulsante "PDF solo attestati". Corsisti: ${backupSession.length}.`);
+        alert(`Ora si aprirà la stampa. Seleziona "Salva come PDF" per salvare sul PC il PDF unico progetto. Sono inclusi Analisi Fabbisogni, Scheda Rischi, ${blankTests} test manuali, ${correctedTests} correttore/i, ${questionnaires} questionari di gradimento, riepilogo e monitoraggio qualità. Gli attestati NON sono inclusi: usa il pulsante "PDF solo attestati". Corsisti: ${backupSession.length}.`);
         document.body.classList.add('is-printing-temp');
         setTimeout(() => {
             window.print();

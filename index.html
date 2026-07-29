@@ -388,6 +388,12 @@
         display: block !important;
     }
 
+    body.is-printing-temp #print-area-temp .doc-page.sector-risk-page {
+        padding: 8mm !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
     body.is-printing-temp #print-area-temp .manual-test-inner {
         width: 297mm !important;
         height: 210mm !important;
@@ -522,6 +528,8 @@
     <script src="js/supabase_config.js"></script>
     <script src="js/data.js"></script>
     <script src="js/utils.js"></script>
+    <script src="js/modules/fabbisogni_rischi.js"></script>
+    <script src="js/modules/gradimento_monitoraggio.js"></script>
     <script src="js/modules/scadenze.js"></script>
     <script src="js/modules/migrazione.js"></script>
     <script src="js/modules/archivio.js"></script>

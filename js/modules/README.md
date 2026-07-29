@@ -5,13 +5,14 @@ Il caricamento resta tramite script classici nel browser, quindi tutte le funzio
 
 Ordine attuale:
 1. `fabbisogni_rischi.js` — analisi fabbisogni, catalogo rischi di settore e allegati stampa Step 60
-2. `scadenze.js`
-3. `migrazione.js`
-4. `archivio.js`
-5. `stampe_bundle.js`
-6. `backup.js`
-7. `export_sezioni.js`
-8. `collaudo.js`
+2. `gradimento_monitoraggio.js` — questionari cartacei, riepilogo e monitoraggio qualità Step 61
+3. `scadenze.js`
+4. `migrazione.js`
+5. `archivio.js`
+6. `stampe_bundle.js`
+7. `backup.js`
+8. `export_sezioni.js`
+9. `collaudo.js`
 
 Il prossimo refactoring consigliato è separare:
 - `progetti.js`

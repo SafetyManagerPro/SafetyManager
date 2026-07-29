@@ -2023,9 +2023,13 @@ window.collectProjectFormSnapshot = function(projectId) {
     const fabbisogniSnapshot = typeof window.collectFabbisogniProjectRecord === 'function'
         ? window.collectFabbisogniProjectRecord()
         : {};
+    const gradimentoSnapshot = typeof window.collectGradimentoMonitoraggioRecord === 'function'
+        ? window.collectGradimentoMonitoraggioRecord()
+        : {};
     return {
         ...original,
         ...fabbisogniSnapshot,
+        ...gradimentoSnapshot,
         id: projectId || document.getElementById('prog-id')?.value || original.id,
         azienda_id: document.getElementById('prog-azienda')?.value || '',
         ente_erogatore: document.getElementById('prog-erogatore')?.value || 'ente',
@@ -2598,6 +2602,20 @@ window.getProjectQualityItems = function(p = {}, iscritti = []) {
         actionLabel: 'Apri analisi'
     });
 
+    const qualityStatus = typeof window.getGradimentoMonitoraggioStatus === 'function'
+        ? window.getGradimentoMonitoraggioStatus(p)
+        : { ready: false, status: 'non_avviato', scoreCount: 0, scoreTotal: 4, monitoringCount: 0, monitoringTotal: 5 };
+    items.push({
+        key: 'gradimento',
+        title: 'Gradimento / monitoraggio',
+        status: qualityStatus.ready ? 'complete' : (qualityStatus.status !== 'non_avviato' ? 'info' : 'attention'),
+        detail: qualityStatus.ready
+            ? 'Questionari elaborati e monitoraggio qualità completato.'
+            : `${window.GRADIMENTO_STATUS_LABELS?.[qualityStatus.status] || 'Non avviato'} · medie ${qualityStatus.scoreCount}/${qualityStatus.scoreTotal} · monitoraggio ${qualityStatus.monitoringCount}/${qualityStatus.monitoringTotal}.`,
+        action: `window.handleProjectQualityAction('${p.id}', 'gradimento')`,
+        actionLabel: 'Apri qualità'
+    });
+
     items.push({
         key: 'docenti',
         title: 'Docenti / unità didattiche',
@@ -2757,11 +2775,20 @@ window.handleProjectQualityAction = async function(projectId, key, mode = 'deskt
         return;
     }
 
+    if (key === 'gradimento') {
+        if (!isPopup) await window.apriPopupProgettoById(projectId, 'progetti');
+        const panel = document.getElementById('prog-gradimento-panel');
+        if (panel) panel.open = true;
+        focusField('#prog-gradimento-panel');
+        return;
+    }
+
     if (isPopup) {
         const fields = {
             dati: '#prog-codice, #prog-corso, #prog-inizio, #prog-esame, #prog-modalita, #prog-sede',
             azienda: '#prog-azienda',
             fabbisogni: '#prog-fabbisogni-panel',
+            gradimento: '#prog-gradimento-panel',
             docenti: '#prog-docenti-container, .prog-docente-ud',
             compliance: '#prog-compliance-note-free, #prog-erogatore, #prog-validazione-esito, #prog-op-esito',
             chiusura: '#prog-stato-corso, #prog-documenti-url, #prog-chiuso-at, #prog-note-chiusura'
@@ -2913,6 +2940,10 @@ window.renderProjectDesktopRows = function(p, iscritti, issues) {
     const fabBadge = fabStatus.ready
         ? '<span class="inline-block mt-1 ml-1 px-1.5 py-0.5 rounded bg-cyan-200 text-cyan-950 font-black text-[8px] uppercase">Fabbisogni verificati</span>'
         : '<span class="inline-block mt-1 ml-1 px-1.5 py-0.5 rounded bg-slate-700 text-cyan-100 border border-cyan-700 font-black text-[8px] uppercase">Fabbisogni da completare</span>';
+    const gradStatus = typeof window.getGradimentoMonitoraggioStatus === 'function' ? window.getGradimentoMonitoraggioStatus(p) : { ready: false };
+    const gradBadge = gradStatus.ready
+        ? '<span class="inline-block mt-1 ml-1 px-1.5 py-0.5 rounded bg-violet-200 text-violet-950 font-black text-[8px] uppercase">Qualità verificata</span>'
+        : '<span class="inline-block mt-1 ml-1 px-1.5 py-0.5 rounded bg-slate-700 text-violet-100 border border-violet-700 font-black text-[8px] uppercase">Qualità da completare</span>';
     const qualityDashboard = window.renderProjectQualityDashboard ? window.renderProjectQualityDashboard(p, iscritti, 'desktop') : '';
     const projectMarker = `${window.dashEscape(p.codice || 'Progetto')} · ${window.dashEscape(nomeAzienda || '')} · ${window.formatDataToItalian(p.data_esame)}`;
 
@@ -2950,7 +2981,7 @@ window.renderProjectDesktopRows = function(p, iscritti, issues) {
                 <div class="rounded-xl border-2 border-amber-300 bg-amber-400 p-3 mt-2 shadow-md shadow-amber-950/20">
                     <p class="text-[8px] font-black uppercase tracking-widest text-amber-950 mb-1">Azienda committente</p>
                     <p class="font-black text-xs text-slate-950 uppercase leading-tight">${window.dashEscape(nomeAzienda || '')}</p>
-                    ${erogatoreBadge}${fabBadge}
+                    ${erogatoreBadge}${fabBadge}${gradBadge}
                 </div>
             </td>
             <td class="p-3 border-b border-slate-700 font-bold text-center text-slate-200 align-top">${window.formatDataToItalian(p.data_esame)}</td>
@@ -2992,6 +3023,10 @@ window.renderProjectMobileCard = function(p, iscritti, issues) {
     const fabBadge = fabStatus.ready
         ? '<span class="inline-flex px-2 py-1 rounded-full bg-cyan-200 text-cyan-950 font-black text-[8px] uppercase">Fabbisogni verificati</span>'
         : '<span class="inline-flex px-2 py-1 rounded-full bg-slate-700 text-cyan-100 border border-cyan-700 font-black text-[8px] uppercase">Fabbisogni da completare</span>';
+    const gradStatus = typeof window.getGradimentoMonitoraggioStatus === 'function' ? window.getGradimentoMonitoraggioStatus(p) : { ready: false };
+    const gradBadge = gradStatus.ready
+        ? '<span class="inline-flex px-2 py-1 rounded-full bg-violet-200 text-violet-950 font-black text-[8px] uppercase">Qualità verificata</span>'
+        : '<span class="inline-flex px-2 py-1 rounded-full bg-slate-700 text-violet-100 border border-violet-700 font-black text-[8px] uppercase">Qualità da completare</span>';
     const qualityDashboard = window.renderProjectQualityDashboard ? window.renderProjectQualityDashboard(p, iscritti, 'mobile') : '';
 
     return `<article class="mt-10 rounded-2xl border-8 border-yellow-300 bg-slate-900 shadow-2xl shadow-yellow-950/30 overflow-hidden" data-corso="${p.corso_id}" data-azienda="${p.azienda_id || ''}" data-mobile-project-id="${p.id}" data-project-id="${p.id}">
@@ -3004,7 +3039,7 @@ window.renderProjectMobileCard = function(p, iscritti, issues) {
             <div class="min-w-0">
                 <button onclick="window.apriPopupProgettoById('${p.id}', 'progetti')" class="font-mono text-rose-300 font-black text-xs hover:underline">${window.dashEscape(p.codice || '')}</button>
                 <p class="text-[10px] text-slate-400 font-bold uppercase mt-1">Esame: ${window.formatDataToItalian(p.data_esame)}</p>
-                <div class="flex flex-wrap gap-1 mt-2">${statoBadge}${chiusuraBadge}${fabBadge}</div>
+                <div class="flex flex-wrap gap-1 mt-2">${statoBadge}${chiusuraBadge}${fabBadge}${gradBadge}</div>
             </div>
             <div class="flex gap-2 shrink-0">
                 <button onclick="window.apriPopupProgettoById('${p.id}', 'progetti')" class="text-white bg-blue-600 hover:bg-blue-500 p-2 rounded-lg" title="Modifica progetto"><i data-lucide="edit" class="w-4 h-4"></i></button>
@@ -3242,7 +3277,8 @@ window.salvaProgettoDB = async function() {
         documenti_firmati_url: documentiFirmatiUrl || null,
         chiuso_at: statoCorso === 'chiuso' ? (chiusoAt || new Date().toISOString().slice(0,10)) : (chiusoAt || null),
         note_chiusura: noteChiusura || null,
-        ...(typeof window.collectFabbisogniProjectRecord === 'function' ? window.collectFabbisogniProjectRecord() : {})
+        ...(typeof window.collectFabbisogniProjectRecord === 'function' ? window.collectFabbisogniProjectRecord() : {}),
+        ...(typeof window.collectGradimentoMonitoraggioRecord === 'function' ? window.collectGradimentoMonitoraggioRecord() : {})
     };
     if (id && id !== "") record.id = id;
 
@@ -3257,7 +3293,7 @@ window.salvaProgettoDB = async function() {
         window.resetFormProgetto();
         if (wasPopup && typeof window.chiudiPopupProgetto === 'function') window.chiudiPopupProgetto();
         await window.reloadLinkedViewsAfterMutation('progetto', { projectId: savedProject?.id || record.id });
-    } else alert("Errore nel salvataggio del progetto formativo. Verifica di aver applicato tutte le migration Supabase, inclusa la migration Step 60 per fabbisogni e schede rischi.");
+    } else alert("Errore nel salvataggio del progetto formativo. Verifica di aver applicato tutte le migration Supabase, incluse Step 60 e Step 61.");
 };
 
 
@@ -3305,6 +3341,7 @@ window.modificaProgetto = function(id) {
     set('prog-chiuso-at', p.chiuso_at || '');
     set('prog-note-chiusura', p.note_chiusura || '');
     if (typeof window.populateFabbisogniProjectForm === 'function') window.populateFabbisogniProjectForm(p);
+    if (typeof window.populateGradimentoMonitoraggioForm === 'function') window.populateGradimentoMonitoraggioForm(p);
 
     if(document.getElementById('prog-omogeneita-aula')) {
         document.getElementById('prog-omogeneita-aula').checked = p.omogeneita_aula !== false;
@@ -3362,6 +3399,7 @@ window.resetFormProgetto = function() {
     if(document.getElementById('prog-chiuso-at')) document.getElementById('prog-chiuso-at').value = '';
     if(document.getElementById('prog-note-chiusura')) document.getElementById('prog-note-chiusura').value = '';
     if (typeof window.resetFabbisogniProjectForm === 'function') window.resetFabbisogniProjectForm();
+    if (typeof window.resetGradimentoMonitoraggioForm === 'function') window.resetGradimentoMonitoraggioForm();
     window.progettoDraftCorsistiIds = [];
     if (typeof window.renderProgettoDraftCorsistiControls === 'function') window.renderProgettoDraftCorsistiControls();
     if(typeof window.syncValidazioneCNAUI === 'function') window.syncValidazioneCNAUI();
@@ -3822,6 +3860,7 @@ window.caricaDatiStampa = async function(projectId = null, options = {}) {
     window.AppState['cfg-op-destinatario'] = p.organismo_destinatario || window.DEFAULT_OP_DESTINATARIO;
     window.AppState['cfg-validazione-note'] = p.note_validazione_ente || "";
     if (typeof window.setFabbisogniPrintState === 'function') window.setFabbisogniPrintState(p);
+    if (typeof window.setGradimentoMonitoraggioPrintState === 'function') window.setGradimentoMonitoraggioPrintState(p);
 
     window.currentProgettoStampaId = progId;
     window.currentSessionCorsisti = iscritti.map(isc => {
@@ -4085,6 +4124,12 @@ window.renderPrintModulePages = async function(moduleId, singleCorsista = null, 
         pages.push(...window.renderManualTestCoursePages(courseId, { preview, session: sessionSnapshot }));
     }
 
+    if (moduleId === 'fascicolo_corso' &&
+        options.includeQualityAnnexes !== false &&
+        typeof window.renderGradimentoMonitoraggioAnnexPages === 'function') {
+        pages.push(...await window.renderGradimentoMonitoraggioAnnexPages({ preview }));
+    }
+
     holder.remove();
     window.currentPrintModule = prevModule;
     window.currentSessionCorsisti = prevSession;
@@ -4186,6 +4231,11 @@ window.loadPrintPreview = async function(modulo) {
             return;
         }
 
+        if (modulo === 'questionario_gradimento' && typeof window.loadGradimentoQuestionariPreview === 'function') {
+            await window.loadGradimentoQuestionariPreview();
+            return;
+        }
+
         if ((modulo === 'progetto_formativo' || modulo === 'fascicolo_corso') && typeof window.renderPrintModulePages === 'function') {
             const pages = await window.renderPrintModulePages(modulo, null, { preview: true });
             container.innerHTML = '';
@@ -4219,6 +4269,11 @@ window.stampaSezioneAttuale = async function() {
 
     if(window.currentPrintModule === 'attestato') {
         await window.stampaAttestatiMultipli();
+        return;
+    }
+
+    if(window.currentPrintModule === 'questionario_gradimento' && typeof window.stampaQuestionariGradimento === 'function') {
+        await window.stampaQuestionariGradimento();
         return;
     }
 
@@ -4638,6 +4693,7 @@ window.updateAll = function() {
         }
     }
     if (typeof window.applyFabbisogniPrintFields === 'function') window.applyFabbisogniPrintFields();
+    if (typeof window.applyGradimentoMonitoraggioPrintFields === 'function') window.applyGradimentoMonitoraggioPrintFields();
     if (typeof window.applyAutomaticSignatureImages === 'function') window.applyAutomaticSignatureImages();
 };
 

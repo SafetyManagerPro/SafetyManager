@@ -250,6 +250,238 @@
                     <p class="mt-1 text-[9px] text-slate-500">Scadenza stimata: <span id="lbl-prog-scadenza" class="font-black text-slate-800">---</span></p>
                 </div>
 
+                <details id="prog-fabbisogni-panel" class="group rounded-xl border-2 border-cyan-300 bg-cyan-50 overflow-hidden">
+                    <summary class="cursor-pointer list-none bg-cyan-700 text-white px-3 py-3 flex items-center justify-between gap-3">
+                        <span class="min-w-0">
+                            <span class="block text-[10px] font-black uppercase tracking-wider">Analisi fabbisogni formativi e scheda rischi</span>
+                            <span class="block text-[9px] text-cyan-100 mt-0.5">Sezione non bloccante · apri per compilare o verificare</span>
+                        </span>
+                        <i data-lucide="chevron-down" class="w-4 h-4 shrink-0 transition-transform group-open:rotate-180"></i>
+                    </summary>
+                    <div class="p-3 space-y-4 text-[10px]">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <div>
+                                <label class="font-black uppercase text-cyan-900 block mb-1">Data analisi</label>
+                                <input type="date" id="prog-fabbisogni-data" class="w-full px-2 py-1.5 bg-white border border-cyan-200 rounded outline-none focus:border-cyan-600">
+                            </div>
+                            <div>
+                                <label class="font-black uppercase text-cyan-900 block mb-1">Unità locale interessata</label>
+                                <input type="text" id="prog-fabbisogni-unita" placeholder="Sede operativa/unità locale" class="w-full px-2 py-1.5 bg-white border border-cyan-200 rounded outline-none focus:border-cyan-600">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="font-black uppercase text-cyan-900 block mb-1">Attività svolta / contesto operativo</label>
+                            <textarea id="prog-fabbisogni-attivita" rows="2" placeholder="Descrivi attività, reparto, processi e contesto di lavoro interessati." class="w-full px-2 py-1.5 bg-white border border-cyan-200 rounded outline-none focus:border-cyan-600"></textarea>
+                        </div>
+
+                        <div class="rounded-lg border border-cyan-200 bg-white p-3">
+                            <p class="font-black uppercase text-cyan-900 mb-2">Fonti utilizzate per l’analisi</p>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <label class="flex gap-2 items-start"><input type="checkbox" value="dvr" class="prog-fabbisogni-fonte mt-0.5" checked><span>DVR aziendale</span></label>
+                                <label class="flex gap-2 items-start"><input type="checkbox" value="sopralluoghi" class="prog-fabbisogni-fonte mt-0.5"><span>Sopralluoghi/osservazioni</span></label>
+                                <label class="flex gap-2 items-start"><input type="checkbox" value="riunioni" class="prog-fabbisogni-fonte mt-0.5"><span>Riunioni con figure sicurezza</span></label>
+                                <label class="flex gap-2 items-start"><input type="checkbox" value="infortuni_near_miss" class="prog-fabbisogni-fonte mt-0.5"><span>Infortuni/near miss</span></label>
+                                <label class="flex gap-2 items-start"><input type="checkbox" value="formazione_pregressa" class="prog-fabbisogni-fonte mt-0.5"><span>Formazione pregressa</span></label>
+                                <label class="flex gap-2 items-start"><input type="checkbox" value="segnalazioni" class="prog-fabbisogni-fonte mt-0.5"><span>Segnalazioni lavoratori/RLS/preposti</span></label>
+                            </div>
+                        </div>
+
+                        <div class="rounded-lg border border-cyan-200 bg-white p-3">
+                            <p class="font-black uppercase text-cyan-900 mb-2">Esigenza formativa rilevata</p>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <label class="flex gap-2 items-start"><input type="checkbox" value="nuovi_lavoratori" class="prog-fabbisogni-necessita mt-0.5"><span>Nuovi lavoratori</span></label>
+                                <label class="flex gap-2 items-start"><input type="checkbox" value="cambio_mansione" class="prog-fabbisogni-necessita mt-0.5"><span>Cambio mansione/ruolo</span></label>
+                                <label class="flex gap-2 items-start"><input type="checkbox" value="nuove_attrezzature" class="prog-fabbisogni-necessita mt-0.5"><span>Nuove attrezzature/tecnologie</span></label>
+                                <label class="flex gap-2 items-start"><input type="checkbox" value="infortuni_near_miss" class="prog-fabbisogni-necessita mt-0.5"><span>Infortuni/near miss</span></label>
+                                <label class="flex gap-2 items-start"><input type="checkbox" value="segnalazioni" class="prog-fabbisogni-necessita mt-0.5"><span>Segnalazioni/esigenze espresse</span></label>
+                                <label class="flex gap-2 items-start"><input type="checkbox" value="nuove_procedure" class="prog-fabbisogni-necessita mt-0.5"><span>Nuove procedure/processi</span></label>
+                                <label class="flex gap-2 items-start"><input type="checkbox" value="aggiornamento_competenze" class="prog-fabbisogni-necessita mt-0.5"><span>Aggiornamento/rafforzamento</span></label>
+                                <label class="flex gap-2 items-start"><input type="checkbox" value="altro" class="prog-fabbisogni-necessita mt-0.5"><span>Altra esigenza</span></label>
+                            </div>
+                            <input type="text" id="prog-fabbisogni-altro" placeholder="Dettaglia l’esigenza o altre motivazioni" class="mt-2 w-full px-2 py-1.5 bg-slate-50 border border-cyan-200 rounded outline-none focus:border-cyan-600">
+                        </div>
+
+                        <div>
+                            <label class="font-black uppercase text-cyan-900 block mb-1">Ruolo/mansione da ricoprire o aggiornare</label>
+                            <input type="text" id="prog-fabbisogni-ruolo" placeholder="Es. lavoratore addetto al magazzino, preposto, carrellista..." class="w-full px-2 py-1.5 bg-white border border-cyan-200 rounded outline-none focus:border-cyan-600">
+                        </div>
+                        <div>
+                            <label class="font-black uppercase text-cyan-900 block mb-1">Competenze in ingresso possedute</label>
+                            <textarea id="prog-fabbisogni-ingresso" rows="2" placeholder="Idoneità, attestati posseduti, esperienza, competenze linguistiche e organizzative." class="w-full px-2 py-1.5 bg-white border border-cyan-200 rounded outline-none focus:border-cyan-600"></textarea>
+                        </div>
+                        <div>
+                            <label class="font-black uppercase text-cyan-900 block mb-1">Competenze richieste dal ruolo</label>
+                            <textarea id="prog-fabbisogni-richieste" rows="2" placeholder="Conoscenze, abilità, responsabilità e comportamenti sicuri richiesti." class="w-full px-2 py-1.5 bg-white border border-cyan-200 rounded outline-none focus:border-cyan-600"></textarea>
+                        </div>
+                        <div>
+                            <label class="font-black uppercase text-cyan-900 block mb-1">Gap da colmare con il percorso</label>
+                            <textarea id="prog-fabbisogni-gap" rows="2" placeholder="Indica il divario tra competenze possedute e richieste." class="w-full px-2 py-1.5 bg-white border border-cyan-200 rounded outline-none focus:border-cyan-600"></textarea>
+                        </div>
+
+                        <div>
+                            <label class="font-black uppercase text-cyan-900 block mb-1">Comprensione lingua italiana</label>
+                            <select id="prog-fabbisogni-lingua" class="w-full px-2 py-1.5 bg-white border border-cyan-200 rounded outline-none focus:border-cyan-600 font-bold">
+                                <option value="da_verificare">Da verificare</option>
+                                <option value="adeguata">Adeguata</option>
+                                <option value="supporto">Previsto mediatore/traduttore o supporto linguistico</option>
+                                <option value="test">Necessario test di comprensione</option>
+                            </select>
+                        </div>
+
+                        <div class="rounded-xl border-2 border-amber-300 bg-amber-50 p-3 space-y-3">
+                            <div class="flex items-start justify-between gap-2">
+                                <div>
+                                    <p class="font-black uppercase text-amber-900">Scheda rischi per settore</p>
+                                    <p id="prog-rischi-settore-meta" class="text-[9px] text-amber-800 mt-0.5">Seleziona il settore coerente con ATECO, DVR e mansioni.</p>
+                                </div>
+                                <button type="button" onclick="window.selectAllProjectRisks(true)" class="shrink-0 rounded bg-amber-700 text-white px-2 py-1 text-[8px] font-black uppercase">Seleziona tutti</button>
+                            </div>
+                            <select id="prog-rischi-settore" onchange="this.dataset.userSelected='1'; window.onRiskSectorChange()" class="w-full px-2 py-2 bg-white border border-amber-300 rounded outline-none focus:border-amber-600 font-black text-amber-950"></select>
+                            <div id="prog-rischi-list" class="grid grid-cols-1 gap-2 max-h-72 overflow-y-auto pr-1"></div>
+                            <div>
+                                <label class="font-black uppercase text-amber-900 block mb-1">Rischi aggiuntivi/personalizzati dal DVR</label>
+                                <textarea id="prog-rischi-personalizzati" rows="3" placeholder="Un rischio per riga. Es. rumore da macchina specifica; esposizione a sostanza X..." class="w-full px-2 py-1.5 bg-white border border-amber-300 rounded outline-none focus:border-amber-600"></textarea>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="font-black uppercase text-cyan-900 block mb-1">Note e osservazioni conclusive</label>
+                            <textarea id="prog-fabbisogni-note" rows="3" placeholder="Decisione formativa, adattamenti, documenti forniti e osservazioni conclusive." class="w-full px-2 py-1.5 bg-white border border-cyan-200 rounded outline-none focus:border-cyan-600"></textarea>
+                        </div>
+                        <label class="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-2 text-emerald-900 font-bold">
+                            <input type="checkbox" id="prog-fabbisogni-accettato" class="mt-0.5">
+                            <span>Analisi condivisa/accettata dal datore di lavoro o referente dell’azienda committente.</span>
+                        </label>
+                    </div>
+                </details>
+
+                <details id="prog-gradimento-panel" class="group rounded-xl border-2 border-violet-300 bg-violet-50 overflow-hidden">
+                    <summary class="cursor-pointer list-none bg-violet-700 text-white px-3 py-3 flex items-center justify-between gap-3">
+                        <span class="min-w-0">
+                            <span class="block text-[10px] font-black uppercase tracking-wider">Gradimento e monitoraggio qualità</span>
+                            <span class="block text-[9px] text-violet-100 mt-0.5">Sezione non bloccante · questionari cartacei, medie e giudizio finale</span>
+                        </span>
+                        <i data-lucide="chevron-down" class="w-4 h-4 shrink-0 transition-transform group-open:rotate-180"></i>
+                    </summary>
+                    <div class="p-3 space-y-4 text-[10px]">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <button type="button" onclick="window.stampaQuestionariGradimentoDaProgetto(document.getElementById('prog-id')?.value)" class="rounded-lg bg-violet-800 hover:bg-violet-700 text-white px-3 py-2 font-black uppercase text-[9px] flex items-center justify-center gap-2">
+                                <i data-lucide="printer" class="w-3.5 h-3.5"></i> Stampa questionari corsisti
+                            </button>
+                            <button type="button" onclick="window.stampaModuloProgettoRapido(document.getElementById('prog-id')?.value, 'monitoraggio_qualita', 'monitoraggio qualità')" class="rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white px-3 py-2 font-black uppercase text-[9px] flex items-center justify-center gap-2">
+                                <i data-lucide="list-checks" class="w-3.5 h-3.5"></i> Stampa monitoraggio
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                            <div class="sm:col-span-2">
+                                <label class="font-black uppercase text-violet-900 block mb-1">Stato questionari</label>
+                                <select id="prog-gradimento-stato" class="w-full px-2 py-1.5 bg-white border border-violet-200 rounded outline-none focus:border-violet-600 font-bold">
+                                    <option value="non_avviato">Non avviato</option>
+                                    <option value="da_stampare">Da stampare</option>
+                                    <option value="distribuito">Distribuiti ai corsisti</option>
+                                    <option value="raccolto">Raccolti</option>
+                                    <option value="elaborato">Elaborati / medie registrate</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="font-black uppercase text-violet-900 block mb-1">Questionari raccolti</label>
+                                <input type="number" min="0" step="1" id="prog-gradimento-raccolti" value="0" class="w-full px-2 py-1.5 bg-white border border-violet-200 rounded outline-none focus:border-violet-600">
+                            </div>
+                        </div>
+
+                        <div class="rounded-lg border border-violet-200 bg-white p-3">
+                            <p class="font-black uppercase text-violet-900 mb-2">Medie ricavate dai questionari cartacei</p>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="text-[9px] font-bold text-slate-600 block mb-1">Qualità didattica (1–5)</label>
+                                    <input type="number" min="1" max="5" step="0.01" id="prog-gradimento-media-didattica" class="w-full px-2 py-1.5 bg-slate-50 border border-violet-200 rounded">
+                                </div>
+                                <div>
+                                    <label class="text-[9px] font-bold text-slate-600 block mb-1">Qualità organizzativa (1–5)</label>
+                                    <input type="number" min="1" max="5" step="0.01" id="prog-gradimento-media-organizzativa" class="w-full px-2 py-1.5 bg-slate-50 border border-violet-200 rounded">
+                                </div>
+                                <div>
+                                    <label class="text-[9px] font-bold text-slate-600 block mb-1">Utilità percepita (1–5)</label>
+                                    <input type="number" min="1" max="5" step="0.01" id="prog-gradimento-media-utilita" class="w-full px-2 py-1.5 bg-slate-50 border border-violet-200 rounded">
+                                </div>
+                                <div>
+                                    <label class="text-[9px] font-bold text-slate-600 block mb-1">Giudizio complessivo (1–10)</label>
+                                    <input type="number" min="1" max="10" step="0.01" id="prog-gradimento-media-complessiva" class="w-full px-2 py-1.5 bg-slate-50 border border-violet-200 rounded">
+                                </div>
+                            </div>
+                            <textarea id="prog-gradimento-commenti" rows="2" placeholder="Sintesi di commenti, aspetti apprezzati e suggerimenti dei partecipanti." class="mt-2 w-full px-2 py-1.5 bg-slate-50 border border-violet-200 rounded outline-none focus:border-violet-600"></textarea>
+                        </div>
+
+                        <div class="rounded-lg border border-violet-200 bg-white p-3">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
+                                <div>
+                                    <label class="font-black uppercase text-violet-900 block mb-1">Data monitoraggio</label>
+                                    <input type="date" id="prog-monitoraggio-data" class="w-full px-2 py-1.5 bg-slate-50 border border-violet-200 rounded">
+                                </div>
+                                <div>
+                                    <label class="font-black uppercase text-violet-900 block mb-1">Giudizio finale</label>
+                                    <select id="prog-monitoraggio-giudizio" class="w-full px-2 py-1.5 bg-slate-50 border border-violet-200 rounded font-bold">
+                                        <option value="da_valutare">Da valutare</option>
+                                        <option value="conforme">Conforme agli obiettivi</option>
+                                        <option value="parzialmente_conforme">Parzialmente conforme</option>
+                                        <option value="non_conforme">Non conforme</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <p class="font-black uppercase text-violet-900 mb-2">Monitoraggio in itinere — tutor/docente</p>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <label class="text-[9px] font-bold text-slate-600">Partecipazione attiva
+                                    <select data-monitoraggio-key="partecipazione" class="prog-monitoraggio-item mt-1 w-full px-2 py-1.5 bg-slate-50 border border-violet-200 rounded">
+                                        <option value="da_valutare">Da valutare</option><option value="si">Sì</option><option value="parzialmente">Parzialmente</option><option value="no">No</option>
+                                    </select>
+                                </label>
+                                <label class="text-[9px] font-bold text-slate-600">Interesse e motivazione
+                                    <select data-monitoraggio-key="interesse" class="prog-monitoraggio-item mt-1 w-full px-2 py-1.5 bg-slate-50 border border-violet-200 rounded">
+                                        <option value="da_valutare">Da valutare</option><option value="si">Sì</option><option value="parzialmente">Parzialmente</option><option value="no">No</option>
+                                    </select>
+                                </label>
+                                <label class="text-[9px] font-bold text-slate-600">Completezza contenuti
+                                    <select data-monitoraggio-key="completezza" class="prog-monitoraggio-item mt-1 w-full px-2 py-1.5 bg-slate-50 border border-violet-200 rounded">
+                                        <option value="da_valutare">Da valutare</option><option value="si">Sì</option><option value="parzialmente">Parzialmente</option><option value="no">No</option>
+                                    </select>
+                                </label>
+                                <label class="text-[9px] font-bold text-slate-600">Rispetto programma e tempi
+                                    <select data-monitoraggio-key="programma_tempi" class="prog-monitoraggio-item mt-1 w-full px-2 py-1.5 bg-slate-50 border border-violet-200 rounded">
+                                        <option value="da_valutare">Da valutare</option><option value="si">Sì</option><option value="parzialmente">Parzialmente</option><option value="no">No</option>
+                                    </select>
+                                </label>
+                                <label class="text-[9px] font-bold text-slate-600 sm:col-span-2">Chiarezza espositiva formatori
+                                    <select data-monitoraggio-key="chiarezza" class="prog-monitoraggio-item mt-1 w-full px-2 py-1.5 bg-slate-50 border border-violet-200 rounded">
+                                        <option value="da_valutare">Da valutare</option><option value="si">Sì</option><option value="parzialmente">Parzialmente</option><option value="no">No</option>
+                                    </select>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="rounded-lg border border-violet-200 bg-white p-3">
+                            <p class="font-black uppercase text-violet-900 mb-2">Valutazione dell’apprendimento</p>
+                            <div class="grid grid-cols-2 gap-2">
+                                <label class="flex gap-2 items-center"><input type="checkbox" value="test_scritto" class="prog-monitoraggio-metodo"><span>Test scritto</span></label>
+                                <label class="flex gap-2 items-center"><input type="checkbox" value="prova_pratica" class="prog-monitoraggio-metodo"><span>Prova pratica</span></label>
+                                <label class="flex gap-2 items-center"><input type="checkbox" value="colloquio" class="prog-monitoraggio-metodo"><span>Colloquio finale</span></label>
+                                <label class="flex gap-2 items-center"><input type="checkbox" value="osservazione" class="prog-monitoraggio-metodo"><span>Osservazione in itinere</span></label>
+                            </div>
+                            <textarea id="prog-monitoraggio-esito" rows="2" placeholder="Sintesi degli esiti: percentuali, idoneità, eventuali recuperi o prove integrative." class="mt-2 w-full px-2 py-1.5 bg-slate-50 border border-violet-200 rounded outline-none focus:border-violet-600"></textarea>
+                        </div>
+
+                        <div>
+                            <label class="font-black uppercase text-violet-900 block mb-1">Criticità rilevate</label>
+                            <textarea id="prog-monitoraggio-criticita" rows="2" class="w-full px-2 py-1.5 bg-white border border-violet-200 rounded outline-none focus:border-violet-600"></textarea>
+                        </div>
+                        <div>
+                            <label class="font-black uppercase text-violet-900 block mb-1">Proposte e azioni di miglioramento</label>
+                            <textarea id="prog-monitoraggio-miglioramenti" rows="2" class="w-full px-2 py-1.5 bg-white border border-violet-200 rounded outline-none focus:border-violet-600"></textarea>
+                        </div>
+                    </div>
+                </details>
+
 <div class="border border-slate-200 bg-slate-50 rounded-xl p-3 space-y-2">
     <label class="text-[10px] font-black text-slate-600 uppercase block border-b border-slate-200 pb-1">Chiusura corso e documenti firmati</label>
     <div class="grid grid-cols-2 gap-2">
