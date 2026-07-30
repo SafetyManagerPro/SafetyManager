@@ -110,13 +110,14 @@ window.saveDocente = async function(record) {
         if (error) throw error; return data;
     } catch (err) {
         const msg = String(err?.message || err || '');
-        if ((record.azienda_appartenenza !== undefined || record.documento_identita_url !== undefined || record.codice_fiscale_url !== undefined || record.firma_docente_url !== undefined) && (msg.includes('azienda_appartenenza') || msg.includes('documento_identita_url') || msg.includes('codice_fiscale_url') || msg.includes('firma_docente_url') || msg.includes('schema cache'))) {
-            console.warn('Campi opzionali docenti non presenti: applica le migration Step 30/47/48. Riprovo senza campi opzionali.');
+        if ((record.azienda_appartenenza !== undefined || record.documento_identita_url !== undefined || record.codice_fiscale_url !== undefined || record.firma_docente_url !== undefined || record.luogo_data_nascita !== undefined) && (msg.includes('azienda_appartenenza') || msg.includes('documento_identita_url') || msg.includes('codice_fiscale_url') || msg.includes('firma_docente_url') || msg.includes('luogo_data_nascita') || msg.includes('schema cache'))) {
+            console.warn('Campi opzionali docenti non presenti: applica le migration Step 30/47/48/65. Riprovo senza campi opzionali.');
             const fallback = { ...record };
             delete fallback.azienda_appartenenza;
             delete fallback.documento_identita_url;
             delete fallback.codice_fiscale_url;
             delete fallback.firma_docente_url;
+            delete fallback.luogo_data_nascita;
             try {
                 const { data, error } = await supabaseClient.from('docenti').upsert(fallback).select();
                 if (error) throw error; return data;

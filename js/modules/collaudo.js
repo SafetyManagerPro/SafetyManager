@@ -37,7 +37,7 @@ window.runCollaudoSistema = async function() {
     const report = {
         meta: {
             app: 'SafetyManager PRO',
-            step: '64',
+            step: '65',
             executed_at: new Date().toISOString(),
             user_agent: navigator.userAgent,
             viewport: { width: window.innerWidth, height: window.innerHeight }
@@ -72,6 +72,10 @@ window.runCollaudoSistema = async function() {
         'collectTutorRiesameRecord',
         'renderTutorRiesameAnnexPages',
         'getTutorRiesameStatus',
+        'getAssignedProjectTeachers',
+        'expandTeacherDeclarationPages',
+        'isAssociationTrainingProvider',
+        'isTutorExpectedForProject',
         'collectLinguaTestCorsistaRecord',
         'calculateLinguaTestOutcome',
         'renderTestLinguaItalianaPages',
@@ -92,6 +96,7 @@ window.runCollaudoSistema = async function() {
         'js/modules/fabbisogni_rischi.js',
         'js/modules/gradimento_monitoraggio.js',
         'js/modules/tutor_riesame.js',
+        'js/modules/documenti_condizionali.js',
         'js/modules/lingua_italiana.js',
         'js/modules/registri_multigiorno.js',
         'js/modules/backup.js',
@@ -190,6 +195,26 @@ window.runCollaudoSistema = async function() {
             );
         } catch (e) {
             window.collAdd(report, 'Database', 'Campi Step 63 test lingua italiana', 'warn', e.message || String(e));
+        }
+        try {
+            const projectCheck = await window.supabaseClient
+                .from('progetti')
+                .select('id,tutor_previsto')
+                .limit(1);
+            const teacherCheck = await window.supabaseClient
+                .from('docenti')
+                .select('id,luogo_data_nascita')
+                .limit(1);
+            const error = projectCheck.error || teacherCheck.error;
+            window.collAdd(
+                report,
+                'Database',
+                'Campi Step 65 docenti/tutor facoltativo',
+                error ? 'warn' : 'ok',
+                error ? 'Applicare la migration Step 65: ' + error.message : 'Colonne disponibili'
+            );
+        } catch (e) {
+            window.collAdd(report, 'Database', 'Campi Step 65 docenti/tutor facoltativo', 'warn', e.message || String(e));
         }
     }
 

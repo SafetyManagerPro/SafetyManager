@@ -802,6 +802,7 @@ window.salvaDocenteDB = async function() {
     const record = {
         nome_cognome: document.getElementById('doc-nome').value.trim(),
         cf: document.getElementById('doc-cf').value.trim().toUpperCase(),
+        luogo_data_nascita: document.getElementById('doc-luogo-data-nascita') ? document.getElementById('doc-luogo-data-nascita').value.trim() : '',
         qualifica: document.getElementById('doc-qualifica').value,
         azienda_appartenenza: document.getElementById('doc-azienda-appartenenza') ? document.getElementById('doc-azienda-appartenenza').value.trim() : '',
         email: document.getElementById('doc-email').value.trim(),
@@ -826,6 +827,7 @@ window.modificaDocente = async function(id) {
     document.getElementById('doc-id').value = doc.id;
     document.getElementById('doc-nome').value = doc.nome_cognome;
     document.getElementById('doc-cf').value = doc.cf;
+    if(document.getElementById('doc-luogo-data-nascita')) document.getElementById('doc-luogo-data-nascita').value = doc.luogo_data_nascita || "";
     document.getElementById('doc-qualifica').value = doc.qualifica;
     await window.popolaSelectAziendaAppartenenzaDocente(doc.azienda_appartenenza || "");
     document.getElementById('doc-email').value = doc.email || "";
@@ -835,7 +837,7 @@ window.modificaDocente = async function(id) {
     if(document.getElementById('doc-firma-url')) {
         document.getElementById('doc-firma-url').value = doc.firma_docente_url || "";
         if (!document.getElementById('doc-firma-url').value) {
-            const autoFirma = window.getAutoSignaturePathByNameAndRole(doc.nome || '', 'docente');
+            const autoFirma = window.getAutoSignaturePathByNameAndRole(doc.nome_cognome || doc.nome || '', 'docente');
             if (autoFirma) document.getElementById('doc-firma-url').value = autoFirma;
         }
         window.showFirmaPreview('doc-firma-url', 'doc-firma-preview');
@@ -2688,7 +2690,7 @@ window.getProjectQualityItems = function(p = {}, iscritti = []) {
         key: 'tutor_riesame',
         title: 'Tutor / riesame',
         status: tutorStatus.ready ? 'complete' : (tutorStatus.tutorReady || tutorStatus.reviewState !== 'non_pianificato' ? 'info' : 'attention'),
-        detail: `${tutorStatus.tutorReady ? 'Relazione tutor completa' : 'Relazione tutor da completare'} · riesame ${tutorStatus.reviewReady ? 'completo/non applicabile' : 'da pianificare o completare'}.`,
+        detail: `${tutorStatus.tutorExpected === false ? 'Tutor non previsto' : (tutorStatus.tutorCompleted ? 'Relazione tutor completa' : 'Relazione tutor da completare')} · riesame ${tutorStatus.reviewReady ? 'completo/non applicabile' : 'da pianificare o completare'}.`,
         action: `window.handleProjectQualityAction('${p.id}', 'tutor_riesame')`,
         actionLabel: 'Apri tutor/riesame'
     });
@@ -3050,7 +3052,9 @@ window.renderProjectDesktopRows = function(p, iscritti, issues) {
     const tutorStatus = typeof window.getTutorRiesameStatus === 'function' ? window.getTutorRiesameStatus(p) : { ready: false };
     const tutorBadge = tutorStatus.ready
         ? '<span class="inline-block mt-1 ml-1 px-1.5 py-0.5 rounded bg-teal-200 text-teal-950 font-black text-[8px] uppercase">Tutor/riesame verificati</span>'
-        : '<span class="inline-block mt-1 ml-1 px-1.5 py-0.5 rounded bg-slate-700 text-teal-100 border border-teal-700 font-black text-[8px] uppercase">Tutor/riesame da completare</span>';
+        : (tutorStatus.tutorExpected === false
+            ? '<span class="inline-block mt-1 ml-1 px-1.5 py-0.5 rounded bg-slate-700 text-sky-100 border border-sky-700 font-black text-[8px] uppercase">Tutor N/A · riesame da completare</span>'
+            : '<span class="inline-block mt-1 ml-1 px-1.5 py-0.5 rounded bg-slate-700 text-teal-100 border border-teal-700 font-black text-[8px] uppercase">Tutor/riesame da completare</span>');
     const qualityDashboard = window.renderProjectQualityDashboard ? window.renderProjectQualityDashboard(p, iscritti, 'desktop') : '';
     const projectMarker = `${window.dashEscape(p.codice || 'Progetto')} · ${window.dashEscape(nomeAzienda || '')} · ${window.formatDataToItalian(p.data_esame)}`;
 
@@ -3137,7 +3141,9 @@ window.renderProjectMobileCard = function(p, iscritti, issues) {
     const tutorStatus = typeof window.getTutorRiesameStatus === 'function' ? window.getTutorRiesameStatus(p) : { ready: false };
     const tutorBadge = tutorStatus.ready
         ? '<span class="inline-flex px-2 py-1 rounded-full bg-teal-200 text-teal-950 font-black text-[8px] uppercase">Tutor/riesame verificati</span>'
-        : '<span class="inline-flex px-2 py-1 rounded-full bg-slate-700 text-teal-100 border border-teal-700 font-black text-[8px] uppercase">Tutor/riesame da completare</span>';
+        : (tutorStatus.tutorExpected === false
+            ? '<span class="inline-flex px-2 py-1 rounded-full bg-slate-700 text-sky-100 border border-sky-700 font-black text-[8px] uppercase">Tutor N/A · riesame da completare</span>'
+            : '<span class="inline-flex px-2 py-1 rounded-full bg-slate-700 text-teal-100 border border-teal-700 font-black text-[8px] uppercase">Tutor/riesame da completare</span>');
     const qualityDashboard = window.renderProjectQualityDashboard ? window.renderProjectQualityDashboard(p, iscritti, 'mobile') : '';
 
     return `<article class="mt-10 rounded-2xl border-8 border-yellow-300 bg-slate-900 shadow-2xl shadow-yellow-950/30 overflow-hidden" data-corso="${p.corso_id}" data-azienda="${p.azienda_id || ''}" data-mobile-project-id="${p.id}" data-project-id="${p.id}">
@@ -3405,7 +3411,7 @@ window.salvaProgettoDB = async function() {
         window.resetFormProgetto();
         if (wasPopup && typeof window.chiudiPopupProgetto === 'function') window.chiudiPopupProgetto();
         await window.reloadLinkedViewsAfterMutation('progetto', { projectId: savedProject?.id || record.id });
-    } else alert("Errore nel salvataggio del progetto formativo. Verifica di aver applicato tutte le migration Supabase, incluse Step 60, Step 61 e Step 62.");
+    } else alert("Errore nel salvataggio del progetto formativo. Verifica di aver applicato tutte le migration Supabase, incluse Step 60, Step 61, Step 62 e Step 65.");
 };
 
 
@@ -4009,6 +4015,10 @@ window.caricaDatiStampa = async function(projectId = null, options = {}) {
         };
     });
 
+    if (typeof window.updateConditionalPrintButtons === 'function') {
+        window.updateConditionalPrintButtons();
+    }
+
     if(!suppressPreviewRefresh && window.currentPrintModule && !projectId && document.getElementById('stampa-progetto') && document.getElementById('print-preview-container')) {
         window.loadPrintPreview(window.currentPrintModule);
     }
@@ -4194,6 +4204,16 @@ window.renderManualTestsForCurrentPrintProject = function(options = {}) {
 
 window.renderPrintModulePages = async function(moduleId, singleCorsista = null, options = {}) {
     const preview = !!options.preview;
+    if (moduleId === 'autocert' &&
+        typeof window.isAssociationTrainingProvider === 'function' &&
+        !window.isAssociationTrainingProvider()) {
+        return [];
+    }
+    if (moduleId === 'relazione_tutor' &&
+        typeof window.isTutorExpectedForProject === 'function' &&
+        !window.isTutorExpectedForProject()) {
+        return [];
+    }
     if (moduleId === 'test_lingua_italiana' && typeof window.renderTestLinguaItalianaPages === 'function') {
         return await window.renderTestLinguaItalianaPages({
             preview,
@@ -4243,6 +4263,11 @@ window.renderPrintModulePages = async function(moduleId, singleCorsista = null, 
     if (moduleId === 'registro' && typeof window.expandRegisterPagesByTrainingDay === 'function') {
         const expandedRegisters = window.expandRegisterPagesByTrainingDay(pages, { preview });
         pages.splice(0, pages.length, ...expandedRegisters);
+    }
+
+    if (moduleId === 'dichiarazione_docenza' && typeof window.expandTeacherDeclarationPages === 'function') {
+        const teacherDeclarations = window.expandTeacherDeclarationPages(pages);
+        pages.splice(0, pages.length, ...teacherDeclarations);
     }
 
     if ((moduleId === 'progetto_formativo' || moduleId === 'fascicolo_corso') &&
@@ -4419,9 +4444,22 @@ window.loadPrintPreview = async function(modulo) {
             return;
         }
 
-        if ((modulo === 'progetto_formativo' || modulo === 'fascicolo_corso' || modulo === 'registro') && typeof window.renderPrintModulePages === 'function') {
+        if ((modulo === 'progetto_formativo' ||
+            modulo === 'fascicolo_corso' ||
+            modulo === 'registro' ||
+            modulo === 'dichiarazione_docenza' ||
+            modulo === 'autocert' ||
+            modulo === 'relazione_tutor') &&
+            typeof window.renderPrintModulePages === 'function') {
             const pages = await window.renderPrintModulePages(modulo, null, { preview: true });
             container.innerHTML = '';
+            if (!pages.length) {
+                const message = typeof window.getConditionalPrintMessage === 'function'
+                    ? window.getConditionalPrintMessage(modulo)
+                    : 'Documento non applicabile o dati insufficienti.';
+                container.innerHTML = `<div class="m-6 rounded-xl border-2 border-amber-300 bg-amber-50 p-6 text-center text-amber-900 font-bold">${window.dashEscape(message)}</div>`;
+                return;
+            }
             pages.forEach(p => container.appendChild(p));
             window.adjustPrintPreviewCanvas(container);
             return;
@@ -4829,26 +4867,17 @@ window.updateAll = function() {
     });
 
     if (window.currentPrintModule === 'dichiarazione_docenza') {
-        const chkDL = document.getElementById('check-box-dl');
-        const chkDoc = document.getElementById('check-box-docente');
-
-        if (isAzienda) {
-            if(chkDL) chkDL.innerHTML = "X";
-            if(chkDoc) chkDoc.innerHTML = "";
-            document.querySelectorAll('.val-nome').forEach(el => el.innerText = window.getVal('cfg-legale-nome') || "---");
-            document.querySelectorAll('.val-cf').forEach(el => el.innerText = "________________");
-            document.querySelectorAll('.val-nascita').forEach(el => el.innerText = window.getVal('cfg-legale-nascita') || "________________");
-        } else {
-            if(chkDL) chkDL.innerHTML = "";
-            if(chkDoc) chkDoc.innerHTML = "X";
-            
-            let firstUdKey = Object.keys(docenti_ud)[0];
-            let docObj = window.docentiList.find(d => d.id === docenti_ud[firstUdKey]);
-            if(docObj) {
-                document.querySelectorAll('.val-nome').forEach(el => el.innerText = docObj.nome_cognome || "---");
-                document.querySelectorAll('.val-cf').forEach(el => el.innerText = docObj.cf || "---");
-                document.querySelectorAll('.val-nascita').forEach(el => el.innerText = "________________");
-            }
+        const assignedTeachers = typeof window.getAssignedProjectTeachers === 'function'
+            ? window.getAssignedProjectTeachers()
+            : [];
+        const firstTeacher = assignedTeachers[0];
+        if (firstTeacher) {
+            document.querySelectorAll('.val-nome').forEach(el => { el.innerText = firstTeacher.nome_cognome || "---"; });
+            document.querySelectorAll('.val-cf').forEach(el => { el.innerText = firstTeacher.cf || "---"; });
+            document.querySelectorAll('.val-nascita').forEach(el => { el.innerText = firstTeacher.luogo_data_nascita || "Non indicato in anagrafica"; });
+            document.querySelectorAll('.val-docente-qualifica').forEach(el => { el.innerText = firstTeacher.qualifica || "Qualifica da verificare"; });
+            document.querySelectorAll('.val-docente-azienda').forEach(el => { el.innerText = firstTeacher.azienda_appartenenza || "Non indicata"; });
+            document.querySelectorAll('.val-docente-unita').forEach(el => { el.innerText = (firstTeacher.assigned_units || []).join('; ') || "Unità didattiche assegnate nel progetto"; });
         }
     } else {
         if (window.currentSessionCorsisti && window.currentSessionCorsisti.length > 0) {

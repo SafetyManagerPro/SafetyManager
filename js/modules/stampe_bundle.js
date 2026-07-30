@@ -132,6 +132,8 @@ window.stampaFascicoloCompletoPDF = async function(projectId = null) {
         const blankTests = allPages.filter(p => p?.dataset?.manualTestPage === 'blank').length;
         const correctedTests = allPages.filter(p => p?.dataset?.manualTestPage === 'corrected').length;
         const questionnaires = allPages.filter(p => p?.dataset?.gradimentoQuestionario).length;
+        const teacherDeclarations = allPages.filter(p => p?.dataset?.teacherDeclarationPage).length;
+        const associationDeclarations = allPages.filter(p => p?.dataset?.associationDeclarationPage).length;
         const tutorPages = allPages.filter(p => p?.dataset?.tutorRelationPage).length;
         const reviewPages = allPages.filter(p => p?.dataset?.reviewPage).length;
         const linguaCandidatePages = allPages.filter(p => p?.dataset?.linguaCandidatePage).length;
@@ -169,6 +171,8 @@ window.stampaFascicoloCompletoPDF = async function(projectId = null) {
             blankTests,
             correctedTests,
             questionnaires,
+            teacherDeclarations,
+            associationDeclarations,
             tutorPages,
             reviewPages,
             linguaCandidatePages,
@@ -177,7 +181,11 @@ window.stampaFascicoloCompletoPDF = async function(projectId = null) {
             corsisti: backupSession.length
         });
 
-        alert(`Ora si aprirà la stampa. Seleziona "Salva come PDF" per salvare sul PC il PDF unico progetto. Sono inclusi Analisi Fabbisogni, Scheda Rischi, ${registerDayPages} registri presenze (uno per ogni giornata formativa), ${blankTests} test manuali, ${correctedTests} correttore/i, ${questionnaires} questionari di gradimento, riepilogo, monitoraggio qualità, relazione tutor, scheda riesame e ${linguaCandidatePages} pagine test lingua italiana (${linguaCorrectors} correttore/i) per i corsisti interessati. Gli attestati NON sono inclusi: usa il pulsante "PDF solo attestati". Corsisti: ${backupSession.length}.`);
+        const tutorText = tutorPages ? 'relazione tutor e scheda riesame' : 'scheda riesame (tutor non previsto)';
+        const associationText = window.isAssociationTrainingProvider?.()
+            ? 'dichiarazione di conformità dell’associazione'
+            : 'nessuna dichiarazione dell’associazione (DL soggetto formatore)';
+        alert(`Ora si aprirà la stampa. Seleziona "Salva come PDF" per salvare sul PC il PDF unico progetto. Sono inclusi Analisi Fabbisogni, Scheda Rischi, ${teacherDeclarations} dichiarazioni requisiti docente, ${associationText}, ${registerDayPages} registri presenze (uno per ogni giornata formativa), ${blankTests} test manuali, ${correctedTests} correttore/i, ${questionnaires} questionari di gradimento, riepilogo, monitoraggio qualità, ${tutorText} e ${linguaCandidatePages} pagine test lingua italiana (${linguaCorrectors} correttore/i) per i corsisti interessati. Gli attestati NON sono inclusi: usa il pulsante "PDF solo attestati". Corsisti: ${backupSession.length}.`);
         document.body.classList.add('is-printing-temp');
         setTimeout(() => {
             window.print();
@@ -217,6 +225,13 @@ window.stampaModuloProgettoRapido = async function(projectId, moduleId, label = 
         await window.caricaDatiStampa(projectId);
         printArea.innerHTML = '';
         const pages = await window.renderPrintModuleToTemp(moduleId, null);
+        if (!pages.length) {
+            const message = typeof window.getConditionalPrintMessage === 'function'
+                ? window.getConditionalPrintMessage(moduleId)
+                : `Il ${label} non è applicabile o non dispone dei dati necessari.`;
+            alert(message);
+            return;
+        }
         pages.forEach(p => printArea.appendChild(p));
         alert(`Ora si aprirà la stampa del ${label}. Seleziona "Salva come PDF" per salvarlo.`);
         document.body.classList.add('is-printing-temp');

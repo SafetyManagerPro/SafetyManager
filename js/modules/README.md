@@ -9,13 +9,14 @@ Ordine attuale:
 3. `tutor_riesame.js` — relazione finale tutor, riesame periodico e allegati stampa Step 62
 4. `lingua_italiana.js` — test cartaceo, esito e correttore lingua italiana Step 63
 5. `registri_multigiorno.js` — calendario giornaliero e registri presenze distinti Step 64
-6. `scadenze.js`
-7. `migrazione.js`
-8. `archivio.js`
-9. `stampe_bundle.js`
-10. `backup.js`
-11. `export_sezioni.js`
-12. `collaudo.js`
+6. `documenti_condizionali.js` — dichiarazioni per tutti i docenti, conformità ente condizionale e tutor facoltativo Step 65
+7. `scadenze.js`
+8. `migrazione.js`
+9. `archivio.js`
+10. `stampe_bundle.js`
+11. `backup.js`
+12. `export_sezioni.js`
+13. `collaudo.js`
 
 Il prossimo refactoring consigliato è separare:
 - `progetti.js`

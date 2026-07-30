@@ -52,7 +52,36 @@ window.step62CheckedValues = function(selector) {
         .map(el => el.value);
 };
 
+window.toggleTutorProjectFields = function() {
+    const select = document.getElementById('prog-tutor-previsto');
+    const expected = window.step65Boolean
+        ? window.step65Boolean(select?.value, false)
+        : String(select?.value || '').toLowerCase() === 'true';
+    const fields = document.getElementById('prog-tutor-fields');
+    const status = document.getElementById('prog-tutor-status');
+    const printButton = document.getElementById('btn-progetto-stampa-tutor');
+
+    if (fields) fields.classList.toggle('hidden', !expected);
+    if (status) {
+        status.textContent = expected
+            ? 'Sì · compila i dati del tutor; la relazione potrà essere stampata e allegata al fascicolo.'
+            : 'No · la relazione tutor non sarà generata né allegata alle stampe.';
+        status.classList.toggle('text-teal-700', !expected);
+        status.classList.toggle('text-emerald-700', expected);
+    }
+    if (printButton) {
+        printButton.disabled = !expected;
+        printButton.classList.toggle('opacity-40', !expected);
+        printButton.classList.toggle('cursor-not-allowed', !expected);
+        printButton.title = expected ? '' : 'Tutor non previsto nel progetto.';
+    }
+    return expected;
+};
+
 window.collectTutorRiesameRecord = function() {
+    const tutorExpected = window.step65Boolean
+        ? window.step65Boolean(document.getElementById('prog-tutor-previsto')?.value, false)
+        : document.getElementById('prog-tutor-previsto')?.value === 'true';
     const actions = Array.from(document.querySelectorAll('[data-riesame-action-row]')).map(row => {
         const get = field => (row.querySelector(`[data-riesame-field="${field}"]`)?.value || '').trim();
         return {
@@ -67,19 +96,20 @@ window.collectTutorRiesameRecord = function() {
     }).filter(row => row.area || row.criticita || row.azione || row.responsabile);
 
     return {
-        tutor_nome: (document.getElementById('prog-tutor-nome')?.value || '').trim() || null,
-        tutor_ruolo: (document.getElementById('prog-tutor-ruolo')?.value || '').trim() || null,
-        tutor_data_relazione: document.getElementById('prog-tutor-data')?.value || null,
-        tutor_valutazione_docenza: document.getElementById('prog-tutor-docenza')?.value || 'da_valutare',
-        tutor_frequenza: document.getElementById('prog-tutor-frequenza')?.value || 'da_valutare',
-        tutor_programma: document.getElementById('prog-tutor-programma')?.value || 'da_valutare',
-        tutor_partecipazione: document.getElementById('prog-tutor-partecipazione')?.value || 'da_valutare',
-        tutor_spazi: window.step62CheckedValues('.prog-tutor-spazio'),
-        tutor_strumenti: window.step62CheckedValues('.prog-tutor-strumento'),
-        tutor_punti_forza: window.step62CheckedValues('.prog-tutor-forza'),
-        tutor_criticita: (document.getElementById('prog-tutor-criticita')?.value || '').trim() || null,
-        tutor_giudizio_globale: document.getElementById('prog-tutor-giudizio')?.value || 'da_valutare',
-        tutor_note: (document.getElementById('prog-tutor-note')?.value || '').trim() || null,
+        tutor_previsto: tutorExpected,
+        tutor_nome: tutorExpected ? ((document.getElementById('prog-tutor-nome')?.value || '').trim() || null) : null,
+        tutor_ruolo: tutorExpected ? ((document.getElementById('prog-tutor-ruolo')?.value || '').trim() || null) : null,
+        tutor_data_relazione: tutorExpected ? (document.getElementById('prog-tutor-data')?.value || null) : null,
+        tutor_valutazione_docenza: tutorExpected ? (document.getElementById('prog-tutor-docenza')?.value || 'da_valutare') : 'da_valutare',
+        tutor_frequenza: tutorExpected ? (document.getElementById('prog-tutor-frequenza')?.value || 'da_valutare') : 'da_valutare',
+        tutor_programma: tutorExpected ? (document.getElementById('prog-tutor-programma')?.value || 'da_valutare') : 'da_valutare',
+        tutor_partecipazione: tutorExpected ? (document.getElementById('prog-tutor-partecipazione')?.value || 'da_valutare') : 'da_valutare',
+        tutor_spazi: tutorExpected ? window.step62CheckedValues('.prog-tutor-spazio') : [],
+        tutor_strumenti: tutorExpected ? window.step62CheckedValues('.prog-tutor-strumento') : [],
+        tutor_punti_forza: tutorExpected ? window.step62CheckedValues('.prog-tutor-forza') : [],
+        tutor_criticita: tutorExpected ? ((document.getElementById('prog-tutor-criticita')?.value || '').trim() || null) : null,
+        tutor_giudizio_globale: tutorExpected ? (document.getElementById('prog-tutor-giudizio')?.value || 'da_valutare') : 'da_valutare',
+        tutor_note: tutorExpected ? ((document.getElementById('prog-tutor-note')?.value || '').trim() || null) : null,
         riesame_stato: document.getElementById('prog-riesame-stato')?.value || 'non_pianificato',
         riesame_data: document.getElementById('prog-riesame-data')?.value || null,
         riesame_fonti: window.step62CheckedValues('.prog-riesame-fonte'),
@@ -99,6 +129,10 @@ window.populateTutorRiesameForm = function(project = {}) {
         const el = document.getElementById(id);
         if (el) el.value = value ?? '';
     };
+    const tutorExpected = Object.prototype.hasOwnProperty.call(project, 'tutor_previsto')
+        ? (window.step65Boolean ? window.step65Boolean(project.tutor_previsto, false) : !!project.tutor_previsto)
+        : !!String(project.tutor_nome || '').trim();
+    set('prog-tutor-previsto', tutorExpected ? 'true' : 'false');
     set('prog-tutor-nome', project.tutor_nome || '');
     set('prog-tutor-ruolo', project.tutor_ruolo || '');
     set('prog-tutor-data', project.tutor_data_relazione || '');
@@ -135,6 +169,7 @@ window.populateTutorRiesameForm = function(project = {}) {
             el.value = action[el.dataset.riesameField] || (el.dataset.riesameField === 'tipo' ? 'migliorativo' : '');
         });
     });
+    window.toggleTutorProjectFields();
 };
 
 window.resetTutorRiesameForm = function() {
@@ -146,13 +181,20 @@ window.resetTutorRiesameForm = function() {
         .forEach(id => { const el = document.getElementById(id); if (el) el.value = 'da_valutare'; });
     const state = document.getElementById('prog-riesame-stato');
     if (state) state.value = 'non_pianificato';
+    const tutorExpected = document.getElementById('prog-tutor-previsto');
+    if (tutorExpected) tutorExpected.value = 'false';
+    window.toggleTutorProjectFields();
 };
 
 window.getTutorRiesameStatus = function(project = {}) {
-    const tutorReady = !!project.tutor_nome &&
+    const tutorExpected = typeof window.isTutorExpectedForProject === 'function'
+        ? window.isTutorExpectedForProject(project)
+        : !!project.tutor_nome;
+    const tutorCompleted = !!project.tutor_nome &&
         !!project.tutor_data_relazione &&
         !!project.tutor_giudizio_globale &&
         project.tutor_giudizio_globale !== 'da_valutare';
+    const tutorReady = !tutorExpected || tutorCompleted;
     const reviewNotApplicable = project.riesame_stato === 'non_applicabile';
     const reviewReady = reviewNotApplicable || (
         project.riesame_stato === 'completato' &&
@@ -164,6 +206,8 @@ window.getTutorRiesameStatus = function(project = {}) {
     );
     return {
         ready: tutorReady && reviewReady,
+        tutorExpected,
+        tutorCompleted,
         tutorReady,
         reviewReady,
         reviewNotApplicable,
@@ -172,8 +216,12 @@ window.getTutorRiesameStatus = function(project = {}) {
 };
 
 window.setTutorRiesamePrintState = function(project = {}) {
+    const tutorExpected = typeof window.isTutorExpectedForProject === 'function'
+        ? window.isTutorExpectedForProject(project)
+        : !!project.tutor_nome;
     const map = {
-        'cfg-tutor-nome': project.tutor_nome || project.resp_corso || '',
+        'cfg-tutor-previsto': tutorExpected,
+        'cfg-tutor-nome': tutorExpected ? (project.tutor_nome || '') : '',
         'cfg-tutor-ruolo': project.tutor_ruolo || 'Tutor / referente d’aula',
         'cfg-tutor-data': project.tutor_data_relazione || '',
         'cfg-tutor-docenza': project.tutor_valutazione_docenza || 'da_valutare',
@@ -270,14 +318,24 @@ window.applyTutorRiesamePrintFields = function() {
     setHtml('.val-riesame-azioni-table', actionRows, '<tr><td colspan="8" class="text-center italic">Nessuna azione registrata.</td></tr>');
 
     const status = get('cfg-riesame-stato', 'non_pianificato');
-    setText('.val-tutor-riesame-summary', `${get('cfg-tutor-nome') ? 'Relazione tutor presente' : 'Relazione tutor da completare'} · Riesame: ${label(status)}`);
+    const tutorExpected = typeof window.isTutorExpectedForProject === 'function'
+        ? window.isTutorExpectedForProject()
+        : !!get('cfg-tutor-nome');
+    const tutorSummary = !tutorExpected
+        ? 'Tutor non previsto'
+        : (get('cfg-tutor-nome') ? 'Relazione tutor presente' : 'Relazione tutor da completare');
+    setText('.val-tutor-riesame-summary', `${tutorSummary} · Riesame: ${label(status)}`);
 };
 
 window.renderTutorRiesameAnnexPages = async function(options = {}) {
     if (typeof window.renderPrintModulePages !== 'function') return [];
     const preview = !!options.preview;
     const pages = [];
-    for (const moduleId of ['relazione_tutor', 'scheda_riesame']) {
+    const tutorExpected = typeof window.isTutorExpectedForProject === 'function'
+        ? window.isTutorExpectedForProject()
+        : !!window.AppState?.['cfg-tutor-nome'];
+    const moduleIds = tutorExpected ? ['relazione_tutor', 'scheda_riesame'] : ['scheda_riesame'];
+    for (const moduleId of moduleIds) {
         const rendered = await window.renderPrintModulePages(moduleId, null, {
             preview,
             includeProjectFormativoTests: false,

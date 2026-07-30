@@ -43,7 +43,7 @@ window.esportaBackupDatabaseLocale = async function() {
     const backup = {
         meta: {
             app: 'SafetyManager PRO',
-            version: 'ASR2025 step64',
+        version: 'ASR2025 step65',
             exported_at: new Date().toISOString(),
             source: 'Supabase client export',
             note: 'Backup locale JSON creato dal browser. Non contiene chiavi service_role.'

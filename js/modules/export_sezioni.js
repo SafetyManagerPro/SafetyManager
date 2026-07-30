@@ -91,6 +91,7 @@ window.getSectionExportSheets = async function(moduleId) {
         const rows = (await window.getDocenti()).map(d => ({
             'Nome e cognome': d.nome_cognome || '',
             'Codice fiscale': d.cf || '',
+            'Luogo e data di nascita': d.luogo_data_nascita || '',
             'Qualifica': d.qualifica || '',
             'Email': d.email || '',
             'Telefono': d.telefono || '',
