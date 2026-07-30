@@ -76,7 +76,8 @@ window.stampaFascicoloCompletoPDF = async function(projectId = null) {
                 includeNeedsRiskAnnexes: false,
                 includeQualityAnnexes: false,
                 includeTutorRiesameAnnexes: false,
-                includeLinguaAnnexes: false
+                includeLinguaAnnexes: false,
+                includeMultiDayRegisters: false
             });
             allPages.push(...pages);
 
@@ -135,6 +136,7 @@ window.stampaFascicoloCompletoPDF = async function(projectId = null) {
         const reviewPages = allPages.filter(p => p?.dataset?.reviewPage).length;
         const linguaCandidatePages = allPages.filter(p => p?.dataset?.linguaCandidatePage).length;
         const linguaCorrectors = allPages.filter(p => p?.dataset?.linguaCorrectorPage).length;
+        const registerDayPages = allPages.filter(p => p?.dataset?.registerDayPage).length;
 
         if (!blankTests || !correctedTests) {
             console.warn('PDF unico progetto senza test manuali completi:', { blankTests, correctedTests, allPages });
@@ -171,10 +173,11 @@ window.stampaFascicoloCompletoPDF = async function(projectId = null) {
             reviewPages,
             linguaCandidatePages,
             linguaCorrectors,
+            registerDayPages,
             corsisti: backupSession.length
         });
 
-        alert(`Ora si aprirà la stampa. Seleziona "Salva come PDF" per salvare sul PC il PDF unico progetto. Sono inclusi Analisi Fabbisogni, Scheda Rischi, ${blankTests} test manuali, ${correctedTests} correttore/i, ${questionnaires} questionari di gradimento, riepilogo, monitoraggio qualità, relazione tutor, scheda riesame e ${linguaCandidatePages} pagine test lingua italiana (${linguaCorrectors} correttore/i) per i corsisti interessati. Gli attestati NON sono inclusi: usa il pulsante "PDF solo attestati". Corsisti: ${backupSession.length}.`);
+        alert(`Ora si aprirà la stampa. Seleziona "Salva come PDF" per salvare sul PC il PDF unico progetto. Sono inclusi Analisi Fabbisogni, Scheda Rischi, ${registerDayPages} registri presenze (uno per ogni giornata formativa), ${blankTests} test manuali, ${correctedTests} correttore/i, ${questionnaires} questionari di gradimento, riepilogo, monitoraggio qualità, relazione tutor, scheda riesame e ${linguaCandidatePages} pagine test lingua italiana (${linguaCorrectors} correttore/i) per i corsisti interessati. Gli attestati NON sono inclusi: usa il pulsante "PDF solo attestati". Corsisti: ${backupSession.length}.`);
         document.body.classList.add('is-printing-temp');
         setTimeout(() => {
             window.print();

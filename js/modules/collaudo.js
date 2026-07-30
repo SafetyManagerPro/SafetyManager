@@ -37,7 +37,7 @@ window.runCollaudoSistema = async function() {
     const report = {
         meta: {
             app: 'SafetyManager PRO',
-            step: '63',
+            step: '64',
             executed_at: new Date().toISOString(),
             user_agent: navigator.userAgent,
             viewport: { width: window.innerWidth, height: window.innerHeight }
@@ -75,7 +75,11 @@ window.runCollaudoSistema = async function() {
         'collectLinguaTestCorsistaRecord',
         'calculateLinguaTestOutcome',
         'renderTestLinguaItalianaPages',
-        'renderLinguaItalianaAnnexPages'
+        'renderLinguaItalianaAnnexPages',
+        'parseTrainingCalendarDates',
+        'getTrainingDaySchedule',
+        'expandRegisterPagesByTrainingDay',
+        'getMultiDayRegisterSummary'
     ].forEach(fn => window.collAdd(report, 'Funzioni critiche', fn, typeof window[fn] === 'function' ? 'ok' : 'error', typeof window[fn] === 'function' ? 'Disponibile' : 'Mancante'));
 
 
@@ -89,6 +93,7 @@ window.runCollaudoSistema = async function() {
         'js/modules/gradimento_monitoraggio.js',
         'js/modules/tutor_riesame.js',
         'js/modules/lingua_italiana.js',
+        'js/modules/registri_multigiorno.js',
         'js/modules/backup.js',
         'js/modules/export_sezioni.js',
         'js/modules/collaudo.js'

@@ -1,5 +1,5 @@
 <!-- modules/registro.html -->
-<div class="doc-page landscape flex flex-col print-as-block relative bg-white" style="padding: 10mm 15mm !important; max-height: 210mm; height: 210mm; width: 296mm; max-width: 296mm;">
+<div class="doc-page landscape flex flex-col print-as-block relative bg-white" data-register-template-page="1" style="padding: 8mm 12mm !important; max-height: 210mm; height: 210mm; width: 296mm; max-width: 296mm;">
     
     <!-- HEADER -->
     <div class="flex justify-between items-start border-b-[3px] border-slate-900 pb-2 mb-3 shrink-0">
@@ -40,6 +40,27 @@
         </div>
     </div>
 
+    <!-- DATI DELLA SINGOLA GIORNATA -->
+    <div class="mb-2 shrink-0 grid grid-cols-12 gap-2 border-2 border-yellow-400 bg-yellow-50 rounded p-1.5 shadow-sm">
+        <div class="col-span-2 border-r border-yellow-300 pr-2">
+            <p class="text-[7px] font-black uppercase text-yellow-800">Giornata</p>
+            <p class="text-[11px] font-black text-slate-950">N. <span class="val-registro-giornata">1 di 1</span></p>
+        </div>
+        <div class="col-span-2 border-r border-yellow-300 pr-2">
+            <p class="text-[7px] font-black uppercase text-yellow-800">Data formazione</p>
+            <p class="text-[11px] font-black text-slate-950 val-registro-data">---</p>
+        </div>
+        <div class="col-span-2 border-r border-yellow-300 pr-2">
+            <p class="text-[7px] font-black uppercase text-yellow-800">Ore previste</p>
+            <p class="text-[11px] font-black text-slate-950 val-registro-ore">---</p>
+            <p class="text-[6.5px] text-slate-600">Orari effettivi rilevati dalle firme</p>
+        </div>
+        <div class="col-span-6">
+            <p class="text-[7px] font-black uppercase text-yellow-800">Unità didattiche / argomenti della giornata</p>
+            <p class="text-[8px] font-bold leading-tight text-slate-900 val-registro-argomenti">---</p>
+        </div>
+    </div>
+
     <!-- TABELLA FIRME (Ampiezza orizzontale massima) -->
     <div class="flex-1 flex flex-col min-h-0 w-full mb-2">
         <table class="w-full text-[9px] border-collapse border border-slate-800 h-full">
@@ -61,7 +82,7 @@
     <!-- FOOTER E FIRMA DOCENTE -->
     <div class="mt-auto shrink-0 pt-2 text-[9px] flex justify-between items-end border-t-2 border-slate-900">
         <div>
-            <p class="font-bold text-slate-600 text-[10px]">Svolto in data: <span class="val-data-esame text-black font-black">---</span></p>
+            <p class="font-bold text-slate-600 text-[10px]">Giornata <span class="val-registro-giornata text-black font-black">1 di 1</span> · Data: <span class="val-registro-data text-black font-black">---</span> · Ore previste: <span class="val-registro-ore text-black font-black">---</span></p>
             <p class="text-slate-500 italic mt-0.5">La presenza minima per l'ammissione al test finale è stabilita ex ASR 2025 al 90% del monte ore.</p>
         </div>
         <div class="flex items-end gap-6">
@@ -70,10 +91,10 @@
                 <div class="stamp-placeholder border-2 border-dashed border-slate-300 rounded px-3 py-2 text-slate-400 font-black uppercase text-[8px]">Timbro</div>
             </div>
             <div class="text-center w-72" data-signature-block>
-                <p class="uppercase font-bold text-slate-500 tracking-widest mb-1">Firma Docente Formatore</p>
-                <div class="auto-signature-slot hidden" data-signature-role="docente" data-signature-name-selector=".val-docente-main"></div>
+                <p class="uppercase font-bold text-slate-500 tracking-widest mb-1">Firma Docente/i della Giornata</p>
+                <div class="auto-signature-slot hidden" data-signature-role="docente" data-signature-name-selector=".val-registro-docenti"></div>
                 <p class="border-b border-slate-400 h-1 mb-1"></p>
-                <p class="font-black uppercase text-slate-800 val-docente-main truncate">---</p>
+                <p class="font-black uppercase text-slate-800 val-registro-docenti truncate">---</p>
             </div>
         </div>
     </div>

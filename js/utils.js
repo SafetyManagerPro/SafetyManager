@@ -4240,6 +4240,11 @@ window.renderPrintModulePages = async function(moduleId, singleCorsista = null, 
         return clone;
     });
 
+    if (moduleId === 'registro' && typeof window.expandRegisterPagesByTrainingDay === 'function') {
+        const expandedRegisters = window.expandRegisterPagesByTrainingDay(pages, { preview });
+        pages.splice(0, pages.length, ...expandedRegisters);
+    }
+
     if ((moduleId === 'progetto_formativo' || moduleId === 'fascicolo_corso') &&
         options.includeNeedsRiskAnnexes !== false &&
         typeof window.renderNeedsRiskAnnexPages === 'function') {
@@ -4274,6 +4279,21 @@ window.renderPrintModulePages = async function(moduleId, singleCorsista = null, 
         options.includeLinguaAnnexes !== false &&
         typeof window.renderLinguaItalianaAnnexPages === 'function') {
         pages.push(...await window.renderLinguaItalianaAnnexPages({ preview }));
+    }
+
+    if ((moduleId === 'progetto_formativo' || moduleId === 'fascicolo_corso') &&
+        options.includeMultiDayRegisters !== false &&
+        typeof window.expandRegisterPagesByTrainingDay === 'function') {
+        pages.push(...await window.renderPrintModulePages('registro', null, {
+            preview,
+            includeMultiDayRegisters: false,
+            includeNeedsRiskAnnexes: false,
+            includeProjectFormativoTests: false,
+            includeFascicoloTests: false,
+            includeQualityAnnexes: false,
+            includeTutorRiesameAnnexes: false,
+            includeLinguaAnnexes: false
+        }));
     }
 
     holder.remove();
@@ -4399,7 +4419,7 @@ window.loadPrintPreview = async function(modulo) {
             return;
         }
 
-        if ((modulo === 'progetto_formativo' || modulo === 'fascicolo_corso') && typeof window.renderPrintModulePages === 'function') {
+        if ((modulo === 'progetto_formativo' || modulo === 'fascicolo_corso' || modulo === 'registro') && typeof window.renderPrintModulePages === 'function') {
             const pages = await window.renderPrintModulePages(modulo, null, { preview: true });
             container.innerHTML = '';
             pages.forEach(p => container.appendChild(p));
@@ -4891,8 +4911,8 @@ window.aggiornaTabelleSessione = function() {
         vRows += '<tr><td class="border border-slate-900 py-0.5 px-1">&nbsp;</td><td class="border border-slate-900 py-0.5 px-1">&nbsp;</td><td class="border border-slate-900 py-0.5 px-1">&nbsp;</td><td class="border border-slate-900 py-0.5 px-1">&nbsp;</td><td class="border border-slate-900 py-0.5 px-1">&nbsp;</td></tr>';
     }
 
-    if(document.getElementById('r-rows')) document.getElementById('r-rows').innerHTML = rRows;
-    if(document.getElementById('v-rows')) document.getElementById('v-rows').innerHTML = vRows;
+    document.querySelectorAll('#r-rows').forEach(tbody => { tbody.innerHTML = rRows; });
+    document.querySelectorAll('#v-rows').forEach(tbody => { tbody.innerHTML = vRows; });
 };
 
 // ==========================================
