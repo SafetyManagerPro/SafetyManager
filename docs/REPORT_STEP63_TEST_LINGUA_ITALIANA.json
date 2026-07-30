@@ -1,0 +1,60 @@
+{
+  "step": 63,
+  "date": "2026-07-29",
+  "title": "Test di comprensione della lingua italiana",
+  "status": "completed",
+  "blocking_rules_enabled": false,
+  "source_models": [
+    "9-TEST DI COMPRENSIONE DELLA LINGUA ITALIANA.docx"
+  ],
+  "test_structure": {
+    "parts": 3,
+    "questions_per_part": 10,
+    "minimum_correct_per_part": 6,
+    "candidate_pages": 4,
+    "corrector_pages": 1
+  },
+  "new_files": [
+    "js/modules/lingua_italiana.js",
+    "modules/test_lingua_italiana.html",
+    "assets/test_lingua/parte1_verbi.png",
+    "assets/test_lingua/segnale_accesso.jpeg",
+    "assets/test_lingua/segnale_alta_tensione.png",
+    "assets/test_lingua/segnale_sinistra.png",
+    "assets/test_lingua/segnale_guanti.png",
+    "assets/test_lingua/segnale_carichi.jpeg",
+    "supabase/migrations/2026-07-29_step63_test_lingua_italiana.sql",
+    "docs/REVISIONE_STEP63_TEST_LINGUA_ITALIANA.md",
+    "docs/REPORT_STEP63_TEST_LINGUA_ITALIANA.json"
+  ],
+  "integrations": [
+    "Anagrafica Corsisti",
+    "Progetti Attivi",
+    "Cruscotto qualità corso",
+    "Progetto Formativo",
+    "Fascicolo del Corso",
+    "Centro Stampe",
+    "PDF unico progetto",
+    "Export Corsisti",
+    "Collaudo Sistema",
+    "Backup locale"
+  ],
+  "database": {
+    "table": "public.corsisti",
+    "new_columns": 11,
+    "rls_changed": false,
+    "migration_required": true,
+    "automatic_file_upload": false
+  },
+  "checks": {
+    "javascript_syntax": "17/17 ok",
+    "form_elements": "13/13",
+    "field_sql_alignment": "11/11",
+    "outcome_logic": "ok",
+    "print_template": "4 candidate pages + 1 corrector",
+    "local_assets": "6/6",
+    "browser_runtime": "ok",
+    "browser_preview": "4 candidate pages + 1 corrector + 6 images",
+    "zip_crc": "ok"
+  }
+}
