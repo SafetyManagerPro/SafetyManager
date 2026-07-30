@@ -37,7 +37,7 @@ window.runCollaudoSistema = async function() {
     const report = {
         meta: {
             app: 'SafetyManager PRO',
-            step: '62',
+            step: '63',
             executed_at: new Date().toISOString(),
             user_agent: navigator.userAgent,
             viewport: { width: window.innerWidth, height: window.innerHeight }
@@ -71,7 +71,11 @@ window.runCollaudoSistema = async function() {
         'renderQuestionariGradimentoPages',
         'collectTutorRiesameRecord',
         'renderTutorRiesameAnnexPages',
-        'getTutorRiesameStatus'
+        'getTutorRiesameStatus',
+        'collectLinguaTestCorsistaRecord',
+        'calculateLinguaTestOutcome',
+        'renderTestLinguaItalianaPages',
+        'renderLinguaItalianaAnnexPages'
     ].forEach(fn => window.collAdd(report, 'Funzioni critiche', fn, typeof window[fn] === 'function' ? 'ok' : 'error', typeof window[fn] === 'function' ? 'Disponibile' : 'Mancante'));
 
 
@@ -84,6 +88,7 @@ window.runCollaudoSistema = async function() {
         'js/modules/fabbisogni_rischi.js',
         'js/modules/gradimento_monitoraggio.js',
         'js/modules/tutor_riesame.js',
+        'js/modules/lingua_italiana.js',
         'js/modules/backup.js',
         'js/modules/export_sezioni.js',
         'js/modules/collaudo.js'
@@ -98,7 +103,7 @@ window.runCollaudoSistema = async function() {
     }
 
     // Moduli HTML.
-    const modules = ['admin','aziende','corsisti','docenti','progetti','archivio_corsi','scadenze','stampe','migrazione','ente','collaudo','attestato','registro','fascicolo_corso','analisi_fabbisogni','scheda_rischi_settore','questionario_gradimento','riepilogo_gradimento','monitoraggio_qualita','relazione_tutor','scheda_riesame'];
+    const modules = ['admin','aziende','corsisti','docenti','progetti','archivio_corsi','scadenze','stampe','migrazione','ente','collaudo','attestato','registro','fascicolo_corso','analisi_fabbisogni','scheda_rischi_settore','questionario_gradimento','riepilogo_gradimento','monitoraggio_qualita','relazione_tutor','scheda_riesame','test_lingua_italiana'];
     for (const m of modules) {
         try {
             const resp = await fetch(`modules/${m}.html`, { cache: 'no-store' });
@@ -165,6 +170,21 @@ window.runCollaudoSistema = async function() {
             );
         } catch (e) {
             window.collAdd(report, 'Database', 'Campi Step 62 tutor/riesame', 'warn', e.message || String(e));
+        }
+        try {
+            const { error } = await window.supabaseClient
+                .from('corsisti')
+                .select('id,cittadinanza,studi_scolastici_italia,lingua_test_stato,lingua_test_data,lingua_test_parte1,lingua_test_parte2,lingua_test_parte3')
+                .limit(1);
+            window.collAdd(
+                report,
+                'Database',
+                'Campi Step 63 test lingua italiana',
+                error ? 'warn' : 'ok',
+                error ? 'Applicare la migration Step 63: ' + error.message : 'Colonne disponibili'
+            );
+        } catch (e) {
+            window.collAdd(report, 'Database', 'Campi Step 63 test lingua italiana', 'warn', e.message || String(e));
         }
     }
 

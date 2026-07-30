@@ -876,7 +876,7 @@ window.loadCorsistiTable = async function() {
     const tbody = document.getElementById('tabella-corsisti');
     if(!tbody) return;
     
-    tbody.innerHTML = '<tr><td colspan="6" class="p-6 text-center text-slate-400 italic"><i data-lucide="loader-2" class="w-5 h-5 animate-spin mx-auto mb-2"></i> Caricamento...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" class="p-6 text-center text-slate-400 italic"><i data-lucide="loader-2" class="w-5 h-5 animate-spin mx-auto mb-2"></i> Caricamento...</td></tr>';
     if(typeof lucide !== 'undefined') lucide.createIcons();
     
     window.aziendeList = await window.getAziende(); 
@@ -924,6 +924,17 @@ window.loadCorsistiTable = async function() {
             azienda_id,
             documento_identita_url,
             codice_fiscale_url,
+            cittadinanza,
+            studi_scolastici_italia,
+            lingua_test_stato,
+            lingua_test_data,
+            lingua_test_parte1,
+            lingua_test_parte2,
+            lingua_test_parte3,
+            lingua_test_valutatore,
+            lingua_test_dichiarazione_dl,
+            lingua_test_documento_url,
+            lingua_test_note,
             aziende ( ragione_sociale, sede_operativa ),
             iscrizioni (
                 id_certificato,
@@ -938,6 +949,41 @@ window.loadCorsistiTable = async function() {
             )
         `)
         .order('nome_cognome', { ascending: true });
+
+    if (error && (
+        String(error.message || '').includes('lingua_test_') ||
+        String(error.message || '').includes('cittadinanza') ||
+        String(error.message || '').includes('studi_scolastici_italia')
+    )) {
+        console.warn('Campi verifica lingua italiana non ancora presenti: applica la migration Step 63. Riprovo senza colonne lingua.');
+        const retry = await supabaseClient
+            .from('corsisti')
+            .select(`
+                id,
+                cf,
+                nome_cognome,
+                luogo_data_nascita,
+                mansione_storica,
+                azienda_id,
+                documento_identita_url,
+                codice_fiscale_url,
+                aziende ( ragione_sociale, sede_operativa ),
+                iscrizioni (
+                    id_certificato,
+                    progetto_id,
+                    progetti (
+                        id,
+                        codice,
+                        corso_id,
+                        data_esame,
+                        azienda_id
+                    )
+                )
+            `)
+            .order('nome_cognome', { ascending: true });
+        data = retry.data;
+        error = retry.error;
+    }
 
     if (error && (String(error.message || '').includes('documento_identita_url') || String(error.message || '').includes('codice_fiscale_url') || String(error.message || '').includes('schema cache'))) {
         console.warn('Campi documentali corsisti non ancora presenti: applica la migration Step 47. Riprovo senza colonne documentali.');
@@ -970,14 +1016,14 @@ window.loadCorsistiTable = async function() {
 
     if (error) {
         console.error("Errore relazionale corsisti:", error);
-        tbody.innerHTML = '<tr><td colspan="6" class="p-6 text-center text-red-500 italic">Impossibile connettersi agli archivi.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="p-6 text-center text-red-500 italic">Impossibile connettersi agli archivi.</td></tr>';
         return;
     }
 
     window.corsistiList = data || [];
 
     if (window.corsistiList.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="p-6 text-center text-slate-500 italic">Nessun corsista registrato.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="p-6 text-center text-slate-500 italic">Nessun corsista registrato.</td></tr>';
         return;
     }
 
@@ -1013,6 +1059,12 @@ window.loadCorsistiTable = async function() {
         }
 
         const corsiIds = (cor.iscrizioni || []).map(isc => isc.progetti?.corso_id || '').filter(Boolean).join('|');
+        const linguaMeta = window.getLinguaTestStatusMeta
+            ? window.getLinguaTestStatusMeta(cor.lingua_test_stato || 'non_richiesto')
+            : { label: cor.lingua_test_stato || 'Non richiesto', cls: 'bg-slate-100 text-slate-700 border-slate-300' };
+        const linguaDoc = cor.lingua_test_documento_url
+            ? `<div class="mt-1">${window.getDocumentoLinkHtml(cor.lingua_test_documento_url, 'Test compilato')}</div>`
+            : '';
 
         html += `
             <tr class="hover:bg-slate-50 transition-colors" data-corsista-azienda="${cor.azienda_id || ''}" data-corsista-corsi="${window.dashEscape(corsiIds)}">
@@ -1028,6 +1080,10 @@ window.loadCorsistiTable = async function() {
                 </td>
                 <td class="p-3 border-b">${corsiHtml}</td>
                 <td class="p-3 border-b text-center">${dateHtml}</td>
+                <td class="p-3 border-b text-center">
+                    <span class="inline-flex rounded-full border px-2 py-1 text-[8px] font-black uppercase ${linguaMeta.cls}">${window.dashEscape(linguaMeta.label)}</span>
+                    ${linguaDoc}
+                </td>
                 <td class="p-3 border-b text-center whitespace-nowrap">
                     <button onclick="window.modificaCorsista('${cor.id}')" class="text-blue-600 hover:bg-blue-200 bg-blue-100 p-1.5 rounded transition shadow-sm"><i data-lucide="edit" class="w-3.5 h-3.5"></i></button>
                     <button onclick="window.eliminaCorsistaData('${cor.id}')" class="text-red-600 hover:bg-red-200 bg-red-100 p-1.5 rounded transition shadow-sm ml-1"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
@@ -1048,7 +1104,8 @@ window.salvaCorsistaDB = async function() {
         mansione_storica: document.getElementById('cor-mansione') ? document.getElementById('cor-mansione').value.trim() : "",
         azienda_id: document.getElementById('cor-azienda').value || null,
         documento_identita_url: document.getElementById('cor-doc-identita-url') ? document.getElementById('cor-doc-identita-url').value.trim() : '',
-        codice_fiscale_url: document.getElementById('cor-doc-cf-url') ? document.getElementById('cor-doc-cf-url').value.trim() : ''
+        codice_fiscale_url: document.getElementById('cor-doc-cf-url') ? document.getElementById('cor-doc-cf-url').value.trim() : '',
+        ...(typeof window.collectLinguaTestCorsistaRecord === 'function' ? window.collectLinguaTestCorsistaRecord() : {})
     };
     if (id && id !== "") record.id = id;
 
@@ -1080,6 +1137,7 @@ window.modificaCorsista = function(id) {
     document.getElementById('cor-azienda').value = cor.azienda_id || "";
     if(document.getElementById('cor-doc-identita-url')) document.getElementById('cor-doc-identita-url').value = cor.documento_identita_url || "";
     if(document.getElementById('cor-doc-cf-url')) document.getElementById('cor-doc-cf-url').value = cor.codice_fiscale_url || "";
+    if (typeof window.populateLinguaTestCorsistaForm === 'function') window.populateLinguaTestCorsistaForm(cor);
 };
 
 window.eliminaCorsistaData = async function(id) {
@@ -1094,6 +1152,7 @@ window.resetFormCorsista = function() {
     document.getElementById('cor-id').value = "";
     document.getElementById('form-corsista').reset();
     ['cor-doc-identita-file','cor-doc-cf-file'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    if (typeof window.resetLinguaTestCorsistaForm === 'function') window.resetLinguaTestCorsistaForm();
 };
 
 
@@ -2394,6 +2453,7 @@ window.renderInlineIscrittiCards = function(projectId, iscritti, showAll = false
                         </div>
                         <div class="flex gap-1 shrink-0">
                             <button onclick="window.stampaAttestatoCorsista('${projectId}', '${c.id || isc.corsista_id}')" class="p-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white" title="Stampa attestato individuale"><i data-lucide="award" class="w-3 h-3"></i></button>
+                            ${typeof window.isLinguaTestRequired === 'function' && window.isLinguaTestRequired(c) ? `<button onclick="window.stampaTestLinguaCorsista('${projectId}', '${c.id || isc.corsista_id}')" class="p-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950" title="Stampa test lingua italiana"><i data-lucide="languages" class="w-3 h-3"></i></button>` : ''}
                             <button onclick="window.modificaCorsistaDaProgetto('${c.id || isc.corsista_id}','${projectId}')" class="p-2 rounded-lg bg-blue-500 hover:bg-blue-400 text-white" title="Modifica corsista"><i data-lucide="edit-3" class="w-3 h-3"></i></button>
                             <button onclick="window.rimuoviIscrizione('${isc.id}', '${projectId}')" class="p-2 rounded-lg bg-red-600 hover:bg-red-500 text-white" title="Rimuovi dal corso"><i data-lucide="user-minus" class="w-3 h-3"></i></button>
                         </div>
@@ -2402,6 +2462,7 @@ window.renderInlineIscrittiCards = function(projectId, iscritti, showAll = false
                         <p><span class="font-black uppercase text-slate-400">Mansione:</span> ${window.dashEscape(isc.mansione_storica || c.mansione_storica || '-')}</p>
                         <p><span class="font-black uppercase text-slate-400">Cert:</span> <span class="font-mono ${isc.id_certificato ? 'text-slate-100' : 'text-red-200 font-black'}">${window.dashEscape(isc.id_certificato || 'Mancante')}</span></p>
                         <p><span class="font-black uppercase text-slate-400">Esito:</span> <span class="${isc.esito ? 'text-emerald-300 font-black' : 'text-red-200 font-black'}">${window.dashEscape(isc.esito || 'Mancante')}</span></p>
+                        ${typeof window.renderLinguaStatusBadge === 'function' ? `<p class="pt-1">${window.renderLinguaStatusBadge(c)}</p>` : ''}
                     </div>
                 </div>`;
             }).join('')}
@@ -2669,6 +2730,23 @@ window.getProjectQualityItems = function(p = {}, iscritti = []) {
         actionLabel: 'Gestisci corsisti'
     });
 
+    const linguaStatus = typeof window.getLinguaProjectStatus === 'function'
+        ? window.getLinguaProjectStatus(iscritti)
+        : { total: 0, passed: 0, failed: 0, pending: 0, ready: true };
+    const linguaExpected = p.fabbisogni_lingua === 'test';
+    const linguaComplete = (!linguaExpected && linguaStatus.total === 0) ||
+        (linguaStatus.total > 0 && linguaStatus.pending === 0 && linguaStatus.failed === 0);
+    items.push({
+        key: 'lingua',
+        title: 'Comprensione lingua italiana',
+        status: linguaComplete ? 'complete' : (linguaStatus.failed ? 'attention' : (linguaStatus.total ? 'info' : 'attention')),
+        detail: linguaStatus.total
+            ? `${linguaStatus.total} verifiche richieste · ${linguaStatus.passed} superate · ${linguaStatus.pending} da completare · ${linguaStatus.failed} non superate.`
+            : (linguaExpected ? 'Il progetto prevede il test: indicare i corsisti interessati nell’anagrafica.' : 'Nessun test linguistico richiesto per i corsisti iscritti.'),
+        action: `window.handleProjectQualityAction('${p.id}', 'lingua')`,
+        actionLabel: 'Gestisci corsisti'
+    });
+
     const complianceNotes = [];
     const modeCheck = window.getModalitaCompliance ? window.getModalitaCompliance(p.corso_id, p.modalita || '') : { ok: true };
     if (modeCheck && modeCheck.ok === false) complianceNotes.push(modeCheck.message || 'modalità da verificare');
@@ -2767,7 +2845,7 @@ window.handleProjectQualityAction = async function(projectId, key, mode = 'deskt
         }
     };
 
-    if (key === 'corsisti') {
+    if (key === 'corsisti' || key === 'lingua') {
         if (isPopup && typeof window.switchProjectPopupTab === 'function') {
             window.switchProjectPopupTab('corsisti');
         } else {
@@ -3916,7 +3994,18 @@ window.caricaDatiStampa = async function(projectId = null, options = {}) {
             voto_test: isc.voto_test,
             esito_pratica: isc.esito_pratica,
             note_verifica: isc.note_verifica,
-            esito: isc.esito || "Idoneo"
+            esito: isc.esito || "Idoneo",
+            lingua_test_stato: c.lingua_test_stato || 'non_richiesto',
+            cittadinanza: c.cittadinanza || '',
+            studi_scolastici_italia: c.studi_scolastici_italia,
+            lingua_test_data: c.lingua_test_data || null,
+            lingua_test_parte1: c.lingua_test_parte1,
+            lingua_test_parte2: c.lingua_test_parte2,
+            lingua_test_parte3: c.lingua_test_parte3,
+            lingua_test_valutatore: c.lingua_test_valutatore || '',
+            lingua_test_dichiarazione_dl: !!c.lingua_test_dichiarazione_dl,
+            lingua_test_documento_url: c.lingua_test_documento_url || '',
+            lingua_test_note: c.lingua_test_note || ''
         };
     });
 
@@ -4105,6 +4194,14 @@ window.renderManualTestsForCurrentPrintProject = function(options = {}) {
 
 window.renderPrintModulePages = async function(moduleId, singleCorsista = null, options = {}) {
     const preview = !!options.preview;
+    if (moduleId === 'test_lingua_italiana' && typeof window.renderTestLinguaItalianaPages === 'function') {
+        return await window.renderTestLinguaItalianaPages({
+            preview,
+            session: singleCorsista ? [singleCorsista] : (options.session || window.currentSessionCorsisti || []),
+            fallbackAll: options.fallbackAll !== false,
+            includeCorrector: options.includeCorrector !== false
+        });
+    }
     const resp = await fetch(`modules/${moduleId}.html`);
     if (!resp.ok) throw new Error(`Modulo non trovato: ${moduleId}`);
     const html = await resp.text();
@@ -4171,6 +4268,12 @@ window.renderPrintModulePages = async function(moduleId, singleCorsista = null, 
         options.includeTutorRiesameAnnexes !== false &&
         typeof window.renderTutorRiesameAnnexPages === 'function') {
         pages.push(...await window.renderTutorRiesameAnnexPages({ preview }));
+    }
+
+    if (moduleId === 'fascicolo_corso' &&
+        options.includeLinguaAnnexes !== false &&
+        typeof window.renderLinguaItalianaAnnexPages === 'function') {
+        pages.push(...await window.renderLinguaItalianaAnnexPages({ preview }));
     }
 
     holder.remove();
@@ -4276,6 +4379,23 @@ window.loadPrintPreview = async function(modulo) {
 
         if (modulo === 'questionario_gradimento' && typeof window.loadGradimentoQuestionariPreview === 'function') {
             await window.loadGradimentoQuestionariPreview();
+            return;
+        }
+
+        if (modulo === 'test_lingua_italiana' && typeof window.renderTestLinguaItalianaPages === 'function') {
+            const pages = await window.renderTestLinguaItalianaPages({
+                preview: true,
+                session: window.currentSessionCorsisti || [],
+                fallbackAll: true,
+                includeCorrector: true
+            });
+            container.innerHTML = '';
+            if (!pages.length) {
+                container.innerHTML = '<div class="p-8 text-center text-amber-700 font-bold">Nessun corsista iscritto al progetto selezionato.</div>';
+                return;
+            }
+            pages.forEach(p => container.appendChild(p));
+            window.adjustPrintPreviewCanvas(container);
             return;
         }
 

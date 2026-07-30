@@ -177,13 +177,36 @@ window.saveCorsistaData = async function(record) {
             alert(`Codice fiscale già presente: ${duplicato.nome_cognome || 'corsista esistente'} (${duplicato.cf}). Operazione annullata per evitare doppioni.`);
             return false;
         }
-        let { data, error } = await supabaseClient.from('corsisti').upsert(record).select();
+        const linguaFields = [
+            'cittadinanza',
+            'studi_scolastici_italia',
+            'lingua_test_stato',
+            'lingua_test_data',
+            'lingua_test_parte1',
+            'lingua_test_parte2',
+            'lingua_test_parte3',
+            'lingua_test_valutatore',
+            'lingua_test_dichiarazione_dl',
+            'lingua_test_documento_url',
+            'lingua_test_note'
+        ];
+        let workingRecord = { ...record };
+        let { data, error } = await supabaseClient.from('corsisti').upsert(workingRecord).select();
+        if (error && (
+            String(error.message || '').includes('lingua_test_') ||
+            String(error.message || '').includes('cittadinanza') ||
+            String(error.message || '').includes('studi_scolastici_italia')
+        )) {
+            console.warn('Campi verifica lingua italiana non presenti: applica la migration Step 63. Riprovo senza dati lingua.');
+            linguaFields.forEach(key => delete workingRecord[key]);
+            const retry = await supabaseClient.from('corsisti').upsert(workingRecord).select();
+            data = retry.data; error = retry.error;
+        }
         if (error && (String(error.message || '').includes('documento_identita_url') || String(error.message || '').includes('codice_fiscale_url') || String(error.message || '').includes('schema cache'))) {
             console.warn('Campi documentali corsista non presenti: applica la migration Step 47. Riprovo senza link documenti.');
-            const fallback = { ...record };
-            delete fallback.documento_identita_url;
-            delete fallback.codice_fiscale_url;
-            const retry = await supabaseClient.from('corsisti').upsert(fallback).select();
+            delete workingRecord.documento_identita_url;
+            delete workingRecord.codice_fiscale_url;
+            const retry = await supabaseClient.from('corsisti').upsert(workingRecord).select();
             data = retry.data; error = retry.error;
         }
         if (error) throw error; return data;
@@ -227,11 +250,23 @@ window.deleteProgetto = async function(id) {
 // ==========================================
 window.getIscrizioni = async function(progetto_id) {
     try {
-        const { data, error } = await supabaseClient
+        let { data, error } = await supabaseClient
             .from('iscrizioni')
-            .select('*, corsisti(id, azienda_id, nome_cognome, cf, luogo_data_nascita, mansione_storica)')
+            .select('*, corsisti(id, azienda_id, nome_cognome, cf, luogo_data_nascita, mansione_storica, cittadinanza, studi_scolastici_italia, lingua_test_stato, lingua_test_data, lingua_test_parte1, lingua_test_parte2, lingua_test_parte3, lingua_test_valutatore, lingua_test_dichiarazione_dl, lingua_test_documento_url, lingua_test_note)')
             .eq('progetto_id', progetto_id)
             .order('created_at', { ascending: true });
+        if (error && (
+            String(error.message || '').includes('lingua_test_') ||
+            String(error.message || '').includes('cittadinanza') ||
+            String(error.message || '').includes('studi_scolastici_italia')
+        )) {
+            const retry = await supabaseClient
+                .from('iscrizioni')
+                .select('*, corsisti(id, azienda_id, nome_cognome, cf, luogo_data_nascita, mansione_storica)')
+                .eq('progetto_id', progetto_id)
+                .order('created_at', { ascending: true });
+            data = retry.data; error = retry.error;
+        }
         if (error) throw error; return data || [];
     } catch (err) { console.error(err); return []; }
 };
@@ -243,11 +278,23 @@ window.getIscrizioniPerProgetti = async function(progettoIds = []) {
     if (!ids.length) return map;
 
     try {
-        const { data, error } = await supabaseClient
+        let { data, error } = await supabaseClient
             .from('iscrizioni')
-            .select('*, corsisti(id, azienda_id, nome_cognome, cf, luogo_data_nascita, mansione_storica)')
+            .select('*, corsisti(id, azienda_id, nome_cognome, cf, luogo_data_nascita, mansione_storica, cittadinanza, studi_scolastici_italia, lingua_test_stato, lingua_test_data, lingua_test_parte1, lingua_test_parte2, lingua_test_parte3, lingua_test_valutatore, lingua_test_dichiarazione_dl, lingua_test_documento_url, lingua_test_note)')
             .in('progetto_id', ids)
             .order('created_at', { ascending: true });
+        if (error && (
+            String(error.message || '').includes('lingua_test_') ||
+            String(error.message || '').includes('cittadinanza') ||
+            String(error.message || '').includes('studi_scolastici_italia')
+        )) {
+            const retry = await supabaseClient
+                .from('iscrizioni')
+                .select('*, corsisti(id, azienda_id, nome_cognome, cf, luogo_data_nascita, mansione_storica)')
+                .in('progetto_id', ids)
+                .order('created_at', { ascending: true });
+            data = retry.data; error = retry.error;
+        }
         if (error) throw error;
         (data || []).forEach(row => {
             if (!map[row.progetto_id]) map[row.progetto_id] = [];

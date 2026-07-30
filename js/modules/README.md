@@ -7,13 +7,14 @@ Ordine attuale:
 1. `fabbisogni_rischi.js` — analisi fabbisogni, catalogo rischi di settore e allegati stampa Step 60
 2. `gradimento_monitoraggio.js` — questionari cartacei, riepilogo e monitoraggio qualità Step 61
 3. `tutor_riesame.js` — relazione finale tutor, riesame periodico e allegati stampa Step 62
-4. `scadenze.js`
-5. `migrazione.js`
-6. `archivio.js`
-7. `stampe_bundle.js`
-8. `backup.js`
-9. `export_sezioni.js`
-10. `collaudo.js`
+4. `lingua_italiana.js` — test cartaceo, esito e correttore lingua italiana Step 63
+5. `scadenze.js`
+6. `migrazione.js`
+7. `archivio.js`
+8. `stampe_bundle.js`
+9. `backup.js`
+10. `export_sezioni.js`
+11. `collaudo.js`
 
 Il prossimo refactoring consigliato è separare:
 - `progetti.js`

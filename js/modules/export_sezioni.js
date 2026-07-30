@@ -73,6 +73,15 @@ window.getSectionExportSheets = async function(moduleId) {
             'Azienda': c.aziende?.ragione_sociale || '',
             'P.IVA azienda': c.aziende?.piva_cf || '',
             'ATECO': c.aziende?.ateco || '',
+            'Cittadinanza': c.cittadinanza || '',
+            'Studi scolastici in Italia': c.studi_scolastici_italia === null || c.studi_scolastici_italia === undefined ? 'Da verificare' : (c.studi_scolastici_italia ? 'Sì' : 'No'),
+            'Test lingua italiana': window.getLinguaTestStatusMeta ? window.getLinguaTestStatusMeta(c.lingua_test_stato || 'non_richiesto').label : (c.lingua_test_stato || ''),
+            'Data test lingua': fmt(c.lingua_test_data),
+            'Parte 1 /10': c.lingua_test_parte1 ?? '',
+            'Parte 2 /10': c.lingua_test_parte2 ?? '',
+            'Parte 3 /10': c.lingua_test_parte3 ?? '',
+            'Valutatore lingua': c.lingua_test_valutatore || '',
+            'Link test compilato': c.lingua_test_documento_url || '',
             'Data creazione': fmt(c.created_at ? String(c.created_at).slice(0,10) : '')
         }));
         return [{ name: 'Corsisti', rows }];

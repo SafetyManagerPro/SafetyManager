@@ -75,7 +75,8 @@ window.stampaFascicoloCompletoPDF = async function(projectId = null) {
                 includeFascicoloTests: false,
                 includeNeedsRiskAnnexes: false,
                 includeQualityAnnexes: false,
-                includeTutorRiesameAnnexes: false
+                includeTutorRiesameAnnexes: false,
+                includeLinguaAnnexes: false
             });
             allPages.push(...pages);
 
@@ -91,6 +92,14 @@ window.stampaFascicoloCompletoPDF = async function(projectId = null) {
                         ? window.renderManualTestCoursePages(window.AppState?.['cfg-corso'] || '', { preview: false, session: backupSession })
                         : []);
                 allPages.push(...testPages);
+
+                if (typeof window.renderLinguaItalianaAnnexPages === 'function') {
+                    const linguaPages = await window.renderLinguaItalianaAnnexPages({
+                        preview: false,
+                        session: backupSession
+                    });
+                    allPages.push(...linguaPages);
+                }
             }
 
             if (m === 'verbale' && typeof window.renderGradimentoMonitoraggioAnnexPages === 'function') {
@@ -124,6 +133,8 @@ window.stampaFascicoloCompletoPDF = async function(projectId = null) {
         const questionnaires = allPages.filter(p => p?.dataset?.gradimentoQuestionario).length;
         const tutorPages = allPages.filter(p => p?.dataset?.tutorRelationPage).length;
         const reviewPages = allPages.filter(p => p?.dataset?.reviewPage).length;
+        const linguaCandidatePages = allPages.filter(p => p?.dataset?.linguaCandidatePage).length;
+        const linguaCorrectors = allPages.filter(p => p?.dataset?.linguaCorrectorPage).length;
 
         if (!blankTests || !correctedTests) {
             console.warn('PDF unico progetto senza test manuali completi:', { blankTests, correctedTests, allPages });
@@ -158,10 +169,12 @@ window.stampaFascicoloCompletoPDF = async function(projectId = null) {
             questionnaires,
             tutorPages,
             reviewPages,
+            linguaCandidatePages,
+            linguaCorrectors,
             corsisti: backupSession.length
         });
 
-        alert(`Ora si aprirà la stampa. Seleziona "Salva come PDF" per salvare sul PC il PDF unico progetto. Sono inclusi Analisi Fabbisogni, Scheda Rischi, ${blankTests} test manuali, ${correctedTests} correttore/i, ${questionnaires} questionari di gradimento, riepilogo, monitoraggio qualità, relazione tutor e scheda riesame. Gli attestati NON sono inclusi: usa il pulsante "PDF solo attestati". Corsisti: ${backupSession.length}.`);
+        alert(`Ora si aprirà la stampa. Seleziona "Salva come PDF" per salvare sul PC il PDF unico progetto. Sono inclusi Analisi Fabbisogni, Scheda Rischi, ${blankTests} test manuali, ${correctedTests} correttore/i, ${questionnaires} questionari di gradimento, riepilogo, monitoraggio qualità, relazione tutor, scheda riesame e ${linguaCandidatePages} pagine test lingua italiana (${linguaCorrectors} correttore/i) per i corsisti interessati. Gli attestati NON sono inclusi: usa il pulsante "PDF solo attestati". Corsisti: ${backupSession.length}.`);
         document.body.classList.add('is-printing-temp');
         setTimeout(() => {
             window.print();
