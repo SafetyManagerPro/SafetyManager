@@ -1,0 +1,43 @@
+{
+  "step": 65,
+  "title": "Docenti assegnati, conformità ente condizionale e tutor facoltativo",
+  "status": "completed",
+  "changes": {
+    "teacher_declarations": {
+      "one_page_per_assigned_teacher": true,
+      "deduplicate_teachers": true,
+      "fields": [
+        "nome_cognome",
+        "cf",
+        "luogo_data_nascita",
+        "qualifica",
+        "azienda_appartenenza",
+        "unita_didattiche",
+        "firma_docente"
+      ]
+    },
+    "association_declaration": {
+      "association_provider": "included",
+      "employer_provider": "excluded"
+    },
+    "optional_tutor": {
+      "explicit_selector": true,
+      "project_form": true,
+      "print_center": true,
+      "single_print": true,
+      "complete_bundle": true,
+      "fascicolo": true
+    }
+  },
+  "migration": "supabase/migrations/2026-07-30_step65_docenti_tutor_facoltativo.sql",
+  "checks": {
+    "javascript_syntax": "ok",
+    "html_structure": "ok",
+    "teacher_pages_expected": 2,
+    "teacher_pages_rendered": 2,
+    "association_pages_employer": 0,
+    "association_pages_entity": 1,
+    "tutor_pages_not_expected": 0,
+    "tutor_pages_expected": 2
+  }
+}
