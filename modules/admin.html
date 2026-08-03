@@ -36,41 +36,10 @@
             </div>
         </div>
     </div>
-
-
-
-<div class="grid grid-cols-1 gap-4 mb-8">
-
-<div id="dashboard-raccolta-errori" class="bg-white rounded-xl shadow-sm border border-red-200 overflow-hidden">
-    <div class="p-4 border-b border-red-100 flex items-center justify-between bg-red-50">
-        <div>
-            <h2 class="font-black text-sm uppercase text-red-900 flex items-center gap-2"><i data-lucide="bug" class="w-4 h-4"></i> Raccolta errori e correzioni da effettuare</h2>
-            <p class="text-[9px] font-bold text-red-700 uppercase tracking-widest">Prima schermata operativa: cosa correggere subito nei progetti/corsisti/documenti</p>
-        </div>
-        <span id="dash-raccolta-errori-badge" class="px-2 py-1 rounded-full bg-slate-200 text-slate-700 text-[9px] font-black uppercase">Check</span>
-    </div>
-    <div id="dash-raccolta-errori-checks" class="p-4 text-xs text-slate-500 min-h-[160px]">
-        Caricamento raccolta errori...
-    </div>
-</div>
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-rose-50">
-            <div>
-                <h2 class="font-black text-sm uppercase text-rose-900">Progetti formativi</h2>
-                <p class="text-[9px] font-bold text-rose-700 uppercase tracking-widest">Raccolta errori e correzioni da effettuare</p>
-            </div>
-            <span id="dash-progetti-formativi-badge" class="px-2 py-1 rounded-full bg-slate-200 text-slate-700 text-[9px] font-black uppercase">Check</span>
-        </div>
-        <div id="dash-progetti-formativi-checks" class="p-4 text-xs text-slate-500 min-h-[180px]">
-            Caricamento verifiche...
-        </div>
-    </div>
-</div>
-
-<div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+<div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-8">
         <h2 class="font-black text-sm uppercase text-slate-800 mb-4 border-b border-slate-100 pb-2">Azioni Rapide</h2>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <button onclick="document.getElementById('dashboard-raccolta-errori')?.scrollIntoView({behavior:'smooth', block:'start'})" class="p-4 border border-red-200 bg-red-50 rounded-lg hover:bg-red-100 transition text-center group shadow-sm" title="Vai alla raccolta errori">
+            <button onclick="const box=document.getElementById('dashboard-raccolta-errori'); if(box){box.open=true; requestAnimationFrame(()=>box.scrollIntoView({behavior:'smooth', block:'start'}));}" class="p-4 border border-red-200 bg-red-50 rounded-lg hover:bg-red-100 transition text-center group shadow-sm" title="Apri la raccolta errori">
                 <i data-lucide="bug" class="w-8 h-8 mx-auto mb-2 text-red-500 group-hover:text-red-700 transition-colors"></i>
                 <span class="text-xs font-bold text-red-800 uppercase">Raccolta Errori</span>
             </button>
@@ -104,4 +73,25 @@
 
         </div>
     </div>
+
+<details id="dashboard-raccolta-errori" class="dashboard-errors-panel bg-white rounded-xl shadow-sm border border-rose-200 overflow-hidden mb-8">
+    <summary class="dashboard-errors-summary cursor-pointer list-none p-4 bg-rose-50 hover:bg-rose-100 transition flex items-center justify-between gap-4">
+        <div class="flex items-center gap-3 min-w-0">
+            <span class="w-9 h-9 shrink-0 rounded-full bg-white border border-rose-200 text-rose-700 flex items-center justify-center">
+                <i data-lucide="bug" class="w-4 h-4"></i>
+            </span>
+            <div class="min-w-0">
+                <h2 class="font-black text-sm uppercase text-rose-900">Raccolta errori e correzioni da effettuare</h2>
+                <p class="text-[9px] font-bold text-rose-700 uppercase tracking-widest mt-1">Messaggi nascosti: clicca per consultare o richiudere la sezione</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+            <span id="dash-progetti-formativi-badge" class="px-2 py-1 rounded-full bg-slate-200 text-slate-700 text-[9px] font-black uppercase">Check</span>
+            <i data-lucide="chevron-down" class="dashboard-errors-chevron w-5 h-5 text-rose-700 transition-transform"></i>
+        </div>
+    </summary>
+    <div id="dash-progetti-formativi-checks" class="p-4 text-xs text-slate-500 border-t border-rose-100 min-h-[120px]">
+        Caricamento verifiche...
+    </div>
+</details>
 </div>

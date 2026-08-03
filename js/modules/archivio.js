@@ -405,13 +405,13 @@ window.renderArchivioCorsi = function() {
                 </div>
             </div>
             <div class="${isCollapsed ? 'hidden' : ''} divide-y divide-slate-100">
-                ${g.progetti.map(p => {
+                ${g.progetti.map((p, projectIndex) => {
                     const course = window.DB_CORSI[p.corso_id]?.t || p.corso_id;
                     const ccode = window.DB_CORSI[p.corso_id]?.code || '';
                     const iscritti = iscrizioniByProject[p.id] || [];
                     const stato = p.stato_corso || 'aperto';
                     const badge = stato === 'chiuso' ? 'bg-slate-900 text-white' : (stato === 'svolto' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800');
-                    return `<div class="p-4">
+                    return `<div class="archive-project-row p-4 ${projectIndex % 2 === 0 ? 'archive-project-row-even' : 'archive-project-row-odd'}">
                         <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3">
                             <div>
                                 <button onclick="window.apriPopupProgettoById('${p.id}', 'progetti')" class="font-mono text-rose-700 hover:underline font-black text-xs">${window.dashEscape(p.codice || '')}</button>

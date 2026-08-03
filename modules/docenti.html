@@ -4,9 +4,10 @@
         <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Gestione dei formatori qualificati</p>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="flex flex-col lg:flex-row gap-6 items-start">
         
-        <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200 h-fit sticky top-0">
+        <div id="docente-form-col" class="w-full lg:w-[420px] xl:w-[460px] shrink-0">
+        <div id="docente-form-card" data-scroll-card="gestione-docente" class="bg-white p-6 rounded-xl shadow-md border border-slate-200 h-fit sticky">
             <h3 class="font-bold text-slate-800 flex items-center gap-2 border-b pb-3 mb-4"><i data-lucide="graduation-cap" class="w-5 h-5 text-emerald-600"></i> Nuovo Docente</h3>
             
             <form id="form-docente" onsubmit="event.preventDefault(); window.salvaDocenteDB();" class="space-y-4">
@@ -112,11 +113,12 @@
                 </div>
             </form>
         </div>
+        </div>
 
-        <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-md border border-slate-200">
-            <div class="flex justify-between items-center border-b pb-3 mb-4">
+        <div class="min-w-0 flex-1 w-full bg-white p-4 sm:p-6 rounded-xl shadow-md border border-slate-200">
+            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 border-b pb-3 mb-4">
                 <h3 class="font-bold text-slate-800 flex items-center gap-2"><i data-lucide="list" class="w-5 h-5 text-emerald-600"></i> Database Docenti</h3>
-                <input type="text" id="search-docenti" oninput="window.filtraDocenti()" placeholder="Cerca docente..." class="px-3 py-1.5 text-xs border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500">
+                <input type="text" id="search-docenti" oninput="window.filtraDocenti()" placeholder="Cerca docente..." class="w-full sm:w-auto px-3 py-2 text-xs border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500">
             </div>
 
             <div class="overflow-x-auto">
