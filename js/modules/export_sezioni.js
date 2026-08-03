@@ -247,7 +247,8 @@ window.stampaSezionePdf = async function(moduleId) {
                 ${sheets.map(s => `<h2>${window.dashEscape(s.name || 'Dati')}</h2>${window.exportRowsToHtmlTable(s.rows || [])}`).join('')}
             </div>`;
         document.body.classList.add('is-printing-temp');
-        setTimeout(() => {
+        setTimeout(async () => {
+            if (typeof window.waitForPrintImages === 'function') await window.waitForPrintImages(printArea);
             window.print();
             document.body.classList.remove('is-printing-temp');
             printArea.innerHTML = '';

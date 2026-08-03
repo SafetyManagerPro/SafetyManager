@@ -154,10 +154,11 @@ window.applyRegisterDayFields = function(page, day) {
         const role = slot.getAttribute('data-signature-role') || '';
         const selector = slot.getAttribute('data-signature-name-selector') || '';
         const name = selector ? (page.querySelector(selector)?.textContent || '').trim() : '';
-        const source = window.getAutoSignaturePathByNameAndRole
+        const automatic = window.getAutoSignaturePathByNameAndRole
             ? window.getAutoSignaturePathByNameAndRole(name, role)
             : '';
-        if (window.renderAutoSignatureSlot) window.renderAutoSignatureSlot(slot, source, name);
+        const source = window.resolveSignatureSource?.(name, role) || automatic;
+        if (window.renderAutoSignatureSlot) window.renderAutoSignatureSlot(slot, source, name, automatic);
     });
     page.dataset.registerDayPage = String(day.number);
     page.dataset.registerDayDate = day.iso;

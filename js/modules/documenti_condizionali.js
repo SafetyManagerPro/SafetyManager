@@ -103,9 +103,9 @@ window.applyTeacherDeclarationData = function(page, teacher, index = 0, total = 
 
     page.querySelectorAll('.auto-signature-slot').forEach(slot => {
         const automatic = window.getAutoSignaturePathByNameAndRole?.(name, 'docente') || '';
-        const signature = teacher.firma_docente_url || automatic;
+        const signature = window.resolveSignatureSource?.(name, 'docente') || teacher.firma_docente_url || automatic;
         if (typeof window.renderAutoSignatureSlot === 'function') {
-            window.renderAutoSignatureSlot(slot, signature, name);
+            window.renderAutoSignatureSlot(slot, signature, name, automatic);
         }
     });
 };

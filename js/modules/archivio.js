@@ -241,7 +241,8 @@ window.stampaSchedaClienteCommittente = async function(subjectId) {
         printArea.innerHTML = window.buildSchedaClienteCommittenteHtml(data, true);
         alert(`Ora si aprirà la stampa della ${data.isEnte ? 'scheda ente' : 'scheda cliente'} in formato A4 orizzontale. Seleziona "Salva come PDF" per archiviarla.`);
         document.body.classList.add('is-printing-temp', 'is-scheda-landscape');
-        setTimeout(() => {
+        setTimeout(async () => {
+            if (typeof window.waitForPrintImages === 'function') await window.waitForPrintImages(printArea);
             window.print();
             document.body.classList.remove('is-printing-temp', 'is-scheda-landscape');
             printArea.innerHTML = '';

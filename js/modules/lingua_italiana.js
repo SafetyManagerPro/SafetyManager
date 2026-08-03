@@ -257,7 +257,8 @@ window.stampaTestLinguaCorsista = async function(projectId, corsistaId) {
         printArea.innerHTML = '';
         pages.forEach(page => printArea.appendChild(page));
         document.body.classList.add('is-printing-temp');
-        setTimeout(() => {
+        setTimeout(async () => {
+            if (typeof window.waitForPrintImages === 'function') await window.waitForPrintImages(printArea);
             window.print();
             document.body.classList.remove('is-printing-temp');
             printArea.innerHTML = '';

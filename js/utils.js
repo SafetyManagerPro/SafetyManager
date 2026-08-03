@@ -3734,6 +3734,11 @@ window.getProjectSelectLabel = function(p) {
 window.initStampe = async function() {
     const filterSelect = document.getElementById('filter-stampe-corso');
     if(!filterSelect) return;
+
+    const previousCourse = filterSelect.value || '';
+    const companyFilter = document.getElementById('filter-stampe-azienda');
+    const previousCompany = companyFilter?.value || '';
+    const previousProject = document.getElementById('stampa-progetto')?.value || '';
     
     window.progettiList = await window.getProgetti();
     
@@ -3750,24 +3755,72 @@ window.initStampe = async function() {
     }
     filterSelect.innerHTML = optHtml;
 
-    window.filtraStampe();
+    if (previousCourse && Array.from(filterSelect.options).some(option => option.value === previousCourse)) {
+        filterSelect.value = previousCourse;
+    }
+
+    if (companyFilter) {
+        const companies = new Map();
+        let hasUnassignedProjects = false;
+        (window.progettiList || []).forEach(project => {
+            const companyId = String(project.azienda_id || project.aziende?.id || '').trim();
+            const companyName = String(project.aziende?.ragione_sociale || '').trim();
+            if (companyId) companies.set(companyId, companyName || 'Azienda senza denominazione');
+            else hasUnassignedProjects = true;
+        });
+
+        const sortedCompanies = Array.from(companies.entries())
+            .sort((a, b) => a[1].localeCompare(b[1], 'it', { sensitivity: 'base' }));
+        let companyOptions = '<option value="">-- Mostra tutte le aziende --</option>';
+        sortedCompanies.forEach(([id, name]) => {
+            companyOptions += `<option value="${window.dashEscape(id)}">${window.dashEscape(name)}</option>`;
+        });
+        if (hasUnassignedProjects) companyOptions += '<option value="__none__">Privato / azienda non indicata</option>';
+        companyFilter.innerHTML = companyOptions;
+        if (previousCompany && Array.from(companyFilter.options).some(option => option.value === previousCompany)) {
+            companyFilter.value = previousCompany;
+        }
+    }
+
+    window.filtraStampe(previousProject);
 };
 
-window.filtraStampe = function() {
+window.filtraStampe = function(preferredProjectId = '') {
     const selProg = document.getElementById('stampa-progetto');
-    const filterVal = document.getElementById('filter-stampe-corso').value;
+    const filterVal = document.getElementById('filter-stampe-corso')?.value || '';
+    const companyFilterVal = document.getElementById('filter-stampe-azienda')?.value || '';
     
     if(!selProg) return;
 
+    const selectedBeforeFilter = preferredProjectId || selProg.value || '';
     let html = '<option value="">-- Seleziona un progetto --</option>';
-    
-    window.progettiList.forEach(p => {
-        if (filterVal !== "" && p.corso_id !== filterVal) return; 
+    const filteredProjects = (window.progettiList || []).filter(p => {
+        if (filterVal && p.corso_id !== filterVal) return false;
+        const projectCompanyId = String(p.azienda_id || p.aziende?.id || '').trim();
+        if (companyFilterVal === '__none__' && projectCompanyId) return false;
+        if (companyFilterVal && companyFilterVal !== '__none__' && projectCompanyId !== companyFilterVal) return false;
+        return true;
+    });
 
+    filteredProjects.forEach(p => {
         html += `<option value="${p.id}">${window.dashEscape(window.getProjectSelectLabel ? window.getProjectSelectLabel(p) : (p.codice || 'Progetto'))}</option>`;
     });
     
     selProg.innerHTML = html;
+    const selectionStillVisible = selectedBeforeFilter && filteredProjects.some(project => String(project.id) === String(selectedBeforeFilter));
+    if (selectionStillVisible) {
+        selProg.value = selectedBeforeFilter;
+    } else if (selectedBeforeFilter) {
+        window.currentProgettoStampaId = null;
+        window.currentSessionCorsisti = [];
+        const preview = document.getElementById('print-preview-container');
+        if (preview) {
+            preview.innerHTML = '<div class="flex items-center justify-center h-full flex-1 text-slate-400 font-bold uppercase tracking-widest text-sm flex-col gap-3 mt-40">Seleziona un progetto compatibile con i filtri</div>';
+        }
+    }
+
+    const count = document.getElementById('stampe-progetti-count');
+    if (count) count.textContent = `${filteredProjects.length} ${filteredProjects.length === 1 ? 'progetto disponibile' : 'progetti disponibili'}`;
 };
 
 
@@ -3911,7 +3964,8 @@ window.stampaFoglioProgetto = async function(projectId = null) {
 
     printArea.innerHTML = window.buildFoglioProgettoHtml(p, iscritti, true);
     document.body.classList.add('is-printing-temp');
-    setTimeout(() => {
+    setTimeout(async () => {
+        if (typeof window.waitForPrintImages === 'function') await window.waitForPrintImages(printArea);
         window.print();
         document.body.classList.remove('is-printing-temp');
         printArea.innerHTML = '';
@@ -3934,14 +3988,18 @@ window.caricaDatiStampa = async function(projectId = null, options = {}) {
     if (typeof window.getEnte === 'function') {
         const enteCfg = await window.getEnte();
         if (enteCfg) {
+            window.currentEnteStampa = enteCfg;
             window.AppState['cfg-ente'] = enteCfg.ragione_sociale || '';
             window.AppState['cfg-ente-indirizzo'] = enteCfg.indirizzo || '';
             window.AppState['cfg-ente-contatti'] = enteCfg.contatti || '';
             window.AppState['cfg-luogo-emissione'] = enteCfg.luogo_emissione || '';
             window.AppState['cfg-legale-nome'] = enteCfg.legale_nome || '';
             window.AppState['cfg-legale-nascita'] = enteCfg.legale_nascita || '';
+            window.AppState['cfg-legale-firma-url'] = enteCfg.legale_firma_url || '';
             window.AppState['cfg-logo'] = enteCfg.logo_url || '';
         } else if (typeof window.ensureCnaPresetState === 'function') {
+            window.currentEnteStampa = null;
+            window.AppState['cfg-legale-firma-url'] = '';
             window.ensureCnaPresetState();
         }
     }
@@ -4373,7 +4431,8 @@ window.stampaAttestatiMultipli = async function() {
         await window.renderAttestatiMultipli(printArea, { preview: false });
         alert(`Ora si aprirà la stampa. Verranno stampati ${session.length} attestati, uno per ogni corsista iscritto al corso.`);
         document.body.classList.add('is-printing-temp');
-        setTimeout(() => {
+        setTimeout(async () => {
+            if (typeof window.waitForPrintImages === 'function') await window.waitForPrintImages(printArea);
             window.print();
             document.body.classList.remove('is-printing-temp');
             printArea.innerHTML = '';
@@ -4519,7 +4578,8 @@ window.stampaSezioneAttuale = async function() {
     });
 
     document.body.classList.add('is-printing-temp');
-    setTimeout(() => { 
+    setTimeout(async () => { 
+        if (typeof window.waitForPrintImages === 'function') await window.waitForPrintImages(printArea);
         window.print(); 
         document.body.classList.remove('is-printing-temp');
         printArea.innerHTML = ''; 
@@ -4557,7 +4617,8 @@ window.preparaEStampaMassiva = async function(tabId) {
     window.updateAll();
 
     document.body.classList.add('is-printing-temp');
-    setTimeout(() => { 
+    setTimeout(async () => { 
+        if (typeof window.waitForPrintImages === 'function') await window.waitForPrintImages(printArea);
         window.print(); 
         document.body.classList.remove('is-printing-temp');
         printArea.innerHTML = ''; 
@@ -4621,6 +4682,57 @@ window.getAutoSignaturePathByNameAndRole = function(name = '', role = '') {
     return '';
 };
 
+window.normalizeSignatureRole = function(role = '') {
+    const normalized = String(role || '').trim().toLowerCase();
+    const aliases = {
+        responsabile_progetto: 'resp_progetto',
+        responsabile_del_progetto: 'resp_progetto',
+        responsabile_corso: 'resp_corso',
+        responsabile_del_corso: 'resp_corso',
+        legale_rappresentante: 'legale'
+    };
+    return aliases[normalized] || normalized;
+};
+
+window.isUsableSignatureSource = function(source = '') {
+    const value = String(source || '').trim();
+    if (!value || value.startsWith('LOCAL_FILE::')) return false;
+    return /^(data:image\/|blob:|https?:\/\/|file:\/\/\/|\/|\.\.\/|\.\/|assets\/|[A-Za-z0-9_-]+\/)/i.test(value) ||
+        /\.(png|jpe?g|webp|gif|svg)(?:[?#].*)?$/i.test(value);
+};
+
+window.findTeacherForSignatureName = function(name = '') {
+    const key = window.normalizeSignatureName(name);
+    if (!key) return null;
+    const teachers = Array.isArray(window.docentiList) ? window.docentiList : [];
+    return teachers.find(teacher => {
+        const teacherName = teacher.nome_cognome || teacher.nome || '';
+        return window.normalizeSignatureName(teacherName) === key;
+    }) || null;
+};
+
+window.resolveSignatureSource = function(name = '', role = '') {
+    const normalizedRole = window.normalizeSignatureRole(role);
+    const normalizedName = window.normalizeSignatureName(name);
+    const teacher = window.findTeacherForSignatureName(name);
+    const teacherSignature = teacher?.firma_docente_url || '';
+    if (window.isUsableSignatureSource(teacherSignature)) return teacherSignature;
+
+    const isAssociation = (window.getVal?.('cfg-ente-erogatore') || 'ente') !== 'azienda';
+    const ente = window.currentEnteStampa || null;
+    const enteLegalName = ente?.legale_nome || window.getVal?.('cfg-legale-nome') || '';
+    const enteLegalKey = window.normalizeSignatureName(enteLegalName);
+    const enteSignature = ente?.legale_firma_url || window.getEffectiveLegaleFirmaSrc?.() || '';
+    const signerMatchesEntity = !normalizedName || !enteLegalKey || normalizedName === enteLegalKey;
+    const useForLegalRole = normalizedRole === 'legale' && signerMatchesEntity;
+    const useForProjectManager = normalizedRole === 'resp_progetto' && !!normalizedName && !!enteLegalKey && normalizedName === enteLegalKey;
+    if (isAssociation && (useForLegalRole || useForProjectManager) && window.isUsableSignatureSource(enteSignature)) {
+        return enteSignature;
+    }
+
+    return window.getAutoSignaturePathByNameAndRole(name, normalizedRole) || '';
+};
+
 window.applyDefaultSignatureInputs = function() {
     try {
         const enteLegaleName = document.getElementById('ente-legale-nome')?.value || '';
@@ -4642,7 +4754,7 @@ window.applyDefaultSignatureInputs = function() {
 };
 
 
-window.renderAutoSignatureSlot = function(slot, signaturePath, signerName = '') {
+window.renderAutoSignatureSlot = function(slot, signaturePath, signerName = '', fallbackPath = '') {
     if (!slot) return;
     slot.innerHTML = '';
     if (!signaturePath) {
@@ -4654,6 +4766,20 @@ window.renderAutoSignatureSlot = function(slot, signaturePath, signerName = '') 
     img.className = 'auto-signature-img';
     img.src = signaturePath;
     img.alt = 'Firma ' + signerName;
+    img.addEventListener('load', () => {
+        slot.dataset.signatureReady = 'true';
+        slot.dataset.signatureSource = img.currentSrc || img.src;
+    }, { once: true });
+    img.addEventListener('error', () => {
+        if (fallbackPath && fallbackPath !== img.src && !img.dataset.fallbackApplied) {
+            img.dataset.fallbackApplied = 'true';
+            img.src = fallbackPath;
+            return;
+        }
+        slot.dataset.signatureReady = 'false';
+        slot.classList.add('hidden');
+        console.warn('Firma non caricabile:', { signerName, signaturePath });
+    });
     slot.appendChild(img);
 };
 
@@ -4671,9 +4797,25 @@ window.applyAutomaticSignatureImages = function() {
     document.querySelectorAll('.auto-signature-slot').forEach(slot => {
         const role = slot.getAttribute('data-signature-role') || '';
         const name = window.getSignatureNameForSlot(slot);
-        const src = window.getAutoSignaturePathByNameAndRole(name, role);
-        window.renderAutoSignatureSlot(slot, src, name);
+        const fallback = window.getAutoSignaturePathByNameAndRole(name, window.normalizeSignatureRole(role));
+        const src = window.resolveSignatureSource(name, role);
+        window.renderAutoSignatureSlot(slot, src, name, fallback);
     });
+};
+
+window.waitForPrintImages = async function(root = document, timeoutMs = 5000) {
+    const images = Array.from(root?.querySelectorAll?.('img[src]') || []);
+    const pending = images.filter(img => !img.complete);
+    if (!pending.length) return { total: images.length, loaded: images.filter(img => img.naturalWidth > 0).length };
+
+    await Promise.race([
+        Promise.all(pending.map(img => new Promise(resolve => {
+            img.addEventListener('load', resolve, { once: true });
+            img.addEventListener('error', resolve, { once: true });
+        }))),
+        new Promise(resolve => setTimeout(resolve, timeoutMs))
+    ]);
+    return { total: images.length, loaded: images.filter(img => img.complete && img.naturalWidth > 0).length };
 };
 
 window.updateAll = function() {

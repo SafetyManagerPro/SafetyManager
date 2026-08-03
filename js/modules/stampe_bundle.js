@@ -187,7 +187,8 @@ window.stampaFascicoloCompletoPDF = async function(projectId = null) {
             : 'nessuna dichiarazione dell’associazione (DL soggetto formatore)';
         alert(`Ora si aprirà la stampa. Seleziona "Salva come PDF" per salvare sul PC il PDF unico progetto. Sono inclusi Analisi Fabbisogni, Scheda Rischi, ${teacherDeclarations} dichiarazioni requisiti docente, ${associationText}, ${registerDayPages} registri presenze (uno per ogni giornata formativa), ${blankTests} test manuali, ${correctedTests} correttore/i, ${questionnaires} questionari di gradimento, riepilogo, monitoraggio qualità, ${tutorText} e ${linguaCandidatePages} pagine test lingua italiana (${linguaCorrectors} correttore/i) per i corsisti interessati. Gli attestati NON sono inclusi: usa il pulsante "PDF solo attestati". Corsisti: ${backupSession.length}.`);
         document.body.classList.add('is-printing-temp');
-        setTimeout(() => {
+        setTimeout(async () => {
+            if (typeof window.waitForPrintImages === 'function') await window.waitForPrintImages(printArea);
             window.print();
             document.body.classList.remove('is-printing-temp');
             printArea.innerHTML = '';
@@ -235,7 +236,8 @@ window.stampaModuloProgettoRapido = async function(projectId, moduleId, label = 
         pages.forEach(p => printArea.appendChild(p));
         alert(`Ora si aprirà la stampa del ${label}. Seleziona "Salva come PDF" per salvarlo.`);
         document.body.classList.add('is-printing-temp');
-        setTimeout(() => {
+        setTimeout(async () => {
+            if (typeof window.waitForPrintImages === 'function') await window.waitForPrintImages(printArea);
             window.print();
             document.body.classList.remove('is-printing-temp');
             printArea.innerHTML = '';
@@ -272,7 +274,8 @@ window.stampaAttestatiProgetto = async function(projectId) {
         }
         alert(`Ora si aprirà la stampa degli attestati: ${n} corsisti.`);
         document.body.classList.add('is-printing-temp');
-        setTimeout(() => {
+        setTimeout(async () => {
+            if (typeof window.waitForPrintImages === 'function') await window.waitForPrintImages(printArea);
             window.print();
             document.body.classList.remove('is-printing-temp');
             printArea.innerHTML = '';
@@ -299,7 +302,8 @@ window.stampaAttestatoCorsista = async function(projectId, corsistaId) {
         pages.forEach(p => printArea.appendChild(p));
         alert(`Ora si aprirà la stampa dell'attestato di ${corsista.nome || 'corsista'}.`);
         document.body.classList.add('is-printing-temp');
-        setTimeout(() => {
+        setTimeout(async () => {
+            if (typeof window.waitForPrintImages === 'function') await window.waitForPrintImages(printArea);
             window.print();
             document.body.classList.remove('is-printing-temp');
             printArea.innerHTML = '';
