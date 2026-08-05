@@ -5,6 +5,7 @@ Il caricamento resta tramite script classici nel browser, quindi tutte le funzio
 
 Ordine attuale:
 1. `fabbisogni_rischi.js` — analisi fabbisogni, catalogo rischi di settore e allegati stampa Step 60
+2. `rischi_settori_step68.js` — estensione documentata ATECO 2025/INAIL con 13 comparti aggiuntivi, fonti e controllo integrità catalogo
 2. `gradimento_monitoraggio.js` — questionari cartacei, riepilogo e monitoraggio qualità Step 61
 3. `tutor_riesame.js` — relazione finale tutor, riesame periodico e allegati stampa Step 62
 4. `lingua_italiana.js` — test cartaceo, esito e correttore lingua italiana Step 63

@@ -83,8 +83,23 @@ window.runCollaudoSistema = async function() {
         'parseTrainingCalendarDates',
         'getTrainingDaySchedule',
         'expandRegisterPagesByTrainingDay',
-        'getMultiDayRegisterSummary'
+        'getMultiDayRegisterSummary',
+        'getRiskSectorSources',
+        'validateRiskSectorCatalog'
     ].forEach(fn => window.collAdd(report, 'Funzioni critiche', fn, typeof window[fn] === 'function' ? 'ok' : 'error', typeof window[fn] === 'function' ? 'Disponibile' : 'Mancante'));
+
+    if (typeof window.validateRiskSectorCatalog === 'function') {
+        const catalogCheck = window.validateRiskSectorCatalog();
+        window.collAdd(
+            report,
+            'Catalogo rischi',
+            'Integrità schede settoriali Step 68',
+            catalogCheck.ok ? 'ok' : 'error',
+            catalogCheck.ok
+                ? `${catalogCheck.sectors} settori · ${catalogCheck.risks} rischi · fonti e identificativi verificati`
+                : catalogCheck.errors.join(' | ')
+        );
+    }
 
 
     // Moduli JavaScript separati nello step 23.
@@ -94,6 +109,7 @@ window.runCollaudoSistema = async function() {
         'js/modules/archivio.js',
         'js/modules/stampe_bundle.js',
         'js/modules/fabbisogni_rischi.js',
+        'js/modules/rischi_settori_step68.js',
         'js/modules/gradimento_monitoraggio.js',
         'js/modules/tutor_riesame.js',
         'js/modules/documenti_condizionali.js',

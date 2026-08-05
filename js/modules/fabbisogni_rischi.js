@@ -207,7 +207,12 @@ window.renderRiskChecklistForProject = function(selectedIds = null) {
             </label>`).join('');
     }
     const meta = document.getElementById('prog-rischi-settore-meta');
-    if (meta) meta.textContent = `${sector.level} · ${(sector.risks || []).length} rischi disponibili`;
+    if (meta) meta.textContent = `${sector.level} · ${(sector.risks || []).length} rischi disponibili · ${window.RISK_CATALOG_VERSION || 'catalogo settoriale'}`;
+    const sourceBox = document.getElementById('prog-rischi-fonti');
+    if (sourceBox) {
+        const sectorSources = typeof window.getRiskSectorSources === 'function' ? window.getRiskSectorSources(sector) : [];
+        sourceBox.innerHTML = sectorSources.map(source => `<a href="${window.dashEscape(source.url)}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-white px-2 py-1 text-[8px] font-bold text-amber-900 hover:bg-amber-100" title="Apri fonte ufficiale">↗ ${window.dashEscape(source.label)}</a>`).join('');
+    }
 };
 
 window.onRiskSectorChange = function() {
@@ -222,7 +227,12 @@ window.initFabbisogniProjectForm = function(options = {}) {
     const sectorSelect = document.getElementById('prog-rischi-settore');
     if (!sectorSelect) return;
     if (!sectorSelect.options.length) {
-        sectorSelect.innerHTML = Object.entries(window.RISK_SECTOR_CATALOG)
+        const entries = Object.entries(window.RISK_SECTOR_CATALOG).sort(([idA, a], [idB, b]) => {
+            if (idA === 'altro') return 1;
+            if (idB === 'altro') return -1;
+            return String(a.label || '').localeCompare(String(b.label || ''), 'it');
+        });
+        sectorSelect.innerHTML = entries
             .map(([id, sector]) => `<option value="${id}">${window.dashEscape(sector.label)} · ${window.dashEscape(sector.level)}</option>`)
             .join('');
     }
@@ -388,6 +398,7 @@ window.applyFabbisogniPrintFields = function() {
     const sourceHtml = sources.map(id => `<li>☑ ${esc(window.FABBISOGNI_FONTI[id] || id)}</li>`).join('');
     const needsHtml = needs.map(id => `<li>☑ ${esc(window.FABBISOGNI_NECESSITA[id] || id)}</li>`).join('');
     const riskNames = selectedRisks.map(r => r[1]).concat(customRisks);
+    const catalogSources = typeof window.getRiskSectorSources === 'function' ? window.getRiskSectorSources(sector) : [];
 
     setText('.val-fabbisogni-data', window.formatDataToItalian(window.getVal('cfg-fabbisogni-data', '')));
     setText('.val-fabbisogni-unita', window.getVal('cfg-fabbisogni-unita'));
@@ -402,6 +413,8 @@ window.applyFabbisogniPrintFields = function() {
     setText('.val-rischi-settore', `${sector.label} · ${sector.level}`);
     setText('.val-rischi-count', String(riskNames.length), '0');
     setText('.val-rischi-summary', riskNames.join(', '), 'Rischi da definire sulla base del DVR');
+    setText('.val-rischi-fonti', catalogSources.map(source => source.label).join('; '), 'DVR aziendale e fonti tecniche di settore');
+    setText('.val-rischi-catalogo-versione', window.RISK_CATALOG_VERSION || 'Catalogo rischi di settore');
     setHtml('.val-fabbisogni-fonti-list', sourceHtml);
     setHtml('.val-fabbisogni-necessita-list', needsHtml);
     setText('.val-fabbisogni-fonti-inline', sources.map(id => window.FABBISOGNI_FONTI[id] || id).join(', '));
