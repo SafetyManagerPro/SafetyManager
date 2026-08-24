@@ -1479,7 +1479,15 @@ window.setupFirmaCanvas = function(canvasId, targetInputId, previewId) {
     const canvas = document.getElementById(canvasId);
     if (!canvas) return;
     const state = window.firmaManualeState[canvasId] || {};
-    if (state.bound) return;
+    // Il modulo può essere ricaricato e creare un nuovo canvas con lo stesso ID.
+    // In quel caso il vecchio flag "bound" non è più valido: va confrontato
+    // l'elemento DOM realmente associato allo stato.
+    if (state.bound && state.canvas === canvas) {
+        state.targetInputId = targetInputId;
+        state.previewId = previewId;
+        return;
+    }
+    if (state.endHandler) window.removeEventListener('mouseup', state.endHandler);
 
     const ctx = canvas.getContext('2d');
     const resetCanvas = () => {
@@ -1526,7 +1534,16 @@ window.setupFirmaCanvas = function(canvasId, targetInputId, previewId) {
         st.last = null;
     };
 
-    window.firmaManualeState[canvasId] = { ...state, bound: true, drawing: false, hasInk: false, targetInputId, previewId, resetCanvas };
+    window.firmaManualeState[canvasId] = {
+        bound: true,
+        canvas,
+        drawing: false,
+        hasInk: false,
+        targetInputId,
+        previewId,
+        resetCanvas,
+        endHandler: end
+    };
     setTimeout(resetCanvas, 50);
 
     canvas.addEventListener('mousedown', start);
@@ -1535,6 +1552,39 @@ window.setupFirmaCanvas = function(canvasId, targetInputId, previewId) {
     canvas.addEventListener('touchstart', start, { passive: false });
     canvas.addEventListener('touchmove', move, { passive: false });
     canvas.addEventListener('touchend', end);
+};
+
+window.showLogoPreview = function(src) {
+    const preview = document.getElementById('cfg-logo-preview');
+    if (!preview) return;
+    const safeSrc = window.dashEscape ? window.dashEscape(src || '') : String(src || '').replace(/"/g, '&quot;');
+    preview.innerHTML = src
+        ? `<img src="${safeSrc}" alt="Anteprima logo ente" class="max-h-24 max-w-full object-contain mx-auto">`
+        : '<span class="text-[9px] text-slate-400 italic">Nessun logo selezionato.</span>';
+};
+
+window.caricaLogoFile = function(event) {
+    const input = event?.target;
+    const file = input?.files?.[0];
+    if (!file) return;
+    if (!String(file.type || '').startsWith('image/')) {
+        input.value = '';
+        return alert('Seleziona un file immagine valido per il logo.');
+    }
+    if (file.size > 2 * 1024 * 1024) {
+        input.value = '';
+        return alert('Il logo supera 2 MB. Riduci il file prima di caricarlo.');
+    }
+    const reader = new FileReader();
+    reader.onerror = () => alert('Impossibile leggere il file del logo.');
+    reader.onload = () => {
+        const dataUrl = String(reader.result || '');
+        const target = document.getElementById('cfg-logo');
+        if (target) target.value = dataUrl;
+        window.AppState['cfg-logo'] = dataUrl;
+        window.showLogoPreview(dataUrl);
+    };
+    reader.readAsDataURL(file);
 };
 
 window.clearFirmaManuale = function(canvasId) {
@@ -3628,6 +3678,7 @@ window.applicaPresetCNAAvellino = function(showAlert = true) {
     set('ente-contatti', p.contatti);
     set('ente-luogo-emissione', p.luogo_emissione);
     set('cfg-logo', p.logo_url);
+    window.showLogoPreview(p.logo_url);
 
     window.AppState['cfg-ente'] = p.ragione_sociale;
     window.AppState['cfg-ente-indirizzo'] = p.indirizzo;
@@ -3668,6 +3719,7 @@ window.loadEnteData = async function() {
         if(ente.logo_url) {
             document.getElementById('cfg-logo').value = ente.logo_url;
             window.AppState['cfg-logo'] = ente.logo_url;
+            window.showLogoPreview(ente.logo_url);
         }
         if(document.getElementById('ente-legale-firma-url')) {
             document.getElementById('ente-legale-firma-url').value = ente.legale_firma_url || '';
@@ -3693,6 +3745,7 @@ window.loadEnteData = async function() {
             localStorage.setItem('SafetyManager.cnaTimbroDefault', 'timbrocna.png');
             const logoInput = document.getElementById('cfg-logo');
             if (logoInput) logoInput.value = window.CNA_AVELLINO_PRESET.logo_url;
+            window.showLogoPreview(window.CNA_AVELLINO_PRESET.logo_url);
         }
     }
 };

@@ -16,6 +16,13 @@ window.logMig = function(msg, isError = false) {
     logBox.scrollTop = logBox.scrollHeight;
 };
 
+window.logMigDbError = function(context, error, rowNumber = null) {
+    console.error(`Errore migrazione - ${context}:`, error);
+    const where = rowNumber ? `riga ${rowNumber}` : 'operazione database';
+    const details = [error?.message, error?.hint, error?.details].filter(Boolean).join(' · ');
+    window.logMig(`${where} — ${context}: ${details || 'errore non specificato'}`, true);
+};
+
 window.handleFileSelect = function() {
     const fileInput = document.getElementById('mig-file');
     if (!fileInput.files.length) return alert("Seleziona un file prima di procedere.");
@@ -129,9 +136,10 @@ window.startImportProcess = async function() {
         const { data: exProg } = await supabaseClient.from('progetti').select('id, codice');
         if(exProg) exProg.forEach(p => mapProgetti[p.codice] = p.id);
 
-        let cAz = 0, cDoc = 0, cCor = 0, cPrg = 0, cIsc = 0;
+        let cAz = 0, cDoc = 0, cCor = 0, cPrg = 0, cIsc = 0, cErr = 0;
 
-        for (const row of window.migParsedData) {
+        for (const [rowIndex, row] of window.migParsedData.entries()) {
+            const rowNumber = rowIndex + 2; // intestazione CSV/JSON esclusa
             const azName = mapConfig.az_ragione && row[mapConfig.az_ragione] ? row[mapConfig.az_ragione].trim() : "Privato";
             const azPiva = mapConfig.az_piva && row[mapConfig.az_piva] ? row[mapConfig.az_piva].trim() : "";
             const azInd = mapConfig.az_ind && row[mapConfig.az_ind] ? row[mapConfig.az_ind].trim() : "";
@@ -154,19 +162,34 @@ window.startImportProcess = async function() {
 
             let azKey = azName.toLowerCase();
             if (azName !== "Privato" && !mapAziende[azKey]) {
-                const { data } = await supabaseClient.from('aziende').insert([{ ragione_sociale: azName, piva_cf: azPiva, indirizzo: azInd }]).select();
+                const { data, error } = await supabaseClient.from('aziende').insert([{ ragione_sociale: azName, piva_cf: azPiva, indirizzo: azInd }]).select();
+                if (error) {
+                    window.logMigDbError('creazione azienda', error, rowNumber);
+                    cErr++;
+                    continue;
+                }
                 if (data && data.length > 0) { mapAziende[azKey] = data[0].id; cAz++; }
             }
 
             if (docNome && !mapDocenti[docNome.toLowerCase()]) {
-                const { data } = await supabaseClient.from('docenti').insert([{ nome_cognome: docNome, qualifica: "Formatore Qualificato (D.I. 6/3/2013)" }]).select();
+                const { data, error } = await supabaseClient.from('docenti').insert([{ nome_cognome: docNome, qualifica: "Formatore Qualificato (D.I. 6/3/2013)" }]).select();
+                if (error) {
+                    window.logMigDbError('creazione docente', error, rowNumber);
+                    cErr++;
+                    continue;
+                }
                 if (data && data.length > 0) { mapDocenti[docNome.toLowerCase()] = data[0].id; cDoc++; }
             }
 
             if (!mapCorsisti[corCf]) {
-                const { data } = await supabaseClient.from('corsisti').insert([{
+                const { data, error } = await supabaseClient.from('corsisti').insert([{
                     cf: corCf, nome_cognome: corNome, luogo_data_nascita: corNascita, mansione_storica: corMans, azienda_id: mapAziende[azKey] || null
                 }]).select();
+                if (error) {
+                    window.logMigDbError('creazione corsista', error, rowNumber);
+                    cErr++;
+                    continue;
+                }
                 if (data && data.length > 0) { mapCorsisti[corCf] = data[0].id; cCor++; }
             }
 
@@ -185,16 +208,22 @@ window.startImportProcess = async function() {
                     let docJson = {};
                     if(docNome) docJson["UD1"] = mapDocenti[docNome.toLowerCase()] || "";
 
-                    const { data } = await supabaseClient.from('progetti').insert([{
+                    const { data, error } = await supabaseClient.from('progetti').insert([{
                         codice: prgCod,
                         azienda_id: mapAziende[azKey] || null,
                         corso_id: corsoId,
                         modalita: "In Presenza Fisica",
-                        data_inizio: window.formatDataToISODate(prgDataRaw),
-                        data_esame: window.formatDataToISODate(prgDataRaw),
+                        data_inizio: window.formatDataToISODate(prgDataRaw) || null,
+                        data_esame: window.formatDataToISODate(prgDataRaw) || null,
                         ente_erogatore: "ente",
                         docente_principale: JSON.stringify(docJson)
                     }]).select();
+
+                    if (error) {
+                        window.logMigDbError('creazione progetto', error, rowNumber);
+                        cErr++;
+                        continue;
+                    }
 
                     if (data && data.length > 0) { 
                         mapProgetti[prgCod] = data[0].id; 
@@ -213,20 +242,26 @@ window.startImportProcess = async function() {
                             corsista_id: mapCorsisti[corCf],
                             id_certificato: iscCert,
                             esito: "Idoneo",
-                            data_scadenza: window.formatDataToISODate(iscScadRaw)
+                            data_scadenza: window.formatDataToISODate(iscScadRaw) || null
                         }]);
-                        if (!error) cIsc++;
+                        if (error) {
+                            window.logMigDbError('creazione attestato/iscrizione', error, rowNumber);
+                            cErr++;
+                        } else {
+                            cIsc++;
+                        }
                     }
                 }
             }
         }
 
-        window.logMig(`MIGRAZIONE COMPLETATA CON SUCCESSO!`);
+        window.logMig(cErr ? `MIGRAZIONE COMPLETATA CON ${cErr} ERRORI SEGNALATI.` : `MIGRAZIONE COMPLETATA CON SUCCESSO!`, cErr > 0);
         window.logMig(`- Aziende generate: ${cAz}`);
         window.logMig(`- Docenti generati: ${cDoc}`);
         window.logMig(`- Corsisti importati: ${cCor}`);
         window.logMig(`- Progetti formativi ricreati: ${cPrg}`);
         window.logMig(`- Attestati e Scadenze registrate: ${cIsc}`);
+        window.logMig(`- Righe/operazioni con errore: ${cErr}`, cErr > 0);
         
         if(typeof window.loadDashboardStats === 'function') window.loadDashboardStats();
 
