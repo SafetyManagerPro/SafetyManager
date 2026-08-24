@@ -521,6 +521,11 @@
                     <span class="hidden xl:block">Stampe</span>
                 </button>
 
+                <button onclick="window.loadModule('kit_cliente')" id="nav-kit_cliente" class="btn-tab flex items-center gap-2 px-3 py-2 rounded-xl font-bold text-xs transition-all duration-300 hover:text-white hover:bg-slate-800 group text-slate-400" title="Kit XLSX per clienti">
+                    <div class="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center group-hover:bg-emerald-600 transition-all icon-box kit_cliente"><i data-lucide="sheet" class="w-3.5 h-3.5 group-hover:text-white icon-svg transition-colors"></i></div>
+                    <span class="hidden xl:block">Kit XLSX</span>
+                </button>
+
                 <button onclick="window.loadModule('procedure')" id="nav-procedure" class="btn-tab flex items-center gap-2 px-3 py-2 rounded-xl font-bold text-xs transition-all duration-300 group text-slate-500 opacity-60 cursor-not-allowed border border-slate-700/60" title="Procedure digitali temporaneamente in pausa">
                     <div class="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center icon-box procedure"><i data-lucide="pause-circle" class="w-3.5 h-3.5 icon-svg transition-colors text-slate-500"></i></div>
                     <span class="hidden xl:block">Procedure in pausa</span>
@@ -573,6 +578,7 @@
     <script src="js/modules/stampe_bundle.js"></script>
     <script src="js/modules/backup.js"></script>
     <script src="js/modules/export_sezioni.js"></script>
+    <script src="js/modules/kit_cliente.js"></script>
     <script src="js/modules/collaudo.js"></script>
     <script src="js/digital.js"></script>
     <script src="js/app.js"></script>
