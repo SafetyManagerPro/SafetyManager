@@ -117,6 +117,7 @@ window.runCollaudoSistema = async function() {
         'js/modules/registri_multigiorno.js',
         'js/modules/backup.js',
         'js/modules/export_sezioni.js',
+        'js/modules/kit_cliente.js',
         'js/modules/collaudo.js'
     ];
     for (const file of jsModules) {
@@ -129,7 +130,7 @@ window.runCollaudoSistema = async function() {
     }
 
     // Moduli HTML.
-    const modules = ['admin','aziende','corsisti','docenti','progetti','archivio_corsi','scadenze','stampe','migrazione','ente','collaudo','attestato','registro','fascicolo_corso','analisi_fabbisogni','scheda_rischi_settore','questionario_gradimento','riepilogo_gradimento','monitoraggio_qualita','relazione_tutor','scheda_riesame','test_lingua_italiana'];
+    const modules = ['admin','aziende','corsisti','docenti','progetti','archivio_corsi','scadenze','stampe','migrazione','kit_cliente','ente','collaudo','attestato','registro','fascicolo_corso','analisi_fabbisogni','scheda_rischi_settore','questionario_gradimento','riepilogo_gradimento','monitoraggio_qualita','relazione_tutor','scheda_riesame','test_lingua_italiana'];
     for (const m of modules) {
         try {
             const resp = await fetch(`modules/${m}.html`, { cache: 'no-store' });

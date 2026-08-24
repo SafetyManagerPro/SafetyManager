@@ -18,6 +18,7 @@ Ordine attuale:
 11. `backup.js`
 12. `export_sezioni.js`
 13. `collaudo.js`
+14. `kit_cliente.js` — generazione, analisi e importazione assistita del Kit cliente XLSX (Step 69)
 
 Il prossimo refactoring consigliato è separare:
 - `progetti.js`

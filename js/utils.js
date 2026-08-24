@@ -448,6 +448,7 @@ window.loadAziendeTable = async function() {
                 <td class="p-3 border-b font-mono text-[10px] text-slate-500">${window.dashEscape(az.ateco || '-')}</td>
                 <td class="p-3 border-b text-center whitespace-nowrap">
                     <button onclick="window.modificaAzienda('${az.id}')" class="text-blue-600 hover:bg-blue-200 bg-blue-100 p-1.5 rounded transition shadow-sm" title="Modifica"><i data-lucide="edit" class="w-4 h-4"></i></button>
+                    <button onclick="window.apriKitClientePerAzienda('${az.id}')" class="text-emerald-700 hover:bg-emerald-200 bg-emerald-100 p-1.5 rounded transition shadow-sm ml-1" title="Genera Kit XLSX precompilato"><i data-lucide="sheet" class="w-4 h-4"></i></button>
                     <button onclick="window.eliminaAzienda('${az.id}')" class="text-red-600 hover:bg-red-200 bg-red-100 p-1.5 rounded transition shadow-sm ml-1" title="Elimina"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                 </td>
             </tr>

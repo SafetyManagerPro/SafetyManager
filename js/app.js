@@ -83,6 +83,7 @@ window.loadModule = async function(moduleId) {
         if (moduleId === 'procedure' && typeof window.initProcedureDigitali === 'function') window.initProcedureDigitali();
         if (moduleId === 'migrazione' && typeof window.initMigrazione === 'function') window.initMigrazione();
         if (moduleId === 'archivio_corsi' && typeof window.loadArchivioCorsi === 'function') window.loadArchivioCorsi();
+        if (moduleId === 'kit_cliente' && typeof window.initKitCliente === 'function') await window.initKitCliente();
         if (moduleId === 'collaudo' && typeof window.initCollaudoSistema === 'function') window.initCollaudoSistema();
         if (typeof window.injectSectionExportToolbar === 'function') window.injectSectionExportToolbar(moduleId);
         if (typeof window.updateNavOffset === 'function') setTimeout(window.updateNavOffset, 50);

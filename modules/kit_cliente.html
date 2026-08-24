@@ -1,0 +1,82 @@
+<div id="view-kit-cliente" class="w-full max-w-[1500px] mx-auto mt-4 mb-10">
+    <div class="border-b-2 border-slate-900 pb-3 mb-6">
+        <h1 class="text-3xl font-black uppercase text-slate-900 tracking-tighter flex items-center gap-3">
+            <i data-lucide="sheet" class="w-8 h-8 text-emerald-600"></i> Kit attivazione corso XLSX
+        </h1>
+        <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Raccolta dati azienda, corsisti e corsi richiesti · analisi e importazione assistita</p>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="bg-slate-900 text-white px-5 py-4">
+                <h2 class="font-black uppercase text-sm flex items-center gap-2"><i data-lucide="file-down" class="w-5 h-5 text-emerald-400"></i> 1. Prepara il file per il cliente</h2>
+                <p class="text-[10px] text-slate-300 mt-1">Il modello contiene due fogli visibili: Dati Azienda e Corsisti e Corsi.</p>
+            </div>
+            <div class="p-5 space-y-4">
+                <div>
+                    <label class="text-[10px] font-black text-slate-500 uppercase block mb-1">Tipo cliente</label>
+                    <select id="kit-company-mode" onchange="window.syncKitCompanyMode()" class="input-field bg-white">
+                        <option value="new">Nuova azienda non ancora presente</option>
+                        <option value="existing">Azienda già presente in SafetyManager</option>
+                    </select>
+                </div>
+                <div id="kit-company-select-box" class="hidden">
+                    <label class="text-[10px] font-black text-slate-500 uppercase block mb-1">Azienda da precompilare</label>
+                    <select id="kit-company-select" class="input-field bg-white">
+                        <option value="">-- Seleziona azienda --</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-[10px] font-black text-slate-500 uppercase block mb-1">ID richiesta</label>
+                    <input id="kit-request-id" type="text" readonly class="input-field bg-slate-100 font-mono font-bold">
+                </div>
+                <div class="rounded-xl border border-blue-200 bg-blue-50 p-4 text-[11px] text-blue-900 leading-relaxed">
+                    <p class="font-black uppercase mb-1">Come funziona</p>
+                    <p>Invia il file XLSX al cliente. Il cliente compila le celle gialle, seleziona i corsi dai menu e restituisce lo stesso file. Non deve inserire documenti, firme o password.</p>
+                </div>
+                <button type="button" onclick="window.generaKitClienteXlsx()" class="w-full bg-emerald-700 hover:bg-emerald-600 text-white rounded-xl px-5 py-3 font-black uppercase text-xs flex items-center justify-center gap-2 shadow">
+                    <i data-lucide="download" class="w-4 h-4"></i> Genera e scarica XLSX
+                </button>
+            </div>
+        </section>
+
+        <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="bg-slate-900 text-white px-5 py-4">
+                <h2 class="font-black uppercase text-sm flex items-center gap-2"><i data-lucide="file-search" class="w-5 h-5 text-amber-400"></i> 2. Analizza e importa il file restituito</h2>
+                <p class="text-[10px] text-slate-300 mt-1">Prima dell'importazione viene mostrato un controllo dettagliato, senza modificare il database.</p>
+            </div>
+            <div class="p-5 space-y-4">
+                <input id="kit-file-input" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" class="block w-full text-xs border border-slate-300 rounded-xl p-3 bg-slate-50">
+                <button type="button" onclick="window.analizzaKitClienteXlsx()" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl px-5 py-3 font-black uppercase text-xs flex items-center justify-center gap-2 shadow">
+                    <i data-lucide="scan-search" class="w-4 h-4"></i> Analizza file
+                </button>
+                <div id="kit-analysis-summary" class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-500 min-h-[120px]">
+                    Seleziona un file XLSX compilato e avvia l'analisi.
+                </div>
+                <label id="kit-import-confirm-box" class="hidden rounded-xl border border-rose-200 bg-rose-50 p-3 items-start gap-3 text-[11px] text-rose-900">
+                    <input id="kit-import-confirm" type="checkbox" class="mt-0.5" onchange="window.syncKitImportButton()">
+                    <span><strong>Confermo l'importazione.</strong> Ho verificato azienda, corsisti e corsi richiesti. I dati esistenti non verranno sovrascritti automaticamente.</span>
+                </label>
+                <button id="kit-import-button" type="button" onclick="window.importaKitClienteAnalizzato()" disabled class="w-full bg-blue-700 hover:bg-blue-600 disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-xl px-5 py-3 font-black uppercase text-xs flex items-center justify-center gap-2 shadow">
+                    <i data-lucide="database-zap" class="w-4 h-4"></i> Importa dati validati
+                </button>
+            </div>
+        </section>
+    </div>
+
+    <section id="kit-pending-section" class="hidden mt-6 bg-slate-900 rounded-2xl border border-slate-700 shadow-xl overflow-hidden">
+        <div class="px-5 py-4 border-b border-slate-700 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+            <div>
+                <h2 class="font-black uppercase text-white text-sm flex items-center gap-2"><i data-lucide="clipboard-list" class="w-5 h-5 text-cyan-400"></i> Richieste corso pronte da completare</h2>
+                <p class="text-[10px] text-slate-300 mt-1">Nessun progetto incompleto è stato salvato: apri una richiesta, completa date, sede, docenti e compliance, poi salva.</p>
+            </div>
+            <button type="button" onclick="window.cancellaBozzeKitCliente()" class="text-[9px] font-black uppercase text-slate-300 hover:text-white border border-slate-600 rounded-lg px-3 py-2">Svuota bozze</button>
+        </div>
+        <div id="kit-pending-list" class="p-5 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+    </section>
+
+    <div class="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-[10px] text-amber-900 leading-relaxed">
+        <p class="font-black uppercase mb-1">Nota sicurezza e qualità dati</p>
+        <p>L'XLSX è un mezzo di raccolta e trasferimento: contiene dati personali e deve essere conservato e trasmesso con modalità concordate. L'importazione riutilizza aziende e corsisti già presenti quando riconosciuti, evitando doppioni; la creazione del progetto resta sotto controllo dell'operatore.</p>
+    </div>
+</div>
