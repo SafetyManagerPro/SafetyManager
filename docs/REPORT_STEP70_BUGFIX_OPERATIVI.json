@@ -1,0 +1,29 @@
+{
+  "step": 70,
+  "status": "completed",
+  "fixes": {
+    "manual_signature_rebind": true,
+    "migration_empty_dates_as_null": true,
+    "migration_insert_errors_reported": true,
+    "entity_logo_filereader": true,
+    "entity_logo_preview": true,
+    "certificate_unique_index_script": true
+  },
+  "database": {
+    "remote_change_applied": false,
+    "manual_sql": "supabase/manual/step70_unique_id_certificato.sql",
+    "preflight_duplicate_check": true
+  },
+  "deferred": [
+    "database_sequence_for_certificate_protocol",
+    "service_worker_decision",
+    "pin_cdn_dependencies",
+    "dead_code_removal",
+    "projects_html_deduplication"
+  ],
+  "checks": {
+    "javascript_syntax": "ok",
+    "static_regression_checks": "ok",
+    "zip_integrity": "ok"
+  }
+}
