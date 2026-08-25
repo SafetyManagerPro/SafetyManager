@@ -1,0 +1,18 @@
+{
+  "name": "SafetyManager PRO",
+  "short_name": "SafetyPRO",
+  "description": "Gestionale Formazione Sicurezza 2025",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#0f172a",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "logocna.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
