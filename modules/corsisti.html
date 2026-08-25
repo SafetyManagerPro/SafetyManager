@@ -1,0 +1,178 @@
+<div class="w-full max-w-7xl mx-auto mt-4 mb-10 flex flex-col lg:flex-row gap-6">
+    
+    <div class="w-full lg:w-96 shrink-0">
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 sticky top-24">
+            <h2 class="font-black text-sm uppercase text-slate-800 mb-4 border-b border-slate-100 pb-2 flex items-center gap-2">
+                <i data-lucide="user-plus" class="w-4 h-4 text-emerald-500"></i> Gestione Corsista
+            </h2>
+            <form id="form-corsista" onsubmit="event.preventDefault(); window.salvaCorsistaDB();" class="space-y-4 text-xs">
+                <input type="hidden" id="cor-id" value="">
+
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Nome e Cognome</label>
+                    <input type="text" id="cor-nome" required class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded outline-none focus:border-blue-500 focus:bg-white transition font-semibold" placeholder="Es. Mario Rossi">
+                </div>
+
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Codice Fiscale</label>
+                    <input type="text" id="cor-cf" required maxlength="16" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded outline-none focus:border-blue-500 focus:bg-white transition font-mono uppercase tracking-wider" placeholder="Es. RSSMRA80A01H501W">
+                </div>
+
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Luogo e Data di Nascita</label>
+                    <input type="text" id="cor-nascita" required class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded outline-none focus:border-blue-500 focus:bg-white transition" placeholder="Es. Roma (RM), 15/03/1985">
+                </div>
+
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Mansione Aziendale</label>
+                    <input type="text" id="cor-mansione" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded outline-none focus:border-blue-500 focus:bg-white transition" placeholder="Es. Magazziniere, Saldatore, Impiegato">
+                </div>
+
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Azienda di Appartenenza</label>
+                    <select id="cor-azienda" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded outline-none focus:border-blue-500 focus:bg-white transition font-semibold text-slate-700">
+                        </select>
+                </div>
+
+                <details class="rounded-xl border border-amber-200 bg-amber-50">
+                    <summary class="cursor-pointer list-none px-3 py-2.5 flex items-center justify-between gap-2 text-[10px] font-black uppercase text-amber-950">
+                        <span class="flex items-center gap-2"><i data-lucide="languages" class="w-4 h-4 text-amber-700"></i> Comprensione lingua italiana</span>
+                        <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                    </summary>
+                    <div class="border-t border-amber-200 p-3 space-y-3">
+                        <p class="text-[9px] leading-snug text-amber-900">Verifica preliminare per i lavoratori per i quali occorre accertare la comprensione della lingua italiana. In questa fase il controllo è informativo e non blocca l’iscrizione.</p>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-600 uppercase block mb-1">Cittadinanza</label>
+                                <input type="text" id="cor-cittadinanza" oninput="window.updateLinguaRequirementSuggestion()" class="w-full px-2 py-2 bg-white border border-amber-300 rounded" placeholder="Es. Italiana, Ucraina">
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-600 uppercase block mb-1">Studi scolastici in Italia</label>
+                                <select id="cor-studi-italia" onchange="window.updateLinguaRequirementSuggestion()" class="w-full px-2 py-2 bg-white border border-amber-300 rounded font-bold">
+                                    <option value="">Da verificare</option>
+                                    <option value="true">Sì</option>
+                                    <option value="false">No</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div id="cor-lingua-requisito-preview" class="rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-[9px] font-bold text-slate-600">Completare cittadinanza e studi scolastici svolti in Italia.</div>
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-600 uppercase block mb-1">Stato verifica</label>
+                            <select id="cor-lingua-stato" onchange="window.updateLinguaTestFormOutcome()" class="w-full px-3 py-2 bg-white border border-amber-300 rounded outline-none focus:border-amber-600 font-bold text-slate-800">
+                                <option value="non_richiesto">Non richiesto</option>
+                                <option value="da_valutare">Da valutare</option>
+                                <option value="da_somministrare">Da somministrare</option>
+                                <option value="somministrato">Somministrato / da correggere</option>
+                                <option value="superato">Superato / ammesso</option>
+                                <option value="non_superato">Non superato / non ammesso</option>
+                            </select>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-600 uppercase block mb-1">Data test</label>
+                                <input type="date" id="cor-lingua-data" class="w-full px-2 py-2 bg-white border border-amber-300 rounded">
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-600 uppercase block mb-1">Valutatore</label>
+                                <input type="text" id="cor-lingua-valutatore" class="w-full px-2 py-2 bg-white border border-amber-300 rounded" placeholder="Nome e cognome">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2">
+                            <div><label class="text-[9px] font-black text-slate-600 uppercase block mb-1">Parte 1 /10</label><input type="number" min="0" max="10" id="cor-lingua-parte1" oninput="window.updateLinguaTestFormOutcome()" class="w-full px-2 py-2 bg-white border border-amber-300 rounded text-center font-black"></div>
+                            <div><label class="text-[9px] font-black text-slate-600 uppercase block mb-1">Parte 2 /10</label><input type="number" min="0" max="10" id="cor-lingua-parte2" oninput="window.updateLinguaTestFormOutcome()" class="w-full px-2 py-2 bg-white border border-amber-300 rounded text-center font-black"></div>
+                            <div><label class="text-[9px] font-black text-slate-600 uppercase block mb-1">Parte 3 /10</label><input type="number" min="0" max="10" id="cor-lingua-parte3" oninput="window.updateLinguaTestFormOutcome()" class="w-full px-2 py-2 bg-white border border-amber-300 rounded text-center font-black"></div>
+                        </div>
+                        <div id="cor-lingua-esito-preview" class="rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-[10px] font-bold text-slate-600">Inserire i tre punteggi.</div>
+                        <label class="flex items-start gap-2 rounded-lg border border-amber-200 bg-white p-2 text-[9px] font-bold text-slate-700">
+                            <input type="checkbox" id="cor-lingua-dichiarazione-dl" class="mt-0.5">
+                            <span>Dichiarazione del datore di lavoro acquisita: il test è stato svolto direttamente dal lavoratore.</span>
+                        </label>
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-600 uppercase block mb-1">Link scansione test compilato</label>
+                            <input type="text" id="cor-lingua-documento-url" class="w-full px-3 py-2 bg-white border border-amber-300 rounded text-[10px]" placeholder="Percorso locale, NAS o collegamento archivio">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-600 uppercase block mb-1">Note / supporto linguistico previsto</label>
+                            <textarea id="cor-lingua-note" rows="2" class="w-full px-3 py-2 bg-white border border-amber-300 rounded" placeholder="Annotazioni, nuova verifica, mediatore o altro supporto"></textarea>
+                        </div>
+                    </div>
+                </details>
+
+                <div class="rounded-xl border border-blue-100 bg-blue-50 p-3 space-y-3">
+                    <div>
+                        <p class="text-[10px] font-black text-blue-800 uppercase flex items-center gap-1">
+                            <i data-lucide="folder-open" class="w-3.5 h-3.5"></i> Documenti Corsisti
+                        </p>
+                        <p class="text-[9px] text-blue-700 font-bold uppercase mt-1">Incolla i link o aggancia il nome file locale a documento identità e codice fiscale.</p>
+                    </div>
+
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Link documento identità</label>
+                        <input type="url" id="cor-doc-identita-url" class="w-full px-3 py-2 bg-white border border-blue-200 rounded outline-none focus:border-blue-500 transition text-[11px]" placeholder="https://...">
+                        <div class="mt-2 flex gap-2">
+                            <input type="file" id="cor-doc-identita-file" accept=".pdf,.jpg,.jpeg,.png,.webp" class="min-w-0 flex-1 text-[10px]">
+                            <button type="button" onclick="window.uploadDocumentoArchivio('corsisti','documento_identita','cor-doc-identita-file','cor-doc-identita-url')" class="shrink-0 bg-blue-700 hover:bg-blue-600 text-white px-2 py-1 rounded text-[9px] font-black uppercase">Collega</button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Link codice fiscale / tessera sanitaria</label>
+                        <input type="url" id="cor-doc-cf-url" class="w-full px-3 py-2 bg-white border border-blue-200 rounded outline-none focus:border-blue-500 transition text-[11px]" placeholder="https://...">
+                        <div class="mt-2 flex gap-2">
+                            <input type="file" id="cor-doc-cf-file" accept=".pdf,.jpg,.jpeg,.png,.webp" class="min-w-0 flex-1 text-[10px]">
+                            <button type="button" onclick="window.uploadDocumentoArchivio('corsisti','codice_fiscale','cor-doc-cf-file','cor-doc-cf-url')" class="shrink-0 bg-blue-700 hover:bg-blue-600 text-white px-2 py-1 rounded text-[9px] font-black uppercase">Collega</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-2 flex gap-2">
+                    <button type="submit" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold uppercase py-2 px-4 rounded shadow transition text-center block">Salva Record</button>
+                    <button type="button" onclick="window.resetFormCorsista()" class="bg-slate-200 hover:bg-slate-300 text-slate-600 font-bold uppercase py-2 px-3 rounded transition">Annulla</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="flex-1 w-full">
+        <div class="border-b-2 border-slate-900 pb-3 mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-3">
+            <div>
+                <h1 class="text-3xl font-black uppercase text-slate-900 tracking-tighter">Anagrafica Corsisti</h1>
+                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Registro storico dei lavoratori e dei relativi titoli formativi conseguiti</p>
+            </div>
+            
+            <div class="w-full sm:w-[620px] grid grid-cols-1 md:grid-cols-3 gap-2">
+                <div class="relative">
+                    <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-slate-400"></i>
+                    <input type="text" id="search-corsisti" onkeyup="window.filtraCorsisti()" class="w-full pl-9 pr-3 py-2 bg-white border border-slate-300 rounded text-xs outline-none focus:border-blue-500 shadow-sm transition" placeholder="Cerca allievo, CF, azienda o corso...">
+                </div>
+                <select id="filter-corsisti-azienda" onchange="window.filtraCorsisti()" class="w-full px-3 py-2 bg-white border border-slate-300 rounded text-xs outline-none focus:border-blue-500 shadow-sm font-bold text-slate-700">
+                    <option value="">Tutte le aziende</option>
+                </select>
+                <select id="filter-corsisti-corso" onchange="window.filtraCorsisti()" class="w-full px-3 py-2 bg-white border border-slate-300 rounded text-xs outline-none focus:border-blue-500 shadow-sm font-bold text-slate-700">
+                    <option value="">Tutti i corsi</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs border-collapse">
+                    <thead class="bg-slate-800 text-white">
+                        <tr>
+                            <th class="p-3 font-bold uppercase tracking-wider w-44">Nome Allievo</th>
+                            <th class="p-3 font-bold uppercase tracking-wider w-36">Codice Fiscale</th>
+                            <th class="p-3 font-bold uppercase tracking-wider w-48">Mansione & Azienda</th>
+                            <th class="p-3 font-bold uppercase tracking-wider">Corsi Svolti (Storico)</th>
+                            <th class="p-3 font-bold uppercase tracking-wider text-center w-28">Data Fine</th>
+                            <th class="p-3 font-bold uppercase tracking-wider text-center w-32">Lingua Italiana</th>
+                            <th class="p-3 font-bold uppercase tracking-wider text-center w-20">Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabella-corsisti" class="divide-y divide-slate-100">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>

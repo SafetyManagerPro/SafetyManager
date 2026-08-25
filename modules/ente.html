@@ -1,0 +1,105 @@
+<!-- modules/ente.html -->
+<div id="view-ente" class="w-full max-w-4xl mx-auto mt-4 mb-10">
+    <div class="border-b-2 border-slate-900 pb-3 mb-6">
+        <h1 class="text-3xl font-black uppercase text-slate-900 tracking-tighter">Mio Ente Formatore</h1>
+        <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Dati che compariranno in tutti gli attestati e registri</p>
+    </div>
+
+    <div class="bg-white p-8 rounded-xl shadow-md border border-slate-200">
+        <form id="form-ente" onsubmit="event.preventDefault(); window.salvaEnteDB();" class="space-y-6">
+            <input type="hidden" id="ente-id" value="">
+            
+<div class="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3 shadow-sm">
+    <div>
+        <p class="font-black uppercase text-blue-900 text-sm flex items-center gap-2">
+            <i data-lucide="sparkles" class="w-4 h-4"></i> Selezione rapida ente CNA
+        </p>
+        <p class="text-[10px] text-blue-800 leading-snug mt-1">
+            Autocompila i dati noti di CNA Artigiani Imprenditori D'Italia Avellino, logo e luogo di emissione.
+            Il legale rappresentante resta da verificare se non già inserito.
+        </p>
+    </div>
+    <button type="button" onclick="window.applicaPresetCNAAvellino()" class="bg-blue-700 hover:bg-blue-800 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 justify-center shadow">
+        <i data-lucide="building-2" class="w-4 h-4"></i> Usa dati CNA Avellino
+    </button>
+</div>
+
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-500 uppercase">Ragione Sociale Ente *</label>
+                        <input type="text" id="ente-ragione" required class="input-field font-bold text-blue-900" placeholder="Es. CNA Avellino">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-500 uppercase">P.IVA / Codice Fiscale *</label>
+                        <input type="text" id="ente-piva" required class="input-field uppercase">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-500 uppercase">Indirizzo Sede Principale</label>
+                        <input type="text" id="ente-indirizzo" class="input-field" placeholder="Via, CAP, Città">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-500 uppercase">Contatti (Email / Telefono)</label>
+                        <input type="text" id="ente-contatti" class="input-field" placeholder="info@ente.it | 0825 123456">
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="bg-slate-50 p-4 border rounded-lg">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1 mb-2"><i data-lucide="award" class="w-3 h-3"></i> Legale Rappresentante</label>
+                        <input type="text" id="ente-legale-nome" class="input-field text-sm mb-2" placeholder="Nome e Cognome">
+                        <input type="text" id="ente-legale-nascita" class="input-field text-sm mb-2" placeholder="Luogo e data di nascita">
+                        <input type="text" id="ente-luogo-emissione" class="input-field text-sm" placeholder="Città di emissione attestati">
+                    </div>
+
+                    <div class="rounded-xl border border-blue-200 bg-blue-50 p-4 space-y-3">
+                        <div>
+                            <p class="text-[10px] font-black text-blue-900 uppercase flex items-center gap-1">
+                                <i data-lucide="signature" class="w-3.5 h-3.5"></i> Firma legale rappresentante
+                            </p>
+                            <p class="text-[9px] text-blue-700 font-bold uppercase mt-1">Inserisci link/percorso firma oppure firma manualmente se il file non è disponibile. Nessun file viene caricato sul server.</p>
+                        </div>
+                        <input type="url" id="ente-legale-firma-url" class="input-field text-xs bg-white" placeholder="Link immagine firma legale rappresentante">
+                        <div class="flex gap-2">
+                            <input type="file" id="ente-legale-firma-file" accept="image/*,.pdf" class="min-w-0 flex-1 text-[10px]">
+                            <button type="button" onclick="window.uploadDocumentoArchivio('ente','firma_legale_rappresentante','ente-legale-firma-file','ente-legale-firma-url').then(()=>window.showFirmaPreview('ente-legale-firma-url','ente-legale-firma-preview'))" class="shrink-0 bg-blue-700 hover:bg-blue-600 text-white px-2 py-1 rounded text-[9px] font-black uppercase">Collega</button>
+                        </div>
+                        <div id="ente-legale-firma-preview" class="min-h-[34px]"></div>
+                        <button type="button" onclick="window.openFirmaManuale('ente-legale-firma-canvas','ente-legale-firma-url','ente-legale-firma-preview')" class="w-full bg-slate-900 hover:bg-slate-800 text-white px-3 py-2 rounded-lg text-[9px] font-black uppercase inline-flex items-center justify-center gap-1">
+                            <i data-lucide="pen-line" class="w-3.5 h-3.5"></i> Firma manualmente
+                        </button>
+                        <div id="ente-legale-firma-canvas-box" class="hidden rounded-xl border border-slate-300 bg-white p-2">
+                            <canvas id="ente-legale-firma-canvas" class="w-full h-32 border border-slate-200 rounded bg-white touch-none"></canvas>
+                            <div class="flex gap-2 mt-2">
+                                <button type="button" onclick="window.saveFirmaManuale('ente-legale-firma-canvas')" class="flex-1 bg-emerald-700 hover:bg-emerald-600 text-white px-2 py-1 rounded text-[9px] font-black uppercase">Salva firma</button>
+                                <button type="button" onclick="window.clearFirmaManuale('ente-legale-firma-canvas')" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-2 py-1 rounded text-[9px] font-black uppercase">Pulisci</button>
+                                <button type="button" onclick="window.closeFirmaManuale('ente-legale-firma-canvas')" class="bg-red-100 hover:bg-red-200 text-red-700 px-2 py-1 rounded text-[9px] font-black uppercase">Chiudi</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-500 uppercase">Logo Ente (Immagine base64)</label>
+                        <input type="file" id="cfg-logo-file" accept="image/*" class="mb-2 block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" onchange="window.caricaLogoFile(event)">
+                        <input type="hidden" id="cfg-logo" value="logocna.png">
+                        <div id="cfg-logo-preview" class="min-h-[56px] rounded-xl border border-slate-200 bg-white p-2 flex items-center justify-center">
+                            <span class="text-[9px] text-slate-400 italic">Seleziona un'immagine per visualizzare l'anteprima.</span>
+                        </div>
+                        <div class="mt-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-[10px] text-emerald-900 font-bold leading-relaxed">
+                            <p class="uppercase font-black tracking-widest">Preset automatico CNA</p>
+                            <p>Logo: <span class="font-mono">logocna.png</span></p>
+                            <p>Timbro: <span class="font-mono">timbrocna.png</span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-6 border-t border-slate-200 flex justify-end">
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl text-sm font-black uppercase tracking-widest flex items-center gap-2 transition shadow-lg">
+                    <i data-lucide="check-circle" class="w-5 h-5"></i> Aggiorna Dati Ente
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

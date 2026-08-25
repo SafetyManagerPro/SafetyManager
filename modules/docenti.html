@@ -1,0 +1,143 @@
+<div id="view-docenti" class="w-full max-w-7xl mx-auto mt-4 mb-10">
+    <div class="border-b-2 border-slate-900 pb-3 mb-6">
+        <h1 class="text-3xl font-black uppercase text-slate-900 tracking-tighter">Anagrafica Docenti</h1>
+        <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Gestione dei formatori qualificati</p>
+    </div>
+
+    <div class="flex flex-col lg:flex-row gap-6 items-start">
+        
+        <div id="docente-form-col" class="w-full lg:w-[420px] xl:w-[460px] shrink-0">
+        <div id="docente-form-card" data-scroll-card="gestione-docente" class="bg-white p-6 rounded-xl shadow-md border border-slate-200 h-fit sticky">
+            <h3 class="font-bold text-slate-800 flex items-center gap-2 border-b pb-3 mb-4"><i data-lucide="graduation-cap" class="w-5 h-5 text-emerald-600"></i> Nuovo Docente</h3>
+            
+            <form id="form-docente" onsubmit="event.preventDefault(); window.salvaDocenteDB();" class="space-y-4">
+                <input type="hidden" id="doc-id" value="">
+                
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase">Nome e Cognome *</label>
+                    <input type="text" id="doc-nome" required class="input-field font-bold text-emerald-900" placeholder="Es. Mario Rossi">
+                </div>
+                
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase">Codice Fiscale *</label>
+                    <input type="text" id="doc-cf" required class="input-field font-mono uppercase" placeholder="RSSMRA80A01H501Z">
+                </div>
+
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase">Luogo e data di nascita</label>
+                    <input type="text" id="doc-luogo-data-nascita" class="input-field text-xs" placeholder="Es. Avellino, 10/05/1980">
+                    <p class="text-[9px] text-slate-400 font-bold uppercase mt-1">Dato utilizzato nella dichiarazione sostitutiva dei requisiti del docente.</p>
+                </div>
+                
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase">Qualifica Formatore *</label>
+                    <select id="doc-qualifica" required class="input-field text-xs bg-slate-50">
+                        <option value="Formatore Qualificato (D.I. 6/3/2013)">Formatore Qualificato (D.I. 6/3/2013)</option>
+                        <option value="Datore di Lavoro / RSPP (Art. 34 D.Lgs 81/08)">Datore di Lavoro / RSPP (Art. 34 D.Lgs 81/08)</option>
+                        <option value="Docente Tecnico (Medico, Ingegnere, ecc.)">Docente Tecnico (Medico, Ingegnere, ecc.)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase">Azienda di appartenenza</label>
+                    <select id="doc-azienda-appartenenza" class="input-field text-sm bg-slate-50">
+                        <option value="">-- Seleziona azienda da Anagrafica Aziende Clienti --</option>
+                    </select>
+                    <p class="text-[9px] text-slate-400 font-bold uppercase mt-1">Elenco caricato dalle Ragioni Sociali presenti in Anagrafica Aziende Clienti.</p>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-500 uppercase">Email</label>
+                        <input type="email" id="doc-email" class="input-field text-xs" placeholder="mario.rossi@email.it">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-500 uppercase">Telefono</label>
+                        <input type="text" id="doc-telefono" class="input-field text-xs" placeholder="333 1234567">
+                    </div>
+                </div>
+
+                <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-3 space-y-3">
+                    <div>
+                        <p class="text-[10px] font-black text-emerald-900 uppercase flex items-center gap-1">
+                            <i data-lucide="folder-open" class="w-3.5 h-3.5"></i> Documenti Docenti
+                        </p>
+                        <p class="text-[9px] text-emerald-800 font-bold uppercase mt-1">Incolla i link o aggancia il nome file locale ai documenti anagrafici del docente.</p>
+                    </div>
+
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-500 uppercase">Link documento identità</label>
+                        <input type="url" id="doc-doc-identita-url" class="input-field text-xs bg-white" placeholder="https://...">
+                        <div class="mt-2 flex gap-2">
+                            <input type="file" id="doc-doc-identita-file" accept=".pdf,.jpg,.jpeg,.png,.webp" class="min-w-0 flex-1 text-[10px]">
+                            <button type="button" onclick="window.uploadDocumentoArchivio('docenti','documento_identita','doc-doc-identita-file','doc-doc-identita-url')" class="shrink-0 bg-emerald-700 hover:bg-emerald-600 text-white px-2 py-1 rounded text-[9px] font-black uppercase">Collega</button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-500 uppercase">Link codice fiscale / tessera sanitaria</label>
+                        <input type="url" id="doc-doc-cf-url" class="input-field text-xs bg-white" placeholder="https://...">
+                        <div class="mt-2 flex gap-2">
+                            <input type="file" id="doc-doc-cf-file" accept=".pdf,.jpg,.jpeg,.png,.webp" class="min-w-0 flex-1 text-[10px]">
+                            <button type="button" onclick="window.uploadDocumentoArchivio('docenti','codice_fiscale','doc-doc-cf-file','doc-doc-cf-url')" class="shrink-0 bg-emerald-700 hover:bg-emerald-600 text-white px-2 py-1 rounded text-[9px] font-black uppercase">Collega</button>
+                        </div>
+                    </div>
+
+                    <div class="pt-2 border-t border-emerald-200">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase">Firma docente</label>
+                        <input type="url" id="doc-firma-url" class="input-field text-xs bg-white" placeholder="Link immagine firma docente">
+                        <div class="mt-2 flex gap-2">
+                            <input type="file" id="doc-firma-file" accept="image/*,.pdf" class="min-w-0 flex-1 text-[10px]">
+                            <button type="button" onclick="window.uploadDocumentoArchivio('docenti','firma_docente','doc-firma-file','doc-firma-url').then(()=>window.showFirmaPreview('doc-firma-url','doc-firma-preview'))" class="shrink-0 bg-emerald-700 hover:bg-emerald-600 text-white px-2 py-1 rounded text-[9px] font-black uppercase">Collega</button>
+                        </div>
+                        <div id="doc-firma-preview" class="min-h-[34px] mt-2"></div>
+                        <button type="button" onclick="window.openFirmaManuale('doc-firma-canvas','doc-firma-url','doc-firma-preview')" class="w-full bg-slate-900 hover:bg-slate-800 text-white px-3 py-2 rounded-lg text-[9px] font-black uppercase inline-flex items-center justify-center gap-1 mt-2">
+                            <i data-lucide="pen-line" class="w-3.5 h-3.5"></i> Firma manualmente
+                        </button>
+                        <div id="doc-firma-canvas-box" class="hidden rounded-xl border border-slate-300 bg-white p-2 mt-2">
+                            <canvas id="doc-firma-canvas" class="w-full h-32 border border-slate-200 rounded bg-white touch-none"></canvas>
+                            <div class="flex gap-2 mt-2">
+                                <button type="button" onclick="window.saveFirmaManuale('doc-firma-canvas')" class="flex-1 bg-emerald-700 hover:bg-emerald-600 text-white px-2 py-1 rounded text-[9px] font-black uppercase">Salva firma</button>
+                                <button type="button" onclick="window.clearFirmaManuale('doc-firma-canvas')" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-2 py-1 rounded text-[9px] font-black uppercase">Pulisci</button>
+                                <button type="button" onclick="window.closeFirmaManuale('doc-firma-canvas')" class="bg-red-100 hover:bg-red-200 text-red-700 px-2 py-1 rounded text-[9px] font-black uppercase">Chiudi</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-4 border-t border-slate-100 flex gap-2">
+                    <button type="button" onclick="window.resetFormDocente()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-2 rounded-lg text-xs font-bold transition">Annulla</button>
+                    <button type="submit" class="flex-[2] bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition shadow">
+                        <i data-lucide="save" class="w-4 h-4"></i> Salva Docente
+                    </button>
+                </div>
+            </form>
+        </div>
+        </div>
+
+        <div class="min-w-0 flex-1 w-full bg-white p-4 sm:p-6 rounded-xl shadow-md border border-slate-200">
+            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 border-b pb-3 mb-4">
+                <h3 class="font-bold text-slate-800 flex items-center gap-2"><i data-lucide="list" class="w-5 h-5 text-emerald-600"></i> Database Docenti</h3>
+                <input type="text" id="search-docenti" oninput="window.filtraDocenti()" placeholder="Cerca docente..." class="w-full sm:w-auto px-3 py-2 text-xs border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs border-collapse">
+                    <thead class="bg-slate-50 text-slate-500">
+                        <tr>
+                            <th class="p-3 border-b font-bold uppercase tracking-wider">Nome Cognome</th>
+                            <th class="p-3 border-b font-bold uppercase tracking-wider">C.F.</th>
+                            <th class="p-3 border-b font-bold uppercase tracking-wider">Qualifica</th>
+                            <th class="p-3 border-b font-bold uppercase tracking-wider">Azienda appartenenza</th>
+                            <th class="p-3 border-b font-bold uppercase tracking-wider text-center">Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabella-docenti" class="divide-y divide-slate-100">
+                        <tr><td colspan="5" class="p-6 text-center text-slate-400 italic">Caricamento in corso...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>

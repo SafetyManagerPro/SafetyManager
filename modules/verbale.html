@@ -1,0 +1,49 @@
+<div class="doc-page portrait flex flex-col print-as-block relative bg-white" style="padding: 15mm !important; max-height: 296mm; height: 296mm;">
+    
+    <div class="text-center border-b-2 border-slate-800 pb-4 mb-6 shrink-0">
+        <h1 class="text-2xl font-black uppercase text-slate-900 tracking-widest">Verbale Esame Finale</h1>
+        <h2 class="text-sm font-bold uppercase text-slate-600 mt-1">Valutazione dell'apprendimento e prove di verifica</h2>
+    </div>
+
+    <div class="mb-6 shrink-0 text-xs leading-relaxed text-justify">
+        <p class="mb-2">In data <span class="font-bold border-b border-slate-400 px-2 val-data-esame text-sm"></span> presso la sede <span class="font-bold border-b border-slate-400 px-2 val-sede-corso uppercase"></span> si è regolarmente concluso il progetto formativo denominato:</p>
+        
+        <div class="bg-slate-50 border border-slate-300 p-3 text-center my-3 rounded">
+            <h3 class="font-black text-sm text-blue-900 uppercase val-titolo-corso">---</h3>
+            <p class="text-[10px] font-mono font-bold text-slate-600 mt-1">ID Prog: <span class="val-codice"></span> - Erogatore: <span class="val-erogatore"></span></p>
+        </div>
+
+        <p>I discenti indicati in calce, in possesso del requisito di presenza minima obbligatoria ex ASR 17/04/2025, sono stati sottoposti a verifica dell'apprendimento tramite somministrazione di <strong>Test a Risposta Multipla</strong> (soglia superamento minima 70%) e, ove previsto dalla tipologia del corso, a valutazione di <strong>Prova Pratica e Colloquio</strong> da parte del Docente/Commissione.</p>
+        <p class="mt-2 text-[10px] bg-amber-50 border border-amber-200 p-2 rounded"><strong>Argomenti trattati in eventuale colloquio/verifica pratica:</strong> rischi specifici del corso, procedure aziendali, uso sicuro di attrezzature/DPI, misure di prevenzione e risposta a emergenze. Responsabile progetto formativo: <span class="val-resp-progetto font-black uppercase">---</span>.</p>
+    </div>
+
+    <div class="flex-1 flex flex-col min-h-0 w-full mb-6">
+        <table class="w-full text-[9px] border-collapse border border-slate-900 h-full">
+            <thead class="bg-slate-200">
+                <tr>
+                    <th class="border border-slate-900 p-1 text-left pl-2">Nominativo Allievo e Mansione</th>
+                    <th class="border border-slate-900 p-1 w-16 text-center">Presenza Idonea</th>
+                    <th class="border border-slate-900 p-1 w-20 text-center bg-indigo-50">Voto Test</th>
+                    <th class="border border-slate-900 p-1 w-20 text-center bg-indigo-50">Prova Pratica</th>
+                    <th class="border border-slate-900 p-1 w-24 text-center font-black">ESITO FINALE</th>
+                </tr>
+            </thead>
+            <tbody id="v-rows" class="bg-white text-slate-800 align-middle"></tbody>
+        </table>
+    </div>
+
+    <div class="mt-auto shrink-0 flex justify-between text-center pt-6 text-[10px]">
+        <div class="w-1/2 px-4" data-signature-block>
+            <span class="text-[8px] font-bold text-slate-500 block uppercase tracking-widest">Resp. Progetto Formativo</span>
+            <div class="auto-signature-slot hidden mt-2" data-signature-role="resp_progetto" data-signature-name-selector=".val-resp-progetto"></div>
+            <span class="border-b border-slate-400 block w-4/5 mx-auto mt-2 mb-2"></span>
+            <span class="val-resp-progetto font-black uppercase text-slate-900">---</span>
+        </div>
+        <div class="w-1/2 px-4" data-signature-block>
+            <span class="text-[8px] font-bold text-slate-500 block uppercase tracking-widest">Resp. Corso</span>
+            <div class="auto-signature-slot hidden mt-2" data-signature-role="resp_corso" data-signature-name-selector=".val-resp-corso"></div>
+            <span class="border-b border-slate-400 block w-4/5 mx-auto mt-2 mb-2"></span>
+            <span class="val-resp-corso font-black uppercase text-slate-900">---</span>
+        </div>
+    </div>
+</div>

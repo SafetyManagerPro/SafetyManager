@@ -1,0 +1,943 @@
+<!-- modules/progetti.html -->
+<div class="w-full max-w-7xl mx-auto mt-4 mb-10 flex flex-col lg:flex-row gap-6 relative">
+    
+    <!-- SEZIONE SINISTRA: FORM DI INSERIMENTO / MODIFICA -->
+    <div id="progetto-form-col" class="w-full lg:w-[470px] xl:w-[520px] 2xl:w-[560px] shrink-0">
+        <div id="progetto-form-card" data-scroll-card="gestione-progetto" class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 sticky top-24">
+            <div id="popup-project-header" class="flex items-center justify-between gap-3 mb-3 border-b border-slate-100 pb-2 shrink-0">
+                <h2 id="progetto-form-title" class="font-black text-sm uppercase text-slate-800 flex items-center gap-2">
+                    <i data-lucide="layout-template" class="w-4 h-4 text-rose-500"></i> Gestione Progetto
+                </h2>
+                <button id="btn-close-project-popup" type="button" onclick="window.chiudiPopupProgetto()" class="hidden bg-slate-100 hover:bg-slate-200 text-slate-700 p-2 rounded-lg transition" title="Chiudi popup">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+            <div id="popup-project-errors" class="hidden mb-3 rounded-xl border border-red-200 bg-red-50 p-3 text-[10px] text-red-800 leading-snug shrink-0 max-h-28 overflow-y-auto"></div>
+            <form id="form-progetto" onsubmit="event.preventDefault(); window.salvaProgettoDB();" class="space-y-4 text-xs popup-project-pane popup-project-pane-dati">
+                <input type="hidden" id="prog-id" value="">
+
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Azienda Committente</label>
+                    <div class="flex items-center gap-2">
+                        <select id="prog-azienda" onchange="window.calcolaDettagliProgetto()" class="flex-1 w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded outline-none focus:border-rose-500 transition font-bold text-slate-800">
+                            <!-- Popolato via JS -->
+                        </select>
+                        <button type="button" onclick="window.apriQAAzienda()" class="bg-rose-100 hover:bg-rose-200 text-rose-700 p-2 rounded transition shadow-sm border border-rose-200" title="Aggiungi Nuova Azienda Rapida"><i data-lucide="plus" class="w-4 h-4"></i></button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Soggetto Formatore / Erogatore</label>
+                    <select id="prog-erogatore" onchange="window.calcolaDettagliProgetto()" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded outline-none focus:border-rose-500 transition font-bold text-slate-800">
+                        <option value="ente">Associazione sindacale / ente di diretta emanazione</option>
+                        <option value="azienda">Datore di lavoro - solo propri dipendenti</option>
+                    </select>
+                    <p id="prog-erogatore-note" class="mt-1 text-[9px] leading-snug text-slate-500">Se l'erogatore è l'azienda, il corso è ammesso solo per lavoratori, preposti e dirigenti della stessa azienda.</p>
+                </div>
+
+                <div id="prog-op-box" class="bg-blue-50 border border-blue-200 p-3 rounded text-[10px] leading-snug">
+                    <label class="font-black text-blue-900 uppercase block mb-2">Organismi Paritetici / art. 37 comma 12</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-[9px] font-bold text-blue-700 uppercase block mb-1">Data richiesta/comunicazione</label>
+                            <input type="date" id="prog-op-invio" class="w-full px-2 py-1.5 bg-white border border-blue-200 rounded outline-none focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="text-[9px] font-bold text-blue-700 uppercase block mb-1">Stato OP / OPTA</label>
+                            <select id="prog-op-esito" onchange="window.syncValidazioneCNAUI && window.syncValidazioneCNAUI()" class="w-full px-2 py-1.5 bg-white border border-blue-200 rounded outline-none focus:border-blue-500 font-bold">
+                                <option value="">-- Da definire --</option>
+                                <option value="validazione_ente_in_corso">Valutazione percorso in carico a CNA</option>
+                                <option value="validazione_ente_completata">Percorso validato da CNA - da comunicare a OPRA/OPTA</option>
+                                <option value="comunicazione_op_inviata">Comunicazione inviata a OPRA/OPTA</option>
+                                <option value="riscontro_ricevuto">Riscontro OPRA/OPTA ricevuto - indicazioni recepite</option>
+                                <option value="richiesta_inviata">Legacy: richiesta inviata - decorrenza 15 giorni</option>
+                                <option value="op_non_presente">Legacy: OP non presente / non individuato</option>
+                                <option value="non_applicabile">Non applicabile al percorso specifico</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mt-2 grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-[9px] font-bold text-blue-700 uppercase block mb-1">Data riscontro OPRA/OPTA</label>
+                            <input type="date" id="prog-op-risposta" class="w-full px-2 py-1.5 bg-white border border-blue-200 rounded outline-none focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="text-[9px] font-bold text-blue-700 uppercase block mb-1">Destinatario</label>
+                            <input type="text" id="prog-op-destinatario" value="OPTA Avellino / OPRA Campania" class="w-full px-2 py-1.5 bg-white border border-blue-200 rounded outline-none focus:border-blue-500 font-bold">
+                        </div>
+                    </div>
+                    <p class="mt-2 text-[9px] text-blue-800">Per i corsi organizzati dal datore di lavoro, CNA Avellino valuta il percorso formativo e cura la comunicazione all’Organismo Paritetico territoriale/regionale competente.</p>
+                </div>
+
+                <div id="prog-validazione-cna-box" class="bg-emerald-50 border border-emerald-200 p-3 rounded text-[10px] leading-snug">
+                    <label class="font-black text-emerald-900 uppercase block mb-2">Validazione percorso da Associazione di Categoria</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-[9px] font-bold text-emerald-700 uppercase block mb-1">Ente validatore</label>
+                            <input type="text" id="prog-ente-validatore" value="CNA Artigiani Imprenditori D'Italia Avellino" class="w-full px-2 py-1.5 bg-white border border-emerald-200 rounded outline-none focus:border-emerald-500 font-bold">
+                        </div>
+                        <div>
+                            <label class="text-[9px] font-bold text-emerald-700 uppercase block mb-1">Esito valutazione</label>
+                            <select id="prog-validazione-esito" onchange="window.syncValidazioneCNAUI && window.syncValidazioneCNAUI()" class="w-full px-2 py-1.5 bg-white border border-emerald-200 rounded outline-none focus:border-emerald-500 font-bold">
+                                <option value="">-- Da definire --</option>
+                                <option value="da_valutare">Da valutare da CNA</option>
+                                <option value="validato">Validato</option>
+                                <option value="validato_con_prescrizioni">Validato con prescrizioni/integrazioni</option>
+                                <option value="non_validato">Non validato - da rivedere</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 mt-2">
+                        <div>
+                            <label class="text-[9px] font-bold text-emerald-700 uppercase block mb-1">Data validazione CNA</label>
+                            <input type="date" id="prog-validazione-data" class="w-full px-2 py-1.5 bg-white border border-emerald-200 rounded outline-none focus:border-emerald-500">
+                        </div>
+                        <div>
+                            <label class="text-[9px] font-bold text-emerald-700 uppercase block mb-1">Data comunicazione OPRA/OPTA</label>
+                            <input type="date" id="prog-op-comunicazione" class="w-full px-2 py-1.5 bg-white border border-emerald-200 rounded outline-none focus:border-emerald-500">
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <label class="text-[9px] font-bold text-emerald-700 uppercase block mb-1">Note valutazione / prescrizioni CNA</label>
+                        <textarea id="prog-validazione-note" rows="2" placeholder="Es. percorso valutato sulla base di programma, durata, docenti, aula, attrezzature e destinatari; comunicazione inviata a OPTA Avellino/OPRA Campania..." class="w-full px-2 py-1.5 bg-white border border-emerald-200 rounded outline-none focus:border-emerald-500"></textarea>
+                    </div>
+                    <p class="mt-2 text-[9px] text-emerald-800">Campo obbligatorio quando il soggetto formatore è il datore di lavoro. Il datore di lavoro resta soggetto formatore per i propri dipendenti; CNA Avellino svolge la valutazione/validazione del percorso e cura la comunicazione all’organismo paritetico dell’artigianato competente.</p>
+                </div>
+
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Tipologia Corso</label>
+                    <div class="flex items-center gap-2">
+                        <select id="prog-corso" onchange="window.calcolaDettagliProgetto()" required class="flex-1 w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded outline-none focus:border-rose-500 transition text-blue-900 font-bold truncate">
+                            <option value="">-- Seleziona il corso --</option>
+                            
+                            <optgroup label="Lavoratori e Preposti">
+                                <option value="lav_basso">Formazione Lavoratori - Rischio Basso (8h)</option>
+                                <option value="lav_medio">Formazione Lavoratori - Rischio Medio (12h)</option>
+                                <option value="lav_alto">Formazione Lavoratori - Rischio Alto (16h)</option>
+                                <option value="preposto">Preposto Vigilanza Attiva (12h)</option>
+                            </optgroup>
+                            
+                            <optgroup label="Datori di Lavoro e Dirigenti">
+                                <option value="dl_base">Datore di Lavoro - Corso Base Universale (16h)</option>
+                                <option value="dl_spp_comune">DL SPP - Modulo Comune (Senza Rischio Specifico) (8h)</option>
+                                <option value="dl_spp_agri">DL SPP - Modulo Comune + Agricoltura/Zootecnica (24h)</option>
+                                <option value="dl_spp_pesca">DL SPP - Modulo Comune + Pesca (20h)</option>
+                                <option value="dl_spp_costruzioni">DL SPP - Modulo Comune + Costruzioni (24h)</option>
+                                <option value="dl_spp_chimico">DL SPP - Modulo Comune + Chimico-Petrolchimico (24h)</option>
+                                <option value="dirigente">Dirigente Sicurezza (12h)</option>
+                            </optgroup>
+                            
+                            <optgroup label="Rappresentanti, Cantieri ed Emergenze">
+                                <option value="rls">Rappresentante Lavoratori Sicurezza RLS (32h)</option>
+                                <option value="mod_cantieri">Modulo Aggiuntivo Cantieri (DL/Dirigente) (6h)</option>
+                                <option value="primo_soccorso_12h">Addetto al Primo Soccorso (Gruppo B/C) (12h)</option>
+                                <option value="antincendio_liv2">Addetto Emergenze e Antincendio (Livello 2) (8h)</option>
+                            </optgroup>
+
+                            <optgroup label="Attrezzature e Lavori Specifici">
+                                <option value="amb_confinati">Ambienti Sospetti Inquinamento o Confinati (12h)</option>
+                                <option value="lav_quota">Lavori in Quota e DPI 3° Categoria (8h)</option>
+                                <option value="attr_carrelli_ind">Carrelli Elevatori Industriali Semoventi (12h)</option>
+                                <option value="attr_carrelli_all">Carrelli Elev. Ind + Telescopici + Rotativi (16h)</option>
+                                <option value="attr_ple">Piattaforme Lavoro Elevabili PLE (10h)</option>
+                                <option value="attr_mmt_esc">Macchine Movimento Terra/Escavatori Idraulici (10h)</option>
+                                <option value="attr_mmt_all">Macchine Movimento Terra (Esc+Pale+Terne) (16h)</option>
+                                <option value="attr_gru_autocarro">Gru per Autocarro (12h)</option>
+                                <option value="attr_gru_torre">Gru a Torre rotazione basso e alto (14h)</option>
+                                <option value="attr_pompe">Pompe per Calcestruzzo (14h)</option>
+                                <option value="attr_trattori">Trattori Agricoli o Forestali (8h)</option>
+                                <option value="attr_crf">Macchina agricola raccoglifrutta CRF (8h)</option>
+                                <option value="attr_cmm">Caricatori per movimentazione materiali CMM (8h)</option>
+                                <option value="attr_carroponte_10h">Carroponte / Gru a cavalletto - una tipologia comando (10h)</option>
+                                <option value="attr_carroponte_all_11h">Carroponte / Gru a cavalletto - tutte le tipologie comando (11h)</option>
+                            </optgroup>
+                            
+                            <optgroup label="Aggiornamenti">
+                                <option value="agg_lav">Aggiornamento Lavoratori (6h)</option>
+                                <option value="agg_prep">Aggiornamento Preposto (6h) - Biennale</option>
+                                <option value="agg_dir">Aggiornamento Dirigente (6h)</option>
+                                <option value="agg_dl">Aggiornamento Datore di Lavoro (6h)</option>
+                                <option value="agg_dl_spp">Aggiornamento DL SPP (Ex RSPP) (8h)</option>
+                                <option value="agg_rls_4h">Aggiornamento RLS (4h - Imprese 15-50 dip.)</option>
+                                <option value="agg_rls_8h">Aggiornamento RLS (8h - Imprese >50 dip.)</option>
+                                <option value="agg_primo_soccorso_4h">Aggiornamento Primo Soccorso (Gr. B/C) - 4h (Triennale)</option>
+                                <option value="agg_antincendio_liv2_5h">Aggiornamento Antincendio (Livello 2) - 5h</option>
+                                <option value="agg_attr_carrelli_ind_4h">Aggiornamento Carrelli Elevatori Industriali Semoventi (4h)</option>
+                                <option value="agg_attr_carrelli_all_4h">Aggiornamento Carrelli Elev. Ind + Telescopici + Rotativi (4h)</option>
+                                <option value="agg_attr_ple_4h">Aggiornamento PLE (4h)</option>
+                                <option value="agg_attr_mmt_esc_4h">Aggiornamento Macchine Movimento Terra/Escavatori Idraulici (4h)</option>
+                                <option value="agg_attr_mmt_all_4h">Aggiornamento Macchine Movimento Terra (Esc+Pale+Terne) (4h)</option>
+                                <option value="agg_attr_gru_autocarro_4h">Aggiornamento Gru per Autocarro (4h)</option>
+                                <option value="agg_attr_gru_torre_4h">Aggiornamento Gru a Torre rotazione basso e alto (4h)</option>
+                                <option value="agg_attr_pompe_4h">Aggiornamento Pompe per Calcestruzzo (4h)</option>
+                                <option value="agg_attr_trattori_4h">Aggiornamento Trattori Agricoli o Forestali (4h)</option>
+                                <option value="agg_attr_crf_4h">Aggiornamento Macchina agricola raccoglifrutta CRF (4h)</option>
+                                <option value="agg_attr_cmm_4h">Aggiornamento Caricatori per movimentazione materiali CMM (4h)</option>
+                                <option value="agg_attr_carroponte_10h_4h">Aggiornamento Carroponte / Gru a cavalletto - una tipologia comando (4h)</option>
+                                <option value="agg_attr_carroponte_all_11h_4h">Aggiornamento Carroponte / Gru a cavalletto - tutte le tipologie comando (4h)</option>
+                                <option value="agg_spazi_confinati_4h">Aggiornamento spazi confinati / sospetti inquinamento (4h)</option>
+                            </optgroup>
+                        </select>
+                        <button type="button" onclick="window.apriQACorso()" class="bg-blue-100 hover:bg-blue-200 text-blue-700 p-2 rounded transition shadow-sm border border-blue-200" title="Aggiungi Corso Personalizzato"><i data-lucide="plus" class="w-4 h-4"></i></button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Data Inizio</label>
+                        <input type="date" id="prog-inizio" onchange="window.calcolaDettagliProgetto()" required class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded outline-none focus:border-rose-500 transition">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Data Fine (Verifica)</label>
+                        <input type="date" id="prog-esame" required class="w-full px-3 py-2 bg-slate-100 border border-slate-300 rounded text-slate-500 font-bold" readonly>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Sede corso / aula / campo prova</label>
+                    <input type="text" id="prog-sede" required placeholder="Es. sede aziendale, aula ente, campo prove..." class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded outline-none focus:border-rose-500 transition">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Resp. progetto formativo</label>
+                        <input type="text" id="prog-resp-progetto" placeholder="Nome responsabile" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded outline-none focus:border-rose-500 transition">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Responsabile corso</label>
+                        <input type="text" id="prog-resp-corso" placeholder="Opzionale" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded outline-none focus:border-rose-500 transition">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Modalità Svolgimento</label>
+                    <select id="prog-modalita" onchange="window.calcolaDettagliProgetto()" required class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded outline-none focus:border-rose-500 transition">
+                        <option value="In Presenza Fisica">In Presenza Fisica</option>
+                        <option value="Videoconferenza Sincrona">Videoconferenza Sincrona</option>
+                        <option value="E-Learning (Asincrona)">F.A.D. (Asincrona)</option>
+                        <option value="Mista (Blended)">Mista (Blended)</option>
+                    </select>
+                </div>
+
+                <div id="prog-compliance-box" class="bg-amber-50 border border-amber-200 p-3 rounded text-[10px] leading-snug text-amber-900">
+                    <p class="font-black uppercase tracking-wider text-amber-800 mb-1">Check compliance ASR 17/04/2025</p>
+                    <ul id="prog-compliance-list" class="list-disc ml-4 space-y-0.5">
+                        <li>Seleziona corso e data per generare calendario, scadenza e vincoli.</li>
+                    </ul>
+                    <p class="mt-2 text-[9px] text-amber-800">Limiti generali: max 30 discenti salvo e-learning, frequenza minima 90%, rapporto pratiche 1:6 ove previsto.</p>
+                </div>
+
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Note compliance / omogeneità aula</label>
+                    <textarea id="prog-compliance-note-free" rows="2" placeholder="Es. aula omogenea per mansioni/rischi; indicazioni OP recepite; vincoli specifici del corso..." class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded outline-none focus:border-rose-500 transition text-[11px]"></textarea>
+                    <label class="mt-1 flex items-start gap-2 text-[9px] text-slate-500 leading-snug">
+                        <input type="checkbox" id="prog-omogeneita-aula" class="mt-0.5" checked>
+                        Aula progettata con partecipanti/mansioni/rischi omogenei o comunque con contenuti adattati ai rischi effettivi delle aziende coinvolte.
+                    </label>
+                </div>
+
+                <div class="bg-rose-50 border border-rose-200 p-3 rounded">
+                    <label class="text-[10px] font-black text-rose-800 uppercase block border-b border-rose-200 pb-1 mb-2">Assegnazione Docenti (Syllabus)</label>
+                    <div id="prog-docenti-container" class="space-y-1">
+                        <span class="text-[10px] text-slate-400 italic">Seleziona un corso per caricare le unità didattiche...</span>
+                    </div>
+                    <textarea id="prog-calendario-testo" class="hidden"></textarea>
+                </div>
+
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Codice ID Univoco (Auto)</label>
+                    <input type="text" id="prog-codice" class="w-full px-3 py-2 bg-slate-100 border border-slate-300 rounded font-mono text-center font-bold tracking-widest" readonly>
+                    <p class="mt-1 text-[9px] text-slate-500">Scadenza stimata: <span id="lbl-prog-scadenza" class="font-black text-slate-800">---</span></p>
+                </div>
+
+                <details id="prog-fabbisogni-panel" class="group rounded-xl border-2 border-cyan-300 bg-cyan-50 overflow-hidden">
+                    <summary class="cursor-pointer list-none bg-cyan-700 text-white px-3 py-3 flex items-center justify-between gap-3">
+                        <span class="min-w-0">
+                            <span class="block text-[10px] font-black uppercase tracking-wider">Analisi fabbisogni formativi e scheda rischi</span>
+                            <span class="block text-[9px] text-cyan-100 mt-0.5">Sezione non bloccante · apri per compilare o verificare</span>
+                        </span>
+                        <i data-lucide="chevron-down" class="w-4 h-4 shrink-0 transition-transform group-open:rotate-180"></i>
+                    </summary>
+                    <div class="p-3 space-y-4 text-[10px]">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <div>
+                                <label class="font-black uppercase text-cyan-900 block mb-1">Data analisi</label>
+                                <input type="date" id="prog-fabbisogni-data" class="w-full px-2 py-1.5 bg-white border border-cyan-200 rounded outline-none focus:border-cyan-600">
+                            </div>
+                            <div>
+                                <label class="font-black uppercase text-cyan-900 block mb-1">Unità locale interessata</label>
+                                <input type="text" id="prog-fabbisogni-unita" placeholder="Sede operativa/unità locale" class="w-full px-2 py-1.5 bg-white border border-cyan-200 rounded outline-none focus:border-cyan-600">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="font-black uppercase text-cyan-900 block mb-1">Attività svolta / contesto operativo</label>
+                            <textarea id="prog-fabbisogni-attivita" rows="2" placeholder="Descrivi attività, reparto, processi e contesto di lavoro interessati." class="w-full px-2 py-1.5 bg-white border border-cyan-200 rounded outline-none focus:border-cyan-600"></textarea>
+                        </div>
+
+                        <div class="rounded-lg border border-cyan-200 bg-white p-3">
+                            <p class="font-black uppercase text-cyan-900 mb-2">Fonti utilizzate per l’analisi</p>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <label class="flex gap-2 items-start"><input type="checkbox" value="dvr" class="prog-fabbisogni-fonte mt-0.5" checked><span>DVR aziendale</span></label>
+                                <label class="flex gap-2 items-start"><input type="checkbox" value="sopralluoghi" class="prog-fabbisogni-fonte mt-0.5"><span>Sopralluoghi/osservazioni</span></label>
+                                <label class="flex gap-2 items-start"><input type="checkbox" value="riunioni" class="prog-fabbisogni-fonte mt-0.5"><span>Riunioni con figure sicurezza</span></label>
+                                <label class="flex gap-2 items-start"><input type="checkbox" value="infortuni_near_miss" class="prog-fabbisogni-fonte mt-0.5"><span>Infortuni/near miss</span></label>
+                                <label class="flex gap-2 items-start"><input type="checkbox" value="formazione_pregressa" class="prog-fabbisogni-fonte mt-0.5"><span>Formazione pregressa</span></label>
+                                <label class="flex gap-2 items-start"><input type="checkbox" value="segnalazioni" class="prog-fabbisogni-fonte mt-0.5"><span>Segnalazioni lavoratori/RLS/preposti</span></label>
+                            </div>
+                        </div>
+
+                        <div class="rounded-lg border border-cyan-200 bg-white p-3">
+                            <p class="font-black uppercase text-cyan-900 mb-2">Esigenza formativa rilevata</p>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <label class="flex gap-2 items-start"><input type="checkbox" value="nuovi_lavoratori" class="prog-fabbisogni-necessita mt-0.5"><span>Nuovi lavoratori</span></label>
+                                <label class="flex gap-2 items-start"><input type="checkbox" value="cambio_mansione" class="prog-fabbisogni-necessita mt-0.5"><span>Cambio mansione/ruolo</span></label>
+                                <label class="flex gap-2 items-start"><input type="checkbox" value="nuove_attrezzature" class="prog-fabbisogni-necessita mt-0.5"><span>Nuove attrezzature/tecnologie</span></label>
+                                <label class="flex gap-2 items-start"><input type="checkbox" value="infortuni_near_miss" class="prog-fabbisogni-necessita mt-0.5"><span>Infortuni/near miss</span></label>
+                                <label class="flex gap-2 items-start"><input type="checkbox" value="segnalazioni" class="prog-fabbisogni-necessita mt-0.5"><span>Segnalazioni/esigenze espresse</span></label>
+                                <label class="flex gap-2 items-start"><input type="checkbox" value="nuove_procedure" class="prog-fabbisogni-necessita mt-0.5"><span>Nuove procedure/processi</span></label>
+                                <label class="flex gap-2 items-start"><input type="checkbox" value="aggiornamento_competenze" class="prog-fabbisogni-necessita mt-0.5"><span>Aggiornamento/rafforzamento</span></label>
+                                <label class="flex gap-2 items-start"><input type="checkbox" value="altro" class="prog-fabbisogni-necessita mt-0.5"><span>Altra esigenza</span></label>
+                            </div>
+                            <input type="text" id="prog-fabbisogni-altro" placeholder="Dettaglia l’esigenza o altre motivazioni" class="mt-2 w-full px-2 py-1.5 bg-slate-50 border border-cyan-200 rounded outline-none focus:border-cyan-600">
+                        </div>
+
+                        <div>
+                            <label class="font-black uppercase text-cyan-900 block mb-1">Ruolo/mansione da ricoprire o aggiornare</label>
+                            <input type="text" id="prog-fabbisogni-ruolo" placeholder="Es. lavoratore addetto al magazzino, preposto, carrellista..." class="w-full px-2 py-1.5 bg-white border border-cyan-200 rounded outline-none focus:border-cyan-600">
+                        </div>
+                        <div>
+                            <label class="font-black uppercase text-cyan-900 block mb-1">Competenze in ingresso possedute</label>
+                            <textarea id="prog-fabbisogni-ingresso" rows="2" placeholder="Idoneità, attestati posseduti, esperienza, competenze linguistiche e organizzative." class="w-full px-2 py-1.5 bg-white border border-cyan-200 rounded outline-none focus:border-cyan-600"></textarea>
+                        </div>
+                        <div>
+                            <label class="font-black uppercase text-cyan-900 block mb-1">Competenze richieste dal ruolo</label>
+                            <textarea id="prog-fabbisogni-richieste" rows="2" placeholder="Conoscenze, abilità, responsabilità e comportamenti sicuri richiesti." class="w-full px-2 py-1.5 bg-white border border-cyan-200 rounded outline-none focus:border-cyan-600"></textarea>
+                        </div>
+                        <div>
+                            <label class="font-black uppercase text-cyan-900 block mb-1">Gap da colmare con il percorso</label>
+                            <textarea id="prog-fabbisogni-gap" rows="2" placeholder="Indica il divario tra competenze possedute e richieste." class="w-full px-2 py-1.5 bg-white border border-cyan-200 rounded outline-none focus:border-cyan-600"></textarea>
+                        </div>
+
+                        <div>
+                            <label class="font-black uppercase text-cyan-900 block mb-1">Comprensione lingua italiana</label>
+                            <select id="prog-fabbisogni-lingua" class="w-full px-2 py-1.5 bg-white border border-cyan-200 rounded outline-none focus:border-cyan-600 font-bold">
+                                <option value="da_verificare">Da verificare</option>
+                                <option value="adeguata">Adeguata</option>
+                                <option value="supporto">Previsto mediatore/traduttore o supporto linguistico</option>
+                                <option value="test">Necessario test di comprensione</option>
+                            </select>
+                        </div>
+
+                        <div class="rounded-xl border-2 border-amber-300 bg-amber-50 p-3 space-y-3">
+                            <div class="flex items-start justify-between gap-2">
+                                <div>
+                                    <p class="font-black uppercase text-amber-900">Scheda rischi per settore</p>
+                                    <p id="prog-rischi-settore-meta" class="text-[9px] text-amber-800 mt-0.5">Seleziona il settore coerente con ATECO, DVR e mansioni.</p>
+                                </div>
+                                <button type="button" onclick="window.selectAllProjectRisks(true)" class="shrink-0 rounded bg-amber-700 text-white px-2 py-1 text-[8px] font-black uppercase">Seleziona tutti</button>
+                            </div>
+                            <select id="prog-rischi-settore" onchange="this.dataset.userSelected='1'; window.onRiskSectorChange()" class="w-full px-2 py-2 bg-white border border-amber-300 rounded outline-none focus:border-amber-600 font-black text-amber-950"></select>
+                            <div id="prog-rischi-fonti" class="flex flex-wrap gap-1.5" aria-label="Fonti ufficiali della scheda rischi"></div>
+                            <div id="prog-rischi-list" class="grid grid-cols-1 gap-2 max-h-72 overflow-y-auto pr-1"></div>
+                            <div>
+                                <label class="font-black uppercase text-amber-900 block mb-1">Rischi aggiuntivi/personalizzati dal DVR</label>
+                                <textarea id="prog-rischi-personalizzati" rows="3" placeholder="Un rischio per riga. Es. rumore da macchina specifica; esposizione a sostanza X..." class="w-full px-2 py-1.5 bg-white border border-amber-300 rounded outline-none focus:border-amber-600"></textarea>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="font-black uppercase text-cyan-900 block mb-1">Note e osservazioni conclusive</label>
+                            <textarea id="prog-fabbisogni-note" rows="3" placeholder="Decisione formativa, adattamenti, documenti forniti e osservazioni conclusive." class="w-full px-2 py-1.5 bg-white border border-cyan-200 rounded outline-none focus:border-cyan-600"></textarea>
+                        </div>
+                        <label class="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-2 text-emerald-900 font-bold">
+                            <input type="checkbox" id="prog-fabbisogni-accettato" class="mt-0.5">
+                            <span>Analisi condivisa/accettata dal datore di lavoro o referente dell’azienda committente.</span>
+                        </label>
+                    </div>
+                </details>
+
+                <details id="prog-gradimento-panel" class="group rounded-xl border-2 border-violet-300 bg-violet-50 overflow-hidden">
+                    <summary class="cursor-pointer list-none bg-violet-700 text-white px-3 py-3 flex items-center justify-between gap-3">
+                        <span class="min-w-0">
+                            <span class="block text-[10px] font-black uppercase tracking-wider">Gradimento e monitoraggio qualità</span>
+                            <span class="block text-[9px] text-violet-100 mt-0.5">Sezione non bloccante · questionari cartacei, medie e giudizio finale</span>
+                        </span>
+                        <i data-lucide="chevron-down" class="w-4 h-4 shrink-0 transition-transform group-open:rotate-180"></i>
+                    </summary>
+                    <div class="p-3 space-y-4 text-[10px]">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <button type="button" onclick="window.stampaQuestionariGradimentoDaProgetto(document.getElementById('prog-id')?.value)" class="rounded-lg bg-violet-800 hover:bg-violet-700 text-white px-3 py-2 font-black uppercase text-[9px] flex items-center justify-center gap-2">
+                                <i data-lucide="printer" class="w-3.5 h-3.5"></i> Stampa questionari corsisti
+                            </button>
+                            <button type="button" onclick="window.stampaModuloProgettoRapido(document.getElementById('prog-id')?.value, 'monitoraggio_qualita', 'monitoraggio qualità')" class="rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white px-3 py-2 font-black uppercase text-[9px] flex items-center justify-center gap-2">
+                                <i data-lucide="list-checks" class="w-3.5 h-3.5"></i> Stampa monitoraggio
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                            <div class="sm:col-span-2">
+                                <label class="font-black uppercase text-violet-900 block mb-1">Stato questionari</label>
+                                <select id="prog-gradimento-stato" class="w-full px-2 py-1.5 bg-white border border-violet-200 rounded outline-none focus:border-violet-600 font-bold">
+                                    <option value="non_avviato">Non avviato</option>
+                                    <option value="da_stampare">Da stampare</option>
+                                    <option value="distribuito">Distribuiti ai corsisti</option>
+                                    <option value="raccolto">Raccolti</option>
+                                    <option value="elaborato">Elaborati / medie registrate</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="font-black uppercase text-violet-900 block mb-1">Questionari raccolti</label>
+                                <input type="number" min="0" step="1" id="prog-gradimento-raccolti" value="0" class="w-full px-2 py-1.5 bg-white border border-violet-200 rounded outline-none focus:border-violet-600">
+                            </div>
+                        </div>
+
+                        <div class="rounded-lg border border-violet-200 bg-white p-3">
+                            <p class="font-black uppercase text-violet-900 mb-2">Medie ricavate dai questionari cartacei</p>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="text-[9px] font-bold text-slate-600 block mb-1">Qualità didattica (1–5)</label>
+                                    <input type="number" min="1" max="5" step="0.01" id="prog-gradimento-media-didattica" class="w-full px-2 py-1.5 bg-slate-50 border border-violet-200 rounded">
+                                </div>
+                                <div>
+                                    <label class="text-[9px] font-bold text-slate-600 block mb-1">Qualità organizzativa (1–5)</label>
+                                    <input type="number" min="1" max="5" step="0.01" id="prog-gradimento-media-organizzativa" class="w-full px-2 py-1.5 bg-slate-50 border border-violet-200 rounded">
+                                </div>
+                                <div>
+                                    <label class="text-[9px] font-bold text-slate-600 block mb-1">Utilità percepita (1–5)</label>
+                                    <input type="number" min="1" max="5" step="0.01" id="prog-gradimento-media-utilita" class="w-full px-2 py-1.5 bg-slate-50 border border-violet-200 rounded">
+                                </div>
+                                <div>
+                                    <label class="text-[9px] font-bold text-slate-600 block mb-1">Giudizio complessivo (1–10)</label>
+                                    <input type="number" min="1" max="10" step="0.01" id="prog-gradimento-media-complessiva" class="w-full px-2 py-1.5 bg-slate-50 border border-violet-200 rounded">
+                                </div>
+                            </div>
+                            <textarea id="prog-gradimento-commenti" rows="2" placeholder="Sintesi di commenti, aspetti apprezzati e suggerimenti dei partecipanti." class="mt-2 w-full px-2 py-1.5 bg-slate-50 border border-violet-200 rounded outline-none focus:border-violet-600"></textarea>
+                        </div>
+
+                        <div class="rounded-lg border border-violet-200 bg-white p-3">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
+                                <div>
+                                    <label class="font-black uppercase text-violet-900 block mb-1">Data monitoraggio</label>
+                                    <input type="date" id="prog-monitoraggio-data" class="w-full px-2 py-1.5 bg-slate-50 border border-violet-200 rounded">
+                                </div>
+                                <div>
+                                    <label class="font-black uppercase text-violet-900 block mb-1">Giudizio finale</label>
+                                    <select id="prog-monitoraggio-giudizio" class="w-full px-2 py-1.5 bg-slate-50 border border-violet-200 rounded font-bold">
+                                        <option value="da_valutare">Da valutare</option>
+                                        <option value="conforme">Conforme agli obiettivi</option>
+                                        <option value="parzialmente_conforme">Parzialmente conforme</option>
+                                        <option value="non_conforme">Non conforme</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <p class="font-black uppercase text-violet-900 mb-2">Monitoraggio in itinere — tutor/docente</p>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <label class="text-[9px] font-bold text-slate-600">Partecipazione attiva
+                                    <select data-monitoraggio-key="partecipazione" class="prog-monitoraggio-item mt-1 w-full px-2 py-1.5 bg-slate-50 border border-violet-200 rounded">
+                                        <option value="da_valutare">Da valutare</option><option value="si">Sì</option><option value="parzialmente">Parzialmente</option><option value="no">No</option>
+                                    </select>
+                                </label>
+                                <label class="text-[9px] font-bold text-slate-600">Interesse e motivazione
+                                    <select data-monitoraggio-key="interesse" class="prog-monitoraggio-item mt-1 w-full px-2 py-1.5 bg-slate-50 border border-violet-200 rounded">
+                                        <option value="da_valutare">Da valutare</option><option value="si">Sì</option><option value="parzialmente">Parzialmente</option><option value="no">No</option>
+                                    </select>
+                                </label>
+                                <label class="text-[9px] font-bold text-slate-600">Completezza contenuti
+                                    <select data-monitoraggio-key="completezza" class="prog-monitoraggio-item mt-1 w-full px-2 py-1.5 bg-slate-50 border border-violet-200 rounded">
+                                        <option value="da_valutare">Da valutare</option><option value="si">Sì</option><option value="parzialmente">Parzialmente</option><option value="no">No</option>
+                                    </select>
+                                </label>
+                                <label class="text-[9px] font-bold text-slate-600">Rispetto programma e tempi
+                                    <select data-monitoraggio-key="programma_tempi" class="prog-monitoraggio-item mt-1 w-full px-2 py-1.5 bg-slate-50 border border-violet-200 rounded">
+                                        <option value="da_valutare">Da valutare</option><option value="si">Sì</option><option value="parzialmente">Parzialmente</option><option value="no">No</option>
+                                    </select>
+                                </label>
+                                <label class="text-[9px] font-bold text-slate-600 sm:col-span-2">Chiarezza espositiva formatori
+                                    <select data-monitoraggio-key="chiarezza" class="prog-monitoraggio-item mt-1 w-full px-2 py-1.5 bg-slate-50 border border-violet-200 rounded">
+                                        <option value="da_valutare">Da valutare</option><option value="si">Sì</option><option value="parzialmente">Parzialmente</option><option value="no">No</option>
+                                    </select>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="rounded-lg border border-violet-200 bg-white p-3">
+                            <p class="font-black uppercase text-violet-900 mb-2">Valutazione dell’apprendimento</p>
+                            <div class="grid grid-cols-2 gap-2">
+                                <label class="flex gap-2 items-center"><input type="checkbox" value="test_scritto" class="prog-monitoraggio-metodo"><span>Test scritto</span></label>
+                                <label class="flex gap-2 items-center"><input type="checkbox" value="prova_pratica" class="prog-monitoraggio-metodo"><span>Prova pratica</span></label>
+                                <label class="flex gap-2 items-center"><input type="checkbox" value="colloquio" class="prog-monitoraggio-metodo"><span>Colloquio finale</span></label>
+                                <label class="flex gap-2 items-center"><input type="checkbox" value="osservazione" class="prog-monitoraggio-metodo"><span>Osservazione in itinere</span></label>
+                            </div>
+                            <textarea id="prog-monitoraggio-esito" rows="2" placeholder="Sintesi degli esiti: percentuali, idoneità, eventuali recuperi o prove integrative." class="mt-2 w-full px-2 py-1.5 bg-slate-50 border border-violet-200 rounded outline-none focus:border-violet-600"></textarea>
+                        </div>
+
+                        <div>
+                            <label class="font-black uppercase text-violet-900 block mb-1">Criticità rilevate</label>
+                            <textarea id="prog-monitoraggio-criticita" rows="2" class="w-full px-2 py-1.5 bg-white border border-violet-200 rounded outline-none focus:border-violet-600"></textarea>
+                        </div>
+                        <div>
+                            <label class="font-black uppercase text-violet-900 block mb-1">Proposte e azioni di miglioramento</label>
+                            <textarea id="prog-monitoraggio-miglioramenti" rows="2" class="w-full px-2 py-1.5 bg-white border border-violet-200 rounded outline-none focus:border-violet-600"></textarea>
+                        </div>
+                    </div>
+                </details>
+
+                <details id="prog-tutor-riesame-panel" class="group rounded-xl border-2 border-teal-300 bg-teal-50 overflow-hidden">
+                    <summary class="cursor-pointer list-none bg-teal-700 text-white px-3 py-3 flex items-center justify-between gap-3">
+                        <span class="min-w-0">
+                            <span class="block text-[10px] font-black uppercase tracking-wider">Relazione tutor e riesame/miglioramento</span>
+                            <span class="block text-[9px] text-teal-100 mt-0.5">Sezione non bloccante · relazione di edizione e riesame periodico</span>
+                        </span>
+                        <i data-lucide="chevron-down" class="w-4 h-4 shrink-0 transition-transform group-open:rotate-180"></i>
+                    </summary>
+                    <div class="p-3 space-y-4 text-[10px]">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <button id="btn-progetto-stampa-tutor" type="button" disabled title="Tutor non previsto nel progetto." onclick="window.stampaModuloProgettoRapido(document.getElementById('prog-id')?.value, 'relazione_tutor', 'relazione finale tutor')" class="rounded-lg bg-teal-800 hover:bg-teal-700 text-white px-3 py-2 font-black uppercase text-[9px] flex items-center justify-center gap-2 opacity-40 cursor-not-allowed">
+                                <i data-lucide="printer" class="w-3.5 h-3.5"></i> Stampa relazione tutor
+                            </button>
+                            <button type="button" onclick="window.stampaModuloProgettoRapido(document.getElementById('prog-id')?.value, 'scheda_riesame', 'scheda riesame')" class="rounded-lg bg-sky-800 hover:bg-sky-700 text-white px-3 py-2 font-black uppercase text-[9px] flex items-center justify-center gap-2">
+                                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Stampa scheda riesame
+                            </button>
+                        </div>
+
+                        <section class="rounded-xl border-2 border-teal-300 bg-white p-3">
+                            <div class="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_220px] gap-3 items-center">
+                                <div>
+                                    <p class="font-black uppercase text-teal-950">Tutor previsto nel progetto?</p>
+                                    <p id="prog-tutor-status" class="text-[9px] text-teal-700 mt-1">No · la relazione tutor non sarà generata né allegata alle stampe.</p>
+                                </div>
+                                <select id="prog-tutor-previsto" onchange="window.toggleTutorProjectFields()" class="w-full px-3 py-2 bg-teal-50 border-2 border-teal-300 rounded-lg font-black uppercase text-teal-950">
+                                    <option value="false">No — tutor non previsto</option>
+                                    <option value="true">Sì — tutor presente</option>
+                                </select>
+                            </div>
+                        </section>
+
+                        <div id="prog-tutor-fields" class="hidden">
+                        <section class="rounded-xl border-2 border-teal-200 bg-white p-3 space-y-3">
+                            <p class="font-black uppercase text-teal-900">Relazione finale del tutor — singola edizione</p>
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                <div>
+                                    <label class="font-bold text-slate-600 block mb-1">Nome tutor</label>
+                                    <input type="text" id="prog-tutor-nome" placeholder="Tutor / referente d'aula" class="w-full px-2 py-1.5 bg-slate-50 border border-teal-200 rounded">
+                                </div>
+                                <div>
+                                    <label class="font-bold text-slate-600 block mb-1">Ruolo/funzione</label>
+                                    <input type="text" id="prog-tutor-ruolo" placeholder="Es. tutor d'aula" class="w-full px-2 py-1.5 bg-slate-50 border border-teal-200 rounded">
+                                </div>
+                                <div>
+                                    <label class="font-bold text-slate-600 block mb-1">Data relazione</label>
+                                    <input type="date" id="prog-tutor-data" class="w-full px-2 py-1.5 bg-slate-50 border border-teal-200 rounded">
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <label class="font-bold text-slate-600">Valutazione docenza
+                                    <select id="prog-tutor-docenza" class="mt-1 w-full px-2 py-1.5 bg-slate-50 border border-teal-200 rounded">
+                                        <option value="da_valutare">Da valutare</option><option value="positivo">Positiva</option><option value="adeguato">Adeguata</option><option value="parziale">Parzialmente adeguata</option><option value="critico">Critica</option>
+                                    </select>
+                                </label>
+                                <label class="font-bold text-slate-600">Frequenza corsisti
+                                    <select id="prog-tutor-frequenza" class="mt-1 w-full px-2 py-1.5 bg-slate-50 border border-teal-200 rounded">
+                                        <option value="da_valutare">Da valutare</option><option value="positivo">Regolare</option><option value="parziale">Parzialmente regolare</option><option value="critico">Critica</option>
+                                    </select>
+                                </label>
+                                <label class="font-bold text-slate-600">Programma e tempi
+                                    <select id="prog-tutor-programma" class="mt-1 w-full px-2 py-1.5 bg-slate-50 border border-teal-200 rounded">
+                                        <option value="da_valutare">Da valutare</option><option value="positivo">Rispettati</option><option value="parziale">Parzialmente rispettati</option><option value="critico">Non rispettati</option>
+                                    </select>
+                                </label>
+                                <label class="font-bold text-slate-600">Partecipazione e interesse
+                                    <select id="prog-tutor-partecipazione" class="mt-1 w-full px-2 py-1.5 bg-slate-50 border border-teal-200 rounded">
+                                        <option value="da_valutare">Da valutare</option><option value="positivo">Positivi</option><option value="adeguato">Adeguati</option><option value="parziale">Parziali</option><option value="critico">Critici</option>
+                                    </select>
+                                </label>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div class="rounded-lg border border-teal-200 bg-teal-50 p-2">
+                                    <p class="font-black uppercase text-teal-900 mb-2">Spazi utilizzati</p>
+                                    <div class="space-y-1">
+                                        <label class="flex gap-2"><input type="checkbox" value="aula_dedicata" class="prog-tutor-spazio"><span>Aula dedicata</span></label>
+                                        <label class="flex gap-2"><input type="checkbox" value="aula_multimediale" class="prog-tutor-spazio"><span>Aula multimediale</span></label>
+                                        <label class="flex gap-2"><input type="checkbox" value="aula_tradizionale" class="prog-tutor-spazio"><span>Aula tradizionale</span></label>
+                                        <label class="flex gap-2"><input type="checkbox" value="sala_riunioni" class="prog-tutor-spazio"><span>Sala riunioni</span></label>
+                                        <label class="flex gap-2"><input type="checkbox" value="laboratorio" class="prog-tutor-spazio"><span>Laboratorio tecnico</span></label>
+                                        <label class="flex gap-2"><input type="checkbox" value="simulazioni" class="prog-tutor-spazio"><span>Area esercitazioni/simulazioni</span></label>
+                                        <label class="flex gap-2"><input type="checkbox" value="lavori_gruppo" class="prog-tutor-spazio"><span>Area lavori di gruppo</span></label>
+                                    </div>
+                                </div>
+                                <div class="rounded-lg border border-teal-200 bg-teal-50 p-2">
+                                    <p class="font-black uppercase text-teal-900 mb-2">Mezzi e strumenti</p>
+                                    <div class="space-y-1">
+                                        <label class="flex gap-2"><input type="checkbox" value="multimedia" class="prog-tutor-strumento"><span>Attrezzature multimediali</span></label>
+                                        <label class="flex gap-2"><input type="checkbox" value="elearning" class="prog-tutor-strumento"><span>Piattaforme e-learning</span></label>
+                                        <label class="flex gap-2"><input type="checkbox" value="materiali" class="prog-tutor-strumento"><span>Materiali digitali/cartacei</span></label>
+                                        <label class="flex gap-2"><input type="checkbox" value="pratica" class="prog-tutor-strumento"><span>Strumenti per prove pratiche</span></label>
+                                        <label class="flex gap-2"><input type="checkbox" value="dispense" class="prog-tutor-strumento"><span>Dispense/checklist</span></label>
+                                        <label class="flex gap-2"><input type="checkbox" value="test" class="prog-tutor-strumento"><span>Test e sistemi valutazione</span></label>
+                                        <label class="flex gap-2"><input type="checkbox" value="lavagne" class="prog-tutor-strumento"><span>Lavagne/flipchart</span></label>
+                                        <label class="flex gap-2"><input type="checkbox" value="casi" class="prog-tutor-strumento"><span>Casi studio/role-play</span></label>
+                                        <label class="flex gap-2"><input type="checkbox" value="repository" class="prog-tutor-strumento"><span>Repository documentale</span></label>
+                                        <label class="flex gap-2"><input type="checkbox" value="gestionale" class="prog-tutor-strumento"><span>Gestionale formazione</span></label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="rounded-lg border border-teal-200 bg-teal-50 p-2">
+                                <p class="font-black uppercase text-teal-900 mb-2">Punti di forza</p>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-1">
+                                    <label class="flex gap-2"><input type="checkbox" value="obiettivi" class="prog-tutor-forza"><span>Obiettivi chiari</span></label>
+                                    <label class="flex gap-2"><input type="checkbox" value="contenuti" class="prog-tutor-forza"><span>Contenuti aggiornati</span></label>
+                                    <label class="flex gap-2"><input type="checkbox" value="metodologie" class="prog-tutor-forza"><span>Metodologie attive</span></label>
+                                    <label class="flex gap-2"><input type="checkbox" value="partecipazione" class="prog-tutor-forza"><span>Partecipazione classe</span></label>
+                                    <label class="flex gap-2"><input type="checkbox" value="personalizzazione" class="prog-tutor-forza"><span>Personalizzazione</span></label>
+                                    <label class="flex gap-2"><input type="checkbox" value="pratica" class="prog-tutor-forza"><span>Applicazione pratica</span></label>
+                                    <label class="flex gap-2"><input type="checkbox" value="materiali" class="prog-tutor-forza"><span>Materiali di qualità</span></label>
+                                    <label class="flex gap-2"><input type="checkbox" value="organizzazione" class="prog-tutor-forza"><span>Organizzazione efficiente</span></label>
+                                    <label class="flex gap-2"><input type="checkbox" value="monitoraggio" class="prog-tutor-forza"><span>Monitoraggio/valutazione</span></label>
+                                    <label class="flex gap-2"><input type="checkbox" value="conformita" class="prog-tutor-forza"><span>Conformità percorso</span></label>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <div>
+                                    <label class="font-black uppercase text-teal-900 block mb-1">Criticità rilevate</label>
+                                    <textarea id="prog-tutor-criticita" rows="3" class="w-full px-2 py-1.5 bg-slate-50 border border-teal-200 rounded"></textarea>
+                                </div>
+                                <div>
+                                    <label class="font-black uppercase text-teal-900 block mb-1">Note del tutor</label>
+                                    <textarea id="prog-tutor-note" rows="3" class="w-full px-2 py-1.5 bg-slate-50 border border-teal-200 rounded"></textarea>
+                                </div>
+                            </div>
+                            <label class="font-black uppercase text-teal-900 block">Giudizio globale efficienza/efficacia
+                                <select id="prog-tutor-giudizio" class="mt-1 w-full px-2 py-1.5 bg-slate-50 border border-teal-200 rounded">
+                                    <option value="da_valutare">Da valutare</option><option value="positivo">Positivo</option><option value="adeguato">Adeguato</option><option value="parziale">Parzialmente adeguato</option><option value="critico">Critico</option>
+                                </select>
+                            </label>
+                        </section>
+                        </div>
+
+                        <section class="rounded-xl border-2 border-sky-200 bg-white p-3 space-y-3">
+                            <div>
+                                <p class="font-black uppercase text-sky-900">Riesame periodico e miglioramento</p>
+                                <p class="text-[9px] text-sky-700 mt-1">Il riesame è periodico e non necessariamente dovuto dopo ogni singola edizione. Può essere marcato “Non applicabile”.</p>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <label class="font-bold text-slate-600">Stato riesame
+                                    <select id="prog-riesame-stato" class="mt-1 w-full px-2 py-1.5 bg-slate-50 border border-sky-200 rounded">
+                                        <option value="non_pianificato">Non pianificato</option><option value="pianificato">Pianificato</option><option value="in_corso">In corso</option><option value="completato">Completato</option><option value="non_applicabile">Non applicabile alla singola edizione</option>
+                                    </select>
+                                </label>
+                                <label class="font-bold text-slate-600">Data riesame
+                                    <input type="date" id="prog-riesame-data" class="mt-1 w-full px-2 py-1.5 bg-slate-50 border border-sky-200 rounded">
+                                </label>
+                            </div>
+                            <div class="rounded-lg border border-sky-200 bg-sky-50 p-2">
+                                <p class="font-black uppercase text-sky-900 mb-2">Fonti analizzate</p>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-1">
+                                    <label class="flex gap-2"><input type="checkbox" value="gradimento" class="prog-riesame-fonte"><span>Questionari gradimento</span></label>
+                                    <label class="flex gap-2"><input type="checkbox" value="verifiche" class="prog-riesame-fonte"><span>Test e verifiche</span></label>
+                                    <label class="flex gap-2"><input type="checkbox" value="docente" class="prog-riesame-fonte"><span>Osservazioni docenti</span></label>
+                                    <label class="flex gap-2"><input type="checkbox" value="tutor" class="prog-riesame-fonte"><span>Relazione tutor</span></label>
+                                    <label class="flex gap-2"><input type="checkbox" value="fascicolo" class="prog-riesame-fonte"><span>Controllo fascicolo</span></label>
+                                    <label class="flex gap-2"><input type="checkbox" value="segnalazioni" class="prog-riesame-fonte"><span>Segnalazioni</span></label>
+                                    <label class="flex gap-2"><input type="checkbox" value="altro" class="prog-riesame-fonte"><span>Altro</span></label>
+                                </div>
+                            </div>
+
+                            <p class="font-black uppercase text-sky-900">Criticità e azioni correttive/migliorative</p>
+                            <div class="space-y-3">
+                                <div data-riesame-action-row class="rounded-lg border border-sky-200 bg-sky-50 p-2 grid grid-cols-2 gap-2">
+                                    <input data-riesame-field="area" placeholder="Area/elemento" class="px-2 py-1.5 border border-sky-200 rounded bg-white">
+                                    <input data-riesame-field="fonte" placeholder="Fonte segnalazione" class="px-2 py-1.5 border border-sky-200 rounded bg-white">
+                                    <textarea data-riesame-field="criticita" rows="2" placeholder="Criticità" class="px-2 py-1.5 border border-sky-200 rounded bg-white"></textarea>
+                                    <textarea data-riesame-field="azione" rows="2" placeholder="Misura/azione" class="px-2 py-1.5 border border-sky-200 rounded bg-white"></textarea>
+                                    <select data-riesame-field="tipo" class="px-2 py-1.5 border border-sky-200 rounded bg-white"><option value="migliorativo">Migliorativo</option><option value="correttivo">Correttivo</option></select>
+                                    <input data-riesame-field="tempistica" placeholder="Tempistica" class="px-2 py-1.5 border border-sky-200 rounded bg-white">
+                                    <input data-riesame-field="responsabile" placeholder="Responsabile" class="col-span-2 px-2 py-1.5 border border-sky-200 rounded bg-white">
+                                </div>
+                                <div data-riesame-action-row class="rounded-lg border border-sky-200 bg-sky-50 p-2 grid grid-cols-2 gap-2">
+                                    <input data-riesame-field="area" placeholder="Area/elemento" class="px-2 py-1.5 border border-sky-200 rounded bg-white"><input data-riesame-field="fonte" placeholder="Fonte segnalazione" class="px-2 py-1.5 border border-sky-200 rounded bg-white">
+                                    <textarea data-riesame-field="criticita" rows="2" placeholder="Criticità" class="px-2 py-1.5 border border-sky-200 rounded bg-white"></textarea><textarea data-riesame-field="azione" rows="2" placeholder="Misura/azione" class="px-2 py-1.5 border border-sky-200 rounded bg-white"></textarea>
+                                    <select data-riesame-field="tipo" class="px-2 py-1.5 border border-sky-200 rounded bg-white"><option value="migliorativo">Migliorativo</option><option value="correttivo">Correttivo</option></select><input data-riesame-field="tempistica" placeholder="Tempistica" class="px-2 py-1.5 border border-sky-200 rounded bg-white">
+                                    <input data-riesame-field="responsabile" placeholder="Responsabile" class="col-span-2 px-2 py-1.5 border border-sky-200 rounded bg-white">
+                                </div>
+                                <div data-riesame-action-row class="rounded-lg border border-sky-200 bg-sky-50 p-2 grid grid-cols-2 gap-2">
+                                    <input data-riesame-field="area" placeholder="Area/elemento" class="px-2 py-1.5 border border-sky-200 rounded bg-white"><input data-riesame-field="fonte" placeholder="Fonte segnalazione" class="px-2 py-1.5 border border-sky-200 rounded bg-white">
+                                    <textarea data-riesame-field="criticita" rows="2" placeholder="Criticità" class="px-2 py-1.5 border border-sky-200 rounded bg-white"></textarea><textarea data-riesame-field="azione" rows="2" placeholder="Misura/azione" class="px-2 py-1.5 border border-sky-200 rounded bg-white"></textarea>
+                                    <select data-riesame-field="tipo" class="px-2 py-1.5 border border-sky-200 rounded bg-white"><option value="migliorativo">Migliorativo</option><option value="correttivo">Correttivo</option></select><input data-riesame-field="tempistica" placeholder="Tempistica" class="px-2 py-1.5 border border-sky-200 rounded bg-white">
+                                    <input data-riesame-field="responsabile" placeholder="Responsabile" class="col-span-2 px-2 py-1.5 border border-sky-200 rounded bg-white">
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                <label class="font-bold text-slate-600">Obiettivi soddisfatti
+                                    <select id="prog-riesame-obiettivi" class="mt-1 w-full px-2 py-1.5 bg-slate-50 border border-sky-200 rounded"><option value="da_valutare">Da valutare</option><option value="si">Sì</option><option value="parzialmente">Parzialmente</option><option value="no">No</option></select>
+                                </label>
+                                <label class="font-bold text-slate-600">Azioni urgenti
+                                    <select id="prog-riesame-urgenti" class="mt-1 w-full px-2 py-1.5 bg-slate-50 border border-sky-200 rounded"><option value="da_valutare">Da valutare</option><option value="si">Sì</option><option value="no">No</option></select>
+                                </label>
+                                <label class="font-bold text-slate-600">Proposta
+                                    <select id="prog-riesame-proposta" class="mt-1 w-full px-2 py-1.5 bg-slate-50 border border-sky-200 rounded"><option value="da_valutare">Da valutare</option><option value="ripetere">Ripetere senza modifiche</option><option value="modificare">Ripetere con modifiche</option><option value="sostituire">Sostituire proposta</option></select>
+                                </label>
+                            </div>
+                            <textarea id="prog-riesame-note" rows="2" placeholder="Note e raccomandazioni generali" class="w-full px-2 py-1.5 bg-slate-50 border border-sky-200 rounded"></textarea>
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                <input type="text" id="prog-riesame-compilato" placeholder="Compilato da" class="px-2 py-1.5 bg-slate-50 border border-sky-200 rounded">
+                                <input type="text" id="prog-riesame-ruolo" placeholder="Ruolo" class="px-2 py-1.5 bg-slate-50 border border-sky-200 rounded">
+                                <input type="text" id="prog-riesame-approvato" placeholder="Approvato da" class="px-2 py-1.5 bg-slate-50 border border-sky-200 rounded">
+                            </div>
+                        </section>
+                    </div>
+                </details>
+
+<div class="border border-slate-200 bg-slate-50 rounded-xl p-3 space-y-2">
+    <label class="text-[10px] font-black text-slate-600 uppercase block border-b border-slate-200 pb-1">Chiusura corso e documenti firmati</label>
+    <div class="grid grid-cols-2 gap-2">
+        <div>
+            <label class="text-[9px] font-bold text-slate-500 uppercase block mb-1">Stato corso</label>
+            <select id="prog-stato-corso" class="w-full px-2 py-1.5 bg-white border border-slate-300 rounded outline-none focus:border-rose-500 font-bold text-[10px]">
+                <option value="aperto">Aperto / in lavorazione</option>
+                <option value="svolto">Svolto - da chiudere</option>
+                <option value="chiuso">Chiuso / archiviato</option>
+            </select>
+        </div>
+        <div>
+            <label class="text-[9px] font-bold text-slate-500 uppercase block mb-1">Data chiusura</label>
+            <input type="date" id="prog-chiuso-at" class="w-full px-2 py-1.5 bg-white border border-slate-300 rounded outline-none focus:border-rose-500">
+        </div>
+    </div>
+    <div>
+        <label class="text-[9px] font-bold text-slate-500 uppercase block mb-1">Link scansioni documenti firmati</label>
+        <input type="url" id="prog-documenti-url" placeholder="Es. link Drive/Dropbox/cartella documenti firmati" class="w-full px-2 py-1.5 bg-white border border-slate-300 rounded outline-none focus:border-rose-500 text-[10px]">
+    </div>
+    <div>
+        <label class="text-[9px] font-bold text-slate-500 uppercase block mb-1">Note chiusura / archivio</label>
+        <textarea id="prog-note-chiusura" rows="2" placeholder="Es. documenti ricevuti via PEC, scansioni verificate, attestati consegnati..." class="w-full px-2 py-1.5 bg-white border border-slate-300 rounded outline-none focus:border-rose-500 text-[10px]"></textarea>
+    </div>
+</div>
+
+
+
+<div id="prog-draft-iscritti-box" class="border border-amber-300 bg-amber-50 rounded-xl p-3 space-y-3">
+    <div>
+        <label class="text-[10px] font-black text-amber-900 uppercase block">Preiscrizione corsisti al progetto</label>
+        <p class="text-[9px] text-amber-800 font-bold uppercase tracking-wider mt-0.5">Puoi preparare l'elenco corsisti prima di salvare il nuovo progetto. L'iscrizione definitiva avviene al salvataggio.</p>
+    </div>
+    <div class="flex flex-col sm:flex-row gap-2">
+        <select id="prog-draft-corsista" class="flex-1 px-3 py-2 bg-white border border-amber-300 rounded text-xs outline-none focus:border-amber-600 font-bold text-slate-700">
+            <option value="">-- Seleziona corsista --</option>
+        </select>
+        <button type="button" onclick="window.aggiungiCorsistaDraftProgetto()" class="bg-amber-600 hover:bg-amber-700 text-white font-black uppercase px-3 py-2 rounded text-[10px] flex items-center justify-center gap-1">
+            <i data-lucide="user-plus" class="w-3.5 h-3.5"></i> Aggiungi
+        </button>
+        <button type="button" onclick="window.apriQACorsistaDraftProgetto()" class="bg-slate-800 hover:bg-slate-700 text-white font-black uppercase px-3 py-2 rounded text-[10px] flex items-center justify-center gap-1">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i> Nuovo
+        </button>
+    </div>
+    <div id="prog-draft-iscritti-list" class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10px]">
+        <div class="text-amber-800 font-bold uppercase">Nessun corsista preparato.</div>
+    </div>
+</div>
+
+                <div class="pt-2 flex gap-2">
+                    <button type="submit" class="flex-1 bg-rose-600 hover:bg-rose-700 text-white font-bold uppercase py-2 px-4 rounded shadow transition text-center block">Salva Progetto</button>
+                    <button type="button" onclick="window.resetFormProgetto()" class="bg-slate-200 hover:bg-slate-300 text-slate-600 font-bold uppercase py-2 px-3 rounded transition">Annulla</button>
+                </div>
+            </form>
+
+            <div id="popup-corsisti-box" class="hidden popup-project-pane popup-project-pane-corsisti rounded-2xl border border-slate-200 bg-slate-50 overflow-hidden">
+                <div class="bg-slate-900 text-white px-4 py-3 flex items-center justify-between gap-3">
+                    <div>
+                        <h3 class="font-black uppercase text-sm flex items-center gap-2">
+                            <i data-lucide="users" class="w-4 h-4 text-amber-300"></i> Corsisti abbinati al corso
+                        </h3>
+                        <p id="popup-corsisti-summary" class="text-[9px] text-slate-300 uppercase tracking-widest mt-0.5">---</p>
+                    </div>
+                    <button type="button" onclick="window.apriIscrizioni && window.apriIscrizioni(document.getElementById('prog-id').value)" class="bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded-lg text-[9px] font-black uppercase transition">
+                        Gestisci iscritti
+                    </button>
+                </div>
+                <div id="popup-corsisti-list" class="p-4 text-xs text-slate-600">Caricamento corsisti...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SEZIONE DESTRA: FILTRI E TABELLA -->
+    <div class="flex-1 w-full flex flex-col gap-6">
+        
+        <!-- HEADER E FILTRI -->
+        <div class="border-b-2 border-slate-900 pb-3">
+            <h1 class="text-3xl font-black uppercase text-slate-900 tracking-tighter">Progetti Attivi</h1>
+            <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Archivio corsi erogati, iscritti e stampe</p>
+            
+            <div class="flex flex-col sm:flex-row gap-3 mt-4">
+                <div class="relative flex-1">
+                    <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-slate-400"></i>
+                    <input type="text" id="search-progetti" onkeyup="window.filtraProgetti()" class="w-full pl-9 pr-3 py-2 bg-white border border-slate-300 rounded text-xs outline-none focus:border-rose-500 shadow-sm transition" placeholder="Cerca codice, azienda o corso...">
+                </div>
+                <div class="w-full sm:w-72">
+                    <select id="filter-corso-tipo" onchange="window.filtraProgetti()" class="w-full px-3 py-2 bg-white border border-slate-300 rounded text-xs outline-none focus:border-rose-500 shadow-sm transition font-bold text-slate-700">
+                        <!-- Popolato via JS con tutte le Sigle dei corsi -->
+                    </select>
+                </div>
+                <div class="w-full sm:w-72">
+                    <select id="filter-progetti-azienda" onchange="window.filtraProgetti()" class="w-full px-3 py-2 bg-white border border-slate-300 rounded text-xs outline-none focus:border-rose-500 shadow-sm transition font-bold text-slate-700">
+                        <option value="">-- Tutte le aziende --</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- TABELLA -->
+        <div class="bg-slate-900 rounded-xl shadow-sm border border-slate-700 overflow-hidden relative">
+            <div class="hidden md:block overflow-x-auto bg-slate-900">
+                <table class="w-full text-left text-xs border-collapse">
+                    <thead class="bg-slate-950 text-white">
+                        <tr>
+                            <th class="p-3 font-bold uppercase tracking-wider w-40">Codice ID</th>
+                            <th class="p-3 font-bold uppercase tracking-wider">Corso / Azienda / Corsisti</th>
+                            <th class="p-3 font-bold uppercase tracking-wider text-center w-28">Data Esame</th>
+                            <th class="p-3 font-bold uppercase tracking-wider text-center w-40">Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabella-progetti" class="divide-y divide-slate-100">
+                        <!-- Iniettato via JS -->
+                    </tbody>
+                </table>
+            </div>
+            <div id="progetti-mobile-cards" class="md:hidden p-3 space-y-4 bg-slate-950">
+                <!-- Card mobile iniettate via JS -->
+            </div>
+
+            
+            <!-- PANNELLO ISCRIZIONI RESPONSIVE -->
+            <div id="panel-iscrizioni" class="hidden fixed inset-0 bg-slate-950/75 backdrop-blur-sm z-[100] items-center justify-center p-3 md:p-5 overflow-hidden">
+                <div id="iscritti-modal-card" class="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-4xl h-[82vh] max-h-[82vh] flex flex-col overflow-hidden">
+                    <!-- HEADER FISSO -->
+                    <div class="shrink-0 bg-slate-900 border-b border-slate-700 px-4 py-3 md:px-5 md:py-4">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="min-w-0">
+                                <h2 class="text-base md:text-xl font-black uppercase text-white flex items-center gap-2">
+                                    <i data-lucide="users" class="w-5 h-5 text-amber-400 shrink-0"></i> Gestione Iscritti
+                                </h2>
+                                <p id="lbl-progetto-attivo" class="text-[9px] md:text-[10px] text-slate-400 font-mono mt-1 leading-snug break-words">---</p>
+                                <p id="lbl-iscritti-count" class="text-[9px] text-amber-300 font-black uppercase tracking-widest mt-1">0 iscritti</p>
+                            </div>
+                            <button onclick="window.chiudiPannelloIscrizioni()" class="shrink-0 text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 p-2 rounded-lg transition" title="Chiudi">
+                                <i data-lucide="x" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- CONTROLLI FISSI RESPONSIVE -->
+                    <div class="shrink-0 bg-slate-800/90 border-b border-slate-700 px-4 py-3 md:px-5">
+                        <div class="flex flex-col sm:flex-row gap-2">
+                            <select id="sel-iscrivi-corsista" class="flex-1 min-w-0 px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white outline-none focus:border-amber-500">
+                                <!-- Popolato via JS -->
+                            </select>
+                            <div class="flex gap-2 shrink-0">
+                                <button type="button" onclick="window.apriQACorsista()" class="flex-1 sm:flex-none bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 rounded-lg transition border border-slate-600 text-xs font-black uppercase flex items-center justify-center gap-2" title="Crea Nuovo Allievo">
+                                    <i data-lucide="plus" class="w-4 h-4"></i><span class="sm:hidden">Nuovo</span>
+                                </button>
+                                <button onclick="window.aggiungiIscrizione()" class="flex-1 sm:flex-none bg-amber-600 hover:bg-amber-700 text-white font-black px-4 py-2 rounded-lg text-xs uppercase transition shadow flex items-center justify-center gap-2">
+                                    <i data-lucide="user-plus" class="w-4 h-4"></i> Aggiungi
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- AREA SCORRIMENTO SOLO CORPO -->
+                    <div class="flex-1 min-h-0 overflow-y-auto bg-slate-950/40 p-3 md:p-4">
+                        <div class="rounded-xl border border-slate-700 bg-slate-800/60 overflow-hidden">
+                            <div class="overflow-x-auto">
+                                <table id="table-iscritti" class="w-full text-left text-xs border-collapse">
+                                    <thead class="bg-slate-800 text-slate-300 sticky top-0 z-10">
+                                        <tr>
+                                            <th class="p-3 border-b border-slate-700 uppercase tracking-wider min-w-[220px]">Allievo</th>
+                                            <th class="p-3 border-b border-slate-700 uppercase tracking-wider min-w-[150px]">Codice Fiscale</th>
+                                            <th class="p-3 border-b border-slate-700 uppercase tracking-wider min-w-[180px]">Num. Attestato</th>
+                                            <th class="p-3 border-b border-slate-700 text-center w-16"><i data-lucide="trash-2" class="w-4 h-4 mx-auto"></i></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tabella-iscritti" class="divide-y divide-slate-700/50">
+                                        <!-- Iniettato via JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- FOOTER FISSO -->
+                    <div class="shrink-0 bg-slate-900 border-t border-slate-700 px-4 py-2 text-[9px] text-slate-400 uppercase tracking-widest font-bold">
+                        Suggerimento: su schermi piccoli la tabella diventa scheda verticale per ogni corsista.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ======================================================== -->
+<!-- MODALI QUICK ADD (AGGIUNTA RAPIDA) IN SOVRAIMPRESSIONE   -->
+<!-- ======================================================== -->
+
+<!-- MODALE QUICK ADD: AZIENDA -->
+<div id="qa-modal-azienda" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+        <div class="bg-rose-600 p-4 flex justify-between items-center text-white">
+            <h3 class="font-black uppercase text-sm flex items-center gap-2"><i data-lucide="briefcase" class="w-4 h-4"></i> Nuova Azienda Rapida</h3>
+            <button onclick="window.chiudiQAAzienda()" class="hover:bg-rose-700 p-1 rounded"><i data-lucide="x" class="w-4 h-4"></i></button>
+        </div>
+        <div class="p-6">
+            <form onsubmit="event.preventDefault(); window.salvaQAAzienda();" class="space-y-4 text-xs">
+                <div><label class="font-bold text-slate-500 uppercase block mb-1">Ragione Sociale *</label><input type="text" id="qa-az-rag" required class="w-full p-2 border rounded bg-slate-50 outline-none focus:border-rose-500"></div>
+                <div><label class="font-bold text-slate-500 uppercase block mb-1">Partita IVA / C.F.</label><input type="text" id="qa-az-piva" class="w-full p-2 border rounded bg-slate-50 outline-none focus:border-rose-500 font-mono"></div>
+                <button type="submit" class="w-full mt-4 bg-rose-600 text-white font-bold uppercase py-2.5 rounded shadow hover:bg-rose-700 transition">Salva e Seleziona</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- MODALE QUICK ADD: CORSO PERSONALIZZATO -->
+<div id="qa-modal-corso" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+        <div class="bg-blue-600 p-4 flex justify-between items-center text-white">
+            <h3 class="font-black uppercase text-sm flex items-center gap-2"><i data-lucide="layout-template" class="w-4 h-4"></i> Crea Corso Custom</h3>
+            <button onclick="window.chiudiQACorso()" class="hover:bg-blue-700 p-1 rounded"><i data-lucide="x" class="w-4 h-4"></i></button>
+        </div>
+        <div class="p-6">
+            <p class="text-[10px] text-slate-500 mb-4 leading-tight italic">Questa funzione genera un corso personalizzato temporaneo non presente nel database ASR 2025 standard.</p>
+            <form onsubmit="event.preventDefault(); window.salvaQACorso();" class="space-y-4 text-xs">
+                <div><label class="font-bold text-slate-500 uppercase block mb-1">Titolo del Corso *</label><input type="text" id="qa-co-titolo" required placeholder="Es. Formazione Specifica Macchinario X" class="w-full p-2 border rounded bg-slate-50 outline-none focus:border-blue-500"></div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="font-bold text-slate-500 uppercase block mb-1">Durata (Ore) *</label><input type="number" id="qa-co-ore" required min="1" class="w-full p-2 border rounded bg-slate-50 outline-none focus:border-blue-500"></div>
+                    <div><label class="font-bold text-slate-500 uppercase block mb-1">Scadenza (Anni)</label><input type="number" id="qa-co-scad" value="5" class="w-full p-2 border rounded bg-slate-50 outline-none focus:border-blue-500"></div>
+                </div>
+                <button type="submit" class="w-full mt-4 bg-blue-600 text-white font-bold uppercase py-2.5 rounded shadow hover:bg-blue-700 transition">Genera Corso</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- MODALE QUICK ADD: CORSISTA -->
+<div id="qa-modal-corsista" class="hidden fixed inset-0 bg-slate-900/90 backdrop-blur-sm z-[130] flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+        <div class="bg-emerald-600 p-4 flex justify-between items-center text-white">
+            <h3 id="qa-cor-title" class="font-black uppercase text-sm flex items-center gap-2"><i data-lucide="user-plus" class="w-4 h-4"></i> Nuovo Allievo Rapido</h3>
+            <button onclick="window.chiudiQACorsista()" class="hover:bg-emerald-700 p-1 rounded"><i data-lucide="x" class="w-4 h-4"></i></button>
+        </div>
+        <div class="p-6">
+            <form onsubmit="event.preventDefault(); window.salvaQACorsista();" class="space-y-4 text-xs">
+                <input type="hidden" id="qa-cor-id" value="">
+                <div><label class="font-bold text-slate-500 uppercase block mb-1">Nome e Cognome *</label><input type="text" id="qa-cor-nome" required class="w-full p-2 border rounded bg-slate-50 outline-none focus:border-emerald-500"></div>
+                <div><label class="font-bold text-slate-500 uppercase block mb-1">Codice Fiscale *</label><input type="text" id="qa-cor-cf" required maxlength="16" class="w-full p-2 border rounded bg-slate-50 outline-none focus:border-emerald-500 font-mono uppercase"></div>
+                <div><label class="font-bold text-slate-500 uppercase block mb-1">Nato a / Il</label><input type="text" id="qa-cor-nascita" class="w-full p-2 border rounded bg-slate-50 outline-none focus:border-emerald-500" placeholder="Es. Roma, 10/05/1990"></div>
+                <div><label class="font-bold text-slate-500 uppercase block mb-1">Mansione</label><input type="text" id="qa-cor-mansione" class="w-full p-2 border rounded bg-slate-50 outline-none focus:border-emerald-500" placeholder="Es. Operaio, preposto, impiegato..."></div>
+                <input type="hidden" id="qa-cor-azienda-id"> <!-- Inviato in automatico -->
+                <button type="submit" class="w-full mt-4 bg-emerald-600 text-white font-bold uppercase py-2.5 rounded shadow hover:bg-emerald-700 transition">Salva e Iscrivi</button>
+            </form>
+        </div>
+    </div>
+</div>
