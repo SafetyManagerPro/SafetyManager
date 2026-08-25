@@ -1,0 +1,14 @@
+{
+  "step": 45,
+  "feature": "Cruscotto chiuso di default e demarcazione visiva tra progetti",
+  "checks": {
+    "dashboard_collapsed_details": true,
+    "toggle_chevron": true,
+    "toggle_all_dashboards": true,
+    "desktop_separator_row": true,
+    "desktop_amber_group_border": true,
+    "mobile_project_border": true,
+    "quality_details_hidden_by_default": true,
+    "node_check_utils_ok": true
+  }
+}

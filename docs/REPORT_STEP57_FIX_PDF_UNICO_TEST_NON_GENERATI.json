@@ -1,0 +1,14 @@
+{
+  "step": 57,
+  "feature": "Fix PDF unico progetto: test manuali generati esplicitamente",
+  "checks": {
+    "project_formativo_can_skip_auto_tests": true,
+    "manual_tests_helper_exists": true,
+    "pdf_unico_explicit_after_project": true,
+    "pdf_unico_skips_indirect_tests": true,
+    "pdf_unico_safety_fallback": true,
+    "counts_blank_corrected": true,
+    "same_function_for_progetti": true,
+    "manual_test_pages_dataset": true
+  }
+}

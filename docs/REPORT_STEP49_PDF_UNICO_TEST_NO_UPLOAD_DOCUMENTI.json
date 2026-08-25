@@ -1,0 +1,14 @@
+{
+  "step": 49,
+  "feature": "PDF unico progetto con test/correttori, attestati separati, documenti solo link",
+  "checks": {
+    "pdf_unico_no_attestati": true,
+    "pdf_unico_has_tests": true,
+    "pdf_solo_attestati_button": true,
+    "solo_attestati_function": true,
+    "tests_remote_local": true,
+    "documents_no_server_upload": true,
+    "document_migrations_no_buckets": true,
+    "local_file_reference": true
+  }
+}

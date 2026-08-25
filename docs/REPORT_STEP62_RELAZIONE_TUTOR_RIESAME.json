@@ -1,0 +1,44 @@
+{
+  "step": 62,
+  "date": "2026-07-29",
+  "title": "Relazione finale Tutor e Riesame periodico/miglioramento",
+  "status": "completed",
+  "blocking_rules_enabled": false,
+  "source_models": [
+    "3.b-RELAZIONE-FINALE-TUTOR.docx",
+    "6_RELAZIONE-FINALE-TUTOR.docx",
+    "7_Relazione finale del tutor.docx",
+    "7-SCHEDA RIESAME.docx"
+  ],
+  "new_files": [
+    "js/modules/tutor_riesame.js",
+    "modules/relazione_tutor.html",
+    "modules/scheda_riesame.html",
+    "supabase/migrations/2026-07-29_step62_relazione_tutor_riesame.sql",
+    "docs/REVISIONE_STEP62_RELAZIONE_TUTOR_RIESAME.md",
+    "docs/REPORT_STEP62_RELAZIONE_TUTOR_RIESAME.json"
+  ],
+  "integrations": [
+    "Gestione Progetto",
+    "Cruscotto qualità corso",
+    "Progetto Formativo",
+    "Fascicolo del Corso",
+    "Centro Stampe",
+    "PDF unico progetto",
+    "Collaudo Sistema",
+    "Backup locale"
+  ],
+  "database": {
+    "table": "public.progetti",
+    "new_columns": 24,
+    "rls_changed": false,
+    "migration_required": true
+  },
+  "checks": {
+    "javascript_syntax": "ok",
+    "html_parse": "ok",
+    "field_sql_alignment": "24/24",
+    "status_logic": "ok",
+    "zip_crc": "ok"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "step": 58,
+  "feature": "Fix reale PDF unico test non visibili/generati",
+  "checks": {
+    "print_css_landscape_not_absolute": true,
+    "old_absolute_rotate_removed": true,
+    "manual_test_page_class": true,
+    "manual_test_pages_explicit_in_pdf_unico": true,
+    "carica_dati_suppress_preview_refresh": true,
+    "forced_printable_test_classes": true,
+    "pdf_unico_counts_tests": true,
+    "project_button_same_function": true
+  }
+}

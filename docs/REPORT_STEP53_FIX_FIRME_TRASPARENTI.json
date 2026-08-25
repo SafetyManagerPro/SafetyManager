@@ -1,0 +1,27 @@
+{
+  "step": 53,
+  "feature": "Correzione firme trasparenti",
+  "checks": {
+    "transparent_background_berardino": true,
+    "transparent_background_centrella": true,
+    "corners_alpha_zero": true,
+    "signatures_reprocessed_from_originals": true,
+    "role_based_autoload_preserved": true
+  },
+  "meta": {
+    "firma_berardino_pesce.png": {
+      "bytes": 78844,
+      "size": [
+        1000,
+        262
+      ]
+    },
+    "firma_centrella_alberto.png": {
+      "bytes": 112811,
+      "size": [
+        900,
+        564
+      ]
+    }
+  }
+}

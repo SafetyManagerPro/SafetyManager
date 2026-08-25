@@ -1,0 +1,35 @@
+{
+  "step": 67,
+  "title": "Layout responsive e pulizia deploy",
+  "database_migration_required": false,
+  "removed_runtime_files": [
+    "prova",
+    "logo CNA Avellino.png",
+    "logocna1.png",
+    "css/style.css"
+  ],
+  "deployment_exclusions": [
+    "docs/",
+    "supabase/",
+    "js/modules/README.md",
+    "*.zip",
+    "*.log",
+    ".git/",
+    ".github/"
+  ],
+  "ui_changes": {
+    "dashboard_errors_collapsed": true,
+    "quick_actions_before_errors": true,
+    "project_form_widths_px": [470, 520, 560],
+    "archive_alternating_rows": true,
+    "teacher_form_desktop_sticky": true,
+    "teacher_form_mobile_natural_scroll": true
+  },
+  "browser_checks": {
+    "desktop_width": 1280,
+    "mobile_width": 390,
+    "tablet_width": 820,
+    "archive_rows_checked": 73,
+    "horizontal_overflow_detected": false
+  }
+}

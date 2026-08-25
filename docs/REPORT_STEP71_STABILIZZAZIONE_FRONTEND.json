@@ -1,0 +1,49 @@
+{
+  "step": 71,
+  "data": "2026-08-24",
+  "titolo": "Stabilizzazione frontend e pulizia controllata",
+  "modifiche": {
+    "service_worker": {
+      "stato": "rimosso",
+      "registrazione_rimossa": true,
+      "pulizia_legacy_all_avvio": true,
+      "pulsante_installazione_rimosso": true
+    },
+    "dipendenze_cdn": {
+      "tailwind_browser": "3.4.17",
+      "supabase_js": "2.112.4",
+      "lucide": "1.10.0",
+      "alias_mobili_rimossi": true
+    },
+    "manifest": {
+      "icone_remote_rimosse": true,
+      "icona_locale": "logocna.png",
+      "orientamento": "any"
+    },
+    "html_duplicato": {
+      "file": "modules/progetti.html",
+      "copie_rimosse": 3,
+      "id_finali_univoci": [
+        "popup-corsisti-box",
+        "popup-corsisti-summary",
+        "popup-corsisti-list"
+      ]
+    },
+    "file_eliminati": [
+      "sw.js",
+      "modules/regdocenti.html"
+    ]
+  },
+  "audit": {
+    "javascript_controllati": 20,
+    "errori_sintassi": 0,
+    "moduli_html_finali": 36,
+    "riferimenti_sw_runtime": 0,
+    "dipendenze_corrette_non_versionate": 0,
+    "moduli_eliminati_senza_riferimenti_runtime": 1,
+    "moduli_funzionanti_preservati": true
+  },
+  "rinviato": [
+    "Protocollo attestato progressivo e transazionale lato database"
+  ]
+}

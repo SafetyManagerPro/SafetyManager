@@ -1,0 +1,28 @@
+{
+  "step": 69,
+  "feature": "Kit cliente XLSX per attivazione corso",
+  "status": "completed",
+  "sheets_visible": [
+    "Dati Azienda",
+    "Corsisti e Corsi"
+  ],
+  "technical_sheet_hidden": "_Elenchi",
+  "active_courses_in_template": 53,
+  "supports_new_company": true,
+  "supports_existing_company": true,
+  "analysis_before_import": true,
+  "prevents_exact_participant_course_duplicates": true,
+  "prevents_company_participant_relation_conflicts": true,
+  "overwrites_existing_records": false,
+  "creates_incomplete_projects": false,
+  "project_draft_prefill": true,
+  "database_migration_required": false,
+  "checks": {
+    "javascript_syntax": "ok",
+    "module_references": "ok",
+    "xlsx_integrity": "ok",
+    "xlsx_prefill_patch": "ok",
+    "formula_error_scan": "0 matches",
+    "visual_review": "ok"
+  }
+}
