@@ -1,5 +1,5 @@
 <div class="w-full max-w-7xl mx-auto mt-4 mb-10">
-    <img alt="" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==" class="hidden" onload="window.loadOptionalSafetyScript && window.loadOptionalSafetyScript('js/modules/dashboard_pro.js').then(function(){ return window.loadOptionalSafetyScript('js/modules/checklist_corso.js'); }).then(function(){ setTimeout(function(){ if(window.loadDashboardStats) window.loadDashboardStats(); }, 80); });">
+    <img alt="" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==" class="hidden" onload="window.loadOptionalSafetyScript && window.loadOptionalSafetyScript('js/modules/dashboard_pro.js').then(function(){ return window.loadOptionalSafetyScript('js/modules/checklist_corso.js'); }).then(function(){ return window.loadOptionalSafetyScript('js/modules/prepara_corso.js'); }).then(function(){ setTimeout(function(){ if(window.loadDashboardStats) window.loadDashboardStats(); }, 80); });">
 
     <div class="bg-slate-900 rounded-3xl shadow-xl border border-slate-800 overflow-hidden mb-6">
         <div class="p-6 md:p-8 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-6">
@@ -74,6 +74,10 @@
                 <button onclick="window.loadModule('stampe')" class="p-4 rounded-2xl border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 transition text-center group">
                     <i data-lucide="printer" class="w-7 h-7 mx-auto mb-2 text-indigo-600"></i>
                     <span class="text-[10px] font-black text-indigo-900 uppercase tracking-widest">Centro stampe</span>
+                </button>
+                <button onclick="window.apriPreparazioneCorsi ? window.apriPreparazioneCorsi() : alert('Modulo prepara corso in caricamento. Ricarica la Dashboard tra un istante.')" class="p-4 rounded-2xl border border-blue-200 bg-blue-50 hover:bg-blue-100 transition text-center group">
+                    <i data-lucide="rocket" class="w-7 h-7 mx-auto mb-2 text-blue-600"></i>
+                    <span class="text-[10px] font-black text-blue-900 uppercase tracking-widest">Prepara corso</span>
                 </button>
                 <button onclick="window.apriChecklistCorsi ? window.apriChecklistCorsi() : alert('Checklist in caricamento. Ricarica la Dashboard tra un istante.')" class="p-4 rounded-2xl border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 transition text-center group">
                     <i data-lucide="list-checks" class="w-7 h-7 mx-auto mb-2 text-emerald-600"></i>
