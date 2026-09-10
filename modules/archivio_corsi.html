@@ -1,33 +1,90 @@
 
 <!-- modules/archivio_corsi.html -->
 <div class="w-full max-w-7xl mx-auto mt-4 mb-10">
-    <div class="border-b-2 border-slate-900 pb-3 mb-6 flex flex-col md:flex-row md:items-end md:justify-between gap-3">
-        <div>
-            <h1 class="text-3xl font-black uppercase text-slate-900 tracking-tighter flex items-center gap-3">
-                <i data-lucide="folders" class="w-8 h-8 text-blue-600"></i> Archivio Imprese / Enti
-            </h1>
-            <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Corsi svolti, progetti e corsisti abbinati a ciascuna azienda o soggetto formatore</p>
+    <img alt="" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==" class="hidden" onload="window.loadOptionalSafetyScript && window.loadOptionalSafetyScript('js/modules/archivio_avanzato.js').then(function(){ setTimeout(function(){ if(window.loadArchivioCorsi) window.loadArchivioCorsi(); }, 80); });">
+
+    <div class="bg-slate-900 rounded-3xl shadow-xl border border-slate-800 overflow-hidden mb-6">
+        <div class="p-6 md:p-8 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-6">
+            <div class="min-w-0">
+                <div class="inline-flex items-center gap-2 rounded-full bg-blue-400/10 border border-blue-400/20 px-3 py-1 mb-4">
+                    <span class="w-2 h-2 rounded-full bg-blue-300"></span>
+                    <span class="text-[10px] font-black uppercase tracking-widest text-blue-200">Archivio operativo</span>
+                </div>
+                <h1 class="text-3xl md:text-4xl font-black uppercase text-white tracking-tighter flex items-center gap-3">
+                    <i data-lucide="folders" class="w-8 h-8 text-blue-300"></i> Archivio Corsi
+                </h1>
+                <p class="text-sm text-slate-300 mt-2 max-w-3xl leading-relaxed">
+                    Ricerca avanzata per azienda, corsista, codice fiscale, corso, attestato, scadenze e documenti firmati.
+                </p>
+            </div>
+            <div class="flex flex-wrap gap-2 shrink-0">
+                <button onclick="window.loadArchivioCorsi()" class="bg-white/10 hover:bg-white/15 text-white border border-white/10 px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-2">
+                    <i data-lucide="refresh-cw" class="w-4 h-4"></i> Aggiorna
+                </button>
+                <button onclick="window.exportArchivioAvanzatoXLSX ? window.exportArchivioAvanzatoXLSX() : alert('Archivio avanzato in caricamento.')" class="bg-emerald-500 hover:bg-emerald-400 text-white px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-2">
+                    <i data-lucide="file-spreadsheet" class="w-4 h-4"></i> Export XLSX
+                </button>
+            </div>
         </div>
-        <button onclick="window.loadArchivioCorsi()" class="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-2">
-            <i data-lucide="refresh-cw" class="w-4 h-4"></i> Aggiorna
-        </button>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-5 gap-3 mb-6">
-        <input id="archivio-search" onkeyup="window.renderArchivioCorsi()" type="text" placeholder="Cerca azienda, corso, codice, corsista..." class="md:col-span-2 px-4 py-3 bg-white border border-slate-300 rounded-xl text-sm outline-none focus:border-blue-500 shadow-sm">
-        <select id="archivio-filter-azienda" onchange="window.renderArchivioCorsi()" class="px-4 py-3 bg-white border border-slate-300 rounded-xl text-sm outline-none focus:border-blue-500 shadow-sm font-bold text-slate-700">
-            <option value="">Tutte le aziende / enti</option>
-        </select>
-        <select id="archivio-filter-corso" onchange="window.renderArchivioCorsi()" class="px-4 py-3 bg-white border border-slate-300 rounded-xl text-sm outline-none focus:border-blue-500 shadow-sm font-bold text-slate-700">
-            <option value="">Tutti i corsi</option>
-        </select>
-        <select id="archivio-filter-stato" onchange="window.renderArchivioCorsi()" class="px-4 py-3 bg-white border border-slate-300 rounded-xl text-sm outline-none focus:border-blue-500 shadow-sm font-bold text-slate-700">
-            <option value="">Tutti gli stati</option>
-            <option value="aperto">Aperti</option>
-            <option value="svolto">Svolti da chiudere</option>
-            <option value="chiuso">Chiusi / archiviati</option>
-        </select>
+    <div id="archivio-advanced-stats" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 animate-pulse h-28"></div>
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 animate-pulse h-28"></div>
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 animate-pulse h-28"></div>
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 animate-pulse h-28"></div>
     </div>
+
+    <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden mb-6">
+        <div class="p-5 border-b border-slate-100 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+            <div>
+                <h2 class="font-black text-sm uppercase text-slate-900 tracking-tight flex items-center gap-2">
+                    <i data-lucide="search" class="w-5 h-5 text-blue-600"></i> Filtri e ricerca
+                </h2>
+                <p class="text-[11px] text-slate-500 mt-1">Cerca rapidamente corsi, aziende, corsisti, codici fiscali, attestati e scadenze.</p>
+            </div>
+            <button onclick="window.resetArchivioAdvancedFilters ? window.resetArchivioAdvancedFilters() : window.renderArchivioCorsi()" class="bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest">
+                Reset filtri
+            </button>
+        </div>
+
+        <div class="p-5 grid grid-cols-1 md:grid-cols-6 gap-3">
+            <input id="archivio-search" onkeyup="window.renderArchivioCorsi()" type="text" placeholder="Cerca azienda, corso, codice, corsista, CF, attestato..." class="md:col-span-3 px-4 py-3 bg-white border border-slate-300 rounded-xl text-sm outline-none focus:border-blue-500 shadow-sm">
+            <select id="archivio-filter-azienda" onchange="window.renderArchivioCorsi()" class="md:col-span-1 px-4 py-3 bg-white border border-slate-300 rounded-xl text-sm outline-none focus:border-blue-500 shadow-sm font-bold text-slate-700">
+                <option value="">Tutte le aziende / enti</option>
+            </select>
+            <select id="archivio-filter-corso" onchange="window.renderArchivioCorsi()" class="md:col-span-1 px-4 py-3 bg-white border border-slate-300 rounded-xl text-sm outline-none focus:border-blue-500 shadow-sm font-bold text-slate-700">
+                <option value="">Tutti i corsi</option>
+            </select>
+            <select id="archivio-filter-stato" onchange="window.renderArchivioCorsi()" class="md:col-span-1 px-4 py-3 bg-white border border-slate-300 rounded-xl text-sm outline-none focus:border-blue-500 shadow-sm font-bold text-slate-700">
+                <option value="">Tutti gli stati</option>
+                <option value="aperto">Aperti</option>
+                <option value="svolto">Svolti da chiudere</option>
+                <option value="chiuso">Chiusi / archiviati</option>
+            </select>
+
+            <div class="md:col-span-2">
+                <label class="block text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1">Data verifica da</label>
+                <input id="archivio-date-from" onchange="window.renderArchivioCorsi()" type="date" class="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-sm outline-none focus:border-blue-500 shadow-sm">
+            </div>
+            <div class="md:col-span-2">
+                <label class="block text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1">Data verifica a</label>
+                <input id="archivio-date-to" onchange="window.renderArchivioCorsi()" type="date" class="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-sm outline-none focus:border-blue-500 shadow-sm">
+            </div>
+            <div class="md:col-span-2">
+                <label class="block text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1">Documenti / scadenze</label>
+                <select id="archivio-filter-docs" onchange="window.renderArchivioCorsi()" class="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-sm outline-none focus:border-blue-500 shadow-sm font-bold text-slate-700">
+                    <option value="">Tutti</option>
+                    <option value="with_docs">Con documenti firmati</option>
+                    <option value="missing_docs">Documenti firmati mancanti</option>
+                    <option value="expiring90">Attestati in scadenza entro 90 giorni</option>
+                    <option value="expired">Attestati scaduti</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div id="archivio-result-summary"></div>
 
     <div id="archivio-corsi-container" class="space-y-4">
         <div class="p-8 text-center text-slate-400 font-bold uppercase">Caricamento archivio...</div>
