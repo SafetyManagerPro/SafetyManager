@@ -1,5 +1,6 @@
 // Step firme - risolutore unico firme e slot sempre presenti
 // Regola utente: se la firma non è disponibile o il file non è caricabile, lo slot resta visibile e vuoto.
+// Fix doppie firme: quando uno slot contiene più nominativi, le firme note vengono renderizzate affiancate.
 
 (function() {
     if (window.__safetyUnifiedSignaturesLoaded) return;
@@ -53,6 +54,12 @@
         return r || '';
     };
 
+    const roleMatches = (candidateRole, requestedRole) => {
+        const c = roleKey(candidateRole);
+        const r = roleKey(requestedRole);
+        return !r || c === r || norm(candidateRole) === norm(requestedRole);
+    };
+
     const isPlaceholder = (value) => {
         const v = String(value || '').trim();
         return !v || v === '---' || /^[_\-\s/]+$/.test(v) || /non indicato/i.test(v);
@@ -81,6 +88,25 @@
         return false;
     };
 
+    const uniquePush = (list, item) => {
+        if (!item || !item.src) return;
+        const key = `${norm(item.name)}::${roleKey(item.role)}::${item.src}`;
+        if (list.some(existing => `${norm(existing.name)}::${roleKey(existing.role)}::${existing.src}` === key)) return;
+        list.push(item);
+    };
+
+    const splitSignerNames = (value) => {
+        const raw = String(value || '').trim();
+        if (!raw || isPlaceholder(raw)) return [];
+        return raw
+            .replace(/\r?\n/g, ' | ')
+            .replace(/\s+(?:e|ed|and|&)\s+/gi, ' | ')
+            .replace(/[;,/+]\s*/g, ' | ')
+            .split('|')
+            .map(v => v.replace(/^(sig\.?|firma|firmato da|dott\.?|ing\.?|avv\.?)\s+/i, '').trim())
+            .filter(v => !isPlaceholder(v));
+    };
+
     const findDocente = (name) => {
         const n = norm(name);
         if (!n) return null;
@@ -106,11 +132,55 @@
         return '';
     };
 
+    const resolveStaticSignatures = (text, role) => {
+        const out = [];
+        const source = norm(text);
+        if (!source) return out;
+
+        STATIC_SIGNATURES.forEach(item => {
+            const roleOk = item.roles.some(r => roleMatches(r, role));
+            if (!roleOk || !isLoadableSignatureSrc(item.src)) return;
+
+            const matchedName = item.names.find(name => {
+                const n = norm(name);
+                return source === n || source.includes(n);
+            });
+            if (matchedName) {
+                uniquePush(out, {
+                    src: item.src,
+                    source: 'asset-statico',
+                    name: matchedName,
+                    role: roleKey(role)
+                });
+            }
+        });
+        return out;
+    };
+
+    const resolveDbDocenteSignatures = (names, role) => {
+        const out = [];
+        names.forEach(name => {
+            const docente = findDocente(name);
+            const docenteSrc = first(docente?.firma_docente_url, docente?.firma_url, docente?.firma);
+            if (docente && isLoadableSignatureSrc(docenteSrc)) {
+                uniquePush(out, {
+                    src: docenteSrc,
+                    source: 'docente-db',
+                    name: docente?.nome_cognome || docente?.nome || name,
+                    role: roleKey(role)
+                });
+            }
+        });
+        return out;
+    };
+
     window.resolveSafetySignature = function({ name = '', role = '', documentName = '', slot = null } = {}) {
         const rk = roleKey(role);
         const signerName = first(name, fallbackNameForRole(rk));
-        const signerNorm = norm(signerName);
+        const signerParts = splitSignerNames(signerName);
+        const searchTexts = [signerName, ...signerParts].filter(v => !isPlaceholder(v));
         const ente = getEnte();
+        const signatures = [];
 
         if (rk === 'legale') {
             const legalSrc = first(
@@ -119,24 +189,26 @@
                 appValue('ente-legale-firma-url', 'cfg-legale-firma-url', 'legale_firma_url')
             );
             if (isLoadableSignatureSrc(legalSrc)) {
-                return { src: legalSrc, source: 'ente-db', name: signerName, role: rk, documentName };
+                uniquePush(signatures, { src: legalSrc, source: 'ente-db', name: signerName, role: rk });
             }
         }
 
-        const docente = findDocente(signerName);
-        const docenteSrc = first(docente?.firma_docente_url, docente?.firma_url, docente?.firma);
-        if (docente && isLoadableSignatureSrc(docenteSrc)) {
-            return { src: docenteSrc, source: 'docente-db', name: signerName, role: rk, documentName };
-        }
+        resolveDbDocenteSignatures(signerParts.length ? signerParts : [signerName], rk).forEach(s => uniquePush(signatures, s));
 
-        const staticMatch = STATIC_SIGNATURES.find(item =>
-            item.names.some(n => norm(n) === signerNorm) && item.roles.some(r => roleKey(r) === rk || norm(r) === norm(role))
-        );
-        if (staticMatch && isLoadableSignatureSrc(staticMatch.src)) {
-            return { src: staticMatch.src, source: 'asset-statico', name: signerName, role: rk, documentName };
-        }
+        searchTexts.forEach(text => {
+            resolveStaticSignatures(text, rk).forEach(s => uniquePush(signatures, s));
+        });
 
-        return { src: '', source: 'empty-slot', name: signerName, role: rk, documentName };
+        const firstSignature = signatures[0] || null;
+        return {
+            src: firstSignature?.src || '',
+            signatures,
+            source: firstSignature?.source || 'empty-slot',
+            name: signerName,
+            role: rk,
+            documentName,
+            multi: signatures.length > 1
+        };
     };
 
     window.getAutoSignaturePathByNameAndRole = function(name, role, context = {}) {
@@ -147,7 +219,9 @@
         if (!slot) return '';
         const selector = slot.getAttribute('data-signature-name-selector') || '';
         const block = slot.closest('[data-signature-block]') || slot.parentElement || document;
+        const page = slot.closest('.doc-page') || (block.closest ? block.closest('.doc-page') : null) || document;
         let el = selector ? block.querySelector(selector) : null;
+        if (!el && selector && page?.querySelector) el = page.querySelector(selector);
         if (!el && selector) el = document.querySelector(selector);
         return first(
             el?.textContent,
@@ -157,56 +231,81 @@
         );
     };
 
+    const renderEmptySignatureSlot = (slot, info = {}) => {
+        const spacer = document.createElement('span');
+        spacer.className = 'signature-empty-spacer';
+        spacer.setAttribute('aria-hidden', 'true');
+        spacer.style.display = 'block';
+        spacer.style.width = '42mm';
+        spacer.style.height = '11mm';
+        spacer.style.maxHeight = '11mm';
+        spacer.style.pointerEvents = 'none';
+        slot.appendChild(spacer);
+        console.info('[Firme] slot vuoto mantenuto', info);
+    };
+
     window.renderAutoSignatureSlot = function(slot, signaturePath = '', signerName = '', meta = {}) {
         if (!slot) return;
         const role = slot.getAttribute('data-signature-role') || meta.role || '';
         const rk = roleKey(role);
         const label = slot.getAttribute('data-signature-label') || ROLE_LABELS[rk] || role || 'Firmatario';
         const name = first(signerName, window.getSignatureNameForSlot(slot));
-        const src = isLoadableSignatureSrc(signaturePath) ? signaturePath : '';
+        let signatures = Array.isArray(meta.signatures) ? meta.signatures.filter(s => isLoadableSignatureSrc(s?.src)) : [];
+
+        if (!signatures.length) {
+            if (Array.isArray(signaturePath)) {
+                signatures = signaturePath
+                    .filter(isLoadableSignatureSrc)
+                    .map(src => ({ src, name, role: rk, source: 'direct-array' }));
+            } else if (isLoadableSignatureSrc(signaturePath)) {
+                signatures = [{ src: signaturePath, name, role: rk, source: meta.source || 'direct' }];
+            }
+        }
 
         slot.classList.remove('hidden');
         slot.innerHTML = '';
         slot.dataset.signatureRole = rk;
         slot.dataset.signatureName = name || '';
-        slot.dataset.signatureResolved = src ? 'yes' : 'no';
-        slot.title = src
+        slot.dataset.signatureResolved = signatures.length ? 'yes' : 'no';
+        slot.dataset.signatureCount = String(signatures.length);
+        slot.title = signatures.length
             ? `Firma ${name || label} caricata (${label})`
             : `Slot firma vuoto: ${label}${name ? ' - ' + name : ''}`;
         slot.style.display = 'flex';
+        slot.style.alignItems = 'center';
+        slot.style.justifyContent = 'center';
+        slot.style.gap = signatures.length > 1 ? '2.5mm' : '0';
         slot.style.minHeight = slot.style.minHeight || '12mm';
+        slot.style.width = slot.style.width || '100%';
 
-        if (!src) {
-            const spacer = document.createElement('span');
-            spacer.className = 'signature-empty-spacer';
-            spacer.setAttribute('aria-hidden', 'true');
-            spacer.style.display = 'block';
-            spacer.style.width = '42mm';
-            spacer.style.height = '11mm';
-            spacer.style.maxHeight = '11mm';
-            spacer.style.pointerEvents = 'none';
-            slot.appendChild(spacer);
-            console.info('[Firme] slot vuoto mantenuto', { role: rk, label, name });
+        if (!signatures.length) {
+            renderEmptySignatureSlot(slot, { role: rk, label, name });
             return;
         }
 
-        const img = document.createElement('img');
-        img.className = 'auto-signature-img';
-        img.src = src;
-        img.alt = 'Firma ' + (name || label);
-        img.onerror = () => {
-            img.remove();
-            slot.dataset.signatureResolved = 'load-error';
-            const spacer = document.createElement('span');
-            spacer.className = 'signature-empty-spacer';
-            spacer.style.display = 'block';
-            spacer.style.width = '42mm';
-            spacer.style.height = '11mm';
-            slot.appendChild(spacer);
-            console.warn('[Firme] file firma non caricabile, slot lasciato vuoto', { role: rk, label, name, src });
-        };
-        slot.appendChild(img);
-        console.info('[Firme] firma applicata', { role: rk, label, name, src });
+        signatures.forEach((signature, idx) => {
+            const img = document.createElement('img');
+            img.className = 'auto-signature-img';
+            img.src = signature.src;
+            img.alt = 'Firma ' + (signature.name || name || label);
+            img.dataset.signatureIndex = String(idx + 1);
+            img.dataset.signatureSource = signature.source || '';
+            img.style.maxHeight = '12.5mm';
+            img.style.objectFit = 'contain';
+            img.style.display = 'block';
+            img.style.flex = signatures.length > 1 ? '0 1 45%' : '0 1 auto';
+            img.style.maxWidth = signatures.length > 1 ? '38mm' : '42mm';
+            img.onerror = () => {
+                img.remove();
+                if (!slot.querySelector('img.auto-signature-img')) {
+                    slot.dataset.signatureResolved = 'load-error';
+                    renderEmptySignatureSlot(slot, { role: rk, label, name, src: signature.src });
+                }
+                console.warn('[Firme] file firma non caricabile, slot lasciato vuoto se nessuna altra firma è valida', { role: rk, label, name, src: signature.src });
+            };
+            slot.appendChild(img);
+        });
+        console.info('[Firme] firma/e applicata/e', { role: rk, label, name, signatures });
     };
 
     window.applyResolvedSignaturesToContainer = function(root = document) {
@@ -218,7 +317,12 @@
             const docPage = slot.closest('.doc-page');
             const documentName = docPage?.dataset?.printModule || docPage?.className || window.currentPrintModule || '';
             const resolved = window.resolveSafetySignature({ name, role, documentName, slot });
-            window.renderAutoSignatureSlot(slot, resolved.src, resolved.name || name, { role, source: resolved.source, documentName });
+            window.renderAutoSignatureSlot(slot, resolved.src, resolved.name || name, {
+                role,
+                source: resolved.source,
+                documentName,
+                signatures: resolved.signatures
+            });
         });
         return slots.length;
     };
