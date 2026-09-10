@@ -30,6 +30,22 @@ window.addEventListener('resize', () => {
     window.__navOffsetTimer = setTimeout(window.updateNavOffset, 100);
 });
 
+window.loadOptionalSafetyScript = async function(src) {
+    if (!src || document.querySelector(`script[data-safety-dynamic="${src}"]`)) return true;
+    return await new Promise(resolve => {
+        const script = document.createElement('script');
+        script.src = src;
+        script.async = false;
+        script.dataset.safetyDynamic = src;
+        script.onload = () => resolve(true);
+        script.onerror = () => {
+            console.warn('SafetyManager: script opzionale non caricato:', src);
+            resolve(false);
+        };
+        document.head.appendChild(script);
+    });
+};
+
 window.isSafetyAdminEmail = function(email) {
     return String(email || '').trim().toLowerCase() === String(window.SAFETY_ADMIN_EMAIL || '').toLowerCase();
 };
@@ -120,6 +136,7 @@ window.handleSafetyLogin = async function(event) {
             alert('Utente non autorizzato.');
             return;
         }
+        if (typeof window.installSafetySignaturePatches === 'function') window.installSafetySignaturePatches();
         await window.loadModule('admin');
     } catch (error) {
         console.error('Login non riuscito:', error);
@@ -186,6 +203,8 @@ window.loadModule = async function(moduleId) {
     const contentDiv = document.getElementById('app-content');
     if (!contentDiv) return;
 
+    if (typeof window.installSafetySignaturePatches === 'function') window.installSafetySignaturePatches();
+
     if (moduleId !== 'login') {
         const user = await window.getSafetyAdminUser();
         if (!user) {
@@ -220,14 +239,10 @@ window.loadModule = async function(moduleId) {
         return;
     }
     
-    document.querySelectorAll('.btn-tab').forEach(b => {
-        b.classList.remove('active');
-    });
+    document.querySelectorAll('.btn-tab').forEach(b => b.classList.remove('active'));
 
     const activeBtn = document.getElementById('nav-' + moduleId);
-    if(activeBtn) {
-        activeBtn.classList.add('active');
-    }
+    if(activeBtn) activeBtn.classList.add('active');
 
     try {
         contentDiv.innerHTML = `<div class="flex items-center justify-center h-64 mt-20"><div class="text-center text-slate-500"><i data-lucide="loader-2" class="w-10 h-10 animate-spin mx-auto mb-4"></i><p class="font-bold uppercase tracking-widest text-sm">Caricamento modulo...</p></div></div>`;
@@ -255,6 +270,7 @@ window.loadModule = async function(moduleId) {
         if (moduleId === 'archivio_corsi' && typeof window.loadArchivioCorsi === 'function') window.loadArchivioCorsi();
         if (moduleId === 'kit_cliente' && typeof window.initKitCliente === 'function') await window.initKitCliente();
         if (moduleId === 'collaudo' && typeof window.initCollaudoSistema === 'function') window.initCollaudoSistema();
+        if (typeof window.installSafetySignaturePatches === 'function') window.installSafetySignaturePatches();
         if (typeof window.injectSectionExportToolbar === 'function') window.injectSectionExportToolbar(moduleId);
         if (typeof window.updateNavOffset === 'function') setTimeout(window.updateNavOffset, 50);
 
@@ -282,6 +298,8 @@ window.unregisterLegacyServiceWorkers = async function() {
 
 document.addEventListener("DOMContentLoaded", async () => {
     await window.unregisterLegacyServiceWorkers();
+    await window.loadOptionalSafetyScript('js/modules/firme_unificate.js');
+    if (typeof window.installSafetySignaturePatches === 'function') window.installSafetySignaturePatches();
 
     if (window.supabaseClient?.auth?.onAuthStateChange) {
         window.supabaseClient.auth.onAuthStateChange(async (event, session) => {
@@ -291,6 +309,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
             if (session?.user && window.isSafetyAdminEmail(session.user.email)) {
                 if (!window.safetyAuthChecked) return;
+                if (typeof window.installSafetySignaturePatches === 'function') window.installSafetySignaturePatches();
                 await window.loadModule('admin');
             }
         });
