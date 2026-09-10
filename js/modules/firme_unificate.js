@@ -1,6 +1,6 @@
-// Step firme + stampe FULL PAGE - risolutore firme, slot firma sempre presenti e stampe leggibili
-// Regola utente: se la firma non è disponibile o non è caricabile, lo slot firma resta visibile, vuoto, con indicazione del firmatario.
-// Step stampe: tutti i documenti non-attestato vengono normalizzati a pagina A4 piena, portrait o landscape, senza miniature/scale/zoom.
+// Step firme + stampe - versione stabile
+// Regola utente: se la firma non è disponibile o il file non è caricabile, lo slot resta visibile e vuoto.
+// Obiettivo stampe: non bloccare mai window.print(); riempire A4 portrait/landscape con margini minimi e senza miniaturizzazione.
 
 (function() {
     if (window.__safetyUnifiedSignaturesLoaded) return;
@@ -20,10 +20,7 @@
         {
             src: 'assets/firme/firma_centrella_alberto.png',
             names: ['centrella alberto', 'alberto centrella'],
-            roles: [
-                'docente', 'formatore', 'docente formatore',
-                'resp_corso', 'responsabile corso', 'responsabile del corso'
-            ]
+            roles: ['docente', 'formatore', 'docente formatore', 'resp_corso', 'responsabile corso', 'responsabile del corso']
         }
     ];
 
@@ -39,9 +36,7 @@
         legale: 'Legale Rappresentante',
         legale_rappresentante: 'Legale Rappresentante',
         'legale rappresentante': 'Legale Rappresentante',
-        tutor: 'Tutor',
-        compilatore: 'Compilatore',
-        approvatore: 'Approvatore'
+        tutor: 'Tutor'
     };
 
     const norm = (value) => String(value || '')
@@ -87,8 +82,7 @@
     const isLoadableSignatureSrc = (src) => {
         const s = String(src || '').trim();
         if (!s) return false;
-        if (/^data:image\//i.test(s)) return true;
-        if (/^blob:/i.test(s)) return true;
+        if (/^data:image\//i.test(s) || /^blob:/i.test(s)) return true;
         if (/\.pdf($|[?#])/i.test(s)) return false;
         if (/^[a-z]:[\\/]/i.test(s) || /^file:\/\//i.test(s) || /^\\\\/.test(s)) return false;
         if (/^https?:\/\//i.test(s)) return true;
@@ -168,15 +162,15 @@
         return out;
     };
 
-    window.resolveSafetySignature = function({ name = '', role = '', documentName = '', slot = null } = {}) {
+    window.resolveSafetySignature = function({ name = '', role = '', documentName = '' } = {}) {
         const rk = roleKey(role);
         const signerName = first(name, fallbackNameForRole(rk));
         const signerParts = splitSignerNames(signerName);
         const searchTexts = [signerName, ...signerParts].filter(v => !isPlaceholder(v));
-        const ente = getEnte();
         const signatures = [];
 
         if (rk === 'legale') {
+            const ente = getEnte();
             const legalSrc = first(ente.legale_firma_url, ente.firma_legale_url, appValue('ente-legale-firma-url', 'cfg-legale-firma-url', 'legale_firma_url'));
             if (isLoadableSignatureSrc(legalSrc)) uniquePush(signatures, { src: legalSrc, source: 'ente-db', name: signerName, role: rk });
         }
@@ -203,7 +197,7 @@
         return first(el?.textContent, el?.innerText, slot.getAttribute('data-signature-name'), fallbackNameForRole(slot.getAttribute('data-signature-role') || ''));
     };
 
-    const renderEmptySignatureSlot = (slot, info = {}) => {
+    const renderEmptySignatureSlot = (slot) => {
         const spacer = document.createElement('span');
         spacer.className = 'signature-empty-spacer';
         spacer.setAttribute('aria-hidden', 'true');
@@ -213,7 +207,6 @@
         spacer.style.maxHeight = '11mm';
         spacer.style.pointerEvents = 'none';
         slot.appendChild(spacer);
-        console.info('[Firme] slot vuoto mantenuto', info);
     };
 
     window.renderAutoSignatureSlot = function(slot, signaturePath = '', signerName = '', meta = {}) {
@@ -223,7 +216,6 @@
         const label = slot.getAttribute('data-signature-label') || ROLE_LABELS[rk] || role || 'Firmatario';
         const name = first(signerName, window.getSignatureNameForSlot(slot));
         let signatures = Array.isArray(meta.signatures) ? meta.signatures.filter(s => isLoadableSignatureSrc(s?.src)) : [];
-
         if (!signatures.length) {
             if (Array.isArray(signaturePath)) {
                 signatures = signaturePath.filter(isLoadableSignatureSrc).map(src => ({ src, name, role: rk, source: 'direct-array' }));
@@ -246,7 +238,10 @@
         slot.style.minHeight = slot.style.minHeight || '12mm';
         slot.style.width = slot.style.width || '100%';
 
-        if (!signatures.length) return renderEmptySignatureSlot(slot, { role: rk, label, name });
+        if (!signatures.length) {
+            renderEmptySignatureSlot(slot);
+            return;
+        }
 
         signatures.forEach((signature, idx) => {
             const img = document.createElement('img');
@@ -264,13 +259,11 @@
                 img.remove();
                 if (!slot.querySelector('img.auto-signature-img')) {
                     slot.dataset.signatureResolved = 'load-error';
-                    renderEmptySignatureSlot(slot, { role: rk, label, name, src: signature.src });
+                    renderEmptySignatureSlot(slot);
                 }
-                console.warn('[Firme] file firma non caricabile, slot lasciato vuoto se nessuna altra firma è valida', { role: rk, label, name, src: signature.src });
             };
             slot.appendChild(img);
         });
-        console.info('[Firme] firma/e applicata/e', { role: rk, label, name, signatures });
     };
 
     window.applyResolvedSignaturesToContainer = function(root = document) {
@@ -281,7 +274,7 @@
             const name = window.getSignatureNameForSlot(slot);
             const docPage = slot.closest('.doc-page');
             const documentName = docPage?.dataset?.printModule || docPage?.className || window.currentPrintModule || '';
-            const resolved = window.resolveSafetySignature({ name, role, documentName, slot });
+            const resolved = window.resolveSafetySignature({ name, role, documentName });
             window.renderAutoSignatureSlot(slot, resolved.src, resolved.name || name, { role, source: resolved.source, documentName, signatures: resolved.signatures });
         });
         return slots.length;
@@ -292,430 +285,158 @@
     };
 
     // ================================
-    // STEP STAMPE FULL PAGE / PDF
+    // STAMPE: full A4 senza bloccare la finestra di stampa
     // ================================
+    const PRINT_STYLE_ID = 'safety-print-fullpage-v2';
 
-    const PRINT_STYLE_ID = 'safety-print-stabilizer-style-v2';
-    const PAGE_MODULE_LANDSCAPE = new Set([
-        'registro',
-        'registro_docenti',
-        'registro_multigiorno',
-        'scheda_rischi',
-        'scheda_rischio',
-        'questionario_gradimento',
-        'monitoraggio_qualita',
-        'riepilogo_gradimento'
-    ]);
-
-    const css = String.raw;
-
-    window.injectSafetyPrintCss = function() {
-        if (document.getElementById(PRINT_STYLE_ID)) return;
-        const old = document.getElementById('safety-print-stabilizer-style');
-        if (old) old.remove();
-        const style = document.createElement('style');
-        style.id = PRINT_STYLE_ID;
-        style.textContent = css`
-            @media print {
-                @page { size: A4 portrait; margin: 0mm; }
-                @page safetyPortraitPage { size: A4 portrait; margin: 0mm; }
-                @page safetyLandscapePage { size: A4 landscape; margin: 0mm; }
-
-                html, body {
-                    margin: 0 !important;
-                    padding: 0 !important;
-                    width: 100% !important;
-                    min-height: 100% !important;
-                    background: #ffffff !important;
-                    -webkit-print-color-adjust: exact !important;
-                    print-color-adjust: exact !important;
-                }
-
-                body.is-printing-temp > *:not(#print-area-temp) {
-                    display: none !important;
-                    visibility: hidden !important;
-                }
-
-                body.is-printing-temp #print-area-temp,
-                body.is-printing-temp #print-area-temp * {
-                    visibility: visible !important;
-                }
-
-                body.is-printing-temp #print-area-temp,
-                #print-area-temp {
-                    display: block !important;
-                    position: static !important;
-                    left: auto !important;
-                    top: auto !important;
-                    width: 100% !important;
-                    max-width: none !important;
-                    min-width: 0 !important;
-                    min-height: 0 !important;
-                    margin: 0 !important;
-                    padding: 0 !important;
-                    background: #ffffff !important;
-                    overflow: visible !important;
-                    transform: none !important;
-                    zoom: 1 !important;
-                    scale: 1 !important;
-                    z-index: auto !important;
-                }
-
-                #print-area-temp .doc-page,
-                #print-area-temp .safety-print-page,
-                body.is-printing-temp .doc-page,
-                body.is-printing-temp .safety-print-page {
-                    page: safetyPortraitPage !important;
-                    display: flex !important;
-                    flex-direction: column !important;
-                    position: relative !important;
-                    left: auto !important;
-                    top: auto !important;
-                    float: none !important;
-                    clear: both !important;
-                    transform: none !important;
-                    rotate: 0deg !important;
-                    scale: 1 !important;
-                    zoom: 1 !important;
-                    width: 210mm !important;
-                    height: 297mm !important;
-                    min-height: 297mm !important;
-                    max-height: 297mm !important;
-                    max-width: 210mm !important;
-                    margin: 0 auto !important;
-                    box-sizing: border-box !important;
-                    overflow: hidden !important;
-                    background: #ffffff !important;
-                    box-shadow: none !important;
-                    border: 0 !important;
-                    page-break-after: always !important;
-                    break-after: page !important;
-                }
-
-                #print-area-temp .doc-page.landscape,
-                #print-area-temp .doc-page.landscape-force,
-                #print-area-temp .doc-page.manual-test-page,
-                #print-area-temp .doc-page.safety-landscape-page,
-                #print-area-temp .safety-landscape-page,
-                body.is-printing-temp .doc-page.landscape,
-                body.is-printing-temp .doc-page.landscape-force,
-                body.is-printing-temp .doc-page.manual-test-page,
-                body.is-printing-temp .doc-page.safety-landscape-page,
-                body.is-printing-temp .safety-landscape-page {
-                    page: safetyLandscapePage !important;
-                    width: 297mm !important;
-                    height: 210mm !important;
-                    min-height: 210mm !important;
-                    max-height: 210mm !important;
-                    max-width: 297mm !important;
-                }
-
-                #print-area-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page),
-                body.is-printing-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) {
-                    padding: 6mm !important;
-                    font-size: 10.5pt !important;
-                    line-height: 1.22 !important;
-                }
-
-                #print-area-temp .doc-page.landscape:not(.manual-test-page),
-                #print-area-temp .doc-page.safety-landscape-page:not(.manual-test-page),
-                body.is-printing-temp .doc-page.landscape:not(.manual-test-page),
-                body.is-printing-temp .doc-page.safety-landscape-page:not(.manual-test-page) {
-                    padding: 5mm !important;
-                    font-size: 9.7pt !important;
-                    line-height: 1.16 !important;
-                }
-
-                #print-area-temp .doc-page.attestato-front,
-                #print-area-temp .doc-page.attestato-retro,
-                body.is-printing-temp .doc-page.attestato-front,
-                body.is-printing-temp .doc-page.attestato-retro {
-                    display: flex !important;
-                    padding: 7mm !important;
-                    width: 210mm !important;
-                    height: 297mm !important;
-                    min-height: 297mm !important;
-                    max-height: 297mm !important;
-                    max-width: 210mm !important;
-                }
-
-                #print-area-temp .doc-page.manual-test-page,
-                body.is-printing-temp .doc-page.manual-test-page {
-                    padding: 0 !important;
-                    display: block !important;
-                    overflow: hidden !important;
-                }
-
-                #print-area-temp .manual-test-inner,
-                body.is-printing-temp .manual-test-inner {
-                    width: 297mm !important;
-                    height: 210mm !important;
-                    max-height: 210mm !important;
-                    padding: 6mm !important;
-                    box-sizing: border-box !important;
-                    display: flex !important;
-                    flex-direction: column !important;
-                    overflow: hidden !important;
-                }
-
-                #print-area-temp .manual-test-grid,
-                body.is-printing-temp .manual-test-grid {
-                    flex: 1 1 auto !important;
-                    min-height: 0 !important;
-                    display: grid !important;
-                    grid-template-rows: repeat(10, 1fr) !important;
-                    grid-auto-flow: column !important;
-                    grid-auto-columns: 1fr !important;
-                    gap: 1.15mm 2.3mm !important;
-                    overflow: hidden !important;
-                }
-
-                #print-area-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) .text-\[6px\],
-                #print-area-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) .text-\[6\.5px\],
-                #print-area-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) .text-\[7px\],
-                #print-area-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) .text-\[7\.5px\],
-                body.is-printing-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) .text-\[6px\],
-                body.is-printing-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) .text-\[6\.5px\],
-                body.is-printing-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) .text-\[7px\],
-                body.is-printing-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) .text-\[7\.5px\] {
-                    font-size: 7.8pt !important;
-                    line-height: 1.15 !important;
-                }
-
-                #print-area-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) .text-\[8px\],
-                #print-area-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) .text-\[9px\],
-                #print-area-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) .text-\[10px\],
-                #print-area-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) .text-xs,
-                body.is-printing-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) .text-\[8px\],
-                body.is-printing-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) .text-\[9px\],
-                body.is-printing-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) .text-\[10px\],
-                body.is-printing-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) .text-xs {
-                    font-size: 8.8pt !important;
-                    line-height: 1.17 !important;
-                }
-
-                #print-area-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) .text-sm,
-                body.is-printing-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) .text-sm {
-                    font-size: 10pt !important;
-                    line-height: 1.2 !important;
-                }
-
-                #print-area-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) table,
-                body.is-printing-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) table {
-                    width: 100% !important;
-                    max-width: 100% !important;
-                    border-collapse: collapse !important;
-                    font-size: 8.5pt !important;
-                    line-height: 1.12 !important;
-                }
-
-                #print-area-temp .doc-page.landscape:not(.manual-test-page) table,
-                #print-area-temp .doc-page.safety-landscape-page:not(.manual-test-page) table,
-                body.is-printing-temp .doc-page.landscape:not(.manual-test-page) table,
-                body.is-printing-temp .doc-page.safety-landscape-page:not(.manual-test-page) table {
-                    font-size: 8.2pt !important;
-                    line-height: 1.1 !important;
-                }
-
-                #print-area-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) th,
-                #print-area-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) td,
-                body.is-printing-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) th,
-                body.is-printing-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) td {
-                    padding: 1.2mm !important;
-                    line-height: 1.12 !important;
-                    vertical-align: top !important;
-                }
-
-                #print-area-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) h1,
-                body.is-printing-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) h1 {
-                    font-size: 17pt !important;
-                    line-height: 1.05 !important;
-                }
-
-                #print-area-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) h2,
-                body.is-printing-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) h2 {
-                    font-size: 13pt !important;
-                    line-height: 1.08 !important;
-                }
-
-                #print-area-temp .doc-page:not(.attestato-front):not(.attestato-retro) .truncate,
-                body.is-printing-temp .doc-page:not(.attestato-front):not(.attestato-retro) .truncate {
-                    overflow: visible !important;
-                    text-overflow: clip !important;
-                    white-space: normal !important;
-                }
-
-                #print-area-temp .doc-page *,
-                body.is-printing-temp .doc-page * {
-                    transform: none !important;
-                    scale: 1 !important;
-                    zoom: 1 !important;
-                    box-sizing: border-box !important;
-                }
-
-                #print-area-temp .auto-signature-slot,
-                body.is-printing-temp .auto-signature-slot {
-                    display: flex !important;
-                    visibility: visible !important;
-                    min-height: 12mm !important;
-                    page-break-inside: avoid !important;
-                    break-inside: avoid !important;
-                }
-
-                #print-area-temp .auto-signature-img,
-                body.is-printing-temp .auto-signature-img {
-                    display: block !important;
-                    max-width: 42mm !important;
-                    max-height: 13mm !important;
-                    object-fit: contain !important;
-                    visibility: visible !important;
-                }
-
-                #print-area-temp .doc-page:last-child,
-                #print-area-temp .safety-print-page:last-child,
-                body.is-printing-temp .doc-page:last-child,
-                body.is-printing-temp .safety-print-page:last-child {
-                    page-break-after: auto !important;
-                    break-after: auto !important;
-                }
-            }
-        `;
-        document.head.appendChild(style);
+    const isAttestatoPage = (page) => {
+        const txt = String(page?.className || '') + ' ' + String(page?.dataset?.printModule || '');
+        return /attestato/i.test(txt) || page?.classList?.contains('attestato-front') || page?.classList?.contains('attestato-retro');
     };
 
-    const ensurePrintArea = () => {
-        let printArea = document.getElementById('print-area-temp');
-        if (!printArea) {
-            printArea = document.createElement('div');
-            printArea.id = 'print-area-temp';
-            printArea.className = 'hidden';
-            document.body.appendChild(printArea);
-        }
-        return printArea;
-    };
-
-    const getPageModuleName = (page) => {
-        if (!page) return '';
-        return String(page.dataset?.printModule || page.dataset?.moduleId || page.getAttribute?.('data-module') || window.currentPrintModule || '').trim().toLowerCase();
-    };
-
-    const pageLooksLikeLandscape = (page) => {
+    const isLandscapePage = (page) => {
         if (!page || !page.classList) return false;
-        const classText = String(page.className || '');
-        const moduleName = getPageModuleName(page);
-        const textProbe = String(page.innerText || '').slice(0, 1400).toLowerCase();
-        const table = page.querySelector('table');
-        const cols = table ? Math.max(table.querySelectorAll('thead tr:first-child th').length, table.querySelectorAll('tr:first-child th, tr:first-child td').length) : 0;
+        const txt = String(page.className || '') + ' ' + String(page.dataset?.printModule || '');
         return page.classList.contains('landscape') ||
             page.classList.contains('landscape-force') ||
             page.classList.contains('manual-test-page') ||
             page.dataset?.manualTestPage ||
             page.dataset?.registerDayPage ||
-            /landscape/i.test(classText) ||
-            PAGE_MODULE_LANDSCAPE.has(moduleName) ||
-            /registro presenze|firma entrata|firma uscita|scheda rischi|questionario di gradimento|monitoraggio qualità|monitoraggio qualita/.test(textProbe) ||
-            cols >= 6;
+            /registro|landscape|manual-test/i.test(txt);
     };
 
-    const isAttestatoPage = (page) => {
-        if (!page || !page.classList) return false;
-        const classText = String(page.className || '').toLowerCase();
-        const moduleName = getPageModuleName(page);
-        return page.classList.contains('attestato-front') || page.classList.contains('attestato-retro') || moduleName === 'attestato' || classText.includes('attestato');
+    window.injectSafetyPrintCss = function() {
+        if (document.getElementById(PRINT_STYLE_ID)) return;
+        const style = document.createElement('style');
+        style.id = PRINT_STYLE_ID;
+        style.textContent = `
+@media print {
+    @page safetyPortraitFull { size: A4 portrait; margin: 0mm; }
+    @page safetyLandscapeFull { size: A4 landscape; margin: 0mm; }
+
+    body.is-printing-temp { margin: 0 !important; padding: 0 !important; background: #fff !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    body.is-printing-temp nav, body.is-printing-temp aside, body.is-printing-temp main { display: none !important; }
+    body.is-printing-temp #print-area-temp { display: block !important; position: static !important; width: auto !important; height: auto !important; margin: 0 !important; padding: 0 !important; overflow: visible !important; background: #fff !important; }
+
+    body.is-printing-temp #print-area-temp .doc-page:not(.attestato-front):not(.attestato-retro),
+    body.is-printing-temp #print-area-temp .safety-print-page:not(.attestato-front):not(.attestato-retro) {
+        page: safetyPortraitFull !important;
+        width: 210mm !important;
+        height: 297mm !important;
+        min-height: 297mm !important;
+        max-height: 297mm !important;
+        margin: 0 auto !important;
+        padding: 6mm !important;
+        box-sizing: border-box !important;
+        overflow: hidden !important;
+        transform: none !important;
+        zoom: 1 !important;
+        scale: 1 !important;
+        position: relative !important;
+        box-shadow: none !important;
+        border: 0 !important;
+        background: #fff !important;
+        page-break-after: always !important;
+        break-after: page !important;
+        font-size: 9.5pt !important;
+        line-height: 1.22 !important;
+    }
+
+    body.is-printing-temp #print-area-temp .doc-page.landscape,
+    body.is-printing-temp #print-area-temp .doc-page.landscape-force,
+    body.is-printing-temp #print-area-temp .doc-page.manual-test-page,
+    body.is-printing-temp #print-area-temp .doc-page.safety-landscape-page,
+    body.is-printing-temp #print-area-temp .safety-landscape-page {
+        page: safetyLandscapeFull !important;
+        width: 297mm !important;
+        height: 210mm !important;
+        min-height: 210mm !important;
+        max-height: 210mm !important;
+        padding: 5mm !important;
+        font-size: 8.6pt !important;
+        line-height: 1.18 !important;
+    }
+
+    body.is-printing-temp #print-area-temp .doc-page:not(.attestato-front):not(.attestato-retro) .text-\[6px\],
+    body.is-printing-temp #print-area-temp .doc-page:not(.attestato-front):not(.attestato-retro) .text-\[6\.5px\],
+    body.is-printing-temp #print-area-temp .doc-page:not(.attestato-front):not(.attestato-retro) .text-\[7px\] { font-size: 7.6pt !important; line-height: 1.12 !important; }
+    body.is-printing-temp #print-area-temp .doc-page:not(.attestato-front):not(.attestato-retro) .text-\[7\.5px\],
+    body.is-printing-temp #print-area-temp .doc-page:not(.attestato-front):not(.attestato-retro) .text-\[8px\] { font-size: 8.2pt !important; line-height: 1.14 !important; }
+    body.is-printing-temp #print-area-temp .doc-page:not(.attestato-front):not(.attestato-retro) .text-\[9px\] { font-size: 8.8pt !important; line-height: 1.16 !important; }
+    body.is-printing-temp #print-area-temp .doc-page:not(.attestato-front):not(.attestato-retro) .text-\[10px\] { font-size: 9.6pt !important; line-height: 1.16 !important; }
+
+    body.is-printing-temp #print-area-temp table { width: 100% !important; border-collapse: collapse !important; }
+    body.is-printing-temp #print-area-temp th,
+    body.is-printing-temp #print-area-temp td { padding: 1.3mm !important; line-height: 1.13 !important; }
+
+    body.is-printing-temp #print-area-temp .manual-test-inner { width: 287mm !important; height: 200mm !important; padding: 0 !important; box-sizing: border-box !important; display: flex !important; flex-direction: column !important; overflow: hidden !important; }
+    body.is-printing-temp #print-area-temp .manual-test-grid { flex: 1 1 auto !important; min-height: 0 !important; display: grid !important; grid-template-rows: repeat(10, 1fr) !important; grid-auto-flow: column !important; grid-auto-columns: 1fr !important; gap: 1.15mm 2.3mm !important; }
+
+    body.is-printing-temp #print-area-temp .auto-signature-slot { display: flex !important; visibility: visible !important; min-height: 12mm !important; page-break-inside: avoid !important; break-inside: avoid !important; }
+    body.is-printing-temp #print-area-temp .auto-signature-img { display: block !important; max-width: 42mm !important; max-height: 13mm !important; object-fit: contain !important; visibility: visible !important; }
+
+    body.is-printing-temp #print-area-temp .doc-page:last-child,
+    body.is-printing-temp #print-area-temp .safety-print-page:last-child { page-break-after: auto !important; break-after: auto !important; }
+}
+        `;
+        document.head.appendChild(style);
     };
 
-    const normalizePrintDescendants = (page) => {
-        if (!page?.querySelectorAll) return;
-        page.querySelectorAll('.scale-\[0\.8\], .scale-\[0\.7\], .scale-\[0\.6\], .origin-top, [style*="transform"], [style*="zoom"], [style*="scale"]').forEach(el => {
-            if (el.classList) el.classList.remove('scale-[0.8]', 'scale-[0.7]', 'scale-[0.6]', 'origin-top');
-            el.style.transform = 'none';
-            el.style.zoom = '1';
-            el.style.scale = '1';
-            el.style.transformOrigin = 'top left';
-        });
-    };
-
-    const normalizePrintPage = (page, options = {}) => {
+    const normalizePrintPage = (page) => {
         if (!page || !page.classList) return;
-        const moduleId = String(options.moduleId || '').trim();
-        if (moduleId && !page.dataset.printModule) page.dataset.printModule = moduleId;
-
-        const attestato = isAttestatoPage(page);
-        const landscape = !attestato && pageLooksLikeLandscape(page);
-
         page.classList.add('print-show', 'temp-page', 'safety-print-page');
-        page.classList.remove('hidden', 'scale-[0.8]', 'scale-[0.7]', 'scale-[0.6]', 'origin-top');
-        if (landscape) page.classList.add('safety-landscape-page', 'landscape-force');
-        if (!attestato && !page.classList.contains('manual-test-page')) page.classList.add('safety-fullpage-readable');
-
-        page.style.display = page.classList.contains('manual-test-page') ? 'block' : 'flex';
-        if (!page.classList.contains('manual-test-page')) page.style.flexDirection = 'column';
-        page.style.position = 'relative';
-        page.style.left = 'auto';
-        page.style.top = 'auto';
+        page.classList.remove('hidden', 'scale-[0.8]', 'origin-top');
         page.style.transform = 'none';
         page.style.zoom = '1';
         page.style.scale = '1';
-        page.style.float = 'none';
-        page.style.clear = 'both';
+        page.style.position = 'relative';
+        page.style.display = 'block';
         page.style.boxSizing = 'border-box';
         page.style.overflow = 'hidden';
-        page.style.margin = '0 auto';
         page.style.pageBreakAfter = 'always';
         page.style.breakAfter = 'page';
 
-        if (landscape || page.classList.contains('manual-test-page')) {
+        if (isLandscapePage(page)) {
+            page.classList.add('landscape-force', 'safety-landscape-page');
             page.style.width = '297mm';
-            page.style.maxWidth = '297mm';
             page.style.height = '210mm';
             page.style.minHeight = '210mm';
             page.style.maxHeight = '210mm';
-            if (!page.classList.contains('manual-test-page')) page.style.padding = '5mm';
-        } else {
+            page.style.padding = page.classList.contains('manual-test-page') ? '0' : '5mm';
+        } else if (!isAttestatoPage(page)) {
             page.style.width = '210mm';
-            page.style.maxWidth = '210mm';
             page.style.height = '297mm';
             page.style.minHeight = '297mm';
             page.style.maxHeight = '297mm';
-            if (!attestato) page.style.padding = '6mm';
+            page.style.padding = '6mm';
         }
-
-        normalizePrintDescendants(page);
     };
 
-    window.prepareSafetyPrintContainer = function(root = null, options = {}) {
+    window.prepareSafetyPrintContainer = function(root = document) {
         window.injectSafetyPrintCss();
-        const target = root || ensurePrintArea();
-        if (typeof window.applyResolvedSignaturesToContainer === 'function') {
-            try { window.applyResolvedSignaturesToContainer(target); } catch (error) { console.warn('[Stampe] firme non applicate in preparazione', error); }
-        }
-        const pages = Array.from(target.querySelectorAll ? target.querySelectorAll('.doc-page, .safety-print-page') : []);
-        pages.forEach(page => normalizePrintPage(page, options));
+        const target = root && root.querySelectorAll ? root : document;
+        try { window.applyResolvedSignaturesToContainer(target); } catch (error) { console.warn('[Stampe] firme non applicate', error); }
+        const pages = Array.from(target.querySelectorAll('.doc-page, .safety-print-page'));
+        pages.forEach(normalizePrintPage);
         if (pages.length) {
             const last = pages[pages.length - 1];
             last.style.pageBreakAfter = 'auto';
             last.style.breakAfter = 'auto';
         }
-        const stats = {
+        return {
             pages: pages.length,
-            portrait: pages.filter(p => !pageLooksLikeLandscape(p) && !isAttestatoPage(p)).length,
-            landscape: pages.filter(p => pageLooksLikeLandscape(p) && !isAttestatoPage(p)).length,
-            attestati: pages.filter(isAttestatoPage).length,
-            signatures: target.querySelectorAll ? target.querySelectorAll('.auto-signature-slot').length : 0,
-            resolvedSignatures: target.querySelectorAll ? target.querySelectorAll('.auto-signature-slot[data-signature-resolved="yes"]').length : 0
+            portrait: pages.filter(p => !isLandscapePage(p)).length,
+            landscape: pages.filter(isLandscapePage).length,
+            signatures: target.querySelectorAll('.auto-signature-slot').length
         };
-        if (pages.length) console.info('[Stampe] FULL PAGE pronto', stats);
-        return stats;
     };
 
-    const oldWaitForPrintImages = typeof window.waitForPrintImages === 'function' ? window.waitForPrintImages : null;
-    window.waitForPrintImages = async function(root = document, timeoutMs = 3200) {
-        const container = root || document;
+    // La vecchia funzione di stampa chiama già waitForPrintImages(printArea) prima di window.print().
+    // Qui ci limitiamo a preparare il layout e ad attendere poco le immagini: non sovrascriviamo mai window.print().
+    window.waitForPrintImages = async function(root = document, timeoutMs = 1200) {
+        const container = root && root.querySelectorAll ? root : document;
         window.prepareSafetyPrintContainer(container);
-        if (oldWaitForPrintImages && oldWaitForPrintImages !== window.waitForPrintImages) {
-            try { await oldWaitForPrintImages(container); } catch (error) { console.warn('[Stampe] attesa immagini precedente non completata', error); }
-        }
-        const images = Array.from(container.querySelectorAll ? container.querySelectorAll('img') : []).filter(img => img && img.src && !img.complete);
+        const images = Array.from(container.querySelectorAll('img')).filter(img => img && img.src && !img.complete);
         if (!images.length) return true;
         await Promise.race([
             Promise.all(images.map(img => new Promise(resolve => {
@@ -723,160 +444,79 @@
                 img.addEventListener('load', done, { once: true });
                 img.addEventListener('error', done, { once: true });
             }))),
-            new Promise(resolve => setTimeout(resolve, Number(timeoutMs) || 3200))
+            new Promise(resolve => setTimeout(resolve, Number(timeoutMs) || 1200))
         ]);
-        window.prepareSafetyPrintContainer(container);
         return true;
     };
 
-    const wrapBrowserPrint = () => {
-        if (window.print?.__safetyPrintWrapped) return;
-        const originalPrint = window.print.bind(window);
-        const wrappedPrint = function(...args) {
-            try {
-                const printArea = document.getElementById('print-area-temp');
-                if (printArea) window.prepareSafetyPrintContainer(printArea);
-                document.body.classList.add('is-printing-temp');
-            } catch (error) {
-                console.warn('[Stampe] preparazione immediata pre-print non completata', error);
-            }
-            return originalPrint(...args);
-        };
-        wrappedPrint.__safetyPrintWrapped = true;
-        window.print = wrappedPrint;
-    };
-
     const wrapRenderPrintModuleToTemp = () => {
-        if (typeof window.renderPrintModuleToTemp !== 'function' || window.renderPrintModuleToTemp.__signaturesWrapped) return;
+        if (typeof window.renderPrintModuleToTemp !== 'function' || window.renderPrintModuleToTemp.__safetyStableWrapped) return;
         const original = window.renderPrintModuleToTemp;
-        const wrapped = async function(moduleId, ...rest) {
-            const pages = await original.apply(this, [moduleId, ...rest]);
+        const wrapped = async function(...args) {
+            const pages = await original.apply(this, args);
             (pages || []).forEach(p => {
-                if (moduleId && !p.dataset.printModule) p.dataset.printModule = moduleId;
                 window.applyResolvedSignaturesToContainer(p);
-                window.prepareSafetyPrintContainer(p, { moduleId });
+                normalizePrintPage(p);
             });
             return pages;
         };
-        wrapped.__signaturesWrapped = true;
+        wrapped.__safetyStableWrapped = true;
         window.renderPrintModuleToTemp = wrapped;
     };
 
     const wrapRenderAttestatiMultipli = () => {
-        if (typeof window.renderAttestatiMultipli !== 'function' || window.renderAttestatiMultipli.__signaturesWrapped) return;
+        if (typeof window.renderAttestatiMultipli !== 'function' || window.renderAttestatiMultipli.__safetyStableWrapped) return;
         const original = window.renderAttestatiMultipli;
         const wrapped = async function(container, options = {}) {
             const result = await original.apply(this, [container, options]);
-            if (container) {
-                window.applyResolvedSignaturesToContainer(container);
-                window.prepareSafetyPrintContainer(container, { moduleId: 'attestato' });
-            }
+            if (container) window.applyResolvedSignaturesToContainer(container);
             return result;
         };
-        wrapped.__signaturesWrapped = true;
+        wrapped.__safetyStableWrapped = true;
         window.renderAttestatiMultipli = wrapped;
     };
 
     const wrapLoadPrintPreview = () => {
-        if (typeof window.loadPrintPreview !== 'function' || window.loadPrintPreview.__signaturesWrapped) return;
+        if (typeof window.loadPrintPreview !== 'function' || window.loadPrintPreview.__safetyStableWrapped) return;
         const original = window.loadPrintPreview;
         const wrapped = async function(...args) {
             const result = await original.apply(this, args);
             const preview = document.getElementById('print-preview-container');
             if (preview) {
                 window.applyResolvedSignaturesToContainer(preview);
-                window.prepareSafetyPrintContainer(preview);
+                Array.from(preview.querySelectorAll('.doc-page, .safety-print-page')).forEach(normalizePrintPage);
             }
             return result;
         };
-        wrapped.__signaturesWrapped = true;
+        wrapped.__safetyStableWrapped = true;
         window.loadPrintPreview = wrapped;
     };
 
-    const wrapKnownPrintFunction = (name) => {
-        const fn = window[name];
-        if (typeof fn !== 'function' || fn.__safetyPrintStabilized) return;
-        const wrapped = async function(...args) {
-            window.injectSafetyPrintCss();
-            const result = await fn.apply(this, args);
-            const printArea = document.getElementById('print-area-temp');
-            if (printArea) window.prepareSafetyPrintContainer(printArea);
-            return result;
-        };
-        wrapped.__safetyPrintStabilized = true;
-        window[name] = wrapped;
-    };
-
-    const installPrintAreaObserver = () => {
-        const printArea = ensurePrintArea();
-        if (printArea.__safetyPrintObserverInstalled) return;
-        const observer = new MutationObserver(() => {
-            clearTimeout(printArea.__safetyPrintObserverTimer);
-            printArea.__safetyPrintObserverTimer = setTimeout(() => {
-                if (printArea.children.length) window.prepareSafetyPrintContainer(printArea);
-            }, 60);
-        });
-        observer.observe(printArea, { childList: true, subtree: true });
-        printArea.__safetyPrintObserverInstalled = true;
-    };
-
     window.installSafetySignaturePatches = function() {
+        window.injectSafetyPrintCss();
         wrapRenderPrintModuleToTemp();
         wrapRenderAttestatiMultipli();
         wrapLoadPrintPreview();
         window.applyResolvedSignaturesToContainer(document);
     };
 
-    window.installSafetyPrintStabilizer = function() {
-        window.injectSafetyPrintCss();
-        wrapBrowserPrint();
-        installPrintAreaObserver();
-        [
-            'stampaFascicoloCompletoPDF',
-            'stampaAttestatiProgetto',
-            'stampaAttestatoCorsista',
-            'stampaSoloAttestatiPDF',
-            'stampaModuloProgettoRapido',
-            'stampaProgettoFormativoDaProgetto'
-        ].forEach(wrapKnownPrintFunction);
-        const printArea = document.getElementById('print-area-temp');
-        if (printArea && printArea.children.length) window.prepareSafetyPrintContainer(printArea);
-    };
-
     window.auditSafetyPrint = function(root = document) {
-        const target = root || document;
-        const pages = Array.from(target.querySelectorAll ? target.querySelectorAll('.doc-page, .safety-print-page') : []);
+        const target = root && root.querySelectorAll ? root : document;
+        const pages = Array.from(target.querySelectorAll('.doc-page, .safety-print-page'));
         const report = {
             pages: pages.length,
-            portrait: pages.filter(p => !pageLooksLikeLandscape(p) && !isAttestatoPage(p)).length,
-            landscape: pages.filter(p => pageLooksLikeLandscape(p) && !isAttestatoPage(p)).length,
-            attestati: pages.filter(isAttestatoPage).length,
-            manualTests: pages.filter(p => p.dataset?.manualTestPage).length,
-            signatures: target.querySelectorAll ? target.querySelectorAll('.auto-signature-slot').length : 0,
-            resolvedSignatures: target.querySelectorAll ? target.querySelectorAll('.auto-signature-slot[data-signature-resolved="yes"]').length : 0,
-            emptySignatureSlots: target.querySelectorAll ? target.querySelectorAll('.auto-signature-slot[data-signature-resolved="no"], .auto-signature-slot[data-signature-resolved="load-error"]').length : 0
+            portrait: pages.filter(p => !isLandscapePage(p)).length,
+            landscape: pages.filter(isLandscapePage).length,
+            signatures: target.querySelectorAll('.auto-signature-slot').length,
+            resolvedSignatures: target.querySelectorAll('.auto-signature-slot[data-signature-resolved="yes"]').length,
+            emptySignatureSlots: target.querySelectorAll('.auto-signature-slot[data-signature-resolved="no"], .auto-signature-slot[data-signature-resolved="load-error"]').length
         };
-        console.info('[Stampe] audit FULL PAGE', report);
+        console.info('[Stampe] audit', report);
         return report;
     };
 
-    window.addEventListener('beforeprint', () => {
-        const printArea = document.getElementById('print-area-temp');
-        if (printArea) window.prepareSafetyPrintContainer(printArea);
-        document.body.classList.add('is-printing-temp');
-    });
-
-    window.addEventListener('afterprint', () => {
-        setTimeout(() => document.body.classList.remove('is-printing-temp'), 250);
-    });
-
-    const installAll = () => {
-        window.installSafetySignaturePatches();
-        window.installSafetyPrintStabilizer();
-    };
-
-    installAll();
-    setTimeout(installAll, 0);
-    setTimeout(installAll, 500);
-    setTimeout(installAll, 1500);
+    window.installSafetySignaturePatches();
+    setTimeout(window.installSafetySignaturePatches, 0);
+    setTimeout(window.installSafetySignaturePatches, 500);
+    setTimeout(window.installSafetySignaturePatches, 1500);
 })();
