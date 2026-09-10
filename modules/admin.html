@@ -1,102 +1,147 @@
 <div class="w-full max-w-7xl mx-auto mt-4 mb-10">
-    <div class="border-b-2 border-slate-900 pb-3 mb-6">
-        <h1 class="text-3xl font-black uppercase text-slate-900 tracking-tighter flex items-center gap-3">
-            <i data-lucide="layout-dashboard" class="w-8 h-8 text-blue-600"></i> Dashboard
-        </h1>
-        <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Pannello di controllo principale</p>
-    </div>
+    <img alt="" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==" class="hidden" onload="window.loadOptionalSafetyScript && window.loadOptionalSafetyScript('js/modules/dashboard_pro.js').then(function(){ setTimeout(function(){ if(window.loadDashboardStats) window.loadDashboardStats(); }, 80); });">
 
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center gap-4 cursor-pointer hover:shadow-md transition" onclick="window.loadModule('aziende')">
-            <div class="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center"><i data-lucide="briefcase"></i></div>
-            <div>
-                <p class="text-[10px] font-bold text-slate-500 uppercase">Aziende</p>
-                <p class="text-2xl font-black text-slate-800" id="dash-aziende">0</p>
-            </div>
-        </div>
-        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center gap-4 cursor-pointer hover:shadow-md transition" onclick="window.loadModule('corsisti')">
-            <div class="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center"><i data-lucide="users"></i></div>
-            <div>
-                <p class="text-[10px] font-bold text-slate-500 uppercase">Corsisti</p>
-                <p class="text-2xl font-black text-slate-800" id="dash-corsisti">0</p>
-            </div>
-        </div>
-        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center gap-4 cursor-pointer hover:shadow-md transition" onclick="window.loadModule('docenti')">
-            <div class="w-12 h-12 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center"><i data-lucide="graduation-cap"></i></div>
-            <div>
-                <p class="text-[10px] font-bold text-slate-500 uppercase">Docenti</p>
-                <p class="text-2xl font-black text-slate-800" id="dash-docenti">0</p>
-            </div>
-        </div>
-        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center gap-4 cursor-pointer hover:shadow-md transition" onclick="window.loadModule('progetti')">
-            <div class="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center"><i data-lucide="layout-template"></i></div>
-            <div>
-                <p class="text-[10px] font-bold text-slate-500 uppercase">Progetti Formativi</p>
-                <p class="text-2xl font-black text-slate-800" id="dash-progetti">0</p>
-            </div>
-        </div>
-    </div>
-<div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-8">
-        <h2 class="font-black text-sm uppercase text-slate-800 mb-4 border-b border-slate-100 pb-2">Azioni Rapide</h2>
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <button onclick="const box=document.getElementById('dashboard-raccolta-errori'); if(box){box.open=true; requestAnimationFrame(()=>box.scrollIntoView({behavior:'smooth', block:'start'}));}" class="p-4 border border-red-200 bg-red-50 rounded-lg hover:bg-red-100 transition text-center group shadow-sm" title="Apri la raccolta errori">
-                <i data-lucide="bug" class="w-8 h-8 mx-auto mb-2 text-red-500 group-hover:text-red-700 transition-colors"></i>
-                <span class="text-xs font-bold text-red-800 uppercase">Raccolta Errori</span>
-            </button>
-            <button onclick="window.loadModule('progetti')" class="p-4 border border-slate-200 rounded-lg hover:bg-slate-50 transition text-center group">
-                <i data-lucide="plus-circle" class="w-8 h-8 mx-auto mb-2 text-slate-400 group-hover:text-rose-500 transition-colors"></i>
-                <span class="text-xs font-bold text-slate-700 uppercase">Nuovo Corso</span>
-            </button>
-            <button onclick="window.loadModule('corsisti')" class="p-4 border border-slate-200 rounded-lg hover:bg-slate-50 transition text-center group">
-                <i data-lucide="user-plus" class="w-8 h-8 mx-auto mb-2 text-slate-400 group-hover:text-emerald-500 transition-colors"></i>
-                <span class="text-xs font-bold text-slate-700 uppercase">Nuovo Allievo</span>
-            </button>
-            <button onclick="window.loadModule('scadenze')" class="p-4 border border-slate-200 rounded-lg hover:bg-slate-50 transition text-center group">
-                <i data-lucide="bell-ring" class="w-8 h-8 mx-auto mb-2 text-slate-400 group-hover:text-red-500 transition-colors"></i>
-                <span class="text-xs font-bold text-slate-700 uppercase">Vedi Scadenze</span>
-            </button>
-            
-            <button onclick="window.loadModule('archivio_corsi')" class="p-4 border border-blue-200 bg-blue-50 rounded-lg hover:bg-blue-100 transition text-center group shadow-sm">
-                <i data-lucide="folders" class="w-8 h-8 mx-auto mb-2 text-blue-500 group-hover:text-blue-600 transition-colors"></i>
-                <span class="text-xs font-bold text-blue-800 uppercase">Archivio Imprese</span>
-            </button>
-
-            <button onclick="window.loadModule('kit_cliente')" class="p-4 border border-emerald-200 bg-emerald-50 rounded-lg hover:bg-emerald-100 transition text-center group shadow-sm">
-                <i data-lucide="sheet" class="w-8 h-8 mx-auto mb-2 text-emerald-600 group-hover:text-emerald-700 transition-colors"></i>
-                <span class="text-xs font-bold text-emerald-900 uppercase">Kit Cliente XLSX</span>
-            </button>
-
-            <button onclick="window.loadModule('migrazione')" class="p-4 border border-amber-200 bg-amber-50 rounded-lg hover:bg-amber-100 transition text-center group shadow-sm">
-                <i data-lucide="database-zap" class="w-8 h-8 mx-auto mb-2 text-amber-500 group-hover:text-amber-600 transition-colors"></i>
-                <span class="text-xs font-bold text-amber-800 uppercase">Migrazione Dati</span>
-            </button>
-
-<button onclick="window.loadModule('collaudo')" class="p-4 border border-emerald-200 bg-emerald-50 rounded-lg hover:bg-emerald-100 transition text-center group shadow-sm">
-    <i data-lucide="shield-check" class="w-8 h-8 mx-auto mb-2 text-emerald-500 group-hover:text-emerald-600 transition-colors"></i>
-    <span class="text-xs font-bold text-emerald-800 uppercase">Collaudo Sistema</span>
-</button>
-
-        </div>
-    </div>
-
-<details id="dashboard-raccolta-errori" class="dashboard-errors-panel bg-white rounded-xl shadow-sm border border-rose-200 overflow-hidden mb-8">
-    <summary class="dashboard-errors-summary cursor-pointer list-none p-4 bg-rose-50 hover:bg-rose-100 transition flex items-center justify-between gap-4">
-        <div class="flex items-center gap-3 min-w-0">
-            <span class="w-9 h-9 shrink-0 rounded-full bg-white border border-rose-200 text-rose-700 flex items-center justify-center">
-                <i data-lucide="bug" class="w-4 h-4"></i>
-            </span>
+    <div class="bg-slate-900 rounded-3xl shadow-xl border border-slate-800 overflow-hidden mb-6">
+        <div class="p-6 md:p-8 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-6">
             <div class="min-w-0">
-                <h2 class="font-black text-sm uppercase text-rose-900">Raccolta errori e correzioni da effettuare</h2>
-                <p class="text-[9px] font-bold text-rose-700 uppercase tracking-widest mt-1">Messaggi nascosti: clicca per consultare o richiudere la sezione</p>
+                <div class="inline-flex items-center gap-2 rounded-full bg-emerald-400/10 border border-emerald-400/20 px-3 py-1 mb-4">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                    <span class="text-[10px] font-black uppercase tracking-widest text-emerald-200">Sistema operativo</span>
+                </div>
+                <h1 class="text-3xl md:text-4xl font-black uppercase text-white tracking-tighter flex items-center gap-3">
+                    <i data-lucide="layout-dashboard" class="w-8 h-8 text-blue-300"></i> Dashboard
+                </h1>
+                <p class="text-sm text-slate-300 mt-2 max-w-3xl leading-relaxed">
+                    Pannello di controllo principale per corsi, stampe, scadenze, backup e controlli minimi prima della chiusura dei fascicoli.
+                </p>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 xl:min-w-[520px]">
+                <button onclick="window.loadModule('progetti')" class="rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10 p-4 text-left transition">
+                    <p class="text-[9px] font-black uppercase tracking-widest text-slate-400">Progetti</p>
+                    <p id="dash-progetti" class="text-2xl font-black text-white mt-1">0</p>
+                </button>
+                <button onclick="window.loadModule('aziende')" class="rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10 p-4 text-left transition">
+                    <p class="text-[9px] font-black uppercase tracking-widest text-slate-400">Aziende</p>
+                    <p id="dash-aziende" class="text-2xl font-black text-white mt-1">0</p>
+                </button>
+                <button onclick="window.loadModule('corsisti')" class="rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10 p-4 text-left transition">
+                    <p class="text-[9px] font-black uppercase tracking-widest text-slate-400">Corsisti</p>
+                    <p id="dash-corsisti" class="text-2xl font-black text-white mt-1">0</p>
+                </button>
+                <button onclick="window.loadModule('docenti')" class="rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10 p-4 text-left transition">
+                    <p class="text-[9px] font-black uppercase tracking-widest text-slate-400">Docenti</p>
+                    <p id="dash-docenti" class="text-2xl font-black text-white mt-1">0</p>
+                </button>
             </div>
         </div>
-        <div class="flex items-center gap-2 shrink-0">
-            <span id="dash-progetti-formativi-badge" class="px-2 py-1 rounded-full bg-slate-200 text-slate-700 text-[9px] font-black uppercase">Check</span>
-            <i data-lucide="chevron-down" class="dashboard-errors-chevron w-5 h-5 text-rose-700 transition-transform"></i>
-        </div>
-    </summary>
-    <div id="dash-progetti-formativi-checks" class="p-4 text-xs text-slate-500 border-t border-rose-100 min-h-[120px]">
-        Caricamento verifiche...
     </div>
-</details>
+
+    <div id="dash-operational-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 animate-pulse h-36"></div>
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 animate-pulse h-36"></div>
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 animate-pulse h-36"></div>
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 animate-pulse h-36"></div>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
+        <div class="xl:col-span-2 bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                    <h2 class="font-black text-sm uppercase text-slate-900 tracking-tight flex items-center gap-2">
+                        <i data-lucide="list-checks" class="w-5 h-5 text-blue-600"></i> Da fare ora
+                    </h2>
+                    <p class="text-[11px] text-slate-500 mt-1">Priorità operative calcolate sui corsi presenti.</p>
+                </div>
+                <button onclick="window.loadModule('progetti')" class="bg-slate-900 hover:bg-slate-800 text-white rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest transition">Gestisci progetti</button>
+            </div>
+            <div id="dash-action-plan" class="p-5 space-y-3 min-h-[220px]">
+                <div class="text-center text-slate-400 py-8"><i data-lucide="loader-2" class="w-5 h-5 animate-spin mx-auto mb-2"></i> Caricamento priorità...</div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="p-5 border-b border-slate-100">
+                <h2 class="font-black text-sm uppercase text-slate-900 tracking-tight flex items-center gap-2">
+                    <i data-lucide="zap" class="w-5 h-5 text-amber-500"></i> Azioni rapide
+                </h2>
+                <p class="text-[11px] text-slate-500 mt-1">Percorsi più usati per lavorare veloce.</p>
+            </div>
+            <div class="p-5 grid grid-cols-2 gap-3">
+                <button onclick="window.loadModule('progetti')" class="p-4 rounded-2xl border border-rose-200 bg-rose-50 hover:bg-rose-100 transition text-center group">
+                    <i data-lucide="plus-circle" class="w-7 h-7 mx-auto mb-2 text-rose-600"></i>
+                    <span class="text-[10px] font-black text-rose-900 uppercase tracking-widest">Nuovo corso</span>
+                </button>
+                <button onclick="window.loadModule('stampe')" class="p-4 rounded-2xl border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 transition text-center group">
+                    <i data-lucide="printer" class="w-7 h-7 mx-auto mb-2 text-indigo-600"></i>
+                    <span class="text-[10px] font-black text-indigo-900 uppercase tracking-widest">Centro stampe</span>
+                </button>
+                <button onclick="window.loadModule('scadenze')" class="p-4 rounded-2xl border border-red-200 bg-red-50 hover:bg-red-100 transition text-center group">
+                    <i data-lucide="bell-ring" class="w-7 h-7 mx-auto mb-2 text-red-600"></i>
+                    <span class="text-[10px] font-black text-red-900 uppercase tracking-widest">Scadenze</span>
+                </button>
+                <button onclick="window.loadModule('migrazione')" class="p-4 rounded-2xl border border-amber-200 bg-amber-50 hover:bg-amber-100 transition text-center group">
+                    <i data-lucide="database" class="w-7 h-7 mx-auto mb-2 text-amber-600"></i>
+                    <span class="text-[10px] font-black text-amber-900 uppercase tracking-widest">Backup</span>
+                </button>
+                <button onclick="window.loadModule('archivio_corsi')" class="p-4 rounded-2xl border border-blue-200 bg-blue-50 hover:bg-blue-100 transition text-center group">
+                    <i data-lucide="archive" class="w-7 h-7 mx-auto mb-2 text-blue-600"></i>
+                    <span class="text-[10px] font-black text-blue-900 uppercase tracking-widest">Archivio</span>
+                </button>
+                <button onclick="window.loadModule('kit_cliente')" class="p-4 rounded-2xl border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 transition text-center group">
+                    <i data-lucide="sheet" class="w-7 h-7 mx-auto mb-2 text-emerald-600"></i>
+                    <span class="text-[10px] font-black text-emerald-900 uppercase tracking-widest">Kit XLSX</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
+        <div class="xl:col-span-2 bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                    <h2 class="font-black text-sm uppercase text-slate-900 tracking-tight flex items-center gap-2">
+                        <i data-lucide="table" class="w-5 h-5 text-slate-700"></i> Corsi operativi
+                    </h2>
+                    <p class="text-[11px] text-slate-500 mt-1">Ultimi corsi ordinati per priorità: da chiudere, incompleti, pronti stampa.</p>
+                </div>
+                <button onclick="window.loadModule('archivio_corsi')" class="bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-100 rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest transition">Vai all'archivio</button>
+            </div>
+            <div id="dash-projects-overview" class="min-h-[260px]">
+                <div class="text-center text-slate-400 py-10"><i data-lucide="loader-2" class="w-5 h-5 animate-spin mx-auto mb-2"></i> Caricamento corsi...</div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="p-5 border-b border-slate-100">
+                <h2 class="font-black text-sm uppercase text-slate-900 tracking-tight flex items-center gap-2">
+                    <i data-lucide="shield-check" class="w-5 h-5 text-emerald-600"></i> Stato sistema
+                </h2>
+                <p class="text-[11px] text-slate-500 mt-1">Controlli rapidi su database, stampe e backup.</p>
+            </div>
+            <div id="dash-system-health" class="p-5 min-h-[220px]">
+                <div class="text-center text-slate-400 py-8"><i data-lucide="loader-2" class="w-5 h-5 animate-spin mx-auto mb-2"></i> Verifica sistema...</div>
+            </div>
+        </div>
+    </div>
+
+    <details id="dashboard-raccolta-errori" class="dashboard-errors-panel bg-white rounded-3xl shadow-sm border border-rose-200 overflow-hidden mb-8">
+        <summary class="dashboard-errors-summary cursor-pointer list-none p-5 bg-rose-50 hover:bg-rose-100 transition flex items-center justify-between gap-4">
+            <div class="flex items-center gap-3 min-w-0">
+                <span class="w-10 h-10 shrink-0 rounded-2xl bg-white border border-rose-200 text-rose-700 flex items-center justify-center">
+                    <i data-lucide="bug" class="w-4 h-4"></i>
+                </span>
+                <div class="min-w-0">
+                    <h2 class="font-black text-sm uppercase text-rose-900">Raccolta errori e controlli approfonditi</h2>
+                    <p class="text-[10px] font-bold text-rose-700 uppercase tracking-widest mt-1">Sezione secondaria: aprila solo quando vuoi vedere i dettagli dei controlli automatici.</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+                <span id="dash-progetti-formativi-badge" class="px-2 py-1 rounded-full bg-slate-200 text-slate-700 text-[9px] font-black uppercase">Check</span>
+                <i data-lucide="chevron-down" class="dashboard-errors-chevron w-5 h-5 text-rose-700 transition-transform"></i>
+            </div>
+        </summary>
+        <div id="dash-progetti-formativi-checks" class="p-5 text-xs text-slate-500 border-t border-rose-100 min-h-[120px]">
+            Caricamento verifiche...
+        </div>
+    </details>
 </div>
