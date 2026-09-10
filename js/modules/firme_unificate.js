@@ -1,7 +1,7 @@
 // Step firme + stampe - versione stabile A4 5mm
 // Regola utente: se la firma non è disponibile o il file non è caricabile, lo slot resta visibile e vuoto.
-// Regola stampa: attestati invariati; tutti gli altri documenti usano A4 con margini 0,5 cm.
-// Test e registri: contenuto disposto orizzontalmente dentro una pagina A4 verticale, senza miniaturizzazione.
+// Regola stampa: attestati invariati; tutti gli altri documenti usano A4 verticale con margini 0,5 cm.
+// Test e registri: contenuto largo ruotato dentro pagina A4 verticale. Test manuali e correttori: 30 domande su 2 colonne.
 
 (function() {
     if (window.__safetyUnifiedSignaturesLoaded) return;
@@ -288,7 +288,7 @@
     // ================================
     // STAMPE: A4 portrait 5 mm; registri/test ruotati dentro A4 verticale
     // ================================
-    const PRINT_STYLE_ID = 'safety-print-a4-5mm-v3';
+    const PRINT_STYLE_ID = 'safety-print-a4-5mm-v4-two-columns';
     const A4_W = '210mm';
     const A4_H = '297mm';
     const PRINT_MARGIN = '5mm';
@@ -307,8 +307,9 @@
     ].join(' ');
 
     const isAttestatoPage = (page) => {
-        const txt = String(pageDescriptor(page));
-        return /attestato/i.test(txt) ||
+        const classText = String(page?.className || '');
+        const moduleText = String(page?.dataset?.printModule || '');
+        return /attestato/i.test(classText) || /attestato/i.test(moduleText) ||
             page?.classList?.contains('attestato-front') ||
             page?.classList?.contains('attestato-retro');
     };
@@ -459,15 +460,15 @@
     }
 
     body.is-printing-temp #print-area-temp .safety-wide-portrait-page[data-safety-wide-kind="test"] .safety-wide-rotated-content {
-        font-size: 7.8pt !important;
-        line-height: 1.09 !important;
+        font-size: 7.4pt !important;
+        line-height: 1.06 !important;
     }
 
     body.is-printing-temp #print-area-temp .safety-wide-portrait-page[data-safety-wide-kind="test"] .manual-test-inner {
         width: ${WIDE_W} !important;
         height: ${WIDE_H} !important;
         max-height: ${WIDE_H} !important;
-        padding: 3.5mm !important;
+        padding: 3mm !important;
         box-sizing: border-box !important;
         display: flex !important;
         flex-direction: column !important;
@@ -478,18 +479,26 @@
         flex: 1 1 auto !important;
         min-height: 0 !important;
         display: grid !important;
-        grid-template-rows: repeat(10, 1fr) !important;
+        grid-template-rows: repeat(15, minmax(0, 1fr)) !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
         grid-auto-flow: column !important;
-        grid-auto-columns: 1fr !important;
-        gap: 1mm 2mm !important;
+        grid-auto-columns: minmax(0, 1fr) !important;
+        gap: 0.7mm 2.2mm !important;
         overflow: hidden !important;
     }
 
     body.is-printing-temp #print-area-temp .safety-wide-portrait-page[data-safety-wide-kind="test"] .manual-test-question {
         overflow: hidden !important;
         box-sizing: border-box !important;
-        font-size: 7.2pt !important;
-        line-height: 1.06 !important;
+        font-size: 6.35pt !important;
+        line-height: 1.02 !important;
+        padding: 0.55mm !important;
+    }
+
+    body.is-printing-temp #print-area-temp .safety-wide-portrait-page[data-safety-wide-kind="test"] .manual-test-question * {
+        line-height: 1.02 !important;
+        margin-top: 0 !important;
+        margin-bottom: 0 !important;
     }
 
     body.is-printing-temp #print-area-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.safety-wide-portrait-page) table {
@@ -561,6 +570,38 @@
         page.style.breakAfter = 'page';
     };
 
+    const normalizeManualTestGrid = (root) => {
+        const target = root && root.querySelectorAll ? root : document;
+        target.querySelectorAll('.manual-test-inner').forEach(inner => {
+            inner.style.width = WIDE_W;
+            inner.style.height = WIDE_H;
+            inner.style.maxHeight = WIDE_H;
+            inner.style.padding = '3mm';
+            inner.style.boxSizing = 'border-box';
+            inner.style.display = 'flex';
+            inner.style.flexDirection = 'column';
+            inner.style.overflow = 'hidden';
+        });
+        target.querySelectorAll('.manual-test-grid').forEach(grid => {
+            grid.style.flex = '1 1 auto';
+            grid.style.minHeight = '0';
+            grid.style.display = 'grid';
+            grid.style.gridTemplateRows = 'repeat(15, minmax(0, 1fr))';
+            grid.style.gridTemplateColumns = 'repeat(2, minmax(0, 1fr))';
+            grid.style.gridAutoFlow = 'column';
+            grid.style.gridAutoColumns = 'minmax(0, 1fr)';
+            grid.style.gap = '0.7mm 2.2mm';
+            grid.style.overflow = 'hidden';
+        });
+        target.querySelectorAll('.manual-test-question').forEach(q => {
+            q.style.overflow = 'hidden';
+            q.style.boxSizing = 'border-box';
+            q.style.fontSize = '6.35pt';
+            q.style.lineHeight = '1.02';
+            q.style.padding = '0.55mm';
+        });
+    };
+
     const ensureWideRotatedWrapper = (page) => {
         if (!page || !page.classList) return;
         const kind = isRegistroPage(page) ? 'registro' : 'test';
@@ -594,9 +635,14 @@
         wrapper.style.transformOrigin = 'top left';
         wrapper.style.transform = `rotate(90deg) translateY(-${WIDE_H})`;
         wrapper.style.background = '#fff';
+
         if (kind === 'registro') {
             wrapper.style.fontSize = '7.6pt';
             wrapper.style.lineHeight = '1.08';
+        } else {
+            wrapper.style.fontSize = '7.4pt';
+            wrapper.style.lineHeight = '1.06';
+            normalizeManualTestGrid(wrapper);
         }
     };
 
@@ -625,6 +671,7 @@
         try { window.applyResolvedSignaturesToContainer(target); } catch (error) { console.warn('[Stampe] firme non applicate', error); }
         const pages = Array.from(target.querySelectorAll('.doc-page, .safety-print-page'));
         pages.forEach(normalizePrintPage);
+        normalizeManualTestGrid(target);
         if (pages.length) {
             const last = pages[pages.length - 1];
             last.style.pageBreakAfter = 'auto';
@@ -634,10 +681,12 @@
             pages: pages.length,
             a4Portrait: pages.filter(p => !isAttestatoPage(p)).length,
             rotatedWide: pages.filter(isWidePage).length,
+            registri: pages.filter(isRegistroPage).length,
+            test: pages.filter(isManualTestPage).length,
             attestatiUntouched: pages.filter(isAttestatoPage).length,
             signatures: target.querySelectorAll('.auto-signature-slot').length
         };
-        if (pages.length) console.info('[Stampe] A4 5mm preparato', report);
+        if (pages.length) console.info('[Stampe] A4 5mm preparato - test 2 colonne', report);
         return report;
     };
 
@@ -694,6 +743,7 @@
             if (preview) {
                 window.applyResolvedSignaturesToContainer(preview);
                 Array.from(preview.querySelectorAll('.doc-page, .safety-print-page')).forEach(normalizePrintPage);
+                normalizeManualTestGrid(preview);
             }
             return result;
         };
@@ -719,11 +769,14 @@
             registri: pages.filter(isRegistroPage).length,
             test: pages.filter(isManualTestPage).length,
             attestatiUntouched: pages.filter(isAttestatoPage).length,
+            testQuestions: target.querySelectorAll('.manual-test-question').length,
+            testColumns: 2,
+            testRows: 15,
             signatures: target.querySelectorAll('.auto-signature-slot').length,
             resolvedSignatures: target.querySelectorAll('.auto-signature-slot[data-signature-resolved="yes"]').length,
             emptySignatureSlots: target.querySelectorAll('.auto-signature-slot[data-signature-resolved="no"], .auto-signature-slot[data-signature-resolved="load-error"]').length
         };
-        console.info('[Stampe] audit A4 5mm', report);
+        console.info('[Stampe] audit A4 5mm test 2 colonne', report);
         return report;
     };
 
