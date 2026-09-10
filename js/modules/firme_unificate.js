@@ -1,8 +1,6 @@
-// Step firme + stampe - risolutore unico firme e stabilizzazione PDF
-// Regola utente: se la firma non è disponibile o il file non è caricabile, lo slot resta visibile e vuoto.
-// Fix doppie firme: quando uno slot contiene più nominativi, le firme note vengono renderizzate affiancate.
-// Fix ruolo: Berardino Pesce può firmare anche come Responsabile del Corso.
-// Step stampe: prepara in modo centralizzato anteprime, PDF unico, attestati e pagine portrait/landscape.
+// Step firme + stampe FULL PAGE - risolutore firme, slot firma sempre presenti e stampe leggibili
+// Regola utente: se la firma non è disponibile o non è caricabile, lo slot firma resta visibile, vuoto, con indicazione del firmatario.
+// Step stampe: tutti i documenti non-attestato vengono normalizzati a pagina A4 piena, portrait o landscape, senza miniature/scale/zoom.
 
 (function() {
     if (window.__safetyUnifiedSignaturesLoaded) return;
@@ -13,30 +11,18 @@
             src: 'assets/firme/firma_berardino_pesce.png',
             names: ['pesce berardino', 'berardino pesce'],
             roles: [
-                'docente',
-                'formatore',
-                'docente formatore',
-                'resp_progetto',
-                'responsabile progetto',
-                'responsabile progetto formativo',
-                'resp_corso',
-                'responsabile corso',
-                'responsabile del corso',
-                'legale',
-                'legale_rappresentante',
-                'legale rappresentante'
+                'docente', 'formatore', 'docente formatore',
+                'resp_progetto', 'responsabile progetto', 'responsabile progetto formativo',
+                'resp_corso', 'responsabile corso', 'responsabile del corso',
+                'legale', 'legale_rappresentante', 'legale rappresentante'
             ]
         },
         {
             src: 'assets/firme/firma_centrella_alberto.png',
             names: ['centrella alberto', 'alberto centrella'],
             roles: [
-                'docente',
-                'formatore',
-                'docente formatore',
-                'resp_corso',
-                'responsabile corso',
-                'responsabile del corso'
+                'docente', 'formatore', 'docente formatore',
+                'resp_corso', 'responsabile corso', 'responsabile del corso'
             ]
         }
     ];
@@ -158,23 +144,14 @@
         const out = [];
         const source = norm(text);
         if (!source) return out;
-
         STATIC_SIGNATURES.forEach(item => {
             const roleOk = item.roles.some(r => roleMatches(r, role));
             if (!roleOk || !isLoadableSignatureSrc(item.src)) return;
-
             const matchedName = item.names.find(name => {
                 const n = norm(name);
                 return source === n || source.includes(n);
             });
-            if (matchedName) {
-                uniquePush(out, {
-                    src: item.src,
-                    source: 'asset-statico',
-                    name: matchedName,
-                    role: roleKey(role)
-                });
-            }
+            if (matchedName) uniquePush(out, { src: item.src, source: 'asset-statico', name: matchedName, role: roleKey(role) });
         });
         return out;
     };
@@ -185,12 +162,7 @@
             const docente = findDocente(name);
             const docenteSrc = first(docente?.firma_docente_url, docente?.firma_url, docente?.firma);
             if (docente && isLoadableSignatureSrc(docenteSrc)) {
-                uniquePush(out, {
-                    src: docenteSrc,
-                    source: 'docente-db',
-                    name: docente?.nome_cognome || docente?.nome || name,
-                    role: roleKey(role)
-                });
+                uniquePush(out, { src: docenteSrc, source: 'docente-db', name: docente?.nome_cognome || docente?.nome || name, role: roleKey(role) });
             }
         });
         return out;
@@ -205,32 +177,15 @@
         const signatures = [];
 
         if (rk === 'legale') {
-            const legalSrc = first(
-                ente.legale_firma_url,
-                ente.firma_legale_url,
-                appValue('ente-legale-firma-url', 'cfg-legale-firma-url', 'legale_firma_url')
-            );
-            if (isLoadableSignatureSrc(legalSrc)) {
-                uniquePush(signatures, { src: legalSrc, source: 'ente-db', name: signerName, role: rk });
-            }
+            const legalSrc = first(ente.legale_firma_url, ente.firma_legale_url, appValue('ente-legale-firma-url', 'cfg-legale-firma-url', 'legale_firma_url'));
+            if (isLoadableSignatureSrc(legalSrc)) uniquePush(signatures, { src: legalSrc, source: 'ente-db', name: signerName, role: rk });
         }
 
         resolveDbDocenteSignatures(signerParts.length ? signerParts : [signerName], rk).forEach(s => uniquePush(signatures, s));
-
-        searchTexts.forEach(text => {
-            resolveStaticSignatures(text, rk).forEach(s => uniquePush(signatures, s));
-        });
+        searchTexts.forEach(text => resolveStaticSignatures(text, rk).forEach(s => uniquePush(signatures, s)));
 
         const firstSignature = signatures[0] || null;
-        return {
-            src: firstSignature?.src || '',
-            signatures,
-            source: firstSignature?.source || 'empty-slot',
-            name: signerName,
-            role: rk,
-            documentName,
-            multi: signatures.length > 1
-        };
+        return { src: firstSignature?.src || '', signatures, source: firstSignature?.source || 'empty-slot', name: signerName, role: rk, documentName, multi: signatures.length > 1 };
     };
 
     window.getAutoSignaturePathByNameAndRole = function(name, role, context = {}) {
@@ -245,12 +200,7 @@
         let el = selector ? block.querySelector(selector) : null;
         if (!el && selector && page?.querySelector) el = page.querySelector(selector);
         if (!el && selector) el = document.querySelector(selector);
-        return first(
-            el?.textContent,
-            el?.innerText,
-            slot.getAttribute('data-signature-name'),
-            fallbackNameForRole(slot.getAttribute('data-signature-role') || '')
-        );
+        return first(el?.textContent, el?.innerText, slot.getAttribute('data-signature-name'), fallbackNameForRole(slot.getAttribute('data-signature-role') || ''));
     };
 
     const renderEmptySignatureSlot = (slot, info = {}) => {
@@ -276,9 +226,7 @@
 
         if (!signatures.length) {
             if (Array.isArray(signaturePath)) {
-                signatures = signaturePath
-                    .filter(isLoadableSignatureSrc)
-                    .map(src => ({ src, name, role: rk, source: 'direct-array' }));
+                signatures = signaturePath.filter(isLoadableSignatureSrc).map(src => ({ src, name, role: rk, source: 'direct-array' }));
             } else if (isLoadableSignatureSrc(signaturePath)) {
                 signatures = [{ src: signaturePath, name, role: rk, source: meta.source || 'direct' }];
             }
@@ -290,9 +238,7 @@
         slot.dataset.signatureName = name || '';
         slot.dataset.signatureResolved = signatures.length ? 'yes' : 'no';
         slot.dataset.signatureCount = String(signatures.length);
-        slot.title = signatures.length
-            ? `Firma ${name || label} caricata (${label})`
-            : `Slot firma vuoto: ${label}${name ? ' - ' + name : ''}`;
+        slot.title = signatures.length ? `Firma ${name || label} caricata (${label})` : `Slot firma vuoto: ${label}${name ? ' - ' + name : ''}`;
         slot.style.display = 'flex';
         slot.style.alignItems = 'center';
         slot.style.justifyContent = 'center';
@@ -300,10 +246,7 @@
         slot.style.minHeight = slot.style.minHeight || '12mm';
         slot.style.width = slot.style.width || '100%';
 
-        if (!signatures.length) {
-            renderEmptySignatureSlot(slot, { role: rk, label, name });
-            return;
-        }
+        if (!signatures.length) return renderEmptySignatureSlot(slot, { role: rk, label, name });
 
         signatures.forEach((signature, idx) => {
             const img = document.createElement('img');
@@ -339,12 +282,7 @@
             const docPage = slot.closest('.doc-page');
             const documentName = docPage?.dataset?.printModule || docPage?.className || window.currentPrintModule || '';
             const resolved = window.resolveSafetySignature({ name, role, documentName, slot });
-            window.renderAutoSignatureSlot(slot, resolved.src, resolved.name || name, {
-                role,
-                source: resolved.source,
-                documentName,
-                signatures: resolved.signatures
-            });
+            window.renderAutoSignatureSlot(slot, resolved.src, resolved.name || name, { role, source: resolved.source, documentName, signatures: resolved.signatures });
         });
         return slots.length;
     };
@@ -353,86 +291,48 @@
         return window.applyResolvedSignaturesToContainer(root);
     };
 
-    const wrapRenderPrintModuleToTemp = () => {
-        if (typeof window.renderPrintModuleToTemp !== 'function' || window.renderPrintModuleToTemp.__signaturesWrapped) return;
-        const original = window.renderPrintModuleToTemp;
-        const wrapped = async function(...args) {
-            const pages = await original.apply(this, args);
-            (pages || []).forEach(p => {
-                window.applyResolvedSignaturesToContainer(p);
-                if (typeof window.prepareSafetyPrintContainer === 'function') window.prepareSafetyPrintContainer(p);
-            });
-            return pages;
-        };
-        wrapped.__signaturesWrapped = true;
-        window.renderPrintModuleToTemp = wrapped;
-    };
-
-    const wrapRenderAttestatiMultipli = () => {
-        if (typeof window.renderAttestatiMultipli !== 'function' || window.renderAttestatiMultipli.__signaturesWrapped) return;
-        const original = window.renderAttestatiMultipli;
-        const wrapped = async function(container, options = {}) {
-            const result = await original.apply(this, [container, options]);
-            if (container) {
-                window.applyResolvedSignaturesToContainer(container);
-                if (typeof window.prepareSafetyPrintContainer === 'function') window.prepareSafetyPrintContainer(container);
-            }
-            return result;
-        };
-        wrapped.__signaturesWrapped = true;
-        window.renderAttestatiMultipli = wrapped;
-    };
-
-    const wrapLoadPrintPreview = () => {
-        if (typeof window.loadPrintPreview !== 'function' || window.loadPrintPreview.__signaturesWrapped) return;
-        const original = window.loadPrintPreview;
-        const wrapped = async function(...args) {
-            const result = await original.apply(this, args);
-            const preview = document.getElementById('print-preview-container');
-            if (preview) {
-                window.applyResolvedSignaturesToContainer(preview);
-                if (typeof window.prepareSafetyPrintContainer === 'function') window.prepareSafetyPrintContainer(preview);
-            }
-            return result;
-        };
-        wrapped.__signaturesWrapped = true;
-        window.loadPrintPreview = wrapped;
-    };
-
-    window.installSafetySignaturePatches = function() {
-        wrapRenderPrintModuleToTemp();
-        wrapRenderAttestatiMultipli();
-        wrapLoadPrintPreview();
-        window.applyResolvedSignaturesToContainer(document);
-    };
-
     // ================================
-    // STEP STAMPE / PDF - stabilizzatore
+    // STEP STAMPE FULL PAGE / PDF
     // ================================
 
-    const PRINT_STYLE_ID = 'safety-print-stabilizer-style';
+    const PRINT_STYLE_ID = 'safety-print-stabilizer-style-v2';
+    const PAGE_MODULE_LANDSCAPE = new Set([
+        'registro',
+        'registro_docenti',
+        'registro_multigiorno',
+        'scheda_rischi',
+        'scheda_rischio',
+        'questionario_gradimento',
+        'monitoraggio_qualita',
+        'riepilogo_gradimento'
+    ]);
+
+    const css = String.raw;
 
     window.injectSafetyPrintCss = function() {
         if (document.getElementById(PRINT_STYLE_ID)) return;
+        const old = document.getElementById('safety-print-stabilizer-style');
+        if (old) old.remove();
         const style = document.createElement('style');
         style.id = PRINT_STYLE_ID;
-        style.textContent = `
+        style.textContent = css`
             @media print {
                 @page { size: A4 portrait; margin: 0mm; }
                 @page safetyPortraitPage { size: A4 portrait; margin: 0mm; }
                 @page safetyLandscapePage { size: A4 landscape; margin: 0mm; }
 
                 html, body {
-                    width: 100% !important;
-                    min-height: 100% !important;
                     margin: 0 !important;
                     padding: 0 !important;
+                    width: 100% !important;
+                    min-height: 100% !important;
                     background: #ffffff !important;
                     -webkit-print-color-adjust: exact !important;
                     print-color-adjust: exact !important;
                 }
 
                 body.is-printing-temp > *:not(#print-area-temp) {
+                    display: none !important;
                     visibility: hidden !important;
                 }
 
@@ -441,25 +341,33 @@
                     visibility: visible !important;
                 }
 
-                body.is-printing-temp #print-area-temp {
+                body.is-printing-temp #print-area-temp,
+                #print-area-temp {
                     display: block !important;
-                    position: absolute !important;
-                    left: 0 !important;
-                    top: 0 !important;
+                    position: static !important;
+                    left: auto !important;
+                    top: auto !important;
                     width: 100% !important;
                     max-width: none !important;
+                    min-width: 0 !important;
                     min-height: 0 !important;
                     margin: 0 !important;
                     padding: 0 !important;
                     background: #ffffff !important;
                     overflow: visible !important;
-                    z-index: 2147483647 !important;
+                    transform: none !important;
+                    zoom: 1 !important;
+                    scale: 1 !important;
+                    z-index: auto !important;
                 }
 
-                body.is-printing-temp #print-area-temp .doc-page,
-                body.is-printing-temp #print-area-temp .safety-print-page {
+                #print-area-temp .doc-page,
+                #print-area-temp .safety-print-page,
+                body.is-printing-temp .doc-page,
+                body.is-printing-temp .safety-print-page {
                     page: safetyPortraitPage !important;
-                    display: block !important;
+                    display: flex !important;
+                    flex-direction: column !important;
                     position: relative !important;
                     left: auto !important;
                     top: auto !important;
@@ -473,6 +381,7 @@
                     height: 297mm !important;
                     min-height: 297mm !important;
                     max-height: 297mm !important;
+                    max-width: 210mm !important;
                     margin: 0 auto !important;
                     box-sizing: border-box !important;
                     overflow: hidden !important;
@@ -483,41 +392,169 @@
                     break-after: page !important;
                 }
 
-                body.is-printing-temp #print-area-temp .doc-page.landscape,
-                body.is-printing-temp #print-area-temp .doc-page.landscape-force,
-                body.is-printing-temp #print-area-temp .doc-page.manual-test-page,
-                body.is-printing-temp #print-area-temp .safety-landscape-page {
+                #print-area-temp .doc-page.landscape,
+                #print-area-temp .doc-page.landscape-force,
+                #print-area-temp .doc-page.manual-test-page,
+                #print-area-temp .doc-page.safety-landscape-page,
+                #print-area-temp .safety-landscape-page,
+                body.is-printing-temp .doc-page.landscape,
+                body.is-printing-temp .doc-page.landscape-force,
+                body.is-printing-temp .doc-page.manual-test-page,
+                body.is-printing-temp .doc-page.safety-landscape-page,
+                body.is-printing-temp .safety-landscape-page {
                     page: safetyLandscapePage !important;
                     width: 297mm !important;
                     height: 210mm !important;
                     min-height: 210mm !important;
                     max-height: 210mm !important;
-                    padding: 0 !important;
-                    transform: none !important;
-                    rotate: 0deg !important;
-                    scale: 1 !important;
-                    zoom: 1 !important;
+                    max-width: 297mm !important;
                 }
 
-                body.is-printing-temp #print-area-temp .manual-test-inner {
+                #print-area-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page),
+                body.is-printing-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) {
+                    padding: 6mm !important;
+                    font-size: 10.5pt !important;
+                    line-height: 1.22 !important;
+                }
+
+                #print-area-temp .doc-page.landscape:not(.manual-test-page),
+                #print-area-temp .doc-page.safety-landscape-page:not(.manual-test-page),
+                body.is-printing-temp .doc-page.landscape:not(.manual-test-page),
+                body.is-printing-temp .doc-page.safety-landscape-page:not(.manual-test-page) {
+                    padding: 5mm !important;
+                    font-size: 9.7pt !important;
+                    line-height: 1.16 !important;
+                }
+
+                #print-area-temp .doc-page.attestato-front,
+                #print-area-temp .doc-page.attestato-retro,
+                body.is-printing-temp .doc-page.attestato-front,
+                body.is-printing-temp .doc-page.attestato-retro {
+                    display: flex !important;
+                    padding: 7mm !important;
+                    width: 210mm !important;
+                    height: 297mm !important;
+                    min-height: 297mm !important;
+                    max-height: 297mm !important;
+                    max-width: 210mm !important;
+                }
+
+                #print-area-temp .doc-page.manual-test-page,
+                body.is-printing-temp .doc-page.manual-test-page {
+                    padding: 0 !important;
+                    display: block !important;
+                    overflow: hidden !important;
+                }
+
+                #print-area-temp .manual-test-inner,
+                body.is-printing-temp .manual-test-inner {
                     width: 297mm !important;
                     height: 210mm !important;
                     max-height: 210mm !important;
+                    padding: 6mm !important;
                     box-sizing: border-box !important;
+                    display: flex !important;
+                    flex-direction: column !important;
                     overflow: hidden !important;
                 }
 
-                body.is-printing-temp #print-area-temp .manual-test-grid {
+                #print-area-temp .manual-test-grid,
+                body.is-printing-temp .manual-test-grid {
+                    flex: 1 1 auto !important;
                     min-height: 0 !important;
+                    display: grid !important;
+                    grid-template-rows: repeat(10, 1fr) !important;
+                    grid-auto-flow: column !important;
+                    grid-auto-columns: 1fr !important;
+                    gap: 1.15mm 2.3mm !important;
                     overflow: hidden !important;
                 }
 
-                body.is-printing-temp #print-area-temp .scale-\\[0\\.8\\],
-                body.is-printing-temp #print-area-temp .origin-top {
-                    transform: none !important;
+                #print-area-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) .text-\[6px\],
+                #print-area-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) .text-\[6\.5px\],
+                #print-area-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) .text-\[7px\],
+                #print-area-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) .text-\[7\.5px\],
+                body.is-printing-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) .text-\[6px\],
+                body.is-printing-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) .text-\[6\.5px\],
+                body.is-printing-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) .text-\[7px\],
+                body.is-printing-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) .text-\[7\.5px\] {
+                    font-size: 7.8pt !important;
+                    line-height: 1.15 !important;
                 }
 
-                body.is-printing-temp #print-area-temp .auto-signature-slot {
+                #print-area-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) .text-\[8px\],
+                #print-area-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) .text-\[9px\],
+                #print-area-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) .text-\[10px\],
+                #print-area-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) .text-xs,
+                body.is-printing-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) .text-\[8px\],
+                body.is-printing-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) .text-\[9px\],
+                body.is-printing-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) .text-\[10px\],
+                body.is-printing-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) .text-xs {
+                    font-size: 8.8pt !important;
+                    line-height: 1.17 !important;
+                }
+
+                #print-area-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) .text-sm,
+                body.is-printing-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) .text-sm {
+                    font-size: 10pt !important;
+                    line-height: 1.2 !important;
+                }
+
+                #print-area-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) table,
+                body.is-printing-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) table {
+                    width: 100% !important;
+                    max-width: 100% !important;
+                    border-collapse: collapse !important;
+                    font-size: 8.5pt !important;
+                    line-height: 1.12 !important;
+                }
+
+                #print-area-temp .doc-page.landscape:not(.manual-test-page) table,
+                #print-area-temp .doc-page.safety-landscape-page:not(.manual-test-page) table,
+                body.is-printing-temp .doc-page.landscape:not(.manual-test-page) table,
+                body.is-printing-temp .doc-page.safety-landscape-page:not(.manual-test-page) table {
+                    font-size: 8.2pt !important;
+                    line-height: 1.1 !important;
+                }
+
+                #print-area-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) th,
+                #print-area-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) td,
+                body.is-printing-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) th,
+                body.is-printing-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) td {
+                    padding: 1.2mm !important;
+                    line-height: 1.12 !important;
+                    vertical-align: top !important;
+                }
+
+                #print-area-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) h1,
+                body.is-printing-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) h1 {
+                    font-size: 17pt !important;
+                    line-height: 1.05 !important;
+                }
+
+                #print-area-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) h2,
+                body.is-printing-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.manual-test-page) h2 {
+                    font-size: 13pt !important;
+                    line-height: 1.08 !important;
+                }
+
+                #print-area-temp .doc-page:not(.attestato-front):not(.attestato-retro) .truncate,
+                body.is-printing-temp .doc-page:not(.attestato-front):not(.attestato-retro) .truncate {
+                    overflow: visible !important;
+                    text-overflow: clip !important;
+                    white-space: normal !important;
+                }
+
+                #print-area-temp .doc-page *,
+                body.is-printing-temp .doc-page * {
+                    transform: none !important;
+                    scale: 1 !important;
+                    zoom: 1 !important;
+                    box-sizing: border-box !important;
+                }
+
+                #print-area-temp .auto-signature-slot,
+                body.is-printing-temp .auto-signature-slot {
                     display: flex !important;
                     visibility: visible !important;
                     min-height: 12mm !important;
@@ -525,7 +562,8 @@
                     break-inside: avoid !important;
                 }
 
-                body.is-printing-temp #print-area-temp .auto-signature-img {
+                #print-area-temp .auto-signature-img,
+                body.is-printing-temp .auto-signature-img {
                     display: block !important;
                     max-width: 42mm !important;
                     max-height: 13mm !important;
@@ -533,8 +571,10 @@
                     visibility: visible !important;
                 }
 
-                body.is-printing-temp #print-area-temp .doc-page:last-child,
-                body.is-printing-temp #print-area-temp .safety-print-page:last-child {
+                #print-area-temp .doc-page:last-child,
+                #print-area-temp .safety-print-page:last-child,
+                body.is-printing-temp .doc-page:last-child,
+                body.is-printing-temp .safety-print-page:last-child {
                     page-break-after: auto !important;
                     break-after: auto !important;
                 }
@@ -548,27 +588,68 @@
         if (!printArea) {
             printArea = document.createElement('div');
             printArea.id = 'print-area-temp';
-            printArea.style.display = 'none';
+            printArea.className = 'hidden';
             document.body.appendChild(printArea);
         }
         return printArea;
     };
 
-    const isLandscapePage = (page) => {
+    const getPageModuleName = (page) => {
+        if (!page) return '';
+        return String(page.dataset?.printModule || page.dataset?.moduleId || page.getAttribute?.('data-module') || window.currentPrintModule || '').trim().toLowerCase();
+    };
+
+    const pageLooksLikeLandscape = (page) => {
         if (!page || !page.classList) return false;
         const classText = String(page.className || '');
+        const moduleName = getPageModuleName(page);
+        const textProbe = String(page.innerText || '').slice(0, 1400).toLowerCase();
+        const table = page.querySelector('table');
+        const cols = table ? Math.max(table.querySelectorAll('thead tr:first-child th').length, table.querySelectorAll('tr:first-child th, tr:first-child td').length) : 0;
         return page.classList.contains('landscape') ||
             page.classList.contains('landscape-force') ||
             page.classList.contains('manual-test-page') ||
             page.dataset?.manualTestPage ||
-            /landscape/i.test(classText);
+            page.dataset?.registerDayPage ||
+            /landscape/i.test(classText) ||
+            PAGE_MODULE_LANDSCAPE.has(moduleName) ||
+            /registro presenze|firma entrata|firma uscita|scheda rischi|questionario di gradimento|monitoraggio qualità|monitoraggio qualita/.test(textProbe) ||
+            cols >= 6;
     };
 
-    const normalizePrintPage = (page) => {
+    const isAttestatoPage = (page) => {
+        if (!page || !page.classList) return false;
+        const classText = String(page.className || '').toLowerCase();
+        const moduleName = getPageModuleName(page);
+        return page.classList.contains('attestato-front') || page.classList.contains('attestato-retro') || moduleName === 'attestato' || classText.includes('attestato');
+    };
+
+    const normalizePrintDescendants = (page) => {
+        if (!page?.querySelectorAll) return;
+        page.querySelectorAll('.scale-\[0\.8\], .scale-\[0\.7\], .scale-\[0\.6\], .origin-top, [style*="transform"], [style*="zoom"], [style*="scale"]').forEach(el => {
+            if (el.classList) el.classList.remove('scale-[0.8]', 'scale-[0.7]', 'scale-[0.6]', 'origin-top');
+            el.style.transform = 'none';
+            el.style.zoom = '1';
+            el.style.scale = '1';
+            el.style.transformOrigin = 'top left';
+        });
+    };
+
+    const normalizePrintPage = (page, options = {}) => {
         if (!page || !page.classList) return;
+        const moduleId = String(options.moduleId || '').trim();
+        if (moduleId && !page.dataset.printModule) page.dataset.printModule = moduleId;
+
+        const attestato = isAttestatoPage(page);
+        const landscape = !attestato && pageLooksLikeLandscape(page);
+
         page.classList.add('print-show', 'temp-page', 'safety-print-page');
-        page.classList.remove('hidden', 'scale-[0.8]', 'origin-top');
-        page.style.display = 'block';
+        page.classList.remove('hidden', 'scale-[0.8]', 'scale-[0.7]', 'scale-[0.6]', 'origin-top');
+        if (landscape) page.classList.add('safety-landscape-page', 'landscape-force');
+        if (!attestato && !page.classList.contains('manual-test-page')) page.classList.add('safety-fullpage-readable');
+
+        page.style.display = page.classList.contains('manual-test-page') ? 'block' : 'flex';
+        if (!page.classList.contains('manual-test-page')) page.style.flexDirection = 'column';
         page.style.position = 'relative';
         page.style.left = 'auto';
         page.style.top = 'auto';
@@ -579,31 +660,37 @@
         page.style.clear = 'both';
         page.style.boxSizing = 'border-box';
         page.style.overflow = 'hidden';
+        page.style.margin = '0 auto';
         page.style.pageBreakAfter = 'always';
         page.style.breakAfter = 'page';
 
-        if (isLandscapePage(page)) {
-            page.classList.add('safety-landscape-page');
+        if (landscape || page.classList.contains('manual-test-page')) {
             page.style.width = '297mm';
+            page.style.maxWidth = '297mm';
             page.style.height = '210mm';
             page.style.minHeight = '210mm';
             page.style.maxHeight = '210mm';
+            if (!page.classList.contains('manual-test-page')) page.style.padding = '5mm';
         } else {
             page.style.width = '210mm';
+            page.style.maxWidth = '210mm';
             page.style.height = '297mm';
             page.style.minHeight = '297mm';
             page.style.maxHeight = '297mm';
+            if (!attestato) page.style.padding = '6mm';
         }
+
+        normalizePrintDescendants(page);
     };
 
-    window.prepareSafetyPrintContainer = function(root = null) {
+    window.prepareSafetyPrintContainer = function(root = null, options = {}) {
         window.injectSafetyPrintCss();
         const target = root || ensurePrintArea();
         if (typeof window.applyResolvedSignaturesToContainer === 'function') {
             try { window.applyResolvedSignaturesToContainer(target); } catch (error) { console.warn('[Stampe] firme non applicate in preparazione', error); }
         }
         const pages = Array.from(target.querySelectorAll ? target.querySelectorAll('.doc-page, .safety-print-page') : []);
-        pages.forEach(normalizePrintPage);
+        pages.forEach(page => normalizePrintPage(page, options));
         if (pages.length) {
             const last = pages[pages.length - 1];
             last.style.pageBreakAfter = 'auto';
@@ -611,32 +698,34 @@
         }
         const stats = {
             pages: pages.length,
-            portrait: pages.filter(p => !isLandscapePage(p)).length,
-            landscape: pages.filter(isLandscapePage).length,
+            portrait: pages.filter(p => !pageLooksLikeLandscape(p) && !isAttestatoPage(p)).length,
+            landscape: pages.filter(p => pageLooksLikeLandscape(p) && !isAttestatoPage(p)).length,
+            attestati: pages.filter(isAttestatoPage).length,
             signatures: target.querySelectorAll ? target.querySelectorAll('.auto-signature-slot').length : 0,
             resolvedSignatures: target.querySelectorAll ? target.querySelectorAll('.auto-signature-slot[data-signature-resolved="yes"]').length : 0
         };
-        if (pages.length) console.info('[Stampe] contenitore preparato per PDF/stampa', stats);
+        if (pages.length) console.info('[Stampe] FULL PAGE pronto', stats);
         return stats;
     };
 
     const oldWaitForPrintImages = typeof window.waitForPrintImages === 'function' ? window.waitForPrintImages : null;
-    window.waitForPrintImages = async function(root = document, timeoutMs = 2800) {
+    window.waitForPrintImages = async function(root = document, timeoutMs = 3200) {
         const container = root || document;
         window.prepareSafetyPrintContainer(container);
         if (oldWaitForPrintImages && oldWaitForPrintImages !== window.waitForPrintImages) {
             try { await oldWaitForPrintImages(container); } catch (error) { console.warn('[Stampe] attesa immagini precedente non completata', error); }
         }
-        const images = Array.from(container.querySelectorAll ? container.querySelectorAll('img') : [])
-            .filter(img => img && img.src && !img.complete);
+        const images = Array.from(container.querySelectorAll ? container.querySelectorAll('img') : []).filter(img => img && img.src && !img.complete);
         if (!images.length) return true;
         await Promise.race([
             Promise.all(images.map(img => new Promise(resolve => {
-                img.onload = () => resolve(true);
-                img.onerror = () => resolve(false);
+                const done = () => resolve(true);
+                img.addEventListener('load', done, { once: true });
+                img.addEventListener('error', done, { once: true });
             }))),
-            new Promise(resolve => setTimeout(resolve, Number(timeoutMs) || 2800))
+            new Promise(resolve => setTimeout(resolve, Number(timeoutMs) || 3200))
         ]);
+        window.prepareSafetyPrintContainer(container);
         return true;
     };
 
@@ -657,6 +746,53 @@
         window.print = wrappedPrint;
     };
 
+    const wrapRenderPrintModuleToTemp = () => {
+        if (typeof window.renderPrintModuleToTemp !== 'function' || window.renderPrintModuleToTemp.__signaturesWrapped) return;
+        const original = window.renderPrintModuleToTemp;
+        const wrapped = async function(moduleId, ...rest) {
+            const pages = await original.apply(this, [moduleId, ...rest]);
+            (pages || []).forEach(p => {
+                if (moduleId && !p.dataset.printModule) p.dataset.printModule = moduleId;
+                window.applyResolvedSignaturesToContainer(p);
+                window.prepareSafetyPrintContainer(p, { moduleId });
+            });
+            return pages;
+        };
+        wrapped.__signaturesWrapped = true;
+        window.renderPrintModuleToTemp = wrapped;
+    };
+
+    const wrapRenderAttestatiMultipli = () => {
+        if (typeof window.renderAttestatiMultipli !== 'function' || window.renderAttestatiMultipli.__signaturesWrapped) return;
+        const original = window.renderAttestatiMultipli;
+        const wrapped = async function(container, options = {}) {
+            const result = await original.apply(this, [container, options]);
+            if (container) {
+                window.applyResolvedSignaturesToContainer(container);
+                window.prepareSafetyPrintContainer(container, { moduleId: 'attestato' });
+            }
+            return result;
+        };
+        wrapped.__signaturesWrapped = true;
+        window.renderAttestatiMultipli = wrapped;
+    };
+
+    const wrapLoadPrintPreview = () => {
+        if (typeof window.loadPrintPreview !== 'function' || window.loadPrintPreview.__signaturesWrapped) return;
+        const original = window.loadPrintPreview;
+        const wrapped = async function(...args) {
+            const result = await original.apply(this, args);
+            const preview = document.getElementById('print-preview-container');
+            if (preview) {
+                window.applyResolvedSignaturesToContainer(preview);
+                window.prepareSafetyPrintContainer(preview);
+            }
+            return result;
+        };
+        wrapped.__signaturesWrapped = true;
+        window.loadPrintPreview = wrapped;
+    };
+
     const wrapKnownPrintFunction = (name) => {
         const fn = window[name];
         if (typeof fn !== 'function' || fn.__safetyPrintStabilized) return;
@@ -671,9 +807,30 @@
         window[name] = wrapped;
     };
 
+    const installPrintAreaObserver = () => {
+        const printArea = ensurePrintArea();
+        if (printArea.__safetyPrintObserverInstalled) return;
+        const observer = new MutationObserver(() => {
+            clearTimeout(printArea.__safetyPrintObserverTimer);
+            printArea.__safetyPrintObserverTimer = setTimeout(() => {
+                if (printArea.children.length) window.prepareSafetyPrintContainer(printArea);
+            }, 60);
+        });
+        observer.observe(printArea, { childList: true, subtree: true });
+        printArea.__safetyPrintObserverInstalled = true;
+    };
+
+    window.installSafetySignaturePatches = function() {
+        wrapRenderPrintModuleToTemp();
+        wrapRenderAttestatiMultipli();
+        wrapLoadPrintPreview();
+        window.applyResolvedSignaturesToContainer(document);
+    };
+
     window.installSafetyPrintStabilizer = function() {
         window.injectSafetyPrintCss();
         wrapBrowserPrint();
+        installPrintAreaObserver();
         [
             'stampaFascicoloCompletoPDF',
             'stampaAttestatiProgetto',
@@ -683,7 +840,7 @@
             'stampaProgettoFormativoDaProgetto'
         ].forEach(wrapKnownPrintFunction);
         const printArea = document.getElementById('print-area-temp');
-        if (printArea) window.prepareSafetyPrintContainer(printArea);
+        if (printArea && printArea.children.length) window.prepareSafetyPrintContainer(printArea);
     };
 
     window.auditSafetyPrint = function(root = document) {
@@ -691,29 +848,35 @@
         const pages = Array.from(target.querySelectorAll ? target.querySelectorAll('.doc-page, .safety-print-page') : []);
         const report = {
             pages: pages.length,
-            portrait: pages.filter(p => !isLandscapePage(p)).length,
-            landscape: pages.filter(isLandscapePage).length,
+            portrait: pages.filter(p => !pageLooksLikeLandscape(p) && !isAttestatoPage(p)).length,
+            landscape: pages.filter(p => pageLooksLikeLandscape(p) && !isAttestatoPage(p)).length,
+            attestati: pages.filter(isAttestatoPage).length,
             manualTests: pages.filter(p => p.dataset?.manualTestPage).length,
             signatures: target.querySelectorAll ? target.querySelectorAll('.auto-signature-slot').length : 0,
             resolvedSignatures: target.querySelectorAll ? target.querySelectorAll('.auto-signature-slot[data-signature-resolved="yes"]').length : 0,
             emptySignatureSlots: target.querySelectorAll ? target.querySelectorAll('.auto-signature-slot[data-signature-resolved="no"], .auto-signature-slot[data-signature-resolved="load-error"]').length : 0
         };
-        console.info('[Stampe] audit', report);
+        console.info('[Stampe] audit FULL PAGE', report);
         return report;
     };
 
-    window.installSafetySignaturePatches();
-    window.installSafetyPrintStabilizer();
-    setTimeout(() => {
+    window.addEventListener('beforeprint', () => {
+        const printArea = document.getElementById('print-area-temp');
+        if (printArea) window.prepareSafetyPrintContainer(printArea);
+        document.body.classList.add('is-printing-temp');
+    });
+
+    window.addEventListener('afterprint', () => {
+        setTimeout(() => document.body.classList.remove('is-printing-temp'), 250);
+    });
+
+    const installAll = () => {
         window.installSafetySignaturePatches();
         window.installSafetyPrintStabilizer();
-    }, 0);
-    setTimeout(() => {
-        window.installSafetySignaturePatches();
-        window.installSafetyPrintStabilizer();
-    }, 500);
-    setTimeout(() => {
-        window.installSafetySignaturePatches();
-        window.installSafetyPrintStabilizer();
-    }, 1500);
+    };
+
+    installAll();
+    setTimeout(installAll, 0);
+    setTimeout(installAll, 500);
+    setTimeout(installAll, 1500);
 })();
