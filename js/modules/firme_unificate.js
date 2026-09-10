@@ -1,6 +1,7 @@
-// Step firme + stampe - versione stabile
+// Step firme + stampe - versione stabile A4 5mm
 // Regola utente: se la firma non è disponibile o il file non è caricabile, lo slot resta visibile e vuoto.
-// Obiettivo stampe: non bloccare mai window.print(); riempire A4 portrait/landscape con margini minimi e senza miniaturizzazione.
+// Regola stampa: attestati invariati; tutti gli altri documenti usano A4 con margini 0,5 cm.
+// Test e registri: contenuto disposto orizzontalmente dentro una pagina A4 verticale, senza miniaturizzazione.
 
 (function() {
     if (window.__safetyUnifiedSignaturesLoaded) return;
@@ -285,24 +286,55 @@
     };
 
     // ================================
-    // STAMPE: full A4 senza bloccare la finestra di stampa
+    // STAMPE: A4 portrait 5 mm; registri/test ruotati dentro A4 verticale
     // ================================
-    const PRINT_STYLE_ID = 'safety-print-fullpage-v2';
+    const PRINT_STYLE_ID = 'safety-print-a4-5mm-v3';
+    const A4_W = '210mm';
+    const A4_H = '297mm';
+    const PRINT_MARGIN = '5mm';
+    const INNER_W = '200mm';
+    const INNER_H = '287mm';
+    const WIDE_W = '287mm';
+    const WIDE_H = '200mm';
+
+    const pageDescriptor = (page) => [
+        page?.className || '',
+        page?.dataset?.printModule || '',
+        page?.dataset?.manualTestPage || '',
+        page?.dataset?.registerDayPage || '',
+        page?.dataset?.safetyWideKind || '',
+        page?.textContent || ''
+    ].join(' ');
 
     const isAttestatoPage = (page) => {
-        const txt = String(page?.className || '') + ' ' + String(page?.dataset?.printModule || '');
-        return /attestato/i.test(txt) || page?.classList?.contains('attestato-front') || page?.classList?.contains('attestato-retro');
+        const txt = String(pageDescriptor(page));
+        return /attestato/i.test(txt) ||
+            page?.classList?.contains('attestato-front') ||
+            page?.classList?.contains('attestato-retro');
     };
 
-    const isLandscapePage = (page) => {
-        if (!page || !page.classList) return false;
-        const txt = String(page.className || '') + ' ' + String(page.dataset?.printModule || '');
-        return page.classList.contains('landscape') ||
-            page.classList.contains('landscape-force') ||
-            page.classList.contains('manual-test-page') ||
-            page.dataset?.manualTestPage ||
-            page.dataset?.registerDayPage ||
-            /registro|landscape|manual-test/i.test(txt);
+    const isRegistroPage = (page) => {
+        const txt = String(pageDescriptor(page));
+        return !!(
+            page?.dataset?.registerDayPage ||
+            page?.dataset?.registerTemplatePage ||
+            /registro\s+presenze|registro|r-rows/i.test(txt)
+        );
+    };
+
+    const isManualTestPage = (page) => {
+        const txt = String(pageDescriptor(page));
+        return !!(
+            page?.dataset?.manualTestPage ||
+            page?.classList?.contains('manual-test-page') ||
+            page?.querySelector?.('.manual-test-inner, .manual-test-grid') ||
+            /test\s+manuale|manual-test|correttore/i.test(txt)
+        );
+    };
+
+    const isWidePage = (page) => {
+        if (!page || isAttestatoPage(page)) return false;
+        return isRegistroPage(page) || isManualTestPage(page);
     };
 
     window.injectSafetyPrintCss = function() {
@@ -311,105 +343,280 @@
         style.id = PRINT_STYLE_ID;
         style.textContent = `
 @media print {
-    @page safetyPortraitFull { size: A4 portrait; margin: 0mm; }
-    @page safetyLandscapeFull { size: A4 landscape; margin: 0mm; }
+    @page safetyA4Portrait5mm { size: A4 portrait; margin: 0mm; }
 
-    body.is-printing-temp { margin: 0 !important; padding: 0 !important; background: #fff !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-    body.is-printing-temp nav, body.is-printing-temp aside, body.is-printing-temp main { display: none !important; }
-    body.is-printing-temp #print-area-temp { display: block !important; position: static !important; width: auto !important; height: auto !important; margin: 0 !important; padding: 0 !important; overflow: visible !important; background: #fff !important; }
+    html, body {
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    body.is-printing-temp nav,
+    body.is-printing-temp aside,
+    body.is-printing-temp main { display: none !important; }
+
+    body.is-printing-temp #print-area-temp {
+        display: block !important;
+        position: static !important;
+        left: auto !important;
+        top: auto !important;
+        width: auto !important;
+        height: auto !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: visible !important;
+        background: #fff !important;
+    }
 
     body.is-printing-temp #print-area-temp .doc-page:not(.attestato-front):not(.attestato-retro),
     body.is-printing-temp #print-area-temp .safety-print-page:not(.attestato-front):not(.attestato-retro) {
-        page: safetyPortraitFull !important;
-        width: 210mm !important;
-        height: 297mm !important;
-        min-height: 297mm !important;
-        max-height: 297mm !important;
+        page: safetyA4Portrait5mm !important;
+        width: ${A4_W} !important;
+        height: ${A4_H} !important;
+        min-height: ${A4_H} !important;
+        max-height: ${A4_H} !important;
         margin: 0 auto !important;
-        padding: 6mm !important;
+        padding: ${PRINT_MARGIN} !important;
         box-sizing: border-box !important;
         overflow: hidden !important;
         transform: none !important;
+        rotate: 0deg !important;
         zoom: 1 !important;
         scale: 1 !important;
         position: relative !important;
+        left: auto !important;
+        top: auto !important;
         box-shadow: none !important;
         border: 0 !important;
         background: #fff !important;
         page-break-after: always !important;
         break-after: page !important;
-        font-size: 9.5pt !important;
-        line-height: 1.22 !important;
+        font-size: 8.8pt !important;
+        line-height: 1.18 !important;
     }
 
-    body.is-printing-temp #print-area-temp .doc-page.landscape,
-    body.is-printing-temp #print-area-temp .doc-page.landscape-force,
-    body.is-printing-temp #print-area-temp .doc-page.manual-test-page,
-    body.is-printing-temp #print-area-temp .doc-page.safety-landscape-page,
-    body.is-printing-temp #print-area-temp .safety-landscape-page {
-        page: safetyLandscapeFull !important;
-        width: 297mm !important;
-        height: 210mm !important;
-        min-height: 210mm !important;
-        max-height: 210mm !important;
-        padding: 5mm !important;
-        font-size: 8.6pt !important;
-        line-height: 1.18 !important;
+    body.is-printing-temp #print-area-temp .safety-wide-portrait-page,
+    body.is-printing-temp #print-area-temp .doc-page.safety-wide-portrait-page,
+    body.is-printing-temp #print-area-temp .doc-page.safety-wide-portrait-page.landscape,
+    body.is-printing-temp #print-area-temp .doc-page.safety-wide-portrait-page.landscape-force,
+    body.is-printing-temp #print-area-temp .doc-page.safety-wide-portrait-page.manual-test-page {
+        page: safetyA4Portrait5mm !important;
+        width: ${A4_W} !important;
+        height: ${A4_H} !important;
+        min-height: ${A4_H} !important;
+        max-height: ${A4_H} !important;
+        padding: 0 !important;
+        margin: 0 auto !important;
+        overflow: hidden !important;
+        position: relative !important;
+        transform: none !important;
+        rotate: 0deg !important;
+        zoom: 1 !important;
+        scale: 1 !important;
+        background: #fff !important;
+        box-shadow: none !important;
+        border: 0 !important;
+    }
+
+    body.is-printing-temp #print-area-temp .safety-wide-rotated-content {
+        position: absolute !important;
+        left: ${PRINT_MARGIN} !important;
+        top: ${PRINT_MARGIN} !important;
+        width: ${WIDE_W} !important;
+        height: ${WIDE_H} !important;
+        min-width: ${WIDE_W} !important;
+        min-height: ${WIDE_H} !important;
+        max-width: ${WIDE_W} !important;
+        max-height: ${WIDE_H} !important;
+        box-sizing: border-box !important;
+        overflow: hidden !important;
+        transform-origin: top left !important;
+        transform: rotate(90deg) translateY(-${WIDE_H}) !important;
+        background: #fff !important;
+    }
+
+    body.is-printing-temp #print-area-temp .safety-wide-portrait-page[data-safety-wide-kind="registro"] .safety-wide-rotated-content {
+        font-size: 7.6pt !important;
+        line-height: 1.08 !important;
+    }
+
+    body.is-printing-temp #print-area-temp .safety-wide-portrait-page[data-safety-wide-kind="registro"] table {
+        width: 100% !important;
+        height: auto !important;
+        border-collapse: collapse !important;
+        table-layout: fixed !important;
+        font-size: 7.1pt !important;
+        line-height: 1.05 !important;
+    }
+
+    body.is-printing-temp #print-area-temp .safety-wide-portrait-page[data-safety-wide-kind="registro"] th,
+    body.is-printing-temp #print-area-temp .safety-wide-portrait-page[data-safety-wide-kind="registro"] td {
+        padding: 0.65mm !important;
+        line-height: 1.04 !important;
+        vertical-align: middle !important;
+    }
+
+    body.is-printing-temp #print-area-temp .safety-wide-portrait-page[data-safety-wide-kind="test"] .safety-wide-rotated-content {
+        font-size: 7.8pt !important;
+        line-height: 1.09 !important;
+    }
+
+    body.is-printing-temp #print-area-temp .safety-wide-portrait-page[data-safety-wide-kind="test"] .manual-test-inner {
+        width: ${WIDE_W} !important;
+        height: ${WIDE_H} !important;
+        max-height: ${WIDE_H} !important;
+        padding: 3.5mm !important;
+        box-sizing: border-box !important;
+        display: flex !important;
+        flex-direction: column !important;
+        overflow: hidden !important;
+    }
+
+    body.is-printing-temp #print-area-temp .safety-wide-portrait-page[data-safety-wide-kind="test"] .manual-test-grid {
+        flex: 1 1 auto !important;
+        min-height: 0 !important;
+        display: grid !important;
+        grid-template-rows: repeat(10, 1fr) !important;
+        grid-auto-flow: column !important;
+        grid-auto-columns: 1fr !important;
+        gap: 1mm 2mm !important;
+        overflow: hidden !important;
+    }
+
+    body.is-printing-temp #print-area-temp .safety-wide-portrait-page[data-safety-wide-kind="test"] .manual-test-question {
+        overflow: hidden !important;
+        box-sizing: border-box !important;
+        font-size: 7.2pt !important;
+        line-height: 1.06 !important;
+    }
+
+    body.is-printing-temp #print-area-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.safety-wide-portrait-page) table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        font-size: 8.1pt !important;
+    }
+
+    body.is-printing-temp #print-area-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.safety-wide-portrait-page) th,
+    body.is-printing-temp #print-area-temp .doc-page:not(.attestato-front):not(.attestato-retro):not(.safety-wide-portrait-page) td {
+        padding: 0.9mm !important;
+        line-height: 1.08 !important;
     }
 
     body.is-printing-temp #print-area-temp .doc-page:not(.attestato-front):not(.attestato-retro) .text-\[6px\],
     body.is-printing-temp #print-area-temp .doc-page:not(.attestato-front):not(.attestato-retro) .text-\[6\.5px\],
-    body.is-printing-temp #print-area-temp .doc-page:not(.attestato-front):not(.attestato-retro) .text-\[7px\] { font-size: 7.6pt !important; line-height: 1.12 !important; }
+    body.is-printing-temp #print-area-temp .doc-page:not(.attestato-front):not(.attestato-retro) .text-\[7px\] { font-size: 6.9pt !important; line-height: 1.08 !important; }
+
     body.is-printing-temp #print-area-temp .doc-page:not(.attestato-front):not(.attestato-retro) .text-\[7\.5px\],
-    body.is-printing-temp #print-area-temp .doc-page:not(.attestato-front):not(.attestato-retro) .text-\[8px\] { font-size: 8.2pt !important; line-height: 1.14 !important; }
-    body.is-printing-temp #print-area-temp .doc-page:not(.attestato-front):not(.attestato-retro) .text-\[9px\] { font-size: 8.8pt !important; line-height: 1.16 !important; }
-    body.is-printing-temp #print-area-temp .doc-page:not(.attestato-front):not(.attestato-retro) .text-\[10px\] { font-size: 9.6pt !important; line-height: 1.16 !important; }
+    body.is-printing-temp #print-area-temp .doc-page:not(.attestato-front):not(.attestato-retro) .text-\[8px\] { font-size: 7.4pt !important; line-height: 1.09 !important; }
 
-    body.is-printing-temp #print-area-temp table { width: 100% !important; border-collapse: collapse !important; }
-    body.is-printing-temp #print-area-temp th,
-    body.is-printing-temp #print-area-temp td { padding: 1.3mm !important; line-height: 1.13 !important; }
+    body.is-printing-temp #print-area-temp .doc-page:not(.attestato-front):not(.attestato-retro) .text-\[9px\] { font-size: 7.9pt !important; line-height: 1.1 !important; }
+    body.is-printing-temp #print-area-temp .doc-page:not(.attestato-front):not(.attestato-retro) .text-\[10px\] { font-size: 8.4pt !important; line-height: 1.1 !important; }
 
-    body.is-printing-temp #print-area-temp .manual-test-inner { width: 287mm !important; height: 200mm !important; padding: 0 !important; box-sizing: border-box !important; display: flex !important; flex-direction: column !important; overflow: hidden !important; }
-    body.is-printing-temp #print-area-temp .manual-test-grid { flex: 1 1 auto !important; min-height: 0 !important; display: grid !important; grid-template-rows: repeat(10, 1fr) !important; grid-auto-flow: column !important; grid-auto-columns: 1fr !important; gap: 1.15mm 2.3mm !important; }
+    body.is-printing-temp #print-area-temp .auto-signature-slot {
+        display: flex !important;
+        visibility: visible !important;
+        min-height: 12mm !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+    }
 
-    body.is-printing-temp #print-area-temp .auto-signature-slot { display: flex !important; visibility: visible !important; min-height: 12mm !important; page-break-inside: avoid !important; break-inside: avoid !important; }
-    body.is-printing-temp #print-area-temp .auto-signature-img { display: block !important; max-width: 42mm !important; max-height: 13mm !important; object-fit: contain !important; visibility: visible !important; }
+    body.is-printing-temp #print-area-temp .auto-signature-img {
+        display: block !important;
+        max-width: 42mm !important;
+        max-height: 13mm !important;
+        object-fit: contain !important;
+        visibility: visible !important;
+    }
 
     body.is-printing-temp #print-area-temp .doc-page:last-child,
-    body.is-printing-temp #print-area-temp .safety-print-page:last-child { page-break-after: auto !important; break-after: auto !important; }
+    body.is-printing-temp #print-area-temp .safety-print-page:last-child {
+        page-break-after: auto !important;
+        break-after: auto !important;
+    }
 }
         `;
         document.head.appendChild(style);
+    };
+
+    const applyPageBox = (page, width, height, padding) => {
+        page.style.width = width;
+        page.style.height = height;
+        page.style.minHeight = height;
+        page.style.maxHeight = height;
+        page.style.maxWidth = width;
+        page.style.padding = padding;
+        page.style.margin = '0 auto';
+        page.style.boxSizing = 'border-box';
+        page.style.overflow = 'hidden';
+        page.style.position = 'relative';
+        page.style.display = 'block';
+        page.style.left = 'auto';
+        page.style.top = 'auto';
+        page.style.transform = 'none';
+        page.style.zoom = '1';
+        page.style.scale = '1';
+        page.style.pageBreakAfter = 'always';
+        page.style.breakAfter = 'page';
+    };
+
+    const ensureWideRotatedWrapper = (page) => {
+        if (!page || !page.classList) return;
+        const kind = isRegistroPage(page) ? 'registro' : 'test';
+        let wrapper = page.querySelector(':scope > .safety-wide-rotated-content');
+
+        if (!wrapper) {
+            wrapper = document.createElement('div');
+            wrapper.className = 'safety-wide-rotated-content';
+            if (page.classList.contains('flex')) wrapper.classList.add('flex');
+            if (page.classList.contains('flex-col')) wrapper.classList.add('flex-col');
+            while (page.firstChild) wrapper.appendChild(page.firstChild);
+            page.appendChild(wrapper);
+        }
+
+        page.classList.add('safety-print-page', 'safety-wide-portrait-page', 'print-show', 'temp-page');
+        page.classList.remove('hidden', 'scale-[0.8]', 'origin-top');
+        page.dataset.safetyWideKind = kind;
+        applyPageBox(page, A4_W, A4_H, '0');
+
+        wrapper.style.position = 'absolute';
+        wrapper.style.left = PRINT_MARGIN;
+        wrapper.style.top = PRINT_MARGIN;
+        wrapper.style.width = WIDE_W;
+        wrapper.style.height = WIDE_H;
+        wrapper.style.minWidth = WIDE_W;
+        wrapper.style.minHeight = WIDE_H;
+        wrapper.style.maxWidth = WIDE_W;
+        wrapper.style.maxHeight = WIDE_H;
+        wrapper.style.boxSizing = 'border-box';
+        wrapper.style.overflow = 'hidden';
+        wrapper.style.transformOrigin = 'top left';
+        wrapper.style.transform = `rotate(90deg) translateY(-${WIDE_H})`;
+        wrapper.style.background = '#fff';
+        if (kind === 'registro') {
+            wrapper.style.fontSize = '7.6pt';
+            wrapper.style.lineHeight = '1.08';
+        }
     };
 
     const normalizePrintPage = (page) => {
         if (!page || !page.classList) return;
         page.classList.add('print-show', 'temp-page', 'safety-print-page');
         page.classList.remove('hidden', 'scale-[0.8]', 'origin-top');
-        page.style.transform = 'none';
-        page.style.zoom = '1';
-        page.style.scale = '1';
-        page.style.position = 'relative';
-        page.style.display = 'block';
-        page.style.boxSizing = 'border-box';
-        page.style.overflow = 'hidden';
-        page.style.pageBreakAfter = 'always';
-        page.style.breakAfter = 'page';
 
-        if (isLandscapePage(page)) {
-            page.classList.add('landscape-force', 'safety-landscape-page');
-            page.style.width = '297mm';
-            page.style.height = '210mm';
-            page.style.minHeight = '210mm';
-            page.style.maxHeight = '210mm';
-            page.style.padding = page.classList.contains('manual-test-page') ? '0' : '5mm';
-        } else if (!isAttestatoPage(page)) {
-            page.style.width = '210mm';
-            page.style.height = '297mm';
-            page.style.minHeight = '297mm';
-            page.style.maxHeight = '297mm';
-            page.style.padding = '6mm';
+        if (isAttestatoPage(page)) {
+            return;
         }
+
+        if (isWidePage(page)) {
+            ensureWideRotatedWrapper(page);
+            return;
+        }
+
+        page.classList.remove('safety-wide-portrait-page');
+        delete page.dataset.safetyWideKind;
+        applyPageBox(page, A4_W, A4_H, PRINT_MARGIN);
     };
 
     window.prepareSafetyPrintContainer = function(root = document) {
@@ -423,16 +630,18 @@
             last.style.pageBreakAfter = 'auto';
             last.style.breakAfter = 'auto';
         }
-        return {
+        const report = {
             pages: pages.length,
-            portrait: pages.filter(p => !isLandscapePage(p)).length,
-            landscape: pages.filter(isLandscapePage).length,
+            a4Portrait: pages.filter(p => !isAttestatoPage(p)).length,
+            rotatedWide: pages.filter(isWidePage).length,
+            attestatiUntouched: pages.filter(isAttestatoPage).length,
             signatures: target.querySelectorAll('.auto-signature-slot').length
         };
+        if (pages.length) console.info('[Stampe] A4 5mm preparato', report);
+        return report;
     };
 
-    // La vecchia funzione di stampa chiama già waitForPrintImages(printArea) prima di window.print().
-    // Qui ci limitiamo a preparare il layout e ad attendere poco le immagini: non sovrascriviamo mai window.print().
+    // La funzione originale chiama waitForPrintImages(printArea) prima di window.print(). Qui prepariamo soltanto il DOM.
     window.waitForPrintImages = async function(root = document, timeoutMs = 1200) {
         const container = root && root.querySelectorAll ? root : document;
         window.prepareSafetyPrintContainer(container);
@@ -505,13 +714,16 @@
         const pages = Array.from(target.querySelectorAll('.doc-page, .safety-print-page'));
         const report = {
             pages: pages.length,
-            portrait: pages.filter(p => !isLandscapePage(p)).length,
-            landscape: pages.filter(isLandscapePage).length,
+            a4Portrait: pages.filter(p => !isAttestatoPage(p)).length,
+            rotatedWide: pages.filter(isWidePage).length,
+            registri: pages.filter(isRegistroPage).length,
+            test: pages.filter(isManualTestPage).length,
+            attestatiUntouched: pages.filter(isAttestatoPage).length,
             signatures: target.querySelectorAll('.auto-signature-slot').length,
             resolvedSignatures: target.querySelectorAll('.auto-signature-slot[data-signature-resolved="yes"]').length,
             emptySignatureSlots: target.querySelectorAll('.auto-signature-slot[data-signature-resolved="no"], .auto-signature-slot[data-signature-resolved="load-error"]').length
         };
-        console.info('[Stampe] audit', report);
+        console.info('[Stampe] audit A4 5mm', report);
         return report;
     };
 
