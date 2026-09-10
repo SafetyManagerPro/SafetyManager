@@ -1,6 +1,7 @@
 // Step firme - risolutore unico firme e slot sempre presenti
 // Regola utente: se la firma non è disponibile o il file non è caricabile, lo slot resta visibile e vuoto.
 // Fix doppie firme: quando uno slot contiene più nominativi, le firme note vengono renderizzate affiancate.
+// Fix ruolo: Berardino Pesce può firmare anche come Responsabile del Corso.
 
 (function() {
     if (window.__safetyUnifiedSignaturesLoaded) return;
@@ -10,7 +11,19 @@
         {
             src: 'assets/firme/firma_berardino_pesce.png',
             names: ['pesce berardino', 'berardino pesce'],
-            roles: ['docente', 'formatore', 'resp_progetto', 'responsabile progetto', 'responsabile progetto formativo', 'legale', 'legale_rappresentante', 'legale rappresentante']
+            roles: [
+                'docente',
+                'formatore',
+                'resp_progetto',
+                'responsabile progetto',
+                'responsabile progetto formativo',
+                'resp_corso',
+                'responsabile corso',
+                'responsabile del corso',
+                'legale',
+                'legale_rappresentante',
+                'legale rappresentante'
+            ]
         },
         {
             src: 'assets/firme/firma_centrella_alberto.png',
@@ -103,7 +116,7 @@
             .replace(/\s+(?:e|ed|and|&)\s+/gi, ' | ')
             .replace(/[;,/+]\s*/g, ' | ')
             .split('|')
-            .map(v => v.replace(/^(sig\.?|firma|firmato da|dott\.?|ing\.?|avv\.?)\s+/i, '').trim())
+            .map(v => v.replace(/^(sig\.?|firma|firmato da|dott\.?|ing\.?|avv\.?|resp\.?\s*progetto\s*formativo|resp\.?\s*corso|responsabile\s+progetto\s+formativo|responsabile\s+del\s+corso|responsabile\s+corso)\s+/i, '').trim())
             .filter(v => !isPlaceholder(v));
     };
 
