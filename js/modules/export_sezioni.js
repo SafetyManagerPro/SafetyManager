@@ -264,3 +264,212 @@ window.stampaSezionePdf = async function(moduleId) {
 // COLLAUDO GENERALE SISTEMA
 // ==========================================
 window.collaudoReport = null;
+
+// ==========================================
+// STEP 7 - Backup / Export / Ripristino rafforzati
+// ==========================================
+(function() {
+    const STEP7_VERSION = 'ASR2025 step7 export-backup-restore';
+    const TABLES = [
+        'enti',
+        'ente',
+        'aziende',
+        'docenti',
+        'corsisti',
+        'progetti',
+        'iscrizioni',
+        'richieste_organismi_paritetici',
+        'validazioni_percorsi_formativi',
+        'documenti_fascicolo',
+        'export_fascicoli',
+        'firme_digitali',
+        'test_digitali',
+        'audit_log'
+    ];
+    window.SAFETY_BACKUP_TABLES = TABLES;
+
+    const logBackup = (msg) => {
+        if (typeof window.backupLog === 'function') window.backupLog(msg);
+        else console.info('[Backup]', msg);
+    };
+
+    const logRestore = (msg) => {
+        if (typeof window.restoreLog === 'function') window.restoreLog(msg);
+        else console.info('[Restore]', msg);
+    };
+
+    const escapeCsv = (value) => {
+        if (value === null || value === undefined) return '';
+        const s = typeof value === 'object' ? JSON.stringify(value) : String(value);
+        return /[";\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    };
+
+    const rowsToCsv = (rows) => {
+        if (!Array.isArray(rows) || !rows.length) return '';
+        const headers = Array.from(rows.reduce((set, row) => {
+            Object.keys(row || {}).forEach(k => set.add(k));
+            return set;
+        }, new Set()));
+        return [headers.join(';'), ...rows.map(row => headers.map(h => escapeCsv(row?.[h])).join(';'))].join('\n');
+    };
+
+    const cleanRestoreRow = (row) => {
+        const clean = { ...(row || {}) };
+        Object.keys(clean).forEach(k => {
+            const v = clean[k];
+            if (v === undefined) delete clean[k];
+            if (v && typeof v === 'object' && !Array.isArray(v) && !(v instanceof Date)) {
+                const looksLikeJoin = ['id','ragione_sociale','nome_cognome','codice','cf'].some(key => Object.prototype.hasOwnProperty.call(v, key));
+                if (looksLikeJoin) delete clean[k];
+            }
+        });
+        return clean;
+    };
+
+    window.esportaBackupDatabaseLocale = async function() {
+        if (!window.supabaseClient) return alert('Supabase non configurato.');
+        const status = document.getElementById('backup-db-status');
+        if (status) status.innerHTML = '';
+
+        const backup = {
+            meta: {
+                app: 'SafetyManager PRO',
+                version: STEP7_VERSION,
+                exported_at: new Date().toISOString(),
+                source: 'Supabase client export admin-only',
+                tables: TABLES,
+                note: 'Backup locale ZIP/JSON creato dal browser. Non contiene chiavi service_role. Ripristino conservativo tramite upsert su id.'
+            },
+            counts: {},
+            tables: {},
+            errors: {}
+        };
+
+        logBackup('Avvio backup completo SafetyManager...');
+        for (const table of TABLES) {
+            try {
+                logBackup(`Lettura ${table}...`);
+                const { data, error } = await window.supabaseClient.from(table).select('*');
+                if (error) throw error;
+                backup.tables[table] = data || [];
+                backup.counts[table] = backup.tables[table].length;
+                logBackup(`OK ${table}: ${backup.counts[table]} record.`);
+            } catch (e) {
+                backup.tables[table] = [];
+                backup.counts[table] = 0;
+                backup.errors[table] = e.message || String(e);
+                logBackup(`SKIP ${table}: ${backup.errors[table]}`);
+            }
+        }
+
+        const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+        const filename = `SafetyManager_backup_completo_${stamp}.zip`;
+        try {
+            if (typeof JSZip !== 'undefined') {
+                const zip = new JSZip();
+                zip.file('backup_completo.json', JSON.stringify(backup, null, 2));
+                zip.file('manifest.json', JSON.stringify(backup.meta, null, 2));
+                zip.file('conteggi.json', JSON.stringify(backup.counts, null, 2));
+                const folderJson = zip.folder('tabelle_json');
+                const folderCsv = zip.folder('tabelle_csv');
+                TABLES.forEach(table => {
+                    const rows = backup.tables[table] || [];
+                    folderJson.file(`${table}.json`, JSON.stringify(rows, null, 2));
+                    folderCsv.file(`${table}.csv`, rowsToCsv(rows));
+                });
+                if (Object.keys(backup.errors).length) {
+                    zip.file('ERRORI_EXPORT.json', JSON.stringify(backup.errors, null, 2));
+                }
+                const blob = await zip.generateAsync({ type: 'blob' });
+                window.downloadBlobFile(blob, filename);
+            } else {
+                const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+                window.downloadBlobFile(blob, filename.replace('.zip', '.json'));
+            }
+            logBackup(`Backup completo creato: ${filename}`);
+            alert('Backup completo scaricato sul PC.');
+        } catch (e) {
+            console.error(e);
+            logBackup(`ERRORE ZIP: ${e.message || e}`);
+            alert('Errore creazione backup: ' + (e.message || e));
+        }
+    };
+
+    window.normalizzaBackupSafetyManager = function(raw) {
+        if (!raw) throw new Error('Backup vuoto.');
+        if (raw.tables && typeof raw.tables === 'object') return raw;
+        if (Array.isArray(raw)) return { meta: { source: 'Array JSON generico' }, tables: { import_generico: raw }, errors: {} };
+        throw new Error('Struttura backup non riconosciuta.');
+    };
+
+    window.ripristinaBackupDatabaseLocale = async function() {
+        if (!window.supabaseClient) return alert('Supabase non configurato.');
+        try {
+            if (!window.restoreBackupParsed && typeof window.analizzaBackupDaRipristinare === 'function') {
+                await window.analizzaBackupDaRipristinare();
+            }
+            const backup = window.restoreBackupParsed;
+            if (!backup || !backup.tables) throw new Error('Backup non caricato.');
+
+            const present = Object.keys(backup.tables || {}).filter(t => TABLES.includes(t));
+            const ignored = Object.keys(backup.tables || {}).filter(t => !TABLES.includes(t));
+            const ordered = TABLES.filter(t => present.includes(t));
+            if (!ordered.length) throw new Error('Nessuna tabella SafetyManager ripristinabile trovata.');
+
+            const totalRows = ordered.reduce((sum, t) => sum + (Array.isArray(backup.tables[t]) ? backup.tables[t].length : 0), 0);
+            const msg = `Ripristino conservativo SafetyManager: ${ordered.length} tabelle, ${totalRows} record. ` +
+                `I record con stesso ID verranno aggiornati/inseriti, senza cancellare altri dati. Continuare?`;
+            if (!confirm(msg)) return;
+
+            if (ignored.length) logRestore(`Tabelle ignorate perché non in whitelist: ${ignored.join(', ')}`);
+            logRestore('Avvio ripristino conservativo step7...');
+
+            for (const table of ordered) {
+                const rows = backup.tables[table];
+                if (!Array.isArray(rows) || !rows.length) {
+                    logRestore(`SKIP ${table}: nessun record.`);
+                    continue;
+                }
+
+                logRestore(`Ripristino ${table}: ${rows.length} record...`);
+                const chunkSize = 150;
+                let done = 0;
+                for (let i = 0; i < rows.length; i += chunkSize) {
+                    const chunk = rows.slice(i, i + chunkSize).map(cleanRestoreRow).filter(r => Object.keys(r).length);
+                    if (!chunk.length) continue;
+                    const { error } = await window.supabaseClient.from(table).upsert(chunk, { onConflict: 'id' });
+                    if (error) throw new Error(`${table}: ${error.message}`);
+                    done += chunk.length;
+                    logRestore(`${table}: ${done}/${rows.length}`);
+                }
+                logRestore(`OK ${table}.`);
+            }
+
+            logRestore('Ripristino completato.');
+            alert('Ripristino completato. Ricarica Dashboard e sezioni dati.');
+        } catch (e) {
+            console.error(e);
+            logRestore(`ERRORE RIPRISTINO: ${e.message || e}`);
+            alert('Errore ripristino backup: ' + (e.message || e));
+        }
+    };
+
+    window.esportaBackupDatabaseJsonSolo = async function() {
+        if (!window.supabaseClient) return alert('Supabase non configurato.');
+        const backup = { meta: { app: 'SafetyManager PRO', version: STEP7_VERSION, exported_at: new Date().toISOString() }, tables: {}, counts: {}, errors: {} };
+        for (const table of TABLES) {
+            try {
+                const { data, error } = await window.supabaseClient.from(table).select('*');
+                if (error) throw error;
+                backup.tables[table] = data || [];
+                backup.counts[table] = backup.tables[table].length;
+            } catch (e) {
+                backup.tables[table] = [];
+                backup.counts[table] = 0;
+                backup.errors[table] = e.message || String(e);
+            }
+        }
+        const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+        window.downloadBlobFile(new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' }), `SafetyManager_backup_completo_${stamp}.json`);
+    };
+})();
