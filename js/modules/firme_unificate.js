@@ -1,7 +1,8 @@
-// Step firme - risolutore unico firme e slot sempre presenti
+// Step firme + stampe - risolutore unico firme e stabilizzazione PDF
 // Regola utente: se la firma non è disponibile o il file non è caricabile, lo slot resta visibile e vuoto.
 // Fix doppie firme: quando uno slot contiene più nominativi, le firme note vengono renderizzate affiancate.
 // Fix ruolo: Berardino Pesce può firmare anche come Responsabile del Corso.
+// Step stampe: prepara in modo centralizzato anteprime, PDF unico, attestati e pagine portrait/landscape.
 
 (function() {
     if (window.__safetyUnifiedSignaturesLoaded) return;
@@ -14,6 +15,7 @@
             roles: [
                 'docente',
                 'formatore',
+                'docente formatore',
                 'resp_progetto',
                 'responsabile progetto',
                 'responsabile progetto formativo',
@@ -28,7 +30,14 @@
         {
             src: 'assets/firme/firma_centrella_alberto.png',
             names: ['centrella alberto', 'alberto centrella'],
-            roles: ['docente', 'formatore', 'resp_corso', 'responsabile corso', 'responsabile del corso']
+            roles: [
+                'docente',
+                'formatore',
+                'docente formatore',
+                'resp_corso',
+                'responsabile corso',
+                'responsabile del corso'
+            ]
         }
     ];
 
@@ -349,7 +358,10 @@
         const original = window.renderPrintModuleToTemp;
         const wrapped = async function(...args) {
             const pages = await original.apply(this, args);
-            (pages || []).forEach(p => window.applyResolvedSignaturesToContainer(p));
+            (pages || []).forEach(p => {
+                window.applyResolvedSignaturesToContainer(p);
+                if (typeof window.prepareSafetyPrintContainer === 'function') window.prepareSafetyPrintContainer(p);
+            });
             return pages;
         };
         wrapped.__signaturesWrapped = true;
@@ -361,7 +373,10 @@
         const original = window.renderAttestatiMultipli;
         const wrapped = async function(container, options = {}) {
             const result = await original.apply(this, [container, options]);
-            if (container) window.applyResolvedSignaturesToContainer(container);
+            if (container) {
+                window.applyResolvedSignaturesToContainer(container);
+                if (typeof window.prepareSafetyPrintContainer === 'function') window.prepareSafetyPrintContainer(container);
+            }
             return result;
         };
         wrapped.__signaturesWrapped = true;
@@ -374,7 +389,10 @@
         const wrapped = async function(...args) {
             const result = await original.apply(this, args);
             const preview = document.getElementById('print-preview-container');
-            if (preview) window.applyResolvedSignaturesToContainer(preview);
+            if (preview) {
+                window.applyResolvedSignaturesToContainer(preview);
+                if (typeof window.prepareSafetyPrintContainer === 'function') window.prepareSafetyPrintContainer(preview);
+            }
             return result;
         };
         wrapped.__signaturesWrapped = true;
@@ -388,7 +406,314 @@
         window.applyResolvedSignaturesToContainer(document);
     };
 
+    // ================================
+    // STEP STAMPE / PDF - stabilizzatore
+    // ================================
+
+    const PRINT_STYLE_ID = 'safety-print-stabilizer-style';
+
+    window.injectSafetyPrintCss = function() {
+        if (document.getElementById(PRINT_STYLE_ID)) return;
+        const style = document.createElement('style');
+        style.id = PRINT_STYLE_ID;
+        style.textContent = `
+            @media print {
+                @page { size: A4 portrait; margin: 0mm; }
+                @page safetyPortraitPage { size: A4 portrait; margin: 0mm; }
+                @page safetyLandscapePage { size: A4 landscape; margin: 0mm; }
+
+                html, body {
+                    width: 100% !important;
+                    min-height: 100% !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    background: #ffffff !important;
+                    -webkit-print-color-adjust: exact !important;
+                    print-color-adjust: exact !important;
+                }
+
+                body.is-printing-temp > *:not(#print-area-temp) {
+                    visibility: hidden !important;
+                }
+
+                body.is-printing-temp #print-area-temp,
+                body.is-printing-temp #print-area-temp * {
+                    visibility: visible !important;
+                }
+
+                body.is-printing-temp #print-area-temp {
+                    display: block !important;
+                    position: absolute !important;
+                    left: 0 !important;
+                    top: 0 !important;
+                    width: 100% !important;
+                    max-width: none !important;
+                    min-height: 0 !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    background: #ffffff !important;
+                    overflow: visible !important;
+                    z-index: 2147483647 !important;
+                }
+
+                body.is-printing-temp #print-area-temp .doc-page,
+                body.is-printing-temp #print-area-temp .safety-print-page {
+                    page: safetyPortraitPage !important;
+                    display: block !important;
+                    position: relative !important;
+                    left: auto !important;
+                    top: auto !important;
+                    float: none !important;
+                    clear: both !important;
+                    transform: none !important;
+                    rotate: 0deg !important;
+                    scale: 1 !important;
+                    zoom: 1 !important;
+                    width: 210mm !important;
+                    height: 297mm !important;
+                    min-height: 297mm !important;
+                    max-height: 297mm !important;
+                    margin: 0 auto !important;
+                    box-sizing: border-box !important;
+                    overflow: hidden !important;
+                    background: #ffffff !important;
+                    box-shadow: none !important;
+                    border: 0 !important;
+                    page-break-after: always !important;
+                    break-after: page !important;
+                }
+
+                body.is-printing-temp #print-area-temp .doc-page.landscape,
+                body.is-printing-temp #print-area-temp .doc-page.landscape-force,
+                body.is-printing-temp #print-area-temp .doc-page.manual-test-page,
+                body.is-printing-temp #print-area-temp .safety-landscape-page {
+                    page: safetyLandscapePage !important;
+                    width: 297mm !important;
+                    height: 210mm !important;
+                    min-height: 210mm !important;
+                    max-height: 210mm !important;
+                    padding: 0 !important;
+                    transform: none !important;
+                    rotate: 0deg !important;
+                    scale: 1 !important;
+                    zoom: 1 !important;
+                }
+
+                body.is-printing-temp #print-area-temp .manual-test-inner {
+                    width: 297mm !important;
+                    height: 210mm !important;
+                    max-height: 210mm !important;
+                    box-sizing: border-box !important;
+                    overflow: hidden !important;
+                }
+
+                body.is-printing-temp #print-area-temp .manual-test-grid {
+                    min-height: 0 !important;
+                    overflow: hidden !important;
+                }
+
+                body.is-printing-temp #print-area-temp .scale-\\[0\\.8\\],
+                body.is-printing-temp #print-area-temp .origin-top {
+                    transform: none !important;
+                }
+
+                body.is-printing-temp #print-area-temp .auto-signature-slot {
+                    display: flex !important;
+                    visibility: visible !important;
+                    min-height: 12mm !important;
+                    page-break-inside: avoid !important;
+                    break-inside: avoid !important;
+                }
+
+                body.is-printing-temp #print-area-temp .auto-signature-img {
+                    display: block !important;
+                    max-width: 42mm !important;
+                    max-height: 13mm !important;
+                    object-fit: contain !important;
+                    visibility: visible !important;
+                }
+
+                body.is-printing-temp #print-area-temp .doc-page:last-child,
+                body.is-printing-temp #print-area-temp .safety-print-page:last-child {
+                    page-break-after: auto !important;
+                    break-after: auto !important;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    };
+
+    const ensurePrintArea = () => {
+        let printArea = document.getElementById('print-area-temp');
+        if (!printArea) {
+            printArea = document.createElement('div');
+            printArea.id = 'print-area-temp';
+            printArea.style.display = 'none';
+            document.body.appendChild(printArea);
+        }
+        return printArea;
+    };
+
+    const isLandscapePage = (page) => {
+        if (!page || !page.classList) return false;
+        const classText = String(page.className || '');
+        return page.classList.contains('landscape') ||
+            page.classList.contains('landscape-force') ||
+            page.classList.contains('manual-test-page') ||
+            page.dataset?.manualTestPage ||
+            /landscape/i.test(classText);
+    };
+
+    const normalizePrintPage = (page) => {
+        if (!page || !page.classList) return;
+        page.classList.add('print-show', 'temp-page', 'safety-print-page');
+        page.classList.remove('hidden', 'scale-[0.8]', 'origin-top');
+        page.style.display = 'block';
+        page.style.position = 'relative';
+        page.style.left = 'auto';
+        page.style.top = 'auto';
+        page.style.transform = 'none';
+        page.style.zoom = '1';
+        page.style.scale = '1';
+        page.style.float = 'none';
+        page.style.clear = 'both';
+        page.style.boxSizing = 'border-box';
+        page.style.overflow = 'hidden';
+        page.style.pageBreakAfter = 'always';
+        page.style.breakAfter = 'page';
+
+        if (isLandscapePage(page)) {
+            page.classList.add('safety-landscape-page');
+            page.style.width = '297mm';
+            page.style.height = '210mm';
+            page.style.minHeight = '210mm';
+            page.style.maxHeight = '210mm';
+        } else {
+            page.style.width = '210mm';
+            page.style.height = '297mm';
+            page.style.minHeight = '297mm';
+            page.style.maxHeight = '297mm';
+        }
+    };
+
+    window.prepareSafetyPrintContainer = function(root = null) {
+        window.injectSafetyPrintCss();
+        const target = root || ensurePrintArea();
+        if (typeof window.applyResolvedSignaturesToContainer === 'function') {
+            try { window.applyResolvedSignaturesToContainer(target); } catch (error) { console.warn('[Stampe] firme non applicate in preparazione', error); }
+        }
+        const pages = Array.from(target.querySelectorAll ? target.querySelectorAll('.doc-page, .safety-print-page') : []);
+        pages.forEach(normalizePrintPage);
+        if (pages.length) {
+            const last = pages[pages.length - 1];
+            last.style.pageBreakAfter = 'auto';
+            last.style.breakAfter = 'auto';
+        }
+        const stats = {
+            pages: pages.length,
+            portrait: pages.filter(p => !isLandscapePage(p)).length,
+            landscape: pages.filter(isLandscapePage).length,
+            signatures: target.querySelectorAll ? target.querySelectorAll('.auto-signature-slot').length : 0,
+            resolvedSignatures: target.querySelectorAll ? target.querySelectorAll('.auto-signature-slot[data-signature-resolved="yes"]').length : 0
+        };
+        if (pages.length) console.info('[Stampe] contenitore preparato per PDF/stampa', stats);
+        return stats;
+    };
+
+    const oldWaitForPrintImages = typeof window.waitForPrintImages === 'function' ? window.waitForPrintImages : null;
+    window.waitForPrintImages = async function(root = document, timeoutMs = 2800) {
+        const container = root || document;
+        window.prepareSafetyPrintContainer(container);
+        if (oldWaitForPrintImages && oldWaitForPrintImages !== window.waitForPrintImages) {
+            try { await oldWaitForPrintImages(container); } catch (error) { console.warn('[Stampe] attesa immagini precedente non completata', error); }
+        }
+        const images = Array.from(container.querySelectorAll ? container.querySelectorAll('img') : [])
+            .filter(img => img && img.src && !img.complete);
+        if (!images.length) return true;
+        await Promise.race([
+            Promise.all(images.map(img => new Promise(resolve => {
+                img.onload = () => resolve(true);
+                img.onerror = () => resolve(false);
+            }))),
+            new Promise(resolve => setTimeout(resolve, Number(timeoutMs) || 2800))
+        ]);
+        return true;
+    };
+
+    const wrapBrowserPrint = () => {
+        if (window.print?.__safetyPrintWrapped) return;
+        const originalPrint = window.print.bind(window);
+        const wrappedPrint = function(...args) {
+            try {
+                const printArea = document.getElementById('print-area-temp');
+                if (printArea) window.prepareSafetyPrintContainer(printArea);
+                document.body.classList.add('is-printing-temp');
+            } catch (error) {
+                console.warn('[Stampe] preparazione immediata pre-print non completata', error);
+            }
+            return originalPrint(...args);
+        };
+        wrappedPrint.__safetyPrintWrapped = true;
+        window.print = wrappedPrint;
+    };
+
+    const wrapKnownPrintFunction = (name) => {
+        const fn = window[name];
+        if (typeof fn !== 'function' || fn.__safetyPrintStabilized) return;
+        const wrapped = async function(...args) {
+            window.injectSafetyPrintCss();
+            const result = await fn.apply(this, args);
+            const printArea = document.getElementById('print-area-temp');
+            if (printArea) window.prepareSafetyPrintContainer(printArea);
+            return result;
+        };
+        wrapped.__safetyPrintStabilized = true;
+        window[name] = wrapped;
+    };
+
+    window.installSafetyPrintStabilizer = function() {
+        window.injectSafetyPrintCss();
+        wrapBrowserPrint();
+        [
+            'stampaFascicoloCompletoPDF',
+            'stampaAttestatiProgetto',
+            'stampaAttestatoCorsista',
+            'stampaSoloAttestatiPDF',
+            'stampaModuloProgettoRapido',
+            'stampaProgettoFormativoDaProgetto'
+        ].forEach(wrapKnownPrintFunction);
+        const printArea = document.getElementById('print-area-temp');
+        if (printArea) window.prepareSafetyPrintContainer(printArea);
+    };
+
+    window.auditSafetyPrint = function(root = document) {
+        const target = root || document;
+        const pages = Array.from(target.querySelectorAll ? target.querySelectorAll('.doc-page, .safety-print-page') : []);
+        const report = {
+            pages: pages.length,
+            portrait: pages.filter(p => !isLandscapePage(p)).length,
+            landscape: pages.filter(isLandscapePage).length,
+            manualTests: pages.filter(p => p.dataset?.manualTestPage).length,
+            signatures: target.querySelectorAll ? target.querySelectorAll('.auto-signature-slot').length : 0,
+            resolvedSignatures: target.querySelectorAll ? target.querySelectorAll('.auto-signature-slot[data-signature-resolved="yes"]').length : 0,
+            emptySignatureSlots: target.querySelectorAll ? target.querySelectorAll('.auto-signature-slot[data-signature-resolved="no"], .auto-signature-slot[data-signature-resolved="load-error"]').length : 0
+        };
+        console.info('[Stampe] audit', report);
+        return report;
+    };
+
     window.installSafetySignaturePatches();
-    setTimeout(window.installSafetySignaturePatches, 0);
-    setTimeout(window.installSafetySignaturePatches, 500);
+    window.installSafetyPrintStabilizer();
+    setTimeout(() => {
+        window.installSafetySignaturePatches();
+        window.installSafetyPrintStabilizer();
+    }, 0);
+    setTimeout(() => {
+        window.installSafetySignaturePatches();
+        window.installSafetyPrintStabilizer();
+    }, 500);
+    setTimeout(() => {
+        window.installSafetySignaturePatches();
+        window.installSafetyPrintStabilizer();
+    }, 1500);
 })();
