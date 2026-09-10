@@ -1,5 +1,9 @@
 // js/app.js
 
+// STEP SICUREZZA SUPABASE - accesso riservato all'unico admin
+window.SAFETY_ADMIN_EMAIL = 'albertocentrella.av@gmail.com';
+window.safetyAuthChecked = false;
+
 if (typeof lucide !== 'undefined') {
     const originalCreateIcons = lucide.createIcons;
     lucide.createIcons = function(options) {
@@ -14,7 +18,6 @@ if (typeof lucide !== 'undefined') {
     };
 }
 
-
 window.updateNavOffset = function() {
     const nav = document.getElementById('top-nav');
     if (!nav) return;
@@ -27,8 +30,175 @@ window.addEventListener('resize', () => {
     window.__navOffsetTimer = setTimeout(window.updateNavOffset, 100);
 });
 
+window.isSafetyAdminEmail = function(email) {
+    return String(email || '').trim().toLowerCase() === String(window.SAFETY_ADMIN_EMAIL || '').toLowerCase();
+};
+
+window.getSafetySession = async function() {
+    if (!window.supabaseClient?.auth) return null;
+    try {
+        const { data, error } = await window.supabaseClient.auth.getSession();
+        if (error) throw error;
+        return data?.session || null;
+    } catch (error) {
+        console.warn('SafetyManager: sessione Supabase non disponibile.', error);
+        return null;
+    }
+};
+
+window.getSafetyAdminUser = async function() {
+    if (!window.supabaseClient?.auth) return null;
+    try {
+        const { data, error } = await window.supabaseClient.auth.getUser();
+        if (error) throw error;
+        const user = data?.user || null;
+        if (!user || !window.isSafetyAdminEmail(user.email)) return null;
+        return user;
+    } catch (error) {
+        console.warn('SafetyManager: utente Supabase non disponibile.', error);
+        return null;
+    }
+};
+
+window.showSafetyLogin = function(message = '') {
+    const contentDiv = document.getElementById('app-content');
+    if (!contentDiv) return;
+    document.querySelectorAll('.btn-tab').forEach(b => b.classList.remove('active'));
+    contentDiv.innerHTML = `
+        <div class="w-full max-w-md mx-auto mt-24 bg-white border border-slate-200 rounded-2xl shadow-xl p-7">
+            <div class="w-14 h-14 rounded-2xl bg-slate-900 flex items-center justify-center mx-auto mb-4 shadow-lg">
+                <i data-lucide="lock-keyhole" class="w-7 h-7 text-emerald-300"></i>
+            </div>
+            <h1 class="text-center text-2xl font-black uppercase tracking-tight text-slate-900">SafetyManager PRO</h1>
+            <p class="text-center text-xs font-bold uppercase tracking-widest text-slate-500 mt-1">Accesso amministratore</p>
+            ${message ? `<div class="mt-4 rounded-xl border border-amber-200 bg-amber-50 text-amber-900 px-4 py-3 text-xs font-bold">${window.dashEscape ? window.dashEscape(message) : message}</div>` : ''}
+
+            <form onsubmit="window.handleSafetyLogin(event)" class="mt-6 space-y-4">
+                <div>
+                    <label class="text-[10px] font-black uppercase text-slate-500 tracking-widest">Email autorizzata</label>
+                    <input id="safety-login-email" type="email" autocomplete="username" class="input-field mt-1" value="${window.SAFETY_ADMIN_EMAIL}" required>
+                </div>
+                <div>
+                    <label class="text-[10px] font-black uppercase text-slate-500 tracking-widest">Password Supabase</label>
+                    <input id="safety-login-password" type="password" autocomplete="current-password" class="input-field mt-1" placeholder="Inserisci password" required>
+                </div>
+                <button type="submit" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-black uppercase tracking-widest text-xs rounded-xl py-3 shadow-md">
+                    Entra
+                </button>
+            </form>
+
+            <button type="button" onclick="window.sendSafetyMagicLink()" class="mt-3 w-full bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-200 font-black uppercase tracking-widest text-[10px] rounded-xl py-2.5">
+                Invia link di accesso via email
+            </button>
+            <p class="mt-4 text-[10px] leading-relaxed text-slate-500 text-center">
+                Accesso consentito solo a <strong>${window.SAFETY_ADMIN_EMAIL}</strong>. Le policy Supabase bloccano le API per utenti anonimi o diversi dall'admin.
+            </p>
+        </div>`;
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+    if (typeof window.updateNavOffset === 'function') setTimeout(window.updateNavOffset, 50);
+};
+
+window.handleSafetyLogin = async function(event) {
+    if (event) event.preventDefault();
+    const email = document.getElementById('safety-login-email')?.value || '';
+    const password = document.getElementById('safety-login-password')?.value || '';
+
+    if (!window.isSafetyAdminEmail(email)) {
+        alert('Accesso non autorizzato. Può accedere solo l\'admin configurato.');
+        return;
+    }
+    if (!password) {
+        alert('Inserisci la password.');
+        return;
+    }
+
+    try {
+        const { data, error } = await window.supabaseClient.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        if (!window.isSafetyAdminEmail(data?.user?.email)) {
+            await window.supabaseClient.auth.signOut();
+            alert('Utente non autorizzato.');
+            return;
+        }
+        await window.loadModule('admin');
+    } catch (error) {
+        console.error('Login non riuscito:', error);
+        alert('Login non riuscito: ' + (error.message || error));
+    }
+};
+
+window.sendSafetyMagicLink = async function() {
+    const email = document.getElementById('safety-login-email')?.value || window.SAFETY_ADMIN_EMAIL;
+    if (!window.isSafetyAdminEmail(email)) {
+        alert('Accesso non autorizzato. Può accedere solo l\'admin configurato.');
+        return;
+    }
+    try {
+        const redirectTo = window.location.origin + window.location.pathname;
+        const { error } = await window.supabaseClient.auth.signInWithOtp({
+            email,
+            options: { emailRedirectTo: redirectTo }
+        });
+        if (error) throw error;
+        alert('Link di accesso inviato via email. Aprilo dallo stesso browser o dispositivo.');
+    } catch (error) {
+        console.error('Invio magic link non riuscito:', error);
+        alert('Invio link non riuscito: ' + (error.message || error));
+    }
+};
+
+window.logoutSafetyAdmin = async function() {
+    try {
+        await window.supabaseClient.auth.signOut();
+    } catch (error) {
+        console.warn('Logout non riuscito:', error);
+    }
+    window.showSafetyLogin('Sessione chiusa.');
+};
+
+window.ensureSafetyAdminOrLogin = async function() {
+    const user = await window.getSafetyAdminUser();
+    if (user) return user;
+    const session = await window.getSafetySession();
+    if (session && !window.isSafetyAdminEmail(session?.user?.email)) {
+        await window.supabaseClient.auth.signOut();
+        window.showSafetyLogin('Sessione non autorizzata rimossa.');
+        return null;
+    }
+    window.showSafetyLogin('Effettua l\'accesso per continuare.');
+    return null;
+};
+
+window.injectSafetyLogoutButton = function() {
+    const nav = document.getElementById('top-nav-buttons');
+    if (!nav || document.getElementById('nav-safety-logout')) return;
+    const btn = document.createElement('button');
+    btn.id = 'nav-safety-logout';
+    btn.type = 'button';
+    btn.onclick = window.logoutSafetyAdmin;
+    btn.className = 'btn-tab flex items-center gap-2 px-3 py-2 rounded-xl font-bold text-xs transition-all duration-300 hover:text-white hover:bg-red-900/70 group text-slate-400 border border-red-900/40';
+    btn.innerHTML = '<div class="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center group-hover:bg-red-600 transition-all"><i data-lucide="log-out" class="w-3.5 h-3.5 group-hover:text-white icon-svg transition-colors"></i></div><span class="hidden xl:block">Esci</span>';
+    nav.appendChild(btn);
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+};
+
 window.loadModule = async function(moduleId) {
     const contentDiv = document.getElementById('app-content');
+    if (!contentDiv) return;
+
+    if (moduleId !== 'login') {
+        const user = await window.getSafetyAdminUser();
+        if (!user) {
+            await window.ensureSafetyAdminOrLogin();
+            return;
+        }
+        window.injectSafetyLogoutButton();
+    }
+
+    if (moduleId === 'login') {
+        window.showSafetyLogin();
+        return;
+    }
 
     if (moduleId === 'procedure') {
         document.querySelectorAll('.btn-tab').forEach(b => b.classList.remove('active'));
@@ -112,6 +282,26 @@ window.unregisterLegacyServiceWorkers = async function() {
 
 document.addEventListener("DOMContentLoaded", async () => {
     await window.unregisterLegacyServiceWorkers();
+
+    if (window.supabaseClient?.auth?.onAuthStateChange) {
+        window.supabaseClient.auth.onAuthStateChange(async (event, session) => {
+            if (event === 'SIGNED_OUT') {
+                window.showSafetyLogin('Sessione chiusa.');
+                return;
+            }
+            if (session?.user && window.isSafetyAdminEmail(session.user.email)) {
+                if (!window.safetyAuthChecked) return;
+                await window.loadModule('admin');
+            }
+        });
+    }
+
+    window.safetyAuthChecked = true;
+    const user = await window.getSafetyAdminUser();
+    if (!user) {
+        window.showSafetyLogin('Effettua l\'accesso per continuare.');
+        return;
+    }
 
     await window.loadModule('admin');
     if (typeof window.updateNavOffset === 'function') window.updateNavOffset(); 
