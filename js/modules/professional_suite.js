@@ -7,6 +7,7 @@
     if(typeof window.loadOptionalSafetyScript !== 'function') return;
     const files=[
       'js/modules/ui_refinements.js',
+      'js/modules/workflow_guard.js',
       'js/modules/collaudo_pro.js',
       'js/modules/audit_attivita.js',
       'js/modules/chiusura_corso.js',
@@ -18,6 +19,7 @@
     for(const file of files) await window.loadOptionalSafetyScript(file);
     injectDashboardActions();
     if(typeof window.applySafetyUiRefinements==='function') window.applySafetyUiRefinements('admin');
+    if(typeof window.applySafetyWorkflowFixes==='function') window.applySafetyWorkflowFixes('admin');
   };
 
   const hasButtonTarget = (el, target) => [...el.querySelectorAll('button')].some(btn => String(btn.getAttribute('onclick') || '').includes(`loadModule('${target}')`));
