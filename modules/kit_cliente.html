@@ -1,10 +1,33 @@
 <div id="view-kit-cliente" class="w-full max-w-[1500px] mx-auto mt-4 mb-10">
+    <img alt="" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==" class="hidden" onload="window.initKitClientePro && window.initKitClientePro()">
+
     <div class="border-b-2 border-slate-900 pb-3 mb-6">
         <h1 class="text-3xl font-black uppercase text-slate-900 tracking-tighter flex items-center gap-3">
-            <i data-lucide="sheet" class="w-8 h-8 text-emerald-600"></i> Kit attivazione corso XLSX
+            <i data-lucide="sheet" class="w-8 h-8 text-emerald-600"></i> Kit cliente / attivazione corso
         </h1>
-        <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Raccolta dati azienda, corsisti e corsi richiesti · analisi e importazione assistita</p>
+        <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Raccolta dati XLSX, situazione formativa cliente, attestati, scadenze e rinnovi</p>
     </div>
+
+    <section class="bg-slate-900 rounded-3xl border border-slate-800 shadow-xl overflow-hidden mb-6">
+        <div class="p-5 border-b border-slate-700 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
+            <div>
+                <p class="text-[9px] font-black uppercase tracking-widest text-emerald-300">Step 19 · Scheda cliente professionale</p>
+                <h2 class="text-xl font-black uppercase text-white mt-1">Situazione formativa e rinnovi</h2>
+                <p class="text-xs text-slate-300 mt-1">Seleziona un cliente già presente per avere una vista unica su corsi, corsisti, attestati, scadenze e documenti.</p>
+            </div>
+            <div class="w-full xl:w-[440px]">
+                <select id="kit-pro-company" onchange="window.renderKitClientePro()" class="w-full px-4 py-3 rounded-xl bg-white text-slate-900 font-bold text-sm"><option value="">-- Seleziona azienda --</option></select>
+            </div>
+        </div>
+        <div class="p-5 bg-slate-50">
+            <div id="kit-pro-summary" class="min-h-[160px]"><div class="p-6 text-center text-slate-500">Seleziona un’azienda per vedere la situazione formativa.</div></div>
+            <div class="mt-4 flex flex-wrap justify-end gap-2">
+                <button id="kit-pro-pdf" disabled onclick="window.stampaKitClientePro()" class="px-4 py-2.5 rounded-xl bg-blue-700 disabled:bg-slate-300 text-white text-[10px] font-black uppercase tracking-widest inline-flex items-center gap-2"><i data-lucide="file-text" class="w-4 h-4"></i>Scheda PDF</button>
+                <button id="kit-pro-xls" disabled onclick="window.exportKitClienteProXls()" class="px-4 py-2.5 rounded-xl bg-emerald-700 disabled:bg-slate-300 text-white text-[10px] font-black uppercase tracking-widest inline-flex items-center gap-2"><i data-lucide="file-spreadsheet" class="w-4 h-4"></i>Scheda XLS</button>
+                <button id="kit-pro-renewals" disabled onclick="window.exportKitRinnoviXlsx()" class="px-4 py-2.5 rounded-xl bg-amber-500 disabled:bg-slate-300 text-slate-950 text-[10px] font-black uppercase tracking-widest inline-flex items-center gap-2"><i data-lucide="bell-ring" class="w-4 h-4"></i>Rinnovi XLSX</button>
+            </div>
+        </div>
+    </section>
 
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
         <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
