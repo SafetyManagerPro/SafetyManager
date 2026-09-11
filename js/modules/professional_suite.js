@@ -20,9 +20,11 @@
     if(typeof window.applySafetyUiRefinements==='function') window.applySafetyUiRefinements('admin');
   };
 
+  const hasButtonTarget = (el, target) => [...el.querySelectorAll('button')].some(btn => String(btn.getAttribute('onclick') || '').includes(`loadModule('${target}')`));
+
   const injectDashboardActions = () => {
     const candidates=[...document.querySelectorAll('#app-content .grid.grid-cols-2.gap-3')];
-    const grid=candidates.find(el=>el.querySelector('button[onclick*="loadModule(\'progetti\')"]') && el.querySelector('button[onclick*="loadModule(\'stampe\')"]'));
+    const grid=candidates.find(el=>hasButtonTarget(el,'progetti') && hasButtonTarget(el,'stampe'));
     if(!grid || grid.dataset.professionalActions==='1') return;
     grid.dataset.professionalActions='1';
     const items=[
@@ -42,6 +44,7 @@
 
   window.injectProfessionalDashboardActions=injectDashboardActions;
   loadAll();
+  const root=document.getElementById('app-content')||document.body;
   const obs=new MutationObserver(()=>{if(document.getElementById('dash-action-plan'))injectDashboardActions();});
-  obs.observe(document.getElementById('app-content')||document.body,{childList:true,subtree:true});
+  obs.observe(root,{childList:true,subtree:true});
 })();
