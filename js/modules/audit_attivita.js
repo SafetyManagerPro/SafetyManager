@@ -1,5 +1,5 @@
 // STEP 16 - Registro attività / audit leggibile
-// Usa la tabella audit_log esistente e registra solo eventi operativi essenziali.
+// Usa la tabella audit_log esistente e registra eventi operativi essenziali senza salvare dati sensibili completi.
 (function(){
   if (window.__safetyAuditAttivitaLoaded) return;
   window.__safetyAuditAttivitaLoaded = true;
@@ -58,7 +58,35 @@
     window[name] = wrapped;
   };
 
+  const savedId = (record, result) => record?.id || (Array.isArray(result) ? result[0]?.id : result?.id) || null;
+
   window.installSafetyAuditWrappers = function(){
+    // Anagrafiche e progetti: registra solo identificatore, nome/codice e tipo operazione.
+    wrapAsync('saveAzienda', (args,res) => {
+      const r=args[0]||{}; if(!res) return null;
+      return { action:r.id?'company_updated':'company_created', options:{ table_name:'aziende', record_id:savedId(r,res), details:{ ragione_sociale:r.ragione_sociale||'', mode:r.id?'update':'create' } } };
+    });
+    wrapAsync('deleteAzienda', (args,res) => res ? ({ action:'company_deleted', options:{ table_name:'aziende', record_id:args[0]||null } }) : null);
+
+    wrapAsync('saveDocente', (args,res) => {
+      const r=args[0]||{}; if(!res) return null;
+      return { action:r.id?'teacher_updated':'teacher_created', options:{ table_name:'docenti', record_id:savedId(r,res), details:{ nome:r.nome_cognome||'', mode:r.id?'update':'create' } } };
+    });
+    wrapAsync('deleteDocente', (args,res) => res ? ({ action:'teacher_deleted', options:{ table_name:'docenti', record_id:args[0]||null } }) : null);
+
+    wrapAsync('saveCorsistaData', (args,res) => {
+      const r=args[0]||{}; if(!res) return null;
+      return { action:r.id?'student_updated':'student_created', options:{ table_name:'corsisti', record_id:savedId(r,res), details:{ nome:r.nome_cognome||'', cf_suffix:r.cf?String(r.cf).slice(-4):'', mode:r.id?'update':'create' } } };
+    });
+    wrapAsync('deleteCorsistaData', (args,res) => res ? ({ action:'student_deleted', options:{ table_name:'corsisti', record_id:args[0]||null } }) : null);
+
+    wrapAsync('saveProgetto', (args,res) => {
+      const r=args[0]||{}; if(!res) return null;
+      return { action:r.id?'project_updated':'project_created', options:{ table_name:'progetti', record_id:savedId(r,res), details:{ codice:r.codice||'', corso_id:r.corso_id||'', mode:r.id?'update':'create' } } };
+    });
+    wrapAsync('deleteProgetto', (args,res) => res ? ({ action:'project_deleted', options:{ table_name:'progetti', record_id:args[0]||null } }) : null);
+
+    // Operazioni di sistema e documentali.
     wrapAsync('esportaBackupDatabaseLocale', (args,res,ms) => ({ action:'backup_download', options:{ table_name:'system', details:{ duration_ms:ms } } }));
     wrapAsync('analizzaImportGuidato', (args,res,ms) => ({ action:'import_simulation', options:{ table_name:'system', details:{ rows:window.importGuidatoState?.analysis?.summary?.rows || 0, errors:window.importGuidatoState?.analysis?.summary?.errors || 0, warnings:window.importGuidatoState?.analysis?.summary?.warnings || 0, duration_ms:ms } } }));
     wrapAsync('startImportProcess', (args,res,ms) => ({ action:'import_execute', options:{ table_name:'system', details:{ rows:Array.isArray(window.migParsedData) ? window.migParsedData.length : 0, duration_ms:ms } } }));
@@ -84,7 +112,7 @@
   const detailText = row => {
     const data = row?.new_data && typeof row.new_data === 'object' ? row.new_data : {};
     const parts = [];
-    ['project_id','module_id','rows','errors','warnings','duration_ms','status','note'].forEach(k => {
+    ['codice','corso_id','ragione_sociale','nome','project_id','module_id','rows','errors','warnings','duration_ms','status','note','mode'].forEach(k => {
       if (data[k] !== undefined && data[k] !== null && data[k] !== '') parts.push(`${k}: ${data[k]}`);
     });
     if (!parts.length && row?.record_id) parts.push(`record: ${row.record_id}`);
@@ -96,6 +124,10 @@
   };
 
   const actionLabel = a => ({
+    company_created:'Azienda creata', company_updated:'Azienda modificata', company_deleted:'Azienda eliminata',
+    teacher_created:'Docente creato', teacher_updated:'Docente modificato', teacher_deleted:'Docente eliminato',
+    student_created:'Corsista creato', student_updated:'Corsista modificato', student_deleted:'Corsista eliminato',
+    project_created:'Corso/progetto creato', project_updated:'Corso/progetto modificato', project_deleted:'Corso/progetto eliminato',
     backup_download:'Backup scaricato', import_simulation:'Import simulato', import_execute:'Import eseguito',
     print_fascicolo:'Fascicolo stampato', print_attestati:'Attestati stampati', print_documento:'Documento stampato',
     course_closed:'Corso chiuso', course_marked_done:'Corso segnato svolto', renewal_prepared:'Rinnovo preparato'
@@ -172,7 +204,7 @@
       'Data/Ora': fmtDateTime(r.changed_at), 'Area':r.table_name || '', 'Azione':actionLabel(r.action),
       'Record ID':r.record_id || '', 'Dettagli':detailText(r), 'Utente ID':r.changed_by || ''
     }));
-    const wb=XLSX.utils.book_new(); const ws=XLSX.utils.json_to_sheet(data); ws['!cols']=[{wch:22},{wch:24},{wch:28},{wch:38},{wch:70},{wch:38}];
+    const wb=XLSX.utils.book_new(); const ws=XLSX.utils.json_to_sheet(data); ws['!cols']=[{wch:22},{wch:24},{wch:30},{wch:38},{wch:70},{wch:38}];
     XLSX.utils.book_append_sheet(wb,ws,'Registro attività');
     XLSX.writeFile(wb,`Registro_attivita_${new Date().toISOString().slice(0,10)}.xlsx`);
   };
