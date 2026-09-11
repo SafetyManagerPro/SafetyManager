@@ -1,0 +1,33 @@
+<div id="view-attivita" class="w-full max-w-7xl mx-auto mt-4 mb-10">
+    <img alt="" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==" class="hidden" onload="window.initRegistroAttivita && window.initRegistroAttivita()">
+
+    <div class="border-b-2 border-slate-900 pb-3 mb-6 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+        <div>
+            <h1 class="text-3xl font-black uppercase text-slate-900 tracking-tighter flex items-center gap-3">
+                <i data-lucide="history" class="w-8 h-8 text-cyan-600"></i> Registro attività
+            </h1>
+            <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Audit operativo: modifiche database e principali operazioni eseguite dall'amministratore</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            <button type="button" onclick="window.refreshRegistroAttivita()" class="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest inline-flex items-center gap-2"><i data-lucide="refresh-cw" class="w-4 h-4"></i>Aggiorna</button>
+            <button type="button" onclick="window.exportRegistroAttivitaXlsx()" class="bg-emerald-700 hover:bg-emerald-600 text-white px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest inline-flex items-center gap-2"><i data-lucide="file-spreadsheet" class="w-4 h-4"></i>Export XLSX</button>
+        </div>
+    </div>
+
+    <div id="attivita-stats" class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+        <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm"><p class="text-[9px] uppercase tracking-widest font-black text-slate-400">Eventi caricati</p><p id="attivita-count" class="text-2xl font-black text-slate-900 mt-1">0</p></div>
+        <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm"><p class="text-[9px] uppercase tracking-widest font-black text-slate-400">Oggi</p><p id="attivita-today" class="text-2xl font-black text-blue-700 mt-1">0</p></div>
+        <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm"><p class="text-[9px] uppercase tracking-widest font-black text-slate-400">Modifiche dati</p><p id="attivita-data" class="text-2xl font-black text-amber-700 mt-1">0</p></div>
+        <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm"><p class="text-[9px] uppercase tracking-widest font-black text-slate-400">Operazioni sistema</p><p id="attivita-system" class="text-2xl font-black text-emerald-700 mt-1">0</p></div>
+    </div>
+
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 mb-5 grid grid-cols-1 md:grid-cols-4 gap-3">
+        <input id="attivita-search" type="text" oninput="window.renderRegistroAttivita()" placeholder="Cerca azione, tabella, progetto, dettaglio..." class="md:col-span-2 px-4 py-3 border border-slate-300 rounded-xl text-sm">
+        <select id="attivita-filter-table" onchange="window.renderRegistroAttivita()" class="px-4 py-3 border border-slate-300 rounded-xl text-sm font-bold"><option value="">Tutte le aree</option></select>
+        <select id="attivita-filter-action" onchange="window.renderRegistroAttivita()" class="px-4 py-3 border border-slate-300 rounded-xl text-sm font-bold"><option value="">Tutte le azioni</option></select>
+    </div>
+
+    <div id="attivita-list" class="space-y-3">
+        <div class="p-8 text-center text-slate-400 font-bold uppercase">Caricamento registro attività...</div>
+    </div>
+</div>
