@@ -16,18 +16,48 @@
     }
     return p||null;
   };
-  D.companyFrom=p=>({
-    nome:p?.aziende?.ragione_sociale||window.AppState?.['cfg-azienda']||'',
-    piva:p?.aziende?.piva_cf||window.AppState?.['cfg-azienda-piva']||'',
-    indirizzo:p?.aziende?.indirizzo||window.AppState?.['cfg-azienda-indirizzo']||'',
-    sede:p?.aziende?.sede_operativa||window.AppState?.['cfg-azienda-sede-operativa']||'',
-    ateco:p?.aziende?.ateco||window.AppState?.['cfg-ateco']||'',
-    datore:p?.aziende?.referente||window.AppState?.['cfg-azienda-referente']||''
+  D.companyFromRow=a=>({
+    id:String(a?.id||''),
+    nome:a?.ragione_sociale||'',
+    piva:a?.piva_cf||'',
+    indirizzo:a?.indirizzo||'',
+    sede:a?.sede_operativa||'',
+    ateco:a?.ateco||'',
+    datore:a?.referente||''
   });
+  D.companyFrom=p=>{
+    const a=p?.aziende||{};
+    return {
+      id:String(a.id||p?.azienda_id||''),
+      nome:a.ragione_sociale||window.AppState?.['cfg-azienda']||'',
+      piva:a.piva_cf||window.AppState?.['cfg-azienda-piva']||'',
+      indirizzo:a.indirizzo||window.AppState?.['cfg-azienda-indirizzo']||'',
+      sede:a.sede_operativa||window.AppState?.['cfg-azienda-sede-operativa']||'',
+      ateco:a.ateco||window.AppState?.['cfg-ateco']||'',
+      datore:a.referente||window.AppState?.['cfg-azienda-referente']||''
+    };
+  };
   D.courseFrom=p=>{const c=window.DB_CORSI?.[p?.corso_id]||{};return{id:p?.corso_id||'',titolo:c.t||p?.corso_id||'',codice:p?.codice||'',inizio:p?.data_inizio||'',fine:p?.data_esame||''};};
   D.workersFromSession=()=> (window.currentSessionCorsisti||[]).map(c=>({
-    id:String(c.corsista_id||c.id||''),nome:c.nome||c.nome_cognome||'',cf:c.cf||'',nascita:c.nascita||'',mansione:c.mansione||'',certificato:c.id_certificato||''
+    id:String(c.corsista_id||c.id||''),nome:c.nome||c.nome_cognome||'',cf:c.cf||'',nascita:c.nascita||'',mansione:c.mansione||'',certificato:c.id_certificato||'',azienda_id:String(c.azienda_id||'')
   })).filter(x=>x.id);
+  D.enrichWorkersWithCompanies=async(project,workers)=>{
+    let corsisti=Array.isArray(window.corsistiList)&&window.corsistiList.length?window.corsistiList:[];
+    let aziende=Array.isArray(window.aziendeList)&&window.aziendeList.length?window.aziendeList:[];
+    try{if(!corsisti.length&&typeof window.getCorsisti==='function')corsisti=await window.getCorsisti();}catch(e){console.warn('Modelli azienda/lavoratore: corsisti non ricaricati',e);}
+    try{if(!aziende.length&&typeof window.getAziende==='function')aziende=await window.getAziende();}catch(e){console.warn('Modelli azienda/lavoratore: aziende non ricaricate',e);}
+    if(corsisti.length) window.corsistiList=corsisti;
+    if(aziende.length) window.aziendeList=aziende;
+    const corsistiById=new Map(corsisti.map(c=>[String(c.id),c]));
+    const aziendeById=new Map(aziende.map(a=>[String(a.id),a]));
+    const projectCompany=D.companyFrom(project);
+    return workers.map(w=>{
+      const c=corsistiById.get(String(w.id))||{};
+      const aid=String(c.azienda_id||w.azienda_id||project?.azienda_id||'');
+      const a=aziendeById.get(aid)||null;
+      return {...w,azienda_id:aid,mansione:w.mansione||c.mansione_storica||'',company:a?D.companyFromRow(a):projectCompany};
+    });
+  };
   D.inferRole=id=>{
     id=String(id||'');
     if(id==='preposto'||id==='agg_prep') return 'preposto';
