@@ -1,4 +1,4 @@
-// Loader professionale Step 15-19
+// Loader professionale Step 15-19 + modelli azienda/lavoratore
 (function(){
   if(window.__safetyProfessionalSuiteLoaded) return;
   window.__safetyProfessionalSuiteLoaded=true;
@@ -8,6 +8,9 @@
     const files=[
       'js/modules/ui_refinements.js',
       'js/modules/workflow_guard.js',
+      'js/modules/documenti_azienda_lavoratore_core.js',
+      'js/modules/documenti_azienda_lavoratore_ui.js',
+      'js/modules/documenti_azienda_lavoratore_print.js',
       'js/modules/collaudo_pro.js',
       'js/modules/audit_attivita.js',
       'js/modules/chiusura_corso.js',
