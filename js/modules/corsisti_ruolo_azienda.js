@@ -3,9 +3,8 @@
   if(window.__safetyCorsistiRuoloLoaded) return;
   window.__safetyCorsistiRuoloLoaded = true;
 
-  // Il ruolo anagrafico serve solo a distinguere il lavoratore dal datore di lavoro.
-  // Gli incarichi specifici (preposto, primo soccorso, antincendio, ecc.) vengono invece
-  // ricavati dallo storico formativo quando si generano i documenti.
+  // Il ruolo anagrafico distingue solo lavoratore e datore di lavoro.
+  // Gli incarichi specifici vengono ricavati dallo storico formativo per le stampe.
   const ROLES = [
     ['lavoratore','Lavoratore'],
     ['datore_lavoro','Datore di lavoro / legale rappresentante']
@@ -17,6 +16,8 @@
   window.getSafetyPersonRoleLabel = value => normalizeRole(value) === 'datore_lavoro'
     ? 'Datore di lavoro / legale rappresentante'
     : 'Lavoratore';
+
+  window.__safetyCorsistiRoleMap = window.__safetyCorsistiRoleMap || new Map();
 
   function injectMainField(){
     const form = document.getElementById('form-corsista');
@@ -43,6 +44,7 @@
     const host = mansione.closest('div');
     if(!host || !host.parentElement) return;
     const wrap = document.createElement('div');
+    wrap.id = 'qa-cor-ruolo-aziendale-wrap';
     wrap.innerHTML = `<label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Ruolo aziendale</label>
       <select id="qa-cor-ruolo-aziendale" class="w-full px-3 py-2 bg-white border border-slate-300 rounded text-xs font-bold text-slate-700">
         ${ROLES.map(([k,l])=>`<option value="${k}">${l}</option>`).join('')}
@@ -50,65 +52,169 @@
     host.parentElement.insertBefore(wrap, host.nextSibling);
   }
 
-  function currentRoleForSave(record={}){
-    const quickModal = document.getElementById('qa-modal-corsista');
-    const quickRole = document.getElementById('qa-cor-ruolo-aziendale');
-    if(quickModal && quickRole && !quickModal.classList.contains('hidden')) {
-      return normalizeRole(quickRole.value);
+  // La query relazionale di loadCorsistiTable in utils.js usa una SELECT esplicita e
+  // storicamente non includeva ruolo_aziendale. Recuperiamo quindi il valore reale dal DB
+  // e lo reinseriamo nei record usati dall'Anagrafica senza perdere iscrizioni/relazioni.
+  async function refreshRoleCache(){
+    if(typeof window.getCorsisti !== 'function') return;
+    try {
+      const fresh = await window.getCorsisti();
+      const map = new Map((fresh || []).map(c => [String(c.id), normalizeRole(c.ruolo_aziendale)]));
+      window.__safetyCorsistiRoleMap = map;
+      (window.corsistiList || []).forEach(c => {
+        const role = map.get(String(c.id));
+        if(role) c.ruolo_aziendale = role;
+      });
+    } catch(e) {
+      console.warn('Ruolo aziendale: impossibile riallineare i valori dall’anagrafica.', e);
     }
-
-    const mainForm = document.getElementById('form-corsista');
-    const mainRole = document.getElementById('cor-ruolo-aziendale');
-    const mainId = document.getElementById('cor-id')?.value || '';
-    if(mainForm && mainRole) {
-      if(!record.id || !mainId || String(record.id) === String(mainId)) return normalizeRole(mainRole.value);
-    }
-
-    if(record.ruolo_aziendale !== undefined) return normalizeRole(record.ruolo_aziendale);
-    const existing = (window.corsistiList || []).find(x => String(x.id) === String(record.id || ''));
-    return normalizeRole(existing?.ruolo_aziendale);
   }
 
-  // Un solo wrapper stabile sul normale salvataggio corsista.
-  // Non esiste alcun listener onchange che scriva nel DB e non viene più sostituita
-  // temporaneamente saveCorsistaData durante il submit: questo evita conflitti con
-  // workflow_guard.js, che usa la stessa funzione per azzerare “Modifiche non salvate”.
-  function installSavePayloadWrapper(){
-    if(window.__safetyRoleSaveInstalled) return true;
-    const fn = window.saveCorsistaData;
-    if(typeof fn !== 'function') return false;
+  function roleForId(id){
+    const fromList = (window.corsistiList || []).find(c => String(c.id) === String(id));
+    if(fromList?.ruolo_aziendale) return normalizeRole(fromList.ruolo_aziendale);
+    return normalizeRole(window.__safetyCorsistiRoleMap?.get(String(id)));
+  }
 
-    const wrapped = async function(record, ...args){
-      const payload = { ...(record || {}) };
-      payload.ruolo_aziendale = currentRoleForSave(payload);
-      const result = await fn.call(this, payload, ...args);
-      if(result) {
-        if(window.SafetyCompanyDocs) window.SafetyCompanyDocs.directoryCache = null;
-        if(window.safetyWorkState?.formId === 'form-corsista' && typeof window.markSafetyWorkSaved === 'function') {
-          window.markSafetyWorkSaved('form-corsista');
-        }
+  function decorateRows(){
+    const tbody = document.getElementById('tabella-corsisti');
+    if(!tbody) return;
+    [...tbody.querySelectorAll('tr')].forEach(tr => {
+      const edit = tr.querySelector('button[onclick*="modificaCorsista("]');
+      if(!edit) return;
+      const m = String(edit.getAttribute('onclick') || '').match(/modificaCorsista\('([^']+)'\)/);
+      if(!m) return;
+      const cell = tr.children[2];
+      if(!cell) return;
+      let badge = cell.querySelector('.safety-role-badge');
+      if(!badge){
+        badge = document.createElement('span');
+        badge.className = 'safety-role-badge inline-flex mt-1 rounded-full bg-slate-100 border border-slate-200 px-2 py-0.5 text-[8px] font-black uppercase text-slate-600';
+        cell.appendChild(badge);
       }
+      badge.textContent = window.getSafetyPersonRoleLabel(roleForId(m[1]));
+    });
+  }
+
+  function wrapLoadCorsistiTable(){
+    const fn = window.loadCorsistiTable;
+    if(typeof fn !== 'function' || fn.__safetyRoleLoadWrapped) return;
+    const wrapped = async function(...args){
+      const result = await fn.apply(this, args);
+      await refreshRoleCache();
+      decorateRows();
       return result;
     };
+    wrapped.__safetyRoleLoadWrapped = true;
+    window.loadCorsistiTable = wrapped;
+  }
 
-    wrapped.__safetyRolePayloadWrapped = true;
-    // Se workflow_guard aveva già avvolto la funzione, manteniamo il marcatore:
-    // il suo comportamento resta comunque attivo perché viene richiamato dentro fn.
-    if(fn.__safetyWorkSavedWrapped) wrapped.__safetyWorkSavedWrapped = true;
-    window.saveCorsistaData = wrapped;
-    window.__safetyRoleSaveInstalled = true;
-    return true;
+  // Salvataggio principale: il ruolo entra direttamente nel record inviato a saveCorsistaData.
+  // Non viene più modificata/sostituita saveCorsistaData e non esiste alcun salvataggio onchange.
+  function installMainSave(){
+    const current = window.salvaCorsistaDB;
+    if(typeof current !== 'function' || current.__safetyRoleNativeSave) return;
+
+    const wrapped = async function(){
+      const id = document.getElementById('cor-id')?.value || '';
+      const record = {
+        nome_cognome: document.getElementById('cor-nome')?.value.trim() || '',
+        cf: document.getElementById('cor-cf')?.value.trim().toUpperCase() || '',
+        luogo_data_nascita: document.getElementById('cor-nascita')?.value.trim() || '',
+        mansione_storica: document.getElementById('cor-mansione')?.value.trim() || '',
+        azienda_id: document.getElementById('cor-azienda')?.value || null,
+        ruolo_aziendale: normalizeRole(document.getElementById('cor-ruolo-aziendale')?.value),
+        documento_identita_url: document.getElementById('cor-doc-identita-url')?.value.trim() || '',
+        codice_fiscale_url: document.getElementById('cor-doc-cf-url')?.value.trim() || '',
+        ...(typeof window.collectLinguaTestCorsistaRecord === 'function' ? window.collectLinguaTestCorsistaRecord() : {})
+      };
+      if(id) record.id = id;
+
+      const savedCorsista = await window.saveCorsistaData(record);
+      if(!savedCorsista){
+        alert('Errore nel salvataggio. Assicurati che il Codice Fiscale non sia già registrato.');
+        return false;
+      }
+
+      const saved = Array.isArray(savedCorsista) ? savedCorsista[0] : savedCorsista;
+      const corsistaId = saved?.id || record.id;
+      if(corsistaId && typeof window.updateIscrizioniCorsistaSnapshot === 'function') {
+        await window.updateIscrizioniCorsistaSnapshot(corsistaId, record);
+      }
+
+      if(window.SafetyCompanyDocs) window.SafetyCompanyDocs.directoryCache = null;
+      if(typeof window.markSafetyWorkSaved === 'function') window.markSafetyWorkSaved('form-corsista');
+      window.resetFormCorsista();
+      await window.reloadLinkedViewsAfterMutation('corsista', { corsistaId });
+      return savedCorsista;
+    };
+
+    wrapped.__safetyRoleNativeSave = true;
+    window.salvaCorsistaDB = wrapped;
+  }
+
+  // Stessa regola per inserimento/modifica rapida: ruolo scritto nel payload vero.
+  function installQuickSave(){
+    const current = window.salvaQACorsista;
+    if(typeof current !== 'function' || current.__safetyRoleNativeSave) return;
+
+    const wrapped = async function(){
+      const id = document.getElementById('qa-cor-id')?.value || '';
+      const nome = document.getElementById('qa-cor-nome')?.value.trim() || '';
+      const cf = document.getElementById('qa-cor-cf')?.value.trim().toUpperCase() || '';
+      const nascita = document.getElementById('qa-cor-nascita')?.value.trim() || '';
+      const mansione = document.getElementById('qa-cor-mansione')?.value.trim() || '';
+      const az_id = document.getElementById('qa-cor-azienda-id')?.value || null;
+      const ruolo = normalizeRole(document.getElementById('qa-cor-ruolo-aziendale')?.value);
+
+      if(!nome || !cf) return alert('Inserisci Nome e CF.');
+
+      const record = {
+        nome_cognome: nome,
+        cf,
+        luogo_data_nascita: nascita,
+        mansione_storica: mansione,
+        azienda_id: az_id,
+        ruolo_aziendale: ruolo
+      };
+      if(id) record.id = id;
+
+      const saved = await window.saveCorsistaData(record);
+      if(!saved) return alert('Errore nel salvataggio. Assicurati che il Codice Fiscale non sia già registrato.');
+
+      const savedId = Array.isArray(saved) && saved[0] ? saved[0].id : (saved.id || id);
+      window.corsistiList = await window.getCorsisti();
+      window.__safetyCorsistiRoleMap = new Map((window.corsistiList || []).map(c => [String(c.id), normalizeRole(c.ruolo_aziendale)]));
+      if(window.SafetyCompanyDocs) window.SafetyCompanyDocs.directoryCache = null;
+
+      window.chiudiQACorsista();
+
+      if(!id && window.currentProgettoId && savedId && typeof window.aggiungiIscrizioneDaId === 'function') {
+        await window.aggiungiIscrizioneDaId(window.currentProgettoId, savedId);
+        return saved;
+      }
+      if(!id && savedId && document.getElementById('prog-draft-corsista') && typeof window.aggiungiCorsistaDraftProgetto === 'function') {
+        window.aggiungiCorsistaDraftProgetto(savedId);
+        return saved;
+      }
+      if(typeof window.loadProgettiTable === 'function' && document.getElementById('tabella-progetti')) {
+        await window.loadProgettiTable();
+      }
+      return saved;
+    };
+
+    wrapped.__safetyRoleNativeSave = true;
+    window.salvaQACorsista = wrapped;
   }
 
   function wrapEdit(){
     const fn = window.modificaCorsista;
-    if(typeof fn!=='function' || fn.__safetyRoleWrapped) return;
+    if(typeof fn !== 'function' || fn.__safetyRoleWrapped) return;
     const wrapped = function(id, ...args){
-      const result = fn.call(this,id,...args);
+      const result = fn.call(this, id, ...args);
       injectMainField();
-      const c = (window.corsistiList||[]).find(x=>String(x.id)===String(id));
       const select = document.getElementById('cor-ruolo-aziendale');
-      if(select) select.value = normalizeRole(c?.ruolo_aziendale);
+      if(select) select.value = roleForId(id);
       return result;
     };
     wrapped.__safetyRoleWrapped = true;
@@ -117,9 +223,9 @@
 
   function wrapReset(){
     const fn = window.resetFormCorsista;
-    if(typeof fn!=='function' || fn.__safetyRoleWrapped) return;
+    if(typeof fn !== 'function' || fn.__safetyRoleWrapped) return;
     const wrapped = function(...args){
-      const result = fn.apply(this,args);
+      const result = fn.apply(this, args);
       const select = document.getElementById('cor-ruolo-aziendale');
       if(select) select.value = 'lavoratore';
       return result;
@@ -136,42 +242,16 @@
 
     const recordKey = id || '__new__';
     if(select.dataset.safetyRoleRecordKey === recordKey) return;
-
-    if(id){
-      const c = (window.corsistiList||[]).find(x=>String(x.id)===String(id));
-      select.value = normalizeRole(c?.ruolo_aziendale);
-    } else {
-      select.value = 'lavoratore';
-    }
+    select.value = id ? roleForId(id) : 'lavoratore';
     select.dataset.safetyRoleRecordKey = recordKey;
-  }
-
-  function decorateRows(){
-    const tbody = document.getElementById('tabella-corsisti');
-    if(!tbody) return;
-    [...tbody.querySelectorAll('tr')].forEach(tr=>{
-      if(tr.dataset.safetyRoleDecorated==='1') return;
-      const edit = tr.querySelector('button[onclick*="modificaCorsista("]');
-      if(!edit) return;
-      const m = String(edit.getAttribute('onclick')||'').match(/modificaCorsista\('([^']+)'\)/);
-      if(!m) return;
-      const c = (window.corsistiList||[]).find(x=>String(x.id)===String(m[1]));
-      if(!c) return;
-      const cell = tr.children[2];
-      if(cell){
-        const badge = document.createElement('span');
-        badge.className='inline-flex mt-1 rounded-full bg-slate-100 border border-slate-200 px-2 py-0.5 text-[8px] font-black uppercase text-slate-600';
-        badge.textContent=window.getSafetyPersonRoleLabel(c.ruolo_aziendale);
-        cell.appendChild(badge);
-      }
-      tr.dataset.safetyRoleDecorated='1';
-    });
   }
 
   function apply(){
     injectMainField();
     injectQuickAddField();
-    installSavePayloadWrapper();
+    wrapLoadCorsistiTable();
+    installMainSave();
+    installQuickSave();
     wrapEdit();
     wrapReset();
     syncQuickAddRole();
@@ -181,6 +261,9 @@
   apply();
   setTimeout(apply,100);
   setTimeout(apply,500);
-  const root=document.getElementById('app-content')||document.body;
-  new MutationObserver(()=>{ clearTimeout(window.__safetyRoleApplyTimer); window.__safetyRoleApplyTimer=setTimeout(apply,40); }).observe(root,{childList:true,subtree:true});
+  const root = document.getElementById('app-content') || document.body;
+  new MutationObserver(() => {
+    clearTimeout(window.__safetyRoleApplyTimer);
+    window.__safetyRoleApplyTimer = setTimeout(apply,40);
+  }).observe(root,{childList:true,subtree:true});
 })();
