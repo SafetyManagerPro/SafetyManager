@@ -62,7 +62,9 @@
         else if(quickRole && quickCf && recCf===quickCf) payload.ruolo_aziendale = quickRole.value || 'lavoratore';
         else payload.ruolo_aziendale = 'lavoratore';
       }
-      return await fn.call(this, payload, ...args);
+      const result = await fn.call(this, payload, ...args);
+      if(result && window.SafetyCompanyDocs) window.SafetyCompanyDocs.directoryCache = null;
+      return result;
     };
     wrapped.__safetyRoleWrapped = true;
     window.saveCorsistaData = wrapped;
