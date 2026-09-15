@@ -21,7 +21,8 @@
       padding-right: var(--safety-page-gap) !important;
     }
 
-    body:not(.is-printing-temp) #app-content[data-safety-module] > div:first-of-type {
+    /* Root reale del modulo: non dipendiamo più da first-child/first-of-type. */
+    body:not(.is-printing-temp) #app-content > .safety-module-root {
       width: 100% !important;
       max-width: none !important;
       min-width: 0 !important;
@@ -29,11 +30,15 @@
       margin-right: 0 !important;
     }
 
-    body:not(.is-printing-temp) #app-content[data-safety-module] > div:first-of-type > * {
+    body:not(.is-printing-temp) #app-content > .safety-module-root > * {
       min-width: 0;
     }
 
-    body:not(.is-printing-temp) .safety-module-toolbar {
+    /* La toolbar deve stare SOPRA il layout del modulo, mai come colonna del flex principale. */
+    body:not(.is-printing-temp) #app-content > .safety-module-toolbar {
+      width: 100% !important;
+      max-width: none !important;
+      box-sizing: border-box !important;
       position: relative !important;
       top: auto !important;
       z-index: 20 !important;
@@ -56,8 +61,8 @@
       body:not(.is-printing-temp) #view-aziende > .grid > .sticky,
       body:not(.is-printing-temp) #docente-form-card,
       body:not(.is-printing-temp) #progetto-form-col:not(.fixed) #progetto-form-card,
-      body:not(.is-printing-temp) #app-content[data-safety-module="corsisti"] > div:first-of-type > div:first-child > .sticky,
-      body:not(.is-printing-temp) #app-content[data-safety-module="stampe"] > div:first-of-type > div:first-child > .sticky {
+      body:not(.is-printing-temp) #app-content[data-safety-module="corsisti"] > .safety-module-root > div:first-child > .sticky,
+      body:not(.is-printing-temp) #app-content[data-safety-module="stampe"] > .safety-module-root > div:first-child > .sticky {
         top: calc(var(--nav-offset, 84px) + var(--safety-sticky-gap)) !important;
         max-height: calc(100dvh - var(--nav-offset, 84px) - 24px) !important;
         overflow-y: auto !important;
@@ -71,8 +76,8 @@
       body:not(.is-printing-temp) #view-aziende > .grid > .sticky,
       body:not(.is-printing-temp) #docente-form-card,
       body:not(.is-printing-temp) #progetto-form-col:not(.fixed) #progetto-form-card,
-      body:not(.is-printing-temp) #app-content[data-safety-module="corsisti"] > div:first-of-type > div:first-child > .sticky,
-      body:not(.is-printing-temp) #app-content[data-safety-module="stampe"] > div:first-of-type > div:first-child > .sticky {
+      body:not(.is-printing-temp) #app-content[data-safety-module="corsisti"] > .safety-module-root > div:first-child > .sticky,
+      body:not(.is-printing-temp) #app-content[data-safety-module="stampe"] > .safety-module-root > div:first-child > .sticky {
         position: static !important;
         top: auto !important;
         max-height: none !important;
@@ -148,10 +153,41 @@
     document.head.appendChild(s);
   }
 
+  function getModuleRoot(){
+    const app = document.getElementById('app-content');
+    if(!app) return null;
+    const children = Array.from(app.children);
+    return children.find(el =>
+      el.id !== 'safety-module-toolbar' &&
+      el.tagName !== 'IMG' &&
+      !el.classList.contains('safety-module-toolbar')
+    ) || null;
+  }
+
+  function normalizeModuleRoot(){
+    const app = document.getElementById('app-content');
+    if(!app) return null;
+    Array.from(app.children).forEach(el => el.classList?.remove('safety-module-root'));
+    const root = getModuleRoot();
+    if(root) root.classList.add('safety-module-root');
+    return root;
+  }
+
+  function normalizeToolbar(root){
+    const app = document.getElementById('app-content');
+    const toolbar = document.getElementById('safety-module-toolbar');
+    if(!app || !toolbar || !root) return;
+
+    // ui_refinements in origine inseriva la toolbar DENTRO il root.
+    // Nei moduli lg:flex-row diventava una terza colonna e spingeva tutto verso destra.
+    if(toolbar.parentElement !== app || toolbar.nextElementSibling !== root) {
+      app.insertBefore(toolbar, root);
+    }
+  }
+
   function inferModule(){
     const app = document.getElementById('app-content');
     if(!app) return '';
-    // Prima guardiamo il DOM appena caricato; dataset/currentSafetyModuleId possono essere ancora quelli della pagina precedente.
     if(document.getElementById('view-aziende')) return 'aziende';
     if(document.getElementById('view-docenti')) return 'docenti';
     if(document.getElementById('form-corsista')) return 'corsisti';
@@ -199,6 +235,8 @@
   window.applySafetyLayout = function(moduleId = ''){
     injectStyle();
     const app = document.getElementById('app-content');
+    const root = normalizeModuleRoot();
+    normalizeToolbar(root);
     const inferred = inferModule();
     const resolved = inferred || moduleId || window.currentSafetyModuleId || '';
     if(app && resolved) app.dataset.safetyModule = resolved;
