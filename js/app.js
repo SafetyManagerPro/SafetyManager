@@ -212,6 +212,7 @@ window.loadModule = async function(moduleId) {
             return;
         }
         window.injectSafetyLogoutButton();
+        if (typeof window.SafetyPWA?.ensureInstallButton === 'function') window.SafetyPWA.ensureInstallButton();
     }
 
     if (moduleId === 'login') {
@@ -272,6 +273,8 @@ window.loadModule = async function(moduleId) {
         if (moduleId === 'collaudo' && typeof window.initCollaudoSistema === 'function') window.initCollaudoSistema();
         if (typeof window.installSafetySignaturePatches === 'function') window.installSafetySignaturePatches();
         if (typeof window.injectSectionExportToolbar === 'function') window.injectSectionExportToolbar(moduleId);
+        if (typeof window.SafetyAI?.apply === 'function') window.SafetyAI.apply();
+        if (typeof window.SafetyPWA?.ensureInstallButton === 'function') window.SafetyPWA.ensureInstallButton();
         if (typeof window.updateNavOffset === 'function') setTimeout(window.updateNavOffset, 50);
 
     } catch (error) {
@@ -280,26 +283,12 @@ window.loadModule = async function(moduleId) {
     }
 };
 
-window.unregisterLegacyServiceWorkers = async function() {
-    if (!('serviceWorker' in navigator)) return;
-    try {
-        const registrations = await navigator.serviceWorker.getRegistrations();
-        const localRegistrations = registrations.filter((registration) =>
-            registration.scope.startsWith(window.location.origin)
-        );
-        await Promise.all(localRegistrations.map((registration) => registration.unregister()));
-        if (localRegistrations.length) {
-            console.info(`SafetyManager: rimossi ${localRegistrations.length} service worker legacy.`);
-        }
-    } catch (error) {
-        console.warn('SafetyManager: impossibile rimuovere il service worker legacy.', error);
-    }
-};
-
 document.addEventListener("DOMContentLoaded", async () => {
-    await window.unregisterLegacyServiceWorkers();
+    // PWA prima degli altri moduli: mantiene attivo il service worker e abilita il prompt di installazione.
+    await window.loadOptionalSafetyScript('js/pwa.js');
     await window.loadOptionalSafetyScript('js/modules/firme_unificate.js');
     await window.loadOptionalSafetyScript('js/modules/corsisti_ruolo_azienda.js');
+    await window.loadOptionalSafetyScript('js/modules/ai_assistant.js');
     if (typeof window.installSafetySignaturePatches === 'function') window.installSafetySignaturePatches();
 
     if (window.supabaseClient?.auth?.onAuthStateChange) {
@@ -324,5 +313,5 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     await window.loadModule('admin');
-    if (typeof window.updateNavOffset === 'function') window.updateNavOffset(); 
+    if (typeof window.updateNavOffset === 'function') window.updateNavOffset();
 });
