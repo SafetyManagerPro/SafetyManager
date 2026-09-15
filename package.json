@@ -1,0 +1,9 @@
+{
+  "name": "safetymanagerpro",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SafetyManagerPro web application",
+  "dependencies": {
+    "ai": "7.0.100"
+  }
+}
