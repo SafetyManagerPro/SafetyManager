@@ -1,4 +1,4 @@
-// Loader professionale Step 15-19 + modelli azienda/lavoratore
+// Loader professionale Step 15-19 + modelli azienda/lavoratore + layout unificato
 (function(){
   if(window.__safetyProfessionalSuiteLoaded) return;
   window.__safetyProfessionalSuiteLoaded=true;
@@ -17,12 +17,14 @@
       'js/modules/scadenze_avanzate.js',
       'js/modules/kit_cliente_pro.js',
       'js/modules/archivio_avanzato.js',
-      'js/modules/import_guidato.js'
+      'js/modules/import_guidato.js',
+      'js/modules/layout_system.js'
     ];
     for(const file of files) await window.loadOptionalSafetyScript(file);
     injectDashboardActions();
     if(typeof window.applySafetyUiRefinements==='function') window.applySafetyUiRefinements('admin');
     if(typeof window.applySafetyWorkflowFixes==='function') window.applySafetyWorkflowFixes('admin');
+    if(typeof window.applySafetyLayout==='function') window.applySafetyLayout('admin');
   };
 
   const hasButtonTarget = (el, target) => [...el.querySelectorAll('button')].some(btn => String(btn.getAttribute('onclick') || '').includes(`loadModule('${target}')`));
@@ -50,6 +52,9 @@
   window.injectProfessionalDashboardActions=injectDashboardActions;
   loadAll();
   const root=document.getElementById('app-content')||document.body;
-  const obs=new MutationObserver(()=>{if(document.getElementById('dash-action-plan'))injectDashboardActions();});
+  const obs=new MutationObserver(()=>{
+    if(document.getElementById('dash-action-plan')) injectDashboardActions();
+    if(typeof window.applySafetyLayout==='function') window.applySafetyLayout(window.currentSafetyModuleId||'');
+  });
   obs.observe(root,{childList:true,subtree:true});
 })();
