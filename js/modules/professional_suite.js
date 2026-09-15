@@ -8,9 +8,11 @@
     const files=[
       'js/modules/ui_refinements.js',
       'js/modules/workflow_guard.js',
+      'js/modules/corsisti_ruolo_azienda.js',
       'js/modules/documenti_azienda_lavoratore_core.js',
       'js/modules/documenti_azienda_lavoratore_ui.js',
       'js/modules/documenti_azienda_lavoratore_print.js',
+      'js/modules/documenti_azienda_lavoratore_directory.js',
       'js/modules/collaudo_pro.js',
       'js/modules/audit_attivita.js',
       'js/modules/chiusura_corso.js',
