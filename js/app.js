@@ -299,6 +299,7 @@ window.unregisterLegacyServiceWorkers = async function() {
 document.addEventListener("DOMContentLoaded", async () => {
     await window.unregisterLegacyServiceWorkers();
     await window.loadOptionalSafetyScript('js/modules/firme_unificate.js');
+    await window.loadOptionalSafetyScript('js/modules/corsisti_ruolo_azienda.js');
     if (typeof window.installSafetySignaturePatches === 'function') window.installSafetySignaturePatches();
 
     if (window.supabaseClient?.auth?.onAuthStateChange) {
