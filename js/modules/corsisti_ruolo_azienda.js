@@ -47,20 +47,34 @@
     host.parentElement.insertBefore(wrap, host.nextSibling);
   }
 
+  function currentRoleForRecord(record={}){
+    const mainRole = document.getElementById('cor-ruolo-aziendale');
+    const mainId = document.getElementById('cor-id')?.value || '';
+    const quickRole = document.getElementById('qa-cor-ruolo-aziendale');
+    const quickModal = document.getElementById('qa-modal-corsista');
+    const existing = (window.corsistiList||[]).find(x=>String(x.id)===String(record.id||''));
+
+    // Modifica/creazione dalla scheda Corsisti: il select della scheda è la fonte primaria.
+    if(mainRole && document.getElementById('form-corsista')) {
+      if(!record.id || !mainId || String(record.id)===String(mainId)) return mainRole.value || 'lavoratore';
+    }
+
+    // Inserimento rapido: usa il ruolo del popup solo se il popup è effettivamente aperto.
+    if(quickRole && quickModal && !quickModal.classList.contains('hidden')) return quickRole.value || 'lavoratore';
+
+    // Aggiornamenti provenienti da altre funzioni non devono riportare un Datore/Preposto a Lavoratore.
+    if(existing?.ruolo_aziendale) return existing.ruolo_aziendale;
+    return record.id ? undefined : 'lavoratore';
+  }
+
   function wrapSave(){
     const fn = window.saveCorsistaData;
     if(typeof fn!=='function' || fn.__safetyRoleWrapped) return;
     const wrapped = async function(record, ...args){
       const payload = {...(record||{})};
       if(payload.ruolo_aziendale === undefined){
-        const mainRole = document.getElementById('cor-ruolo-aziendale');
-        const quickRole = document.getElementById('qa-cor-ruolo-aziendale');
-        const mainCf = document.getElementById('cor-cf')?.value?.trim()?.toUpperCase() || '';
-        const quickCf = document.getElementById('qa-cor-cf')?.value?.trim()?.toUpperCase() || '';
-        const recCf = String(payload.cf||'').trim().toUpperCase();
-        if(mainRole && mainCf && recCf===mainCf) payload.ruolo_aziendale = mainRole.value || 'lavoratore';
-        else if(quickRole && quickCf && recCf===quickCf) payload.ruolo_aziendale = quickRole.value || 'lavoratore';
-        else payload.ruolo_aziendale = 'lavoratore';
+        const role = currentRoleForRecord(payload);
+        if(role !== undefined) payload.ruolo_aziendale = role;
       }
       const result = await fn.call(this, payload, ...args);
       if(result && window.SafetyCompanyDocs) window.SafetyCompanyDocs.directoryCache = null;
@@ -68,6 +82,55 @@
     };
     wrapped.__safetyRoleWrapped = true;
     window.saveCorsistaData = wrapped;
+  }
+
+  // Garanzia aggiuntiva: al salvataggio della scheda Corsisti il ruolo viene verificato e
+  // persistito esplicitamente dopo il salvataggio anagrafico. Evita che wrapper/legacy record
+  // che non conoscono il nuovo campo lo riportino al valore predefinito "lavoratore".
+  function wrapMainFormSave(){
+    const fn = window.salvaCorsistaDB;
+    if(typeof fn!=='function' || fn.__safetyRoleMainSaveWrapped) return;
+    const wrapped = async function(...args){
+      const roleEl = document.getElementById('cor-ruolo-aziendale');
+      const selectedRole = roleEl?.value || 'lavoratore';
+      const startingId = document.getElementById('cor-id')?.value || '';
+      const cf = String(document.getElementById('cor-cf')?.value || '').trim().toUpperCase().replace(/\s+/g,'');
+
+      const result = await fn.apply(this,args);
+
+      try {
+        const client = window.supabaseClient;
+        if(!client || !selectedRole) return result;
+
+        let targetId = startingId;
+        if(!targetId && cf){
+          const lookup = await client.from('corsisti').select('id').eq('cf',cf).limit(1);
+          if(!lookup.error && lookup.data?.length) targetId = lookup.data[0].id;
+        }
+        if(!targetId) return result;
+
+        const persisted = await client
+          .from('corsisti')
+          .update({ruolo_aziendale:selectedRole})
+          .eq('id',targetId)
+          .select('id,ruolo_aziendale')
+          .limit(1);
+        if(persisted.error) throw persisted.error;
+
+        if(window.SafetyCompanyDocs) window.SafetyCompanyDocs.directoryCache = null;
+        if(typeof window.getCorsisti==='function') window.corsistiList = await window.getCorsisti();
+        if(document.getElementById('tabella-corsisti') && typeof window.loadCorsistiTable==='function') await window.loadCorsistiTable();
+
+        const savedRole = persisted.data?.[0]?.ruolo_aziendale;
+        if(savedRole && savedRole !== selectedRole) throw new Error('Il ruolo salvato non corrisponde alla selezione.');
+      } catch(e) {
+        console.error('Errore persistenza ruolo aziendale corsista:',e);
+        alert('Il corsista è stato salvato, ma il ruolo aziendale non è stato aggiornato. Riprova oppure ricarica la pagina. Dettaglio: '+(e.message||e));
+      }
+      return result;
+    };
+    wrapped.__safetyRoleMainSaveWrapped = true;
+    window.salvaCorsistaDB = wrapped;
   }
 
   function wrapEdit(){
@@ -124,6 +187,7 @@
     injectMainField();
     injectQuickAddField();
     wrapSave();
+    wrapMainFormSave();
     wrapEdit();
     wrapReset();
     decorateRows();
