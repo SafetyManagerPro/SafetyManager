@@ -28,7 +28,7 @@
       <select id="cor-ruolo-aziendale" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded outline-none focus:border-blue-500 focus:bg-white transition font-semibold text-slate-700">
         ${ROLES.map(([k,l])=>`<option value="${k}">${l}</option>`).join('')}
       </select>
-      <p class="text-[9px] text-slate-400 font-bold uppercase mt-1">Serve per proporre solo nomine, incarichi e dichiarazioni coerenti con la persona.</p>`;
+      <p class="text-[9px] text-slate-400 font-bold uppercase mt-1">La modifica viene salvata solo premendo “Salva Record”.</p>`;
     host.parentElement.insertBefore(wrap, host.nextSibling);
   }
 
@@ -47,90 +47,48 @@
     host.parentElement.insertBefore(wrap, host.nextSibling);
   }
 
-  function currentRoleForRecord(record={}){
-    const mainRole = document.getElementById('cor-ruolo-aziendale');
-    const mainId = document.getElementById('cor-id')?.value || '';
-    const quickRole = document.getElementById('qa-cor-ruolo-aziendale');
-    const quickModal = document.getElementById('qa-modal-corsista');
-    const existing = (window.corsistiList||[]).find(x=>String(x.id)===String(record.id||''));
+  // Il ruolo NON viene mai salvato al cambio del select e NON viene fatto alcun UPDATE separato.
+  // Viene aggiunto al payload solo mentre l'utente esegue il salvataggio esplicito del form.
+  function runWithRoleInjected(selectedRole, action){
+    const originalSave = window.saveCorsistaData;
+    if(typeof originalSave !== 'function') return action();
 
-    // Modifica/creazione dalla scheda Corsisti: il select della scheda è la fonte primaria.
-    if(mainRole && document.getElementById('form-corsista')) {
-      if(!record.id || !mainId || String(record.id)===String(mainId)) return mainRole.value || 'lavoratore';
-    }
+    window.saveCorsistaData = async function(record, ...args){
+      const payload = {...(record||{}), ruolo_aziendale: selectedRole || 'lavoratore'};
+      return await originalSave.call(this, payload, ...args);
+    };
 
-    // Inserimento rapido: usa il ruolo del popup solo se il popup è effettivamente aperto.
-    if(quickRole && quickModal && !quickModal.classList.contains('hidden')) return quickRole.value || 'lavoratore';
-
-    // Aggiornamenti provenienti da altre funzioni non devono riportare un Datore/Preposto a Lavoratore.
-    if(existing?.ruolo_aziendale) return existing.ruolo_aziendale;
-    return record.id ? undefined : 'lavoratore';
+    return Promise.resolve()
+      .then(action)
+      .finally(()=>{
+        window.saveCorsistaData = originalSave;
+      });
   }
 
-  function wrapSave(){
-    const fn = window.saveCorsistaData;
-    if(typeof fn!=='function' || fn.__safetyRoleWrapped) return;
-    const wrapped = async function(record, ...args){
-      const payload = {...(record||{})};
-      if(payload.ruolo_aziendale === undefined){
-        const role = currentRoleForRecord(payload);
-        if(role !== undefined) payload.ruolo_aziendale = role;
-      }
-      const result = await fn.call(this, payload, ...args);
+  function wrapMainFormSave(){
+    const fn = window.salvaCorsistaDB;
+    if(typeof fn!=='function' || fn.__safetyRoleExplicitSaveWrapped) return;
+    const wrapped = async function(...args){
+      const selectedRole = document.getElementById('cor-ruolo-aziendale')?.value || 'lavoratore';
+      const result = await runWithRoleInjected(selectedRole, ()=>fn.apply(this,args));
       if(result && window.SafetyCompanyDocs) window.SafetyCompanyDocs.directoryCache = null;
       return result;
     };
-    wrapped.__safetyRoleWrapped = true;
-    window.saveCorsistaData = wrapped;
+    wrapped.__safetyRoleExplicitSaveWrapped = true;
+    window.salvaCorsistaDB = wrapped;
   }
 
-  // Garanzia aggiuntiva: al salvataggio della scheda Corsisti il ruolo viene verificato e
-  // persistito esplicitamente dopo il salvataggio anagrafico. Evita che wrapper/legacy record
-  // che non conoscono il nuovo campo lo riportino al valore predefinito "lavoratore".
-  function wrapMainFormSave(){
-    const fn = window.salvaCorsistaDB;
-    if(typeof fn!=='function' || fn.__safetyRoleMainSaveWrapped) return;
+  function wrapQuickAddSave(){
+    const fn = window.salvaQACorsista;
+    if(typeof fn!=='function' || fn.__safetyRoleExplicitSaveWrapped) return;
     const wrapped = async function(...args){
-      const roleEl = document.getElementById('cor-ruolo-aziendale');
-      const selectedRole = roleEl?.value || 'lavoratore';
-      const startingId = document.getElementById('cor-id')?.value || '';
-      const cf = String(document.getElementById('cor-cf')?.value || '').trim().toUpperCase().replace(/\s+/g,'');
-
-      const result = await fn.apply(this,args);
-
-      try {
-        const client = window.supabaseClient;
-        if(!client || !selectedRole) return result;
-
-        let targetId = startingId;
-        if(!targetId && cf){
-          const lookup = await client.from('corsisti').select('id').eq('cf',cf).limit(1);
-          if(!lookup.error && lookup.data?.length) targetId = lookup.data[0].id;
-        }
-        if(!targetId) return result;
-
-        const persisted = await client
-          .from('corsisti')
-          .update({ruolo_aziendale:selectedRole})
-          .eq('id',targetId)
-          .select('id,ruolo_aziendale')
-          .limit(1);
-        if(persisted.error) throw persisted.error;
-
-        if(window.SafetyCompanyDocs) window.SafetyCompanyDocs.directoryCache = null;
-        if(typeof window.getCorsisti==='function') window.corsistiList = await window.getCorsisti();
-        if(document.getElementById('tabella-corsisti') && typeof window.loadCorsistiTable==='function') await window.loadCorsistiTable();
-
-        const savedRole = persisted.data?.[0]?.ruolo_aziendale;
-        if(savedRole && savedRole !== selectedRole) throw new Error('Il ruolo salvato non corrisponde alla selezione.');
-      } catch(e) {
-        console.error('Errore persistenza ruolo aziendale corsista:',e);
-        alert('Il corsista è stato salvato, ma il ruolo aziendale non è stato aggiornato. Riprova oppure ricarica la pagina. Dettaglio: '+(e.message||e));
-      }
+      const selectedRole = document.getElementById('qa-cor-ruolo-aziendale')?.value || 'lavoratore';
+      const result = await runWithRoleInjected(selectedRole, ()=>fn.apply(this,args));
+      if(result && window.SafetyCompanyDocs) window.SafetyCompanyDocs.directoryCache = null;
       return result;
     };
-    wrapped.__safetyRoleMainSaveWrapped = true;
-    window.salvaCorsistaDB = wrapped;
+    wrapped.__safetyRoleExplicitSaveWrapped = true;
+    window.salvaQACorsista = wrapped;
   }
 
   function wrapEdit(){
@@ -161,6 +119,24 @@
     window.resetFormCorsista = wrapped;
   }
 
+  function syncQuickAddRole(){
+    const select = document.getElementById('qa-cor-ruolo-aziendale');
+    const modal = document.getElementById('qa-modal-corsista');
+    const id = document.getElementById('qa-cor-id')?.value || '';
+    if(!select || !modal || modal.classList.contains('hidden')) return;
+
+    const recordKey = id || '__new__';
+    if(select.dataset.safetyRoleRecordKey === recordKey) return;
+
+    if(id){
+      const c = (window.corsistiList||[]).find(x=>String(x.id)===String(id));
+      select.value = c?.ruolo_aziendale || 'lavoratore';
+    } else {
+      select.value = 'lavoratore';
+    }
+    select.dataset.safetyRoleRecordKey = recordKey;
+  }
+
   function decorateRows(){
     const tbody = document.getElementById('tabella-corsisti');
     if(!tbody) return;
@@ -186,10 +162,11 @@
   function apply(){
     injectMainField();
     injectQuickAddField();
-    wrapSave();
     wrapMainFormSave();
+    wrapQuickAddSave();
     wrapEdit();
     wrapReset();
+    syncQuickAddRole();
     decorateRows();
   }
 
