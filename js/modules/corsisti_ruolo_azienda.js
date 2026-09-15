@@ -267,3 +267,9 @@
     window.__safetyRoleApplyTimer = setTimeout(apply,40);
   }).observe(root,{childList:true,subtree:true});
 })();
+
+// Modulo sempre caricato da app.js: aggancia anche l'assistente redazionale senza
+// introdurre dipendenze nella pagina o esporre credenziali nel browser.
+if (typeof window.loadOptionalSafetyScript === 'function') {
+  window.loadOptionalSafetyScript('js/modules/ai_assistant.js');
+}
