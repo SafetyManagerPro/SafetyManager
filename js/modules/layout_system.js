@@ -21,8 +21,6 @@
       padding-right: var(--safety-page-gap) !important;
     }
 
-    /* Il primo contenitore reale del modulo deve essere sempre coerente.
-       first-of-type evita il bug dei moduli che hanno un IMG loader come primo figlio. */
     body:not(.is-printing-temp) #app-content[data-safety-module] > div:first-of-type {
       width: 100% !important;
       max-width: none !important;
@@ -35,15 +33,12 @@
       min-width: 0;
     }
 
-    /* La toolbar rapida non deve competere con navbar e intestazioni tabella. */
     body:not(.is-printing-temp) .safety-module-toolbar {
       position: relative !important;
       top: auto !important;
       z-index: 20 !important;
     }
 
-    /* Disattiva lo sticky globale delle intestazioni: veniva applicato anche dentro modali
-       e wrapper con scroll, generando sovrapposizioni. */
     body:not(.is-printing-temp) #app-content thead th {
       position: static !important;
       top: auto !important;
@@ -57,7 +52,6 @@
       -webkit-overflow-scrolling: touch;
     }
 
-    /* Pannelli laterali: un solo offset, calcolato dalla vera altezza navbar. */
     @media (min-width: 1024px) {
       body:not(.is-printing-temp) #view-aziende > .grid > .sticky,
       body:not(.is-printing-temp) #docente-form-card,
@@ -86,7 +80,6 @@
       }
     }
 
-    /* Anteprima A4: mai più tagliata dal contenitore. */
     body:not(.is-printing-temp) .safety-print-viewport {
       overflow: auto !important;
       min-width: 0 !important;
@@ -105,7 +98,6 @@
       max-width: none !important;
     }
 
-    /* Modali: viewport e livelli coerenti. */
     body:not(.is-printing-temp) #panel-iscrizioni,
     body:not(.is-printing-temp) #azienda-relazioni-modal,
     body:not(.is-printing-temp) #qa-modal-azienda,
@@ -134,16 +126,13 @@
       overflow-y: auto !important;
     }
 
-    /* Evita che badge modifiche copra le toolbar/modali. */
     body:not(.is-printing-temp) .safety-unsaved-badge {
       top: calc(var(--nav-offset, 84px) + 12px) !important;
       z-index: 90 !important;
     }
 
     @media (max-width: 768px) {
-      body:not(.is-printing-temp) #app-content {
-        --safety-page-gap: .5rem;
-      }
+      body:not(.is-printing-temp) #app-content { --safety-page-gap: .5rem; }
     }
 
     @media print {
@@ -162,7 +151,7 @@
   function inferModule(){
     const app = document.getElementById('app-content');
     if(!app) return '';
-    if(app.dataset.safetyModule) return app.dataset.safetyModule;
+    // Prima guardiamo il DOM appena caricato; dataset/currentSafetyModuleId possono essere ancora quelli della pagina precedente.
     if(document.getElementById('view-aziende')) return 'aziende';
     if(document.getElementById('view-docenti')) return 'docenti';
     if(document.getElementById('form-corsista')) return 'corsisti';
@@ -170,7 +159,7 @@
     if(document.getElementById('stampa-progetto')) return 'stampe';
     if(document.getElementById('archivio-corsi-container')) return 'archivio_corsi';
     if(document.getElementById('dash-action-plan') || document.getElementById('dash-progetti')) return 'admin';
-    return window.currentSafetyModuleId || '';
+    return app.dataset.safetyModule || window.currentSafetyModuleId || '';
   }
 
   function syncNavOffset(){
@@ -198,19 +187,20 @@
   }
 
   let scheduled = false;
-  function scheduleApply(moduleId){
+  function scheduleApply(){
     if(scheduled) return;
     scheduled = true;
     requestAnimationFrame(() => {
       scheduled = false;
-      window.applySafetyLayout(moduleId || inferModule());
+      window.applySafetyLayout();
     });
   }
 
   window.applySafetyLayout = function(moduleId = ''){
     injectStyle();
     const app = document.getElementById('app-content');
-    const resolved = moduleId || inferModule();
+    const inferred = inferModule();
+    const resolved = inferred || moduleId || window.currentSafetyModuleId || '';
     if(app && resolved) app.dataset.safetyModule = resolved;
     if(resolved) window.currentSafetyModuleId = resolved;
     syncNavOffset();
@@ -224,14 +214,14 @@
 
   const nav = document.getElementById('top-nav');
   if(nav && typeof ResizeObserver !== 'undefined') {
-    const navObserver = new ResizeObserver(() => scheduleApply());
+    const navObserver = new ResizeObserver(scheduleApply);
     navObserver.observe(nav);
   }
 
-  window.addEventListener('resize', () => scheduleApply(), { passive:true });
-  window.addEventListener('orientationchange', () => scheduleApply(), { passive:true });
+  window.addEventListener('resize', scheduleApply, { passive:true });
+  window.addEventListener('orientationchange', scheduleApply, { passive:true });
 
   const root = document.getElementById('app-content') || document.body;
-  const observer = new MutationObserver(() => scheduleApply());
+  const observer = new MutationObserver(scheduleApply);
   observer.observe(root, { childList:true, subtree:true });
 })();
