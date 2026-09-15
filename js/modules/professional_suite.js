@@ -54,7 +54,7 @@
   const root=document.getElementById('app-content')||document.body;
   const obs=new MutationObserver(()=>{
     if(document.getElementById('dash-action-plan')) injectDashboardActions();
-    if(typeof window.applySafetyLayout==='function') window.applySafetyLayout(window.currentSafetyModuleId||'');
+    if(typeof window.applySafetyLayout==='function') window.applySafetyLayout();
   });
   obs.observe(root,{childList:true,subtree:true});
 })();
