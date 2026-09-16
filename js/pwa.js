@@ -1,9 +1,10 @@
-// PWA installabile SafetyManager PRO
+// PWA installabile SafetyManager PRO; non altera i dati e non espone credenziali.
 (function(){
   if(window.__safetyPwaLoaded) return;
   window.__safetyPwaLoaded=true;
 
   const ICON='/assets/icons/safetymanager-192.svg';
+  const APPLE_ICON='/assets/icons/safetymanager-192.png';
   let deferredPrompt=null;
 
   function ensureBrandIcons(){
@@ -22,7 +23,8 @@
       apple.rel='apple-touch-icon';
       document.head.appendChild(apple);
     }
-    apple.href='/assets/icons/safetymanager-512.svg';
+    apple.setAttribute('sizes','192x192');
+    apple.href=APPLE_ICON;
   }
 
   async function registerServiceWorker(){
@@ -40,13 +42,15 @@
   function isStandalone(){
     return window.matchMedia?.('(display-mode: standalone)')?.matches || window.navigator.standalone===true;
   }
-
+  function isIOS(){
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
+  }
   function removeInstallButton(){
     document.getElementById('nav-install-pwa')?.remove();
   }
 
   function ensureInstallButton(){
-    if(isStandalone() || !deferredPrompt) return removeInstallButton();
+    if(isStandalone() || (!deferredPrompt && !isIOS())) return removeInstallButton();
     const nav=document.getElementById('top-nav-buttons');
     if(!nav || document.getElementById('nav-install-pwa')) return;
     const btn=document.createElement('button');
@@ -54,9 +58,13 @@
     btn.type='button';
     btn.className='btn-tab flex items-center gap-2 px-3 py-2 rounded-xl font-bold text-xs transition-all duration-300 hover:text-white hover:bg-emerald-900/70 group text-emerald-300 border border-emerald-700/50';
     btn.title='Installa SafetyManager PRO come applicazione';
+    btn.setAttribute('aria-label','Installa SafetyManager PRO');
     btn.innerHTML='<div class="w-7 h-7 rounded-lg bg-emerald-900/70 flex items-center justify-center group-hover:bg-emerald-600 transition-all"><i data-lucide="download" class="w-3.5 h-3.5 text-emerald-200 group-hover:text-white"></i></div><span class="hidden xl:block">Installa</span>';
     btn.addEventListener('click',async()=>{
-      if(!deferredPrompt) return;
+      if(!deferredPrompt){
+        if(isIOS()) alert('Per installare SafetyManager su iPhone o iPad, apri questa pagina in Safari, tocca Condividi e scegli Aggiungi alla schermata Home.');
+        return;
+      }
       const prompt=deferredPrompt;
       deferredPrompt=null;
       await prompt.prompt();
@@ -73,7 +81,6 @@
     deferredPrompt=event;
     ensureInstallButton();
   });
-
   window.addEventListener('appinstalled',()=>{
     deferredPrompt=null;
     removeInstallButton();
@@ -94,13 +101,10 @@
   registerServiceWorker();
   setTimeout(ensureInstallButton,500);
   setTimeout(ensureInstallButton,1500);
-
-  // Il loader viene definito dal bootstrap principale: ritenta per evitare race condition.
   if(!loadRefinementModule()){
     setTimeout(loadRefinementModule,100);
     setTimeout(loadRefinementModule,500);
     setTimeout(loadRefinementModule,1500);
   }
-
   window.SafetyPWA={registerServiceWorker,ensureInstallButton,isStandalone,ensureBrandIcons,loadRefinementModule};
 })();

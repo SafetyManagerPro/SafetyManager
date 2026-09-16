@@ -1,8 +1,10 @@
-const CACHE_NAME='safetymanager-pwa-v1';
-const APP_SHELL=['/','/index.html','/manifest.json','/js/app.js','/js/supabase_config.js','/js/data.js','/js/utils.js','/assets/icons/safetymanager-192.svg','/assets/icons/safetymanager-512.svg','/assets/icons/safetymanager-maskable.svg'];
+const CACHE_NAME='safetymanager-pwa-v2';
+const APP_SHELL=['/','/index.html','/manifest.json','/js/app.js','/js/supabase_config.js','/js/data.js','/js/utils.js','/js/pwa.js','/js/modules/progetti_corsisti_refinement.js','/assets/icons/safetymanager-192.svg','/assets/icons/safetymanager-192.png','/assets/icons/safetymanager-512.png','/assets/icons/safetymanager-maskable.svg'];
 
 self.addEventListener('install',event=>{
-  event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(APP_SHELL)).catch(()=>null));
+  event.waitUntil(caches.open(CACHE_NAME).then(async cache=>{
+    await Promise.allSettled(APP_SHELL.map(url=>cache.add(url)));
+  }));
   self.skipWaiting();
 });
 
@@ -18,18 +20,21 @@ self.addEventListener('fetch',event=>{
   const req=event.request;
   if(req.method!=='GET') return;
   const url=new URL(req.url);
-  if(url.origin!==self.location.origin) return;
-  if(url.pathname.startsWith('/api/')) return;
+  if(url.origin!==self.location.origin || url.pathname.startsWith('/api/')) return;
 
-  if(req.mode==='navigate'){
+  // Rete prima per HTML, JavaScript e manifest: gli aggiornamenti non restano bloccati nella cache.
+  const freshFirst=req.mode==='navigate' || url.pathname.endsWith('.js') || url.pathname.endsWith('.html') || url.pathname.endsWith('.json');
+  if(freshFirst){
     event.respondWith((async()=>{
       try{
         const fresh=await fetch(req);
-        const cache=await caches.open(CACHE_NAME);
-        cache.put('/index.html',fresh.clone());
+        if(fresh.ok){
+          const cache=await caches.open(CACHE_NAME);
+          cache.put(req.mode==='navigate'?'/index.html':req,fresh.clone());
+        }
         return fresh;
       }catch(_){
-        return (await caches.match('/index.html')) || (await caches.match('/')) || Response.error();
+        return (await caches.match(req.mode==='navigate'?'/index.html':req)) || (req.mode==='navigate' ? await caches.match('/') : null) || Response.error();
       }
     })());
     return;
@@ -37,13 +42,14 @@ self.addEventListener('fetch',event=>{
 
   event.respondWith((async()=>{
     const cached=await caches.match(req);
-    const network=fetch(req).then(async response=>{
-      if(response && response.ok){
+    if(cached) return cached;
+    try{
+      const response=await fetch(req);
+      if(response.ok){
         const cache=await caches.open(CACHE_NAME);
         cache.put(req,response.clone());
       }
       return response;
-    }).catch(()=>null);
-    return cached || await network || Response.error();
+    }catch(_){return Response.error();}
   })());
 });
