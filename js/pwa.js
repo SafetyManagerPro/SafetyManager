@@ -90,11 +90,13 @@
   });
 
   function loadRefinementModule(){
-    if(typeof window.loadOptionalSafetyScript==='function'){
-      window.loadOptionalSafetyScript('js/modules/progetti_corsisti_refinement.js');
-      return true;
-    }
-    return false;
+    if(typeof window.loadOptionalSafetyScript!=='function') return false;
+    (async()=>{
+      const guard=await window.loadOptionalSafetyScript('js/modules/nomine_completion_guard.js');
+      if(!guard){console.error('SafetyManager: controllo esiti nomine non caricato, stampe aggiuntive disattivate.');return;}
+      await window.loadOptionalSafetyScript('js/modules/progetti_corsisti_refinement.js');
+    })();
+    return true;
   }
 
   ensureBrandIcons();
