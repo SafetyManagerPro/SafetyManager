@@ -16,8 +16,13 @@
     favicon.type='image/svg+xml';
     favicon.href=ICON;
 
-    const apple=document.querySelector('link[rel="apple-touch-icon"]');
-    if(apple) apple.href='/assets/icons/safetymanager-512.svg';
+    let apple=document.querySelector('link[rel="apple-touch-icon"]');
+    if(!apple){
+      apple=document.createElement('link');
+      apple.rel='apple-touch-icon';
+      document.head.appendChild(apple);
+    }
+    apple.href='/assets/icons/safetymanager-512.svg';
   }
 
   async function registerServiceWorker(){
@@ -77,16 +82,25 @@
     }
   });
 
+  function loadRefinementModule(){
+    if(typeof window.loadOptionalSafetyScript==='function'){
+      window.loadOptionalSafetyScript('js/modules/progetti_corsisti_refinement.js');
+      return true;
+    }
+    return false;
+  }
+
   ensureBrandIcons();
   registerServiceWorker();
   setTimeout(ensureInstallButton,500);
   setTimeout(ensureInstallButton,1500);
 
-  window.SafetyPWA={registerServiceWorker,ensureInstallButton,isStandalone};
-
-  // Modulo incrementale isolato: alleggerisce la vista Progetti e abilita le nomine
-  // legate ai corsi realmente completati senza modificare il motore principale utils.js.
-  if(typeof window.loadOptionalSafetyScript==='function'){
-    window.loadOptionalSafetyScript('js/modules/progetti_corsisti_refinement.js');
+  // Il loader viene definito dal bootstrap principale: ritenta per evitare race condition.
+  if(!loadRefinementModule()){
+    setTimeout(loadRefinementModule,100);
+    setTimeout(loadRefinementModule,500);
+    setTimeout(loadRefinementModule,1500);
   }
+
+  window.SafetyPWA={registerServiceWorker,ensureInstallButton,isStandalone,ensureBrandIcons,loadRefinementModule};
 })();
