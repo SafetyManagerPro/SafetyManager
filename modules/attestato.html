@@ -6,6 +6,19 @@
 .attestato-retro > div {
     border-color: transparent !important;
 }
+
+/* Moduli e tabelle senza riempimento: resta visibile solo la struttura/bordatura interna. */
+.attestato-front .attestato-v-section [class*="bg-"],
+.attestato-front .attestato-v-footer [class*="bg-"],
+.attestato-retro .attestato-retro-head [class*="bg-"],
+.attestato-retro .attestato-retro-footer [class*="bg-"],
+.attestato-retro table,
+.attestato-retro thead,
+.attestato-retro tbody,
+.attestato-retro th,
+.attestato-retro td {
+    background-color: transparent !important;
+}
 .attestato-front > div {
     justify-content: space-between !important;
     row-gap: 10mm !important;
