@@ -155,8 +155,8 @@
         }).slice(0, 8);
 
         box.innerHTML = `
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-xs">
+            <div class="hidden md:block overflow-x-auto">
+                <table data-responsive-cards="dashboard-projects-mobile-cards" class="w-full text-left text-xs">
                     <thead class="bg-slate-50 border-b border-slate-200 text-[10px] uppercase tracking-widest text-slate-500 font-black">
                         <tr>
                             <th class="p-3">Corso</th>
@@ -192,7 +192,8 @@
                         }).join('')}
                     </tbody>
                 </table>
-            </div>`;
+            </div>
+            <div id="dashboard-projects-mobile-cards" class="md:hidden p-3 space-y-3 bg-slate-50"></div>`;
     };
 
     const renderSystemHealth = (counts, projects, iscrizioniMap) => {

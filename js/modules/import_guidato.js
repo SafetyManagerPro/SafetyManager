@@ -260,7 +260,7 @@
           </div>
           <span class="px-3 py-1 rounded-full bg-white border border-${tone}-200 text-${tone}-800 text-[10px] font-black uppercase">${s.errors ? 'Import bloccato' : 'Import abilitato'}</span>
         </div>
-        <div class="p-5 grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div class="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           ${chip('Righe file', s.rows, 'slate', 'table')}
           ${chip('Blocchi critici', s.errors, s.errors ? 'rose' : 'emerald', 'x-circle')}
           ${chip('Avvisi', s.warnings, s.warnings ? 'amber' : 'emerald', 'alert-triangle')}

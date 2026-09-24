@@ -250,7 +250,7 @@
         const groupsHtml = analysis.groups.map(group => `<div class="rounded-lg border border-slate-200 bg-white p-3"><p class="font-black text-slate-800">${esc(group.titolo)}</p><p class="text-[10px] text-slate-500 mt-1">${group.rows.length} partecipanti</p></div>`).join('');
         const newParticipants = analysis.participants.filter(item => !item.existing).length;
         box.innerHTML = `<div class="space-y-3">
-            <div class="grid grid-cols-2 gap-2">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div class="rounded-lg bg-slate-900 text-white p-3"><p class="text-[9px] uppercase text-slate-300">Azienda</p><p class="font-black text-xs mt-1">${esc(companyName)}</p><p class="text-[9px] text-cyan-300 mt-1">${analysis.companyMatch ? 'Già presente' : 'Da creare'}</p></div>
                 <div class="rounded-lg bg-slate-900 text-white p-3"><p class="text-[9px] uppercase text-slate-300">Corsisti</p><p class="font-black text-xl mt-1">${analysis.participants.length}</p><p class="text-[9px] text-cyan-300">${newParticipants} nuovi · ${analysis.participants.length - newParticipants} già presenti</p></div>
             </div>

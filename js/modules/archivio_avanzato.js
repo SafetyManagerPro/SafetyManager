@@ -201,7 +201,7 @@
           </div>
           <span class="shrink-0 px-2 py-0.5 rounded-full bg-${scadTone}-50 text-${scadTone}-800 border border-${scadTone}-100 text-[8px] font-black uppercase">${esc(scadText)}</span>
         </div>
-        <div class="grid grid-cols-2 gap-2 mt-2 text-[9px] text-slate-600">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 text-[9px] text-slate-600">
           <p><strong>Mansione:</strong> ${esc(isc.mansione_storica || c.mansione_storica || '-')}</p>
           <p><strong>Esito:</strong> ${esc(isc.esito || '-')}</p>
           <p><strong>ID:</strong> <span class="font-mono">${esc(isc.id_certificato || '-')}</span></p>
