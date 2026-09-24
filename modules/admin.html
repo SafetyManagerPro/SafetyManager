@@ -139,8 +139,8 @@
                     <i data-lucide="bug" class="w-4 h-4"></i>
                 </span>
                 <div class="min-w-0">
-                    <h2 class="font-black text-sm uppercase text-rose-900">Raccolta errori e controlli approfonditi</h2>
-                    <p class="text-[10px] font-bold text-rose-700 uppercase tracking-widest mt-1">Sezione secondaria: aprila solo quando vuoi vedere i dettagli dei controlli automatici.</p>
+                    <h2 class="font-black text-sm uppercase text-rose-900">Controlli operativi e dati mancanti</h2>
+                    <p class="text-[10px] font-bold text-rose-700 uppercase tracking-widest mt-1">Controlli tecnici e documentali: non contiene le valutazioni normative del Compliance Advisor.</p>
                 </div>
             </div>
             <div class="flex items-center gap-2 shrink-0">
@@ -150,6 +150,27 @@
         </summary>
         <div id="dash-progetti-formativi-checks" class="p-5 text-xs text-slate-500 border-t border-rose-100 min-h-[120px]">
             Caricamento verifiche...
+        </div>
+    </details>
+
+    <details id="dashboard-compliance-advisor" class="bg-white rounded-3xl shadow-sm border border-blue-200 overflow-hidden mb-8">
+        <summary class="cursor-pointer list-none p-5 bg-blue-50 hover:bg-blue-100 transition flex items-center justify-between gap-4">
+            <div class="flex items-center gap-3 min-w-0">
+                <span class="w-10 h-10 shrink-0 rounded-2xl bg-white border border-blue-200 text-blue-700 flex items-center justify-center">
+                    <i data-lucide="shield-check" class="w-4 h-4"></i>
+                </span>
+                <div class="min-w-0">
+                    <h2 class="font-black text-sm uppercase text-blue-950">Compliance Advisor normativo</h2>
+                    <p class="text-[10px] font-bold text-blue-700 uppercase tracking-widest mt-1">Solo avvisi: nessuna segnalazione normativa blocca il lavoro.</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+                <span id="dash-compliance-advisor-badge" class="px-2 py-1 rounded-full bg-blue-100 text-blue-800 text-[9px] font-black uppercase">Check</span>
+                <i data-lucide="chevron-down" class="w-5 h-5 text-blue-700"></i>
+            </div>
+        </summary>
+        <div id="dash-compliance-advisor-checks" class="p-5 text-xs text-slate-500 border-t border-blue-100 min-h-[120px]">
+            Caricamento avvisi normativi...
         </div>
     </details>
 </div>

@@ -276,7 +276,78 @@
   const observer = new MutationObserver(() => bind());
   const root = document.getElementById('app-content') || document.body;
   observer.observe(root, { childList: true, subtree: true });
-  setTimeout(bind, 0);
+  setTimeout(() => { bind(); if (document.getElementById('dash-compliance-advisor-checks')) renderDashboard(); }, 0);
 
-  window.ComplianceAdvisor = { render, evaluate, saveNote, loadRules, RULE_MAP };
+
+  async function renderDashboard() {
+    const box = document.getElementById('dash-compliance-advisor-checks');
+    const badge = document.getElementById('dash-compliance-advisor-badge');
+    if (!box) return;
+    box.innerHTML = '<div class="text-center text-blue-500 py-6"><i data-lucide="loader-2" class="w-5 h-5 animate-spin mx-auto mb-2"></i>Analisi avvisi normativi...</div>';
+    if (window.lucide) lucide.createIcons();
+
+    try {
+      const projects = typeof window.getProgetti === 'function' ? await window.getProgetti() : [];
+      const ids = projects.map(p => p.id).filter(Boolean);
+      let enrollmentMap = {};
+      if (typeof window.getIscrizioniPerProgetti === 'function') enrollmentMap = await window.getIscrizioniPerProgetti(ids);
+      else {
+        for (const p of projects) enrollmentMap[p.id] = typeof window.getIscrizioni === 'function' ? await window.getIscrizioni(p.id) : [];
+      }
+
+      const rows = [];
+      let counts = { info: 0, warning: 0, critical: 0 };
+      for (const project of projects) {
+        const result = await evaluate(project, enrollmentMap[project.id] || []);
+        const relevant = result.items.filter(item => item.code !== 'RULESET_DRAFT');
+        if (!relevant.length) continue;
+        relevant.forEach(item => { counts[item.severity] = (counts[item.severity] || 0) + 1; });
+        const max = relevant.reduce((best, item) => severityRank[item.severity] > severityRank[best] ? item.severity : best, 'info');
+        rows.push({ project, items: relevant, max });
+      }
+
+      if (!rows.length) {
+        box.innerHTML = '<div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-center"><p class="font-black uppercase text-emerald-800">Nessun avviso normativo rilevato</p><p class="text-[10px] text-emerald-700 mt-1">Il motore resta comunque solo informativo.</p></div>';
+        if (badge) { badge.textContent = '0 avvisi'; badge.className = 'px-2 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[9px] font-black uppercase'; }
+        return;
+      }
+
+      rows.sort((a,b) => severityRank[b.max] - severityRank[a.max]);
+      box.innerHTML = rows.slice(0,12).map(({project,items,max}) => {
+        const meta = severityMeta[max] || severityMeta.info;
+        const title = window.dashProjectLabel ? window.dashProjectLabel(project) : (project.codice || project.corso_id || 'Progetto');
+        return `<div class="rounded-2xl border ${meta.wrap} p-4 mb-3">
+          <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+            <div class="min-w-0">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="text-[8px] font-black uppercase ${meta.text}">${meta.label}</span>
+                <span class="text-[8px] font-black uppercase text-slate-400">Solo avviso</span>
+              </div>
+              <p class="font-black text-slate-900 text-[11px] uppercase mt-1">${esc(title)}</p>
+              <ul class="mt-2 ml-4 list-disc space-y-1 text-[10px] text-slate-700">
+                ${items.slice(0,4).map(item => `<li>${esc(item.message)}</li>`).join('')}
+              </ul>
+              ${items.length>4 ? `<p class="mt-1 text-[9px] text-slate-500">+${items.length-4} altre segnalazioni</p>` : ''}
+            </div>
+            <button type="button" onclick="window.apriCorrezioneDashboard && window.apriCorrezioneDashboard('${esc(project.id)}','progetti')" class="shrink-0 px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-800 text-[9px] font-black uppercase">Apri progetto</button>
+          </div>
+        </div>`;
+      }).join('') + (rows.length>12 ? `<p class="text-[10px] text-slate-500">Altri ${rows.length-12} progetti con avvisi non mostrati.</p>` : '');
+
+      const total = counts.info + counts.warning + counts.critical;
+      if (badge) {
+        badge.textContent = `${total} avvisi`;
+        badge.className = counts.critical
+          ? 'px-2 py-1 rounded-full bg-rose-100 text-rose-800 text-[9px] font-black uppercase'
+          : counts.warning
+            ? 'px-2 py-1 rounded-full bg-amber-100 text-amber-900 text-[9px] font-black uppercase'
+            : 'px-2 py-1 rounded-full bg-blue-100 text-blue-800 text-[9px] font-black uppercase';
+      }
+      if (window.lucide) lucide.createIcons();
+    } catch (error) {
+      box.innerHTML = `<div class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-900"><strong>Advisor non disponibile:</strong> ${esc(error?.message || error)}. Nessuna funzione operativa viene bloccata.</div>`;
+    }
+  }
+
+  window.ComplianceAdvisor = { render, evaluate, saveNote, loadRules, renderDashboard, RULE_MAP };
 })();

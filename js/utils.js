@@ -304,23 +304,11 @@ window.dashGetProjectIssues = async function(p, iscrittiOverride = null) {
     if (!p.modalita) errors.push('Modalità di svolgimento mancante.');
     if (!p.docenti_ud && !p.docente_principale) errors.push('Docente/i non assegnati alle unità didattiche.');
 
-    const modeCheck = window.getModalitaCompliance ? window.getModalitaCompliance(p.corso_id, p.modalita || '') : { ok:true };
-    if (modeCheck && modeCheck.ok === false) errors.push(modeCheck.message);
-
-    if (iscritti.length > (window.ASR2025_POLICY?.maxDiscentiAula || 30)) {
-        errors.push(`Numero discenti superiore al limite generale (${iscritti.length}/30), salvo e-learning.`);
-    }
-
     if (p.stato_corso === 'chiuso' && !p.documenti_firmati_url) {
         errors.push('Corso chiuso senza link alla scansione dei documenti firmati.');
     }
     if (p.stato_corso === 'chiuso' && !p.chiuso_at) {
         errors.push('Corso chiuso senza data di chiusura/archiviazione.');
-    }
-
-    if (isDL) {
-        const invalid = iscritti.filter(isc => isc.corsisti && isc.corsisti.azienda_id && isc.corsisti.azienda_id !== p.azienda_id);
-        if (invalid.length) errors.push('Datore di lavoro soggetto formatore: presenti corsisti non appartenenti alla stessa azienda.');
     }
 
     return errors.length ? {
@@ -374,7 +362,6 @@ window.dashGetCourseDoneIssues = async function(p, iscrittiOverride = null) {
         if (!isc.id_certificato) errors.push(`${nome}: ID certificato mancante.`);
         if (!isc.esito) errors.push(`${nome}: esito finale mancante.`);
         if ((isc.esito || '').toLowerCase().includes('idoneo') && !isc.data_scadenza) errors.push(`${nome}: data scadenza attestato mancante.`);
-        if (isc.percentuale_frequenza !== undefined && isc.percentuale_frequenza !== null && Number(isc.percentuale_frequenza) < 90) errors.push(`${nome}: frequenza inferiore al 90%.`);
         if (isc.percentuale_frequenza === undefined || isc.percentuale_frequenza === null) errors.push(`${nome}: percentuale frequenza non registrata.`);
         if (!isc.voto_test && !isc.note_verifica) errors.push(`${nome}: test/verifica finale non registrata.`);
     });
@@ -425,8 +412,6 @@ window.dashGetProjectOverallIssues = async function(p, iscrittiOverride = null) 
     if (pi) issues.push(...pi.errors);
     const ci = await window.dashGetCourseDoneIssues(p, iscritti);
     if (ci) issues.push(...ci.errors);
-    const oi = window.dashGetCommunicationIssues(p);
-    if (oi) issues.push(...oi.errors);
     return issues;
 };
 
@@ -488,6 +473,10 @@ window.loadDashboardCompliance = async function() {
         projectIssues,
         'Tutti i progetti formativi risultano verificati nei controlli minimi.'
     );
+
+    if (window.ComplianceAdvisor?.renderDashboard) {
+        await window.ComplianceAdvisor.renderDashboard();
+    }
 };
 
 // ==========================================
@@ -2272,38 +2261,12 @@ window.getProjectPopupFieldErrors = function(p, iscritti = []) {
     if (!p.resp_progetto) add('#prog-resp-progetto', 'Responsabile progetto formativo mancante.');
     if (!p.modalita) add('#prog-modalita', 'Modalità di svolgimento mancante.');
 
-    const modeCheck = window.getModalitaCompliance ? window.getModalitaCompliance(p.corso_id, p.modalita || '') : { ok: true };
-    if (modeCheck && modeCheck.ok === false) add('#prog-modalita', modeCheck.message || 'Modalità non coerente con il corso selezionato.');
-
     const docentiSelects = Array.from(document.querySelectorAll('.prog-docente-ud'));
     if (!docentiSelects.length && !p.docenti_ud && !p.docente_principale) {
         add('#prog-docenti-container', 'Docenti non assegnati alle unità didattiche.');
     }
     const docentiMancanti = docentiSelects.filter(sel => !sel.value);
     if (docentiMancanti.length) add('.prog-docente-ud', 'Assegnare un docente qualificato a tutte le unità didattiche.');
-
-    if (!p.omogeneita_aula && !p.compliance_note) {
-        add('#prog-compliance-note-free', 'Aula non omogenea: indicare come sono stati adattati contenuti e rischi.');
-    }
-
-    if (iscritti.length > (window.ASR2025_POLICY?.maxDiscentiAula || 30)) {
-        add('#popup-corsisti-box', `Numero discenti superiore al limite generale (${iscritti.length}/30), salvo e-learning.`);
-    }
-
-    if (isDL) {
-        const invalid = iscritti.filter(isc => isc.corsisti && isc.corsisti.azienda_id && isc.corsisti.azienda_id !== p.azienda_id);
-        if (invalid.length) add('#popup-corsisti-box', 'Datore di lavoro soggetto formatore: presenti corsisti non appartenenti alla stessa azienda.');
-        if (!p.ente_validatore) add('#prog-ente-validatore', 'Ente validatore CNA mancante.');
-        if (!p.validazione_ente_esito || p.validazione_ente_esito === 'da_valutare') add('#prog-validazione-esito', 'Esito valutazione/validazione CNA non concluso.');
-        if ((p.validazione_ente_esito === 'validato' || p.validazione_ente_esito === 'validato_con_prescrizioni') && !p.validazione_ente_at) {
-            add('#prog-validazione-data', 'Data validazione CNA mancante.');
-        }
-        if (!p.esito_richiesta_op) add('#prog-op-esito', 'Stato comunicazione/iter OPRA/OPTA mancante.');
-        if (!p.organismo_destinatario) add('#prog-op-destinatario', 'Destinatario OPRA/OPTA mancante.');
-        if ((p.esito_richiesta_op === 'comunicazione_op_inviata' || p.esito_richiesta_op === 'riscontro_ricevuto') && !p.comunicazione_op_at && !p.richiesta_op_inviata_at) {
-            add('#prog-op-comunicazione,#prog-op-invio', 'Data comunicazione a OPRA/OPTA mancante.');
-        }
-    }
 
         if (p.stato_corso === 'chiuso' && !p.documenti_firmati_url) {
         add('#prog-documenti-url', 'Corso chiuso: inserire il link alla scansione dei documenti firmati.');
