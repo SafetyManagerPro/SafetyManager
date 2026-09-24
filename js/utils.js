@@ -1649,16 +1649,21 @@ window.isCnaErogatore = function() {
     const erogatore = window.getVal('cfg-ente-erogatore') || 'ente';
     if (erogatore === 'azienda') return false;
     window.ensureCnaPresetState();
-    const nomeEnte = (window.getVal('cfg-ente') || window.AppState['cfg-ente'] || '').toUpperCase();
+    const explicitName = window.getVal('cfg-ente') || window.AppState['cfg-ente'] || '';
+    const fallbackName = window.CNA_AVELLINO_PRESET?.ragione_sociale || '';
+    const nomeEnte = String(explicitName || fallbackName).toUpperCase();
     return nomeEnte.includes('CNA');
 };
 window.getEffectiveLogoSrc = function() {
     const erogatore = window.getVal('cfg-ente-erogatore') || 'ente';
     if (erogatore === 'azienda') return '';
-    const cna = window.isCnaErogatore();
     const configured = window.getVal('cfg-logo') || '';
     if (configured) return configured;
-    if (cna) return localStorage.getItem('SafetyManager.cnaLogoDefault') || 'logocna.png';
+    if (window.isCnaErogatore()) {
+        return localStorage.getItem('SafetyManager.cnaLogoDefault')
+            || window.CNA_AVELLINO_PRESET?.logo_url
+            || 'logocna.png';
+    }
     return '';
 };
 window.getEffectiveTimbroSrc = function() {
