@@ -41,7 +41,7 @@
                     </summary>
                     <div class="border-t border-amber-200 p-3 space-y-3">
                         <p class="text-[9px] leading-snug text-amber-900">Verifica preliminare per i lavoratori per i quali occorre accertare la comprensione della lingua italiana. In questa fase il controllo è informativo e non blocca l’iscrizione.</p>
-                        <div class="grid grid-cols-2 gap-2">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                             <div>
                                 <label class="text-[10px] font-bold text-slate-600 uppercase block mb-1">Cittadinanza</label>
                                 <input type="text" id="cor-cittadinanza" oninput="window.updateLinguaRequirementSuggestion()" class="w-full px-2 py-2 bg-white border border-amber-300 rounded" placeholder="Es. Italiana, Ucraina">
@@ -67,7 +67,7 @@
                                 <option value="non_superato">Non superato / non ammesso</option>
                             </select>
                         </div>
-                        <div class="grid grid-cols-2 gap-2">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                             <div>
                                 <label class="text-[10px] font-bold text-slate-600 uppercase block mb-1">Data test</label>
                                 <input type="date" id="cor-lingua-data" class="w-full px-2 py-2 bg-white border border-amber-300 rounded">
@@ -77,7 +77,7 @@
                                 <input type="text" id="cor-lingua-valutatore" class="w-full px-2 py-2 bg-white border border-amber-300 rounded" placeholder="Nome e cognome">
                             </div>
                         </div>
-                        <div class="grid grid-cols-3 gap-2">
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
                             <div><label class="text-[9px] font-black text-slate-600 uppercase block mb-1">Parte 1 /10</label><input type="number" min="0" max="10" id="cor-lingua-parte1" oninput="window.updateLinguaTestFormOutcome()" class="w-full px-2 py-2 bg-white border border-amber-300 rounded text-center font-black"></div>
                             <div><label class="text-[9px] font-black text-slate-600 uppercase block mb-1">Parte 2 /10</label><input type="number" min="0" max="10" id="cor-lingua-parte2" oninput="window.updateLinguaTestFormOutcome()" class="w-full px-2 py-2 bg-white border border-amber-300 rounded text-center font-black"></div>
                             <div><label class="text-[9px] font-black text-slate-600 uppercase block mb-1">Parte 3 /10</label><input type="number" min="0" max="10" id="cor-lingua-parte3" oninput="window.updateLinguaTestFormOutcome()" class="w-full px-2 py-2 bg-white border border-amber-300 rounded text-center font-black"></div>
@@ -134,13 +134,13 @@
     </div>
 
     <div class="flex-1 w-full">
-        <div class="border-b-2 border-slate-900 pb-3 mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-3">
+        <div class="border-b-2 border-slate-900 pb-3 mb-4 flex flex-col lg:flex-row justify-between items-start lg:items-end gap-3">
             <div>
                 <h1 class="text-3xl font-black uppercase text-slate-900 tracking-tighter">Anagrafica Corsisti</h1>
                 <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Registro storico dei lavoratori e dei relativi titoli formativi conseguiti</p>
             </div>
             
-            <div class="w-full sm:w-[620px] grid grid-cols-1 md:grid-cols-3 gap-2">
+            <div class="w-full lg:w-[620px] lg:max-w-[55%] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                 <div class="relative">
                     <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-slate-400"></i>
                     <input type="text" id="search-corsisti" onkeyup="window.filtraCorsisti()" class="w-full pl-9 pr-3 py-2 bg-white border border-slate-300 rounded text-xs outline-none focus:border-blue-500 shadow-sm transition" placeholder="Cerca allievo, CF, azienda o corso...">
@@ -155,8 +155,8 @@
         </div>
 
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-xs border-collapse">
+            <div class="hidden md:block overflow-x-auto">
+                <table data-responsive-cards="corsisti-mobile-cards" class="w-full text-left text-xs border-collapse">
                     <thead class="bg-slate-800 text-white">
                         <tr>
                             <th class="p-3 font-bold uppercase tracking-wider w-44">Nome Allievo</th>
@@ -172,6 +172,7 @@
                         </tbody>
                 </table>
             </div>
+            <div id="corsisti-mobile-cards" class="md:hidden p-3 space-y-3"></div>
         </div>
     </div>
 

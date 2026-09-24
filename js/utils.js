@@ -76,6 +76,87 @@ window.loadDashboardStats = async function() {
 };
 
 
+
+// Vista mobile adattiva per tabelle gestionali.
+window.syncResponsiveTableCards = function(table) {
+    if (!table) return;
+    const cardsId = table.dataset?.responsiveCards;
+    const cards = cardsId ? document.getElementById(cardsId) : null;
+    const tbody = table.tBodies?.[0];
+    if (!cards || !tbody) return;
+
+    const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.textContent.trim());
+    const rows = Array.from(tbody.rows);
+    const signature = headers.join('|') + '::' + tbody.innerHTML + '::' +
+        rows.map(r => (r.style.display || '') + ':' + r.className).join('|');
+    if (table.dataset.responsiveCardsSignature === signature) return;
+    table.dataset.responsiveCardsSignature = signature;
+
+    const visibleRows = rows.filter(row => row.style.display !== 'none' && !row.classList.contains('hidden'));
+    if (!visibleRows.length) {
+        cards.innerHTML = '<div class="rounded-2xl border border-slate-200 bg-white p-5 text-center text-xs font-bold text-slate-500">Nessun elemento da mostrare.</div>';
+        return;
+    }
+
+    cards.innerHTML = visibleRows.map(row => {
+        const cells = Array.from(row.cells);
+        if (cells.length === 1 && Number(cells[0].colSpan || 1) > 1) {
+            return '<div class="rounded-2xl border border-slate-200 bg-white p-5 text-center text-xs text-slate-500">' + cells[0].innerHTML + '</div>';
+        }
+
+        const first = cells[0];
+        const details = [];
+        let actions = '';
+        cells.forEach((cell, index) => {
+            const label = headers[index] || ('Dato ' + (index + 1));
+            const value = cell.innerHTML.trim();
+            if (!value) return;
+            if (/azion|azione/i.test(label)) {
+                actions = value;
+                return;
+            }
+            if (index === 0) return;
+            details.push(
+                '<div class="grid grid-cols-[minmax(90px,0.38fr)_minmax(0,0.62fr)] gap-3 py-2 border-t border-slate-100">' +
+                    '<div class="text-[9px] font-black uppercase tracking-wider text-slate-400">' + label + '</div>' +
+                    '<div class="min-w-0 text-[11px] text-slate-700 break-words text-right">' + value + '</div>' +
+                '</div>'
+            );
+        });
+
+        return '<article class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">' +
+            '<div class="min-w-0 text-sm text-slate-900 break-words">' + (first ? first.innerHTML : '') + '</div>' +
+            '<div class="mt-3">' + details.join('') + '</div>' +
+            (actions ? '<div class="mt-3 pt-3 border-t border-slate-200 flex flex-wrap justify-end gap-2">' + actions + '</div>' : '') +
+        '</article>';
+    }).join('');
+
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+};
+
+window.bindResponsiveTableCards = function(root = document) {
+    root.querySelectorAll?.('table[data-responsive-cards]').forEach(table => {
+        if (table.dataset.responsiveCardsBound !== '1') {
+            table.dataset.responsiveCardsBound = '1';
+            const tbody = table.tBodies?.[0];
+            if (tbody && typeof MutationObserver !== 'undefined') {
+                const observer = new MutationObserver(() => window.syncResponsiveTableCards(table));
+                observer.observe(tbody, { childList: true, subtree: true, attributes: true, attributeFilter: ['style','class'] });
+            }
+        }
+        window.syncResponsiveTableCards(table);
+    });
+};
+
+if (typeof MutationObserver !== 'undefined') {
+    const responsiveRoot = document.getElementById('app-content') || document.body;
+    if (responsiveRoot) {
+        const responsiveTableObserver = new MutationObserver(() => window.bindResponsiveTableCards(responsiveRoot));
+        responsiveTableObserver.observe(responsiveRoot, { childList: true, subtree: true });
+    }
+}
+setTimeout(() => window.bindResponsiveTableCards(document), 0);
+
 window.dashEscape = function(value) {
     return String(value ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 };
@@ -3955,8 +4036,8 @@ window.buildFoglioProgettoHtml = function(project, iscritti, printMode = false) 
             </div>
         </div>
 
-        <div class="overflow-x-auto">
-            <table class="w-full border-collapse text-[10px]">
+        <div class="${printMode ? 'overflow-x-auto' : 'hidden md:block overflow-x-auto'}">
+            <table ${printMode ? '' : 'data-responsive-cards="foglio-progetto-mobile-cards"'} class="w-full border-collapse text-[10px]">
                 <thead>
                     <tr class="bg-slate-900 text-white uppercase">
                         <th class="border border-slate-700 p-2 text-center">#</th>
@@ -3973,6 +4054,7 @@ window.buildFoglioProgettoHtml = function(project, iscritti, printMode = false) 
                 <tbody>${rows || `<tr><td colspan="9" class="border border-slate-300 p-6 text-center text-slate-500 italic">Nessun corsista iscritto.</td></tr>`}</tbody>
             </table>
         </div>
+        ${printMode ? '' : '<div id="foglio-progetto-mobile-cards" class="md:hidden space-y-3"></div>'}
 
         <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-8 text-[10px] text-center">
             <div><p class="uppercase font-black text-slate-500">Responsabile progetto</p><p class="border-b border-slate-400 mt-8"></p><p class="font-bold uppercase mt-1">${window.dashEscape(project.resp_progetto || '')}</p></div>

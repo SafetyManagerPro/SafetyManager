@@ -12,7 +12,7 @@
         </div>
     </div>
 
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
         <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm"><p class="text-[9px] font-black uppercase tracking-widest text-slate-400">Risultati visibili</p><p id="scad-stat-visible" class="text-2xl font-black text-slate-900 mt-1">0</p></div>
         <div class="bg-white rounded-2xl border border-rose-200 p-4 shadow-sm"><p class="text-[9px] font-black uppercase tracking-widest text-rose-500">Scaduti</p><p id="scad-stat-expired" class="text-2xl font-black text-rose-700 mt-1">0</p></div>
         <div class="bg-white rounded-2xl border border-red-200 p-4 shadow-sm"><p class="text-[9px] font-black uppercase tracking-widest text-red-500">Entro 30 giorni</p><p id="scad-stat-30" class="text-2xl font-black text-red-700 mt-1">0</p></div>
@@ -51,13 +51,14 @@
     </div>
 
     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-        <div class="overflow-x-auto max-h-[650px] overflow-y-auto">
-            <table class="w-full text-left text-xs border-collapse min-w-[1100px]">
+        <div class="hidden md:block overflow-x-auto max-h-[650px] overflow-y-auto">
+            <table data-responsive-cards="scadenze-mobile-cards" class="w-full text-left text-xs border-collapse min-w-[1100px]">
                 <thead class="bg-slate-900 text-white sticky top-0 z-10">
                     <tr><th class="p-3">Corsista</th><th class="p-3">Corso</th><th class="p-3 text-center">Data verifica</th><th class="p-3 text-center">Scadenza</th><th class="p-3">Azienda</th><th class="p-3">ID attestato</th><th class="p-3">Esito</th><th class="p-3 text-right">Azione</th></tr>
                 </thead>
                 <tbody id="tabella-scadenze"></tbody>
             </table>
         </div>
+        <div id="scadenze-mobile-cards" class="md:hidden p-3 space-y-3"></div>
     </div>
 </div>
