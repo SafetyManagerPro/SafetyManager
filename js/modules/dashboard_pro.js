@@ -1,4 +1,4 @@
-// STEP 9 - Dashboard professionale SafetyManager
+// STEP 9 + STEP 67 - Dashboard professionale e post-formazione
 // Obiettivo: rendere la home operativa, leggibile e guidata senza toccare stampe/firme/database.
 (function() {
     if (window.__safetyDashboardProLoaded) return;
@@ -39,7 +39,7 @@
 
     const companyLabel = (p) => p?.aziende?.ragione_sociale || p?.azienda_nome || 'Azienda non collegata';
 
-    const projectStatus = (p, iscritti = []) => {
+    const projectStatus = (p, iscritti = [], step67 = null) => {
         const missing = [];
         if (!p?.codice) missing.push('codice');
         if (!p?.corso_id || !window.DB_CORSI?.[p.corso_id]) missing.push('corso');
@@ -56,8 +56,15 @@
         const examDate = parseDate(p?.data_esame);
         const pastExam = examDate && examDate.getTime() <= todayStart().getTime();
 
+        if (step67 && pastExam) {
+            if (step67.errori.length) return { key: 'post_review', label: 'Da verificare', tone: 'rose', missing, priority: 1, step67 };
+            if (step67.daCompletare.length) return { key: 'post_complete', label: state === 'chiuso' ? 'Chiuso · da completare' : 'Dati da registrare', tone: 'amber', missing, priority: 1, step67 };
+            if (step67.daAcquisire.length) return { key: 'post_acquire', label: state === 'chiuso' ? 'Chiuso · da acquisire' : 'Da acquisire', tone: 'blue', missing, priority: 2, step67 };
+            if (state === 'chiuso') return { key: 'closed', label: 'Archiviato', tone: 'emerald', missing, priority: 5, step67 };
+            return { key: 'ready_archive', label: 'Pronto archiviazione', tone: 'emerald', missing, priority: 3, step67 };
+        }
         if (state === 'chiuso') {
-            return { key: 'closed', label: 'Chiuso', tone: 'emerald', missing, priority: 4 };
+            return { key: 'closed', label: 'Chiuso', tone: 'emerald', missing, priority: 5 };
         }
         if (pastExam) {
             return { key: 'toclose', label: 'Da chiudere', tone: 'amber', missing, priority: 1 };
@@ -73,7 +80,11 @@
             closed: 'bg-emerald-100 text-emerald-800 border-emerald-200',
             toclose: 'bg-amber-100 text-amber-900 border-amber-200',
             draft: 'bg-rose-100 text-rose-800 border-rose-200',
-            ready: 'bg-blue-100 text-blue-800 border-blue-200'
+            ready: 'bg-blue-100 text-blue-800 border-blue-200',
+            post_review: 'bg-rose-100 text-rose-800 border-rose-200',
+            post_complete: 'bg-amber-100 text-amber-900 border-amber-200',
+            post_acquire: 'bg-blue-100 text-blue-800 border-blue-200',
+            ready_archive: 'bg-emerald-100 text-emerald-800 border-emerald-200'
         };
         return `<span class="inline-flex items-center px-2.5 py-1 rounded-full border text-[9px] font-black uppercase tracking-widest ${map[status.key] || map.draft}">${esc(status.label)}</span>`;
     };
@@ -92,14 +103,20 @@
             <p class="text-[11px] leading-relaxed text-slate-500 mt-3">${esc(subtitle || '')}</p>
         </button>`;
 
-    const renderActionPlan = (projects, iscrizioniMap) => {
+    const renderActionPlan = (projects, iscrizioniMap, step67Map = {}) => {
         const box = document.getElementById('dash-action-plan');
         if (!box) return;
         const items = [];
         projects.forEach(p => {
             const iscritti = iscrizioniMap[p.id] || [];
-            const s = projectStatus(p, iscritti);
-            if (s.key === 'toclose') {
+            const state67=step67Map[p.id]||null;
+            const s = projectStatus(p, iscritti, state67);
+            if (state67 && ['post_review','post_complete','post_acquire','ready_archive'].includes(s.key)) {
+                const level=s.key==='post_review'?'rose':s.key==='post_complete'?'amber':s.key==='post_acquire'?'blue':'emerald';
+                const title=s.key==='post_review'?'Errori sostanziali':s.key==='post_complete'?'Dati da registrare':s.key==='post_acquire'?'Documenti da acquisire':'Pronto per archiviazione';
+                const text=`${state67.errori.length} errori · ${state67.daCompletare.length} da completare · ${state67.daAcquisire.length} da acquisire · efficacia: ${state67.postFormazione.label}.`;
+                items.push({level,icon:s.key==='post_acquire'?'scan-line':s.key==='ready_archive'?'archive':'clipboard-check',title,project:p,text});
+            } else if (s.key === 'toclose') {
                 items.push({ level: 'amber', icon: 'lock-keyhole', title: 'Corso da chiudere', project: p, text: `Data verifica ${fmtDate(p.data_esame)}. Completa esiti, registro, verbale e archivio.` });
             } else if (s.key === 'draft') {
                 items.push({ level: 'rose', icon: 'clipboard-warning', title: 'Dati mancanti', project: p, text: `Mancano: ${s.missing.slice(0, 5).join(', ')}${s.missing.length > 5 ? '…' : ''}.` });
@@ -109,7 +126,7 @@
         });
 
         items.sort((a, b) => {
-            const order = { amber: 1, rose: 2, blue: 3 };
+            const order = { rose: 1, amber: 2, blue: 3, emerald: 4 };
             return (order[a.level] || 9) - (order[b.level] || 9);
         });
 
@@ -139,7 +156,7 @@
             </div>`).join('');
     };
 
-    const renderProjectsOverview = (projects, iscrizioniMap) => {
+    const renderProjectsOverview = (projects, iscrizioniMap, step67Map = {}) => {
         const box = document.getElementById('dash-projects-overview');
         if (!box) return;
         if (!projects.length) {
@@ -147,8 +164,8 @@
             return;
         }
         const ordered = [...projects].sort((a, b) => {
-            const sa = projectStatus(a, iscrizioniMap[a.id] || []);
-            const sb = projectStatus(b, iscrizioniMap[b.id] || []);
+            const sa = projectStatus(a, iscrizioniMap[a.id] || [], step67Map[a.id] || null);
+            const sb = projectStatus(b, iscrizioniMap[b.id] || [], step67Map[b.id] || null);
             const da = parseDate(a.data_esame)?.getTime() || 0;
             const db = parseDate(b.data_esame)?.getTime() || 0;
             return sa.priority - sb.priority || db - da;
@@ -170,7 +187,7 @@
                     <tbody>
                         ${ordered.map(p => {
                             const iscritti = iscrizioniMap[p.id] || [];
-                            const s = projectStatus(p, iscritti);
+                            const s = projectStatus(p, iscritti, step67Map[p.id] || null);
                             return `
                                 <tr class="border-b border-slate-100 hover:bg-slate-50 transition">
                                     <td class="p-3 align-top">
@@ -183,7 +200,7 @@
                                         <p>Verifica: <strong>${esc(fmtDate(p.data_esame))}</strong></p>
                                     </td>
                                     <td class="p-3 align-top text-center font-black text-slate-800">${iscritti.length}</td>
-                                    <td class="p-3 align-top">${badge(s)}${s.missing.length ? `<p class="text-[10px] text-slate-500 mt-1">${esc(s.missing.slice(0, 3).join(', '))}</p>` : ''}</td>
+                                    <td class="p-3 align-top">${badge(s)}${s.step67?`<p class="text-[10px] text-slate-500 mt-1">Didattica ${esc(s.step67.statoDidattico.replaceAll('_',' '))} · efficacia ${esc(s.step67.postFormazione.label)}</p>`:(s.missing.length ? `<p class="text-[10px] text-slate-500 mt-1">${esc(s.missing.slice(0, 3).join(', '))}</p>` : '')}</td>
                                     <td class="p-3 align-top text-right whitespace-nowrap">
                                         <button type="button" onclick="window.dashboardOpenProject('${esc(p.id)}')" class="px-3 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-[10px] font-black uppercase tracking-widest">Apri</button>
                                         <button type="button" onclick="window.loadModule('stampe')" class="px-3 py-2 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-100 text-[10px] font-black uppercase tracking-widest ml-1">Stampe</button>
@@ -247,6 +264,9 @@
         if (typeof lucide !== 'undefined') lucide.createIcons();
 
         try {
+            if (!window.SafetyStep67 && typeof window.loadOptionalSafetyScript === 'function') {
+                await window.loadOptionalSafetyScript('js/modules/step67_chiusura_intelligente.js');
+            }
             const fetchCount = async (table) => {
                 try {
                     const { count, error } = await window.supabaseClient.from(table).select('*', { count: 'exact', head: true });
@@ -267,8 +287,12 @@
             const iscrizioniMap = projectIds.length
                 ? (window.getIscrizioniPerProgetti ? await window.getIscrizioniPerProgetti(projectIds) : await window.buildIscrizioniMapFallback(projects || []))
                 : {};
+            const step67Map = window.SafetyStep67
+                ? await window.SafetyStep67.evaluateProjects(projects || [], iscrizioniMap)
+                : {};
 
-            const statuses = (projects || []).map(p => projectStatus(p, iscrizioniMap[p.id] || []));
+            const statuses = (projects || []).map(p => projectStatus(p, iscrizioniMap[p.id] || [], step67Map[p.id] || null));
+            const completionStates=Object.values(step67Map);
             const counts = {
                 aziende: az,
                 corsisti: cor,
@@ -277,7 +301,11 @@
                 ready: statuses.filter(s => s.key === 'ready').length,
                 draft: statuses.filter(s => s.key === 'draft').length,
                 toclose: statuses.filter(s => s.key === 'toclose').length,
-                closed: statuses.filter(s => s.key === 'closed').length
+                closed: statuses.filter(s => s.key === 'closed').length,
+                postComplete: completionStates.filter(s => s.daCompletare.length > 0).length,
+                postAcquire: completionStates.filter(s => s.daAcquisire.length > 0).length,
+                effectivenessOpen: completionStates.filter(s => ['overdue','follow_up_required'].includes(s.postFormazione?.key)).length,
+                readyArchive: completionStates.filter(s => s.readyForArchive && s.statoCorsoLegacy !== 'chiuso').length
             };
 
             setText('dash-aziende', counts.aziende);
@@ -292,15 +320,15 @@
             const grid = document.getElementById('dash-operational-grid');
             if (grid) {
                 grid.innerHTML = [
-                    statusCard({ id: 'dash-ready-print', title: 'Pronti stampa', value: counts.ready, subtitle: 'Corsi con dati minimi completi e iscritti presenti.', icon: 'printer-check', tone: 'blue', action: "window.loadModule('stampe')" }),
-                    statusCard({ id: 'dash-to-close', title: 'Da chiudere', value: counts.toclose, subtitle: 'Corsi con data verifica trascorsa e non ancora archiviati.', icon: 'lock-keyhole', tone: 'amber', action: "window.loadModule('progetti')" }),
-                    statusCard({ id: 'dash-draft-courses', title: 'Dati mancanti', value: counts.draft, subtitle: 'Progetti che richiedono completamento prima della stampa finale.', icon: 'clipboard-warning', tone: 'rose', action: "window.loadModule('progetti')" }),
-                    statusCard({ id: 'dash-closed-courses', title: 'Archiviati', value: counts.closed, subtitle: 'Corsi chiusi e disponibili per consultazione archivio.', icon: 'archive', tone: 'emerald', action: "window.loadModule('archivio_corsi')" })
+                    statusCard({ id: 'dash-post-complete', title: 'Dati da registrare', value: counts.postComplete, subtitle: 'Corsi conclusi con attività reali o dati gestionali ancora da completare.', icon: 'clipboard-edit', tone: 'amber', action: "window.apriChiusuraCorsiGuidata && window.apriChiusuraCorsiGuidata()" }),
+                    statusCard({ id: 'dash-post-acquire', title: 'Da acquisire', value: counts.postAcquire, subtitle: 'Fascicoli con originali o scansioni ancora da classificare/acquisire.', icon: 'scan-line', tone: 'blue', action: "window.apriChiusuraCorsiGuidata && window.apriChiusuraCorsiGuidata()" }),
+                    statusCard({ id: 'dash-effectiveness-open', title: 'Efficacia da gestire', value: counts.effectivenessOpen, subtitle: 'Verifiche scadute o con follow-up necessario.', icon: 'activity', tone: 'rose', action: "window.loadModule('progetti')" }),
+                    statusCard({ id: 'dash-ready-archive', title: 'Pronti archivio', value: counts.readyArchive, subtitle: 'Corsi senza errori, dati aperti o evidenze da acquisire.', icon: 'archive-restore', tone: 'emerald', action: "window.apriChiusuraCorsiGuidata && window.apriChiusuraCorsiGuidata()" })
                 ].join('');
             }
 
-            renderActionPlan(projects || [], iscrizioniMap);
-            renderProjectsOverview(projects || [], iscrizioniMap);
+            renderActionPlan(projects || [], iscrizioniMap, step67Map);
+            renderProjectsOverview(projects || [], iscrizioniMap, step67Map);
             renderSystemHealth(counts, projects || [], iscrizioniMap);
 
             if (typeof window.loadDashboardCompliance === 'function') {

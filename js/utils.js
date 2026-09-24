@@ -304,9 +304,9 @@ window.dashGetProjectIssues = async function(p, iscrittiOverride = null) {
     if (!p.modalita) errors.push('Modalità di svolgimento mancante.');
     if (!p.docenti_ud && !p.docente_principale) errors.push('Docente/i non assegnati alle unità didattiche.');
 
-    if (p.stato_corso === 'chiuso' && !p.documenti_firmati_url) {
-        errors.push('Corso chiuso senza link alla scansione dei documenti firmati.');
-    }
+    // Step 67: la scansione e un eventuale link sono evidenze documentali,
+    // non prove che l'attività didattica sia stata o non sia stata svolta.
+    // Il relativo stato viene gestito dal motore unico course_completion_items.
     if (p.stato_corso === 'chiuso' && !p.chiuso_at) {
         errors.push('Corso chiuso senza data di chiusura/archiviazione.');
     }
@@ -353,8 +353,23 @@ window.dashGetDigitalProcedureIssues = function(p, iscritti) {
 
 window.dashGetCourseDoneIssues = async function(p, iscrittiOverride = null) {
     if (!window.dashIsPastOrToday(p.data_esame)) return null;
-    const errors = [];
     const iscritti = Array.isArray(iscrittiOverride) ? iscrittiOverride : await window.getIscrizioni(p.id);
+
+    // Quando Step 67 è disponibile, il vecchio audit eredita le stesse categorie
+    // della checklist e della chiusura: qui restano solo gli errori sostanziali.
+    if (window.SafetyStep67?.evaluateProject) {
+        const state67 = await window.SafetyStep67.evaluateProject(p, iscritti);
+        const errors67 = (state67.errori || []).map(item => item.detail ? `${item.label}: ${item.detail}` : item.label);
+        return errors67.length ? {
+            project_id: p.id,
+            target: 'corsi_svolti',
+            title: window.dashProjectLabel(p),
+            errors: errors67.slice(0, 10),
+            fix: 'Correggi gli errori sostanziali indicati da Step 67. Dati da registrare ed evidenze da acquisire restano attività distinte e non provano che il corso non sia stato svolto.'
+        } : null;
+    }
+
+    const errors = [];
     if (!iscritti.length) errors.push('Corso svolto senza iscrizioni/allievi collegati.');
 
     iscritti.forEach(isc => {
@@ -363,7 +378,7 @@ window.dashGetCourseDoneIssues = async function(p, iscrittiOverride = null) {
         if (!isc.esito) errors.push(`${nome}: esito finale mancante.`);
         if ((isc.esito || '').toLowerCase().includes('idoneo') && !isc.data_scadenza) errors.push(`${nome}: data scadenza attestato mancante.`);
         if (isc.percentuale_frequenza === undefined || isc.percentuale_frequenza === null) errors.push(`${nome}: percentuale frequenza non registrata.`);
-        if (!isc.voto_test && !isc.note_verifica) errors.push(`${nome}: test/verifica finale non registrata.`);
+        if (!isc.voto_test && !isc.note_verifica) errors.push(`${nome}: stato/esito della verifica finale da registrare (non implica che la prova non sia stata svolta).`);
     });
 
     // La firma digitale NON è obbligatoria: non è errore se assente.
@@ -2270,9 +2285,8 @@ window.getProjectPopupFieldErrors = function(p, iscritti = []) {
     const docentiMancanti = docentiSelects.filter(sel => !sel.value);
     if (docentiMancanti.length) add('.prog-docente-ud', 'Assegnare un docente qualificato a tutte le unità didattiche.');
 
-        if (p.stato_corso === 'chiuso' && !p.documenti_firmati_url) {
-        add('#prog-documenti-url', 'Corso chiuso: inserire il link alla scansione dei documenti firmati.');
-    }
+    // Step 67 non rende obbligatoria la scansione: l'originale cartaceo può
+    // essere censito separatamente e acquisito in un secondo momento.
     if (p.stato_corso === 'chiuso' && !p.chiuso_at) {
         add('#prog-chiuso-at', 'Corso chiuso: indicare la data di chiusura/archiviazione.');
     }

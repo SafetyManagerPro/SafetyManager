@@ -16,6 +16,7 @@
       'js/modules/collaudo_pro.js',
       'js/modules/audit_attivita.js',
       'js/modules/chiusura_corso.js',
+      'js/modules/step67_chiusura_intelligente.js',
       'js/modules/scadenze_avanzate.js',
       'js/modules/kit_cliente_pro.js',
       'js/modules/archivio_avanzato.js',

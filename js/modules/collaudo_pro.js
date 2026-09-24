@@ -14,7 +14,7 @@
   const renderExtra = report => {
     const root = document.getElementById('collaudo-results');
     if (!root) return;
-    const items = report.items.filter(i => ['Step 15 · Integrità app','Step 15 · Sicurezza','Step 15 · Dati e procedure'].includes(i.area));
+    const items = report.items.filter(i => ['Step 15 · Integrità app','Step 15 · Sicurezza','Step 15 · Dati e procedure','Step 67 · Chiusura intelligente'].includes(i.area));
     if (!items.length) return;
     const box = document.createElement('div');
     box.id = 'collaudo-step15-extra';
@@ -45,6 +45,7 @@
     if (typeof oldRun === 'function') await oldRun();
     const report = window.collaudoReport || { meta:{}, items:[] };
     report.meta.step_professionale = '15';
+    report.meta.step_chiusura_intelligente = '67';
     report.meta.professional_checks_at = new Date().toISOString();
 
     // Autenticazione reale e sessione admin.
@@ -59,7 +60,7 @@
       'buildSafetyCourseChecklist','apriPreparazioneCorsi','apriPreparazioneCorso',
       'esportaBackupDatabaseLocale','analizzaBackupDaRipristinare','ripristinaBackupDatabaseLocale',
       'prepareSafetyPrintContainer','waitForPrintImages','resolveSafetySignature',
-      'analizzaImportGuidato','loadArchivioCorsi','renderArchivioCorsi'
+      'analizzaImportGuidato','loadArchivioCorsi','renderArchivioCorsi','buildSafetyCourseCompletionState'
     ];
     criticalFns.forEach(fn => add(report, 'Step 15 · Integrità app', fn, typeof window[fn] === 'function' ? 'ok' : 'warn', typeof window[fn] === 'function' ? 'Funzione disponibile' : 'Funzione non ancora caricata: apri il relativo modulo o ricarica la Dashboard'));
 
@@ -67,7 +68,7 @@
       'js/modules/dashboard_pro.js','js/modules/checklist_corso.js','js/modules/prepara_corso.js',
       'js/modules/archivio_avanzato.js','js/modules/import_guidato.js','js/modules/ui_refinements.js',
       'js/modules/collaudo_pro.js','js/modules/audit_attivita.js','js/modules/chiusura_corso.js',
-      'js/modules/scadenze_avanzate.js','js/modules/kit_cliente_pro.js'
+      'js/modules/scadenze_avanzate.js','js/modules/kit_cliente_pro.js','js/modules/step67_chiusura_intelligente.js'
     ];
     for (const file of recentFiles) {
       try {
@@ -93,7 +94,7 @@
 
     // Query sulle tabelle operative introdotte nei vari step.
     if (window.supabaseClient) {
-      const tables = ['audit_log','documenti_fascicolo','export_fascicoli','firme_digitali','test_digitali','validazioni_percorsi_formativi','richieste_organismi_paritetici'];
+      const tables = ['audit_log','documenti_fascicolo','export_fascicoli','firme_digitali','test_digitali','validazioni_percorsi_formativi','richieste_organismi_paritetici','training_effectiveness_checks','course_completion_items'];
       for (const table of tables) {
         const t0 = performance.now();
         try {
@@ -109,6 +110,12 @@
     add(report, 'Step 15 · Dati e procedure', 'Backup completo', typeof window.esportaBackupDatabaseLocale === 'function' ? 'ok' : 'error', 'Disponibilità funzione di backup locale ZIP');
     add(report, 'Step 15 · Dati e procedure', 'Import con simulazione', typeof window.analizzaImportGuidato === 'function' ? 'ok' : 'warn', typeof window.analizzaImportGuidato === 'function' ? 'Simulazione preventiva disponibile' : 'Apri Migrazione per caricare il modulo guidato');
     add(report, 'Step 15 · Dati e procedure', 'Checklist / Prepara corso', typeof window.buildSafetyCourseChecklist === 'function' && typeof window.apriPreparazioneCorso === 'function' ? 'ok' : 'warn', 'Controllo preventivo prima di stampa e chiusura');
+    if(window.SafetyStep67){
+      const sample=window.SafetyStep67.evaluateCourse({id:'collaudo',codice:'TEST',corso_id:Object.keys(window.DB_CORSI||{})[0]||'',azienda_id:'test',data_inizio:'2020-01-01',data_esame:'2020-01-02',sede:'Test',resp_progetto:'Test',resp_corso:'Test',docente_principale:'Test',stato_corso:'svolto'},[{id:'isc-test',percentuale_frequenza:100,esito:'Idoneo',voto_test:30,id_certificato:'TEST-001',data_scadenza:'2030-01-01',corsisti:{nome_cognome:'Collaudo',cf:'TEST',lingua_test_stato:'non_richiesto'}}],{completionItems:[{progetto_id:'collaudo',iscrizione_id:'isc-test',item_key:'final_test',mode:'paper',activity_status:'completed',recording_status:'recorded',evidence_status:'paper_original'}],effectivenessChecks:[{status:'not_applicable'}]});
+      const separated=sample.daAcquisire.some(i=>i.itemKey==='final_test')&&!sample.errori.some(i=>i.itemKey==='final_test');
+      add(report,'Step 67 · Chiusura intelligente','Cartaceo distinto dal digitale',separated?'ok':'error',separated?'Test svolto e registrato: classificato come evidenza da acquisire, non come attività mancante.':'Separazione attività/registrazione/evidenza non verificata.');
+      add(report,'Step 67 · Chiusura intelligente','Compatibilità stato_corso',sample.statoCorsoLegacy==='svolto'?'ok':'error',`Stato legacy: ${sample.statoCorsoLegacy}`);
+    }else add(report,'Step 67 · Chiusura intelligente','Motore Step 67','warn','Modulo non ancora caricato. Ricarica la Dashboard.');
 
     window.collaudoReport = report;
     updateSummary(report);
