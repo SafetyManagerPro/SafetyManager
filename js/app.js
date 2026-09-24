@@ -289,6 +289,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     await window.loadOptionalSafetyScript('js/modules/firme_unificate.js');
     await window.loadOptionalSafetyScript('js/modules/corsisti_ruolo_azienda.js');
     await window.loadOptionalSafetyScript('js/modules/ai_assistant.js');
+    await window.loadOptionalSafetyScript('js/modules/compliance_advisor.js');
     if (typeof window.installSafetySignaturePatches === 'function') window.installSafetySignaturePatches();
 
     if (window.supabaseClient?.auth?.onAuthStateChange) {

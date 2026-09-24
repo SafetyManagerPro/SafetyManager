@@ -3459,27 +3459,32 @@ window.salvaProgettoDB = async function() {
     if (!sede) return alert('Inserisci la sede del corso/aula/campo prova: è necessaria per verbale, registro e attestati.');
 
     const modalitaCheck = window.getModalitaCompliance ? window.getModalitaCompliance(corsoId, modalita) : { ok: true };
-    if (!modalitaCheck.ok) return alert('Modalità non coerente con il corso selezionato: ' + modalitaCheck.message);
+    const complianceAdvisories = [];
+    const advisory = (message, severity = 'warning') => complianceAdvisories.push({ message, severity });
+
+    if (!modalitaCheck.ok) advisory('Modalità da verificare: ' + modalitaCheck.message, 'critical');
+    else if (modalitaCheck.level === 'warning') advisory(modalitaCheck.message, 'warning');
+
     if (erogatore === 'azienda' && !enteValidatore) {
-        return alert('Per il datore di lavoro soggetto formatore indica l’ente/associazione che valida il percorso formativo.');
+        advisory('Datore di lavoro soggetto formatore: ente/associazione di supporto o validazione non indicato.', 'warning');
     }
     if (erogatore === 'azienda' && !validazioneEsito) {
-        return alert('Per il datore di lavoro soggetto formatore indica lo stato della validazione CNA del percorso formativo.');
+        advisory('Stato della valutazione/validazione del percorso non indicato.', 'warning');
     }
     if (erogatore === 'azienda' && (validazioneEsito === 'validato' || validazioneEsito === 'validato_con_prescrizioni') && !validazioneData) {
-        return alert('Inserisci la data di validazione del percorso da parte di CNA Avellino.');
+        advisory('Percorso indicato come validato ma data di validazione non compilata.', 'warning');
     }
     if (erogatore === 'azienda' && !opEsito) {
-        return alert('Per erogazione diretta aziendale indica lo stato della comunicazione/iter verso OPRA/OPTA.');
+        advisory('Stato della comunicazione/iter verso OPRA/OPTA non indicato.', 'warning');
     }
     if (erogatore === 'azienda' && (opEsito === 'comunicazione_op_inviata' || opEsito === 'riscontro_ricevuto') && !comunicazioneOpData && !opInvio) {
-        return alert('Inserisci la data di comunicazione a OPRA/OPTA.');
+        advisory('Comunicazione OPRA/OPTA indicata ma data non compilata.', 'warning');
     }
     if (erogatore === 'azienda' && opEsito === 'richiesta_inviata' && !opInvio) {
-        return alert('Inserisci la data di invio della richiesta/comunicazione agli Organismi Paritetici.');
+        advisory('Richiesta/comunicazione agli Organismi Paritetici indicata ma data di invio non compilata.', 'warning');
     }
     if (!omogeneitaAula && !complianceNote) {
-        return alert('Se l’aula non è omogenea, inserisci una nota che spieghi come sono stati adattati contenuti e rischi trattati.');
+        advisory('Aula non omogenea: consigliato documentare come sono stati adattati contenuti e rischi trattati.', 'warning');
     }
 
     let cod = document.getElementById('prog-codice').value.trim();
@@ -3491,7 +3496,7 @@ window.salvaProgettoDB = async function() {
     const docenti_ud = window.getDocentiUdFromForm();
     const missingDocenti = Object.keys(docenti_ud).filter(ud => !docenti_ud[ud]);
     if (missingDocenti.length > 0) {
-        return alert('Assegna un docente qualificato a tutte le unità didattiche: ' + missingDocenti.join(', '));
+        advisory('Docenti non assegnati a tutte le unità didattiche: ' + missingDocenti.join(', ') + '.', 'warning');
     }
 
     const record = {
@@ -3535,6 +3540,16 @@ window.salvaProgettoDB = async function() {
     const savedProjectData = await window.saveProgetto(record);
     if (savedProjectData) {
         const savedProject = Array.isArray(savedProjectData) ? savedProjectData[0] : savedProjectData;
+        if (complianceAdvisories.length) {
+            const summary = complianceAdvisories.length === 1
+                ? 'Progetto salvato con 1 avviso di conformità non bloccante.'
+                : `Progetto salvato con ${complianceAdvisories.length} avvisi di conformità non bloccanti.`;
+            if (typeof window.showSafetyToast === 'function') {
+                window.showSafetyToast(summary, { type: 'warning', title: 'Compliance Advisor' });
+            } else {
+                console.info('[Compliance Advisor]', summary, complianceAdvisories);
+            }
+        }
         if (savedProject && savedProject.id && (window.progettoDraftCorsistiIds || []).length) {
             const projectForEnroll = { ...record, ...savedProject };
             await window.salvaDraftCorsistiPerProgetto(projectForEnroll);
