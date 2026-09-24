@@ -4491,7 +4491,31 @@ window.renderPrintModulePages = async function(moduleId, singleCorsista = null, 
             includeFascicoloTests: false,
             includeQualityAnnexes: false,
             includeTutorRiesameAnnexes: false,
-            includeLinguaAnnexes: false
+            includeLinguaAnnexes: false,
+            includeEffectivenessAnnexes: false,
+            includeFascicoloGuide: false
+        }));
+    }
+
+    if (moduleId === 'fascicolo_corso' &&
+        options.includeEffectivenessAnnexes !== false &&
+        window.TrainingEffectivenessAdvisor?.renderAnnexPages) {
+        pages.push(...await window.TrainingEffectivenessAdvisor.renderAnnexPages({ preview }));
+    }
+
+    if (moduleId === 'fascicolo_corso' &&
+        options.includeFascicoloGuide !== false) {
+        pages.push(...await window.renderPrintModulePages('guida_fascicolo', null, {
+            preview,
+            includeMultiDayRegisters: false,
+            includeNeedsRiskAnnexes: false,
+            includeProjectFormativoTests: false,
+            includeFascicoloTests: false,
+            includeQualityAnnexes: false,
+            includeTutorRiesameAnnexes: false,
+            includeLinguaAnnexes: false,
+            includeEffectivenessAnnexes: false,
+            includeFascicoloGuide: false
         }));
     }
 
@@ -4599,6 +4623,11 @@ window.loadPrintPreview = async function(modulo) {
 
         if (modulo === 'questionario_gradimento' && typeof window.loadGradimentoQuestionariPreview === 'function') {
             await window.loadGradimentoQuestionariPreview();
+            return;
+        }
+
+        if (modulo === 'verifica_efficacia' && window.TrainingEffectivenessAdvisor?.loadPreview) {
+            await window.TrainingEffectivenessAdvisor.loadPreview();
             return;
         }
 

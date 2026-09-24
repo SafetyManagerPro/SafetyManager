@@ -492,6 +492,32 @@
                     </div>
                 </details>
 
+                <details id="prog-effectiveness-panel" ontoggle="if(this.open) window.TrainingEffectivenessAdvisor?.renderCurrent()" class="group rounded-xl border-2 border-indigo-300 bg-indigo-50 overflow-hidden">
+                    <summary class="cursor-pointer list-none bg-indigo-700 text-white px-3 py-3 flex items-center justify-between gap-3">
+                        <span class="min-w-0">
+                            <span class="block text-[10px] font-black uppercase tracking-wider">Verifica efficacia post-formazione</span>
+                            <span class="block text-[9px] text-indigo-100 mt-0.5">Sezione non bloccante · verifica a posteriori durante la prestazione lavorativa</span>
+                        </span>
+                        <i data-lucide="chevron-down" class="w-4 h-4 shrink-0 transition-transform group-open:rotate-180"></i>
+                    </summary>
+                    <div class="p-3 space-y-3 text-[10px]">
+                        <div class="rounded-lg border border-indigo-200 bg-white p-3 text-indigo-950 leading-snug">
+                            <strong>Distinta dal gradimento:</strong> qui si documenta se conoscenze, abilità e comportamenti appresi vengono realmente applicati sul lavoro. Il sistema propone strumenti e scadenze, ma non blocca il corso.
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <button type="button" onclick="window.TrainingEffectivenessAdvisor?.renderCurrent(true)" class="rounded-lg bg-indigo-800 hover:bg-indigo-700 text-white px-3 py-2 font-black uppercase text-[9px] flex items-center justify-center gap-2">
+                                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Aggiorna scheda
+                            </button>
+                            <button type="button" onclick="window.TrainingEffectivenessAdvisor?.printCurrent()" class="rounded-lg bg-slate-900 hover:bg-slate-800 text-white px-3 py-2 font-black uppercase text-[9px] flex items-center justify-center gap-2">
+                                <i data-lucide="printer" class="w-3.5 h-3.5"></i> Stampa verifica efficacia
+                            </button>
+                        </div>
+                        <div id="prog-effectiveness-container">
+                            <div class="rounded-lg border border-indigo-200 bg-white p-4 text-center text-indigo-700">Apri la sezione per caricare le verifiche.</div>
+                        </div>
+                    </div>
+                </details>
+
                 <details id="prog-tutor-riesame-panel" class="group rounded-xl border-2 border-teal-300 bg-teal-50 overflow-hidden">
                     <summary class="cursor-pointer list-none bg-teal-700 text-white px-3 py-3 flex items-center justify-between gap-3">
                         <span class="min-w-0">

@@ -292,6 +292,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     await window.loadOptionalSafetyScript('js/modules/compliance_advisor.js');
     await window.loadOptionalSafetyScript('js/modules/training_history_advisor.js');
     await window.loadOptionalSafetyScript('js/modules/teacher_qualification_advisor.js');
+    await window.loadOptionalSafetyScript('js/modules/effectiveness_monitor.js');
     if (typeof window.installSafetySignaturePatches === 'function') window.installSafetySignaturePatches();
 
     if (window.supabaseClient?.auth?.onAuthStateChange) {
