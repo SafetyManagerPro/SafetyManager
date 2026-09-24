@@ -2,33 +2,62 @@
 <style>
 /* Variante attestato: mantiene la grafica originale, ma sfrutta meglio l'A4 in verticale. */
 .attestato-front > div {
-    justify-content: flex-start !important;
+    justify-content: space-between !important;
+    row-gap: 1.2mm !important;
 }
 .attestato-front .attestato-v-section {
     display: flex !important;
     flex-direction: column !important;
     justify-content: center !important;
-    flex-shrink: 1 !important;
+    flex: 0 1 auto !important;
     min-height: 0 !important;
     margin-bottom: 0 !important;
 }
-.attestato-front .attestato-v-header { flex: 1.20 1 auto !important; }
-.attestato-front .attestato-v-title { flex: 0.72 1 auto !important; }
-.attestato-front .attestato-v-person { flex: 1.05 1 auto !important; }
-.attestato-front .attestato-v-course { flex: 1.15 1 auto !important; }
-.attestato-front .attestato-v-notes { flex: 0.70 1 auto !important; }
+.attestato-front .attestato-v-header,
+.attestato-front .attestato-v-title,
+.attestato-front .attestato-v-person,
+.attestato-front .attestato-v-course,
+.attestato-front .attestato-v-notes {
+    padding-top: 0.8mm !important;
+    padding-bottom: 0.8mm !important;
+}
 .attestato-front .attestato-v-footer {
-    flex: 0.95 1 auto !important;
+    flex: 0 1 auto !important;
     display: flex !important;
     flex-direction: column !important;
     justify-content: flex-end !important;
     margin-top: 0 !important;
     min-height: 0 !important;
+    padding-top: 0.8mm !important;
 }
 .attestato-front .logo-img {
     height: 24mm !important;
     max-height: 24mm !important;
     max-width: 78mm !important;
+}
+
+/* Retro: quando c'è spazio libero, il syllabus si estende in verticale. */
+.attestato-retro .flex-1 > table {
+    height: 100% !important;
+}
+.attestato-retro .val-syllabus-table {
+    height: 100% !important;
+}
+.attestato-retro .val-syllabus-table tr {
+    height: auto !important;
+}
+.attestato-retro .val-syllabus-table td {
+    vertical-align: middle !important;
+    padding-top: 2mm !important;
+    padding-bottom: 2mm !important;
+}
+.attestato-retro .val-syllabus-table:has(tr:nth-child(8)) td {
+    padding-top: 1.5mm !important;
+    padding-bottom: 1.5mm !important;
+}
+.attestato-retro .val-syllabus-table:has(tr:nth-child(11)) td {
+    padding-top: 1mm !important;
+    padding-bottom: 1mm !important;
 }
 </style>
 
