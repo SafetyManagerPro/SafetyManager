@@ -7,11 +7,15 @@
     border-color: transparent !important;
 }
 
-/* Moduli e tabelle senza riempimento: resta visibile solo la struttura/bordatura interna. */
-.attestato-front .attestato-v-section [class*="bg-"],
-.attestato-front .attestato-v-footer [class*="bg-"],
-.attestato-retro .attestato-retro-head [class*="bg-"],
-.attestato-retro .attestato-retro-footer [class*="bg-"],
+/* Attestati senza sfondi colorati: bianco solo il foglio, trasparenti tutti i blocchi interni. */
+.attestato-front,
+.attestato-retro,
+.attestato-front > div,
+.attestato-retro > div {
+    background-color: #ffffff !important;
+}
+.attestato-front [class*="bg-"]:not(.attestato-front),
+.attestato-retro [class*="bg-"]:not(.attestato-retro),
 .attestato-retro table,
 .attestato-retro thead,
 .attestato-retro tbody,
