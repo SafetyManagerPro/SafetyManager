@@ -1,6 +1,11 @@
 <!-- modules/attestato.html -->
 <style>
 /* Variante attestato: mantiene la grafica originale, ma sfrutta meglio l'A4 in verticale. */
+/* Cornice esterna invisibile su fronte e retro; i bordi interni restano invariati. */
+.attestato-front > div,
+.attestato-retro > div {
+    border-color: transparent !important;
+}
 .attestato-front > div {
     justify-content: space-between !important;
     row-gap: 10mm !important;
@@ -52,12 +57,6 @@
 .attestato-retro .attestato-retro-footer {
     margin-top: 0 !important;
     padding-top: 2.6mm !important;
-}
-.attestato-retro .retro-logo {
-    height: 9mm !important;
-    max-height: 9mm !important;
-    max-width: 42mm !important;
-    margin: 0 auto 3mm auto !important;
 }
 .attestato-retro .flex-1 > table {
     height: 100% !important;
@@ -259,7 +258,6 @@
         </div>
 
         <div class="mt-3 pt-3 border-t border-slate-300 text-center shrink-0 attestato-retro-footer">
-            <img src="" alt="Logo" class="logo-img retro-logo object-contain mx-auto hidden">
             <p class="text-[9px] text-slate-600 uppercase font-bold tracking-widest">Documento conforme alle disposizioni in materia di salute e sicurezza nei luoghi di lavoro.</p>
             <p class="text-[8px] text-slate-400 mt-1">La validità dell'attestato è subordinata al rispetto degli obblighi di aggiornamento periodico previsti dalla normativa vigente.</p>
         </div>
