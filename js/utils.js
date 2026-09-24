@@ -1158,8 +1158,9 @@ window.loadCorsistiTable = async function() {
                     ${linguaDoc}
                 </td>
                 <td class="p-3 border-b text-center whitespace-nowrap">
-                    <button onclick="window.modificaCorsista('${cor.id}')" class="text-blue-600 hover:bg-blue-200 bg-blue-100 p-1.5 rounded transition shadow-sm"><i data-lucide="edit" class="w-3.5 h-3.5"></i></button>
-                    <button onclick="window.eliminaCorsistaData('${cor.id}')" class="text-red-600 hover:bg-red-200 bg-red-100 p-1.5 rounded transition shadow-sm ml-1"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+                    <button onclick="window.modificaCorsista('${cor.id}')" class="text-blue-600 hover:bg-blue-200 bg-blue-100 p-1.5 rounded transition shadow-sm" title="Modifica corsista"><i data-lucide="edit" class="w-3.5 h-3.5"></i></button>
+                    <button onclick="window.apriFormazionePregressa && window.apriFormazionePregressa('${cor.id}')" class="text-violet-700 hover:bg-violet-200 bg-violet-100 p-1.5 rounded transition shadow-sm ml-1" title="Formazione pregressa / crediti"><i data-lucide="history" class="w-3.5 h-3.5"></i></button>
+                    <button onclick="window.eliminaCorsistaData('${cor.id}')" class="text-red-600 hover:bg-red-200 bg-red-100 p-1.5 rounded transition shadow-sm ml-1" title="Elimina corsista"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
                 </td>
             </tr>
         `;

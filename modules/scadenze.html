@@ -4,7 +4,7 @@
             <h1 class="text-3xl font-black uppercase text-slate-900 tracking-tighter flex items-center gap-3">
                 <i data-lucide="bell-ring" class="w-8 h-8 text-red-500"></i> Scadenziario Attestati
             </h1>
-            <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Scadenze 30/60/90/180 giorni, scaduti, aziende, rinnovi ed export</p>
+            <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Scadenze registrate e suggerite, rinnovi, aziende ed export</p>
         </div>
         <div class="flex flex-wrap gap-2">
             <button onclick="window.refreshScadenze()" class="bg-slate-900 hover:bg-slate-800 text-white py-2.5 px-4 rounded-xl font-black text-[10px] uppercase tracking-widest transition flex items-center gap-2"><i data-lucide="refresh-cw" class="w-4 h-4"></i> Aggiorna</button>
@@ -47,14 +47,14 @@
     </div>
 
     <div class="rounded-2xl border border-blue-200 bg-blue-50 p-4 mb-5 text-xs text-blue-950">
-        <strong>Rinnovi:</strong> il pulsante “Prepara rinnovo” non crea automaticamente un nuovo corso. Porta in Progetti conservando una bozza con corsista, azienda, corso precedente e scadenza, così la creazione del nuovo progetto resta sotto controllo dell'operatore.
+        <strong>Scadenza intelligente:</strong> la data “suggerita” è un supporto informativo calcolato dalla regola normativa associata o, se non disponibile, dal catalogo. Non sostituisce la data registrata e non viene mai salvata automaticamente. Il pulsante “Prepara rinnovo” lascia sempre la decisione all’operatore.
     </div>
 
     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
         <div class="hidden md:block overflow-x-auto max-h-[650px] overflow-y-auto">
             <table data-responsive-cards="scadenze-mobile-cards" class="w-full text-left text-xs border-collapse min-w-[1100px]">
                 <thead class="bg-slate-900 text-white sticky top-0 z-10">
-                    <tr><th class="p-3">Corsista</th><th class="p-3">Corso</th><th class="p-3 text-center">Data verifica</th><th class="p-3 text-center">Scadenza</th><th class="p-3">Azienda</th><th class="p-3">ID attestato</th><th class="p-3">Esito</th><th class="p-3 text-right">Azione</th></tr>
+                    <tr><th class="p-3">Corsista</th><th class="p-3">Corso</th><th class="p-3 text-center">Data verifica</th><th class="p-3 text-center">Scadenza registrata</th><th class="p-3 text-center">Scadenza suggerita</th><th class="p-3">Azienda</th><th class="p-3">ID attestato</th><th class="p-3">Esito</th><th class="p-3 text-right">Azione</th></tr>
                 </thead>
                 <tbody id="tabella-scadenze"></tbody>
             </table>
