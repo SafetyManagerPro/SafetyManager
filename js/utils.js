@@ -4939,14 +4939,14 @@ window.updateAll = function() {
 
         scheduleHtml += `
         <tr>
-            <td class="text-center font-bold p-1 border-b border-r border-slate-300 align-middle whitespace-nowrap overflow-hidden" style="font-size: ${dSize}; letter-spacing: -0.2px;">${dateStr}</td>
-            <td class="text-center p-1 border-b border-r border-slate-300 align-middle font-bold text-slate-500 whitespace-nowrap overflow-hidden" style="font-size: ${udSize}; letter-spacing: -0.2px;">${ud.ud}</td>
-            <td class="p-1 border-b border-r border-slate-300 align-top break-words whitespace-normal">
+            <td class="text-center font-bold p-1 border-b border-r border-blue-900 align-middle whitespace-nowrap overflow-hidden" style="font-size: ${dSize}; letter-spacing: -0.2px;">${dateStr}</td>
+            <td class="text-center p-1 border-b border-r border-blue-900 align-middle font-bold text-slate-500 whitespace-nowrap overflow-hidden" style="font-size: ${udSize}; letter-spacing: -0.2px;">${ud.ud}</td>
+            <td class="p-1 border-b border-r border-blue-900 align-top break-words whitespace-normal">
                 <p class="font-bold text-slate-800 uppercase mb-0.5" style="font-size: 8px;">${ud.m}</p>
                 <div class="text-slate-700 leading-tight text-justify italic opacity-90" style="font-size: 7.5px;">${ud.d}</div>
             </td>
-            <td class="text-center p-1 border-b border-r border-slate-300 font-bold text-blue-700 align-middle uppercase whitespace-nowrap overflow-hidden" style="font-size: ${docSize}; letter-spacing: -0.2px;">${nomeDocente}</td>
-            <td class="text-center font-bold p-1 border-b border-slate-300 align-middle break-words text-[8px]">${ud.ore} h</td>
+            <td class="text-center p-1 border-b border-r border-blue-900 font-bold text-blue-700 align-middle uppercase whitespace-nowrap overflow-hidden" style="font-size: ${docSize}; letter-spacing: -0.2px;">${nomeDocente}</td>
+            <td class="text-center font-bold p-1 border-b border-blue-900 align-middle break-words text-[8px]">${ud.ore} h</td>
         </tr>`;
     });
 
