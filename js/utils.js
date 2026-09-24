@@ -853,6 +853,7 @@ window.loadDocentiTable = async function() {
                     </td>
                     <td class="p-3 border-b text-center whitespace-nowrap">
                         <button onclick="window.modificaDocente('${doc.id}')" class="text-blue-600 hover:bg-blue-200 bg-blue-100 p-1.5 rounded transition shadow-sm" title="Modifica docente"><i data-lucide="edit" class="w-4 h-4"></i></button>
+                        <button onclick="window.apriQualificheDocente && window.apriQualificheDocente('${doc.id}')" class="text-violet-700 hover:bg-violet-200 bg-violet-100 p-1.5 rounded transition shadow-sm ml-1" title="Qualifiche e requisiti"><i data-lucide="badge-check" class="w-4 h-4"></i></button>
                         <button onclick="window.eliminaDocente('${doc.id}')" class="text-red-600 hover:bg-red-200 bg-red-100 p-1.5 rounded transition shadow-sm ml-1" title="Elimina docente"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                     </td>
                 </tr>

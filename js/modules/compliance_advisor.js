@@ -59,7 +59,15 @@
   function currentProject() {
     const id = document.getElementById('prog-id')?.value || '';
     if (typeof window.collectProjectFormSnapshot === 'function') {
-      try { return window.collectProjectFormSnapshot(id); } catch (_) {}
+      try {
+        const snapshot = window.collectProjectFormSnapshot(id);
+        return {
+          ...snapshot,
+          docenti_ud: typeof window.getDocentiUdFromForm === 'function'
+            ? window.getDocentiUdFromForm()
+            : snapshot?.docenti_ud
+        };
+      } catch (_) {}
     }
     return {
       id,
@@ -72,7 +80,8 @@
       compliance_note: document.getElementById('prog-compliance-note-free')?.value || '',
       ente_validatore: document.getElementById('prog-ente-validatore')?.value || '',
       validazione_ente_esito: document.getElementById('prog-validazione-esito')?.value || '',
-      esito_richiesta_op: document.getElementById('prog-op-esito')?.value || ''
+      esito_richiesta_op: document.getElementById('prog-op-esito')?.value || '',
+      docenti_ud: typeof window.getDocentiUdFromForm === 'function' ? window.getDocentiUdFromForm() : {}
     };
   }
 
@@ -156,6 +165,15 @@
     if (project?.ente_erogatore === 'azienda') {
       if (!project?.validazione_ente_esito) add(items, 'DL_VALIDATION_STATUS', 'warning', 'Stato della valutazione/validazione del percorso non indicato.');
       if (!project?.esito_richiesta_op) add(items, 'DL_OP_STATUS', 'warning', 'Stato della comunicazione/iter con l’organismo paritetico non indicato.');
+    }
+
+    if (window.TeacherQualificationAdvisor?.evaluateProject) {
+      try {
+        const teacherItems = await window.TeacherQualificationAdvisor.evaluateProject(project);
+        if (Array.isArray(teacherItems)) items.push(...teacherItems);
+      } catch (error) {
+        add(items, 'TEACHER_ADVISOR_UNAVAILABLE', 'info', 'Controllo qualifiche docenti temporaneamente non disponibile.', error?.message || String(error));
+      }
     }
 
     return { items, rule, ruleSet: state.ruleSet };

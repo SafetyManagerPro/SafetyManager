@@ -1,5 +1,5 @@
-const CACHE_NAME='safetymanager-pwa-v4';
-const APP_SHELL=['/','/index.html','/manifest.json','/js/app.js','/js/supabase_config.js','/js/data.js','/js/utils.js','/js/pwa.js','/js/modules/progetti_corsisti_refinement.js','/js/modules/compliance_advisor.js','/js/modules/training_history_advisor.js','/assets/icons/safetymanager-192.svg','/assets/icons/safetymanager-192.png','/assets/icons/safetymanager-512.png','/assets/icons/safetymanager-maskable.svg'];
+const CACHE_NAME='safetymanager-pwa-v5';
+const APP_SHELL=['/','/index.html','/manifest.json','/js/app.js','/js/supabase_config.js','/js/data.js','/js/utils.js','/js/pwa.js','/js/modules/progetti_corsisti_refinement.js','/js/modules/compliance_advisor.js','/js/modules/training_history_advisor.js','/js/modules/teacher_qualification_advisor.js','/assets/icons/safetymanager-192.svg','/assets/icons/safetymanager-192.png','/assets/icons/safetymanager-512.png','/assets/icons/safetymanager-maskable.svg'];
 
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(CACHE_NAME).then(async cache=>{
