@@ -18,7 +18,12 @@
     for(const row of rows){
       row._expirySuggestion=window.TrainingHistoryAdvisor?.getExpirySuggestion ? await window.TrainingHistoryAdvisor.getExpirySuggestion(row) : null;
     }
-    return rows.filter(i=>i.data_scadenza||i._expirySuggestion?.date).sort((a,b)=>String(effective(a)||'9999-12-31').localeCompare(String(effective(b)||'9999-12-31')));
+    return rows.filter(i=>{
+      if(i.data_scadenza) return true;
+      const outcome=norm(i.esito);
+      const positive=['idoneo','superato','positivo'].includes(outcome);
+      return positive && !!i._expirySuggestion?.date;
+    }).sort((a,b)=>String(effective(a)||'9999-12-31').localeCompare(String(effective(b)||'9999-12-31')));
   };
 
   const fillCompanies=rows=>{
