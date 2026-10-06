@@ -8,6 +8,7 @@
     const files=[
       'js/modules/ui_refinements.js',
       'js/modules/workflow_guard.js',
+      'js/modules/anagrafica_duplicate_guard.js',
       'js/modules/corsisti_ruolo_azienda.js',
       'js/modules/documenti_azienda_lavoratore_core.js',
       'js/modules/documenti_azienda_lavoratore_ui.js',
