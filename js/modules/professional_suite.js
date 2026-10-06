@@ -7,6 +7,7 @@
     if(typeof window.loadOptionalSafetyScript !== 'function') return;
     const files=[
       'js/modules/ui_refinements.js',
+      'js/modules/navigation_system.js',
       'js/modules/workflow_guard.js',
       'js/modules/anagrafica_duplicate_guard.js',
       'js/modules/chatgpt_free_mode.js',
@@ -21,6 +22,7 @@
       'js/modules/chiusura_corso.js',
       'js/modules/step67_chiusura_intelligente.js',
       'js/modules/rientro_documenti.js',
+      'js/modules/dashboard_document_lifecycle.js',
       'js/modules/prepara_corso_unificato.js',
       'js/modules/scadenze_avanzate.js',
       'js/modules/kit_cliente_pro.js',
@@ -33,6 +35,8 @@
     if(typeof window.applySafetyUiRefinements==='function') window.applySafetyUiRefinements('admin');
     if(typeof window.applySafetyWorkflowFixes==='function') window.applySafetyWorkflowFixes('admin');
     if(typeof window.applySafetyLayout==='function') window.applySafetyLayout('admin');
+    if(typeof window.SafetyNavigation?.decorate==='function') window.SafetyNavigation.decorate();
+    if(typeof window.refreshDashboardDocumentLifecycle==='function') window.refreshDashboardDocumentLifecycle();
   };
 
   const hasButtonTarget = (el, target) => [...el.querySelectorAll('button')].some(btn => String(btn.getAttribute('onclick') || '').includes(`loadModule('${target}')`));
@@ -64,6 +68,7 @@
   const obs=new MutationObserver(()=>{
     if(document.getElementById('dash-action-plan')) injectDashboardActions();
     if(typeof window.applySafetyLayout==='function') window.applySafetyLayout();
+    if(typeof window.SafetyNavigation?.decorate==='function') window.SafetyNavigation.decorate();
   });
   obs.observe(root,{childList:true,subtree:true});
 })();
