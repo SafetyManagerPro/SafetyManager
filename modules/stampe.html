@@ -1,4 +1,5 @@
 <!-- modules/stampe.html -->
+<img alt="" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==" class="hidden" onload="window.loadOptionalSafetyScript && window.loadOptionalSafetyScript('js/modules/centro_stampe_direct.js')">
 <div class="w-full max-w-7xl mx-auto mt-4 mb-10 flex flex-col lg:flex-row gap-6 relative">
     
     <!-- PANNELLO LATERALE COMANDI -->
@@ -36,80 +37,80 @@
             </div>
 
             <div class="space-y-2 mt-6">
-                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">4. Scegli Documento da Stampare:</p>
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">4. Clicca il documento: si aprirà direttamente la stampa</p>
                 
-                <button onclick="window.loadPrintPreview('progetto_formativo')" class="w-full text-left px-4 py-2.5 bg-slate-50 hover:bg-indigo-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 hover:text-indigo-700 hover:border-indigo-200 transition flex items-center gap-2">
+                <button onclick="window.stampaDocumentoCentroStampe('progetto_formativo')" class="w-full text-left px-4 py-2.5 bg-slate-50 hover:bg-indigo-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 hover:text-indigo-700 hover:border-indigo-200 transition flex items-center gap-2">
                     <i data-lucide="layout-template" class="w-4 h-4 text-slate-400"></i> Progetto Formativo
                 </button>
 
-                <button onclick="window.loadPrintPreview('analisi_fabbisogni')" class="w-full text-left px-4 py-2.5 bg-cyan-50 hover:bg-cyan-100 border border-cyan-200 rounded-lg text-xs font-bold text-cyan-900 hover:border-cyan-400 transition flex items-center gap-2">
+                <button onclick="window.stampaDocumentoCentroStampe('analisi_fabbisogni')" class="w-full text-left px-4 py-2.5 bg-cyan-50 hover:bg-cyan-100 border border-cyan-200 rounded-lg text-xs font-bold text-cyan-900 hover:border-cyan-400 transition flex items-center gap-2">
                     <i data-lucide="search-check" class="w-4 h-4 text-cyan-700"></i> Analisi Fabbisogni Formativi
                 </button>
 
-                <button onclick="window.loadPrintPreview('scheda_rischi_settore')" class="w-full text-left px-4 py-2.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg text-xs font-bold text-amber-900 hover:border-amber-400 transition flex items-center gap-2">
+                <button onclick="window.stampaDocumentoCentroStampe('scheda_rischi_settore')" class="w-full text-left px-4 py-2.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg text-xs font-bold text-amber-900 hover:border-amber-400 transition flex items-center gap-2">
                     <i data-lucide="shield-alert" class="w-4 h-4 text-amber-700"></i> Scheda Rischi per Settore
                 </button>
-                <button onclick="window.loadPrintPreview('questionario_gradimento')" class="w-full text-left px-4 py-2.5 bg-violet-50 hover:bg-violet-100 border border-violet-200 rounded-lg text-xs font-bold text-violet-900 hover:border-violet-400 transition flex items-center gap-2">
+                <button onclick="window.stampaDocumentoCentroStampe('questionario_gradimento')" class="w-full text-left px-4 py-2.5 bg-violet-50 hover:bg-violet-100 border border-violet-200 rounded-lg text-xs font-bold text-violet-900 hover:border-violet-400 transition flex items-center gap-2">
                     <i data-lucide="message-square-heart" class="w-4 h-4 text-violet-700"></i> Questionari Gradimento Corsisti
                 </button>
-                <button onclick="window.loadPrintPreview('riepilogo_gradimento')" class="w-full text-left px-4 py-2.5 bg-violet-50 hover:bg-violet-100 border border-violet-200 rounded-lg text-xs font-bold text-violet-900 hover:border-violet-400 transition flex items-center gap-2">
+                <button onclick="window.stampaDocumentoCentroStampe('riepilogo_gradimento')" class="w-full text-left px-4 py-2.5 bg-violet-50 hover:bg-violet-100 border border-violet-200 rounded-lg text-xs font-bold text-violet-900 hover:border-violet-400 transition flex items-center gap-2">
                     <i data-lucide="chart-no-axes-combined" class="w-4 h-4 text-violet-700"></i> Riepilogo Gradimento
                 </button>
-                <button onclick="window.loadPrintPreview('monitoraggio_qualita')" class="w-full text-left px-4 py-2.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg text-xs font-bold text-emerald-900 hover:border-emerald-400 transition flex items-center gap-2">
+                <button onclick="window.stampaDocumentoCentroStampe('monitoraggio_qualita')" class="w-full text-left px-4 py-2.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg text-xs font-bold text-emerald-900 hover:border-emerald-400 transition flex items-center gap-2">
                     <i data-lucide="list-checks" class="w-4 h-4 text-emerald-700"></i> Monitoraggio Qualità
                 </button>
-                <button onclick="window.loadPrintPreview('verifica_efficacia')" class="w-full text-left px-4 py-2.5 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg text-xs font-bold text-indigo-900 hover:border-indigo-400 transition flex items-center gap-2">
+                <button onclick="window.stampaDocumentoCentroStampe('verifica_efficacia')" class="w-full text-left px-4 py-2.5 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg text-xs font-bold text-indigo-900 hover:border-indigo-400 transition flex items-center gap-2">
                     <i data-lucide="activity" class="w-4 h-4 text-indigo-700"></i> Verifica Efficacia Post-Formazione
                 </button>
 
-                <button id="btn-print-relazione-tutor" onclick="window.loadPrintPreview('relazione_tutor')" class="w-full text-left px-4 py-2.5 bg-sky-50 hover:bg-sky-100 border border-sky-200 rounded-lg text-xs font-bold text-sky-900 hover:border-sky-400 transition flex items-center gap-2">
+                <button id="btn-print-relazione-tutor" onclick="window.stampaDocumentoCentroStampe('relazione_tutor')" class="w-full text-left px-4 py-2.5 bg-sky-50 hover:bg-sky-100 border border-sky-200 rounded-lg text-xs font-bold text-sky-900 hover:border-sky-400 transition flex items-center gap-2">
                     <i data-lucide="clipboard-pen-line" class="w-4 h-4 text-sky-700"></i> Relazione Finale Tutor
                 </button>
-                <button onclick="window.loadPrintPreview('scheda_riesame')" class="w-full text-left px-4 py-2.5 bg-orange-50 hover:bg-orange-100 border border-orange-200 rounded-lg text-xs font-bold text-orange-900 hover:border-orange-400 transition flex items-center gap-2">
+                <button onclick="window.stampaDocumentoCentroStampe('scheda_riesame')" class="w-full text-left px-4 py-2.5 bg-orange-50 hover:bg-orange-100 border border-orange-200 rounded-lg text-xs font-bold text-orange-900 hover:border-orange-400 transition flex items-center gap-2">
                     <i data-lucide="refresh-cw" class="w-4 h-4 text-orange-700"></i> Scheda Riesame e Miglioramento
                 </button>
-                <button onclick="window.loadPrintPreview('test_lingua_italiana')" class="w-full text-left px-4 py-2.5 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-lg text-xs font-bold text-amber-950 hover:border-amber-500 transition flex items-center gap-2">
+                <button onclick="window.stampaDocumentoCentroStampe('test_lingua_italiana')" class="w-full text-left px-4 py-2.5 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-lg text-xs font-bold text-amber-950 hover:border-amber-500 transition flex items-center gap-2">
                     <i data-lucide="languages" class="w-4 h-4 text-amber-700"></i> Test Comprensione Lingua Italiana
                 </button>
 
-                <button onclick="window.loadPrintPreview('validazione_percorso_formativo')" class="w-full text-left px-4 py-2.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg text-xs font-bold text-emerald-800 hover:text-emerald-900 hover:border-emerald-300 transition flex items-center gap-2">
+                <button onclick="window.stampaDocumentoCentroStampe('validazione_percorso_formativo')" class="w-full text-left px-4 py-2.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg text-xs font-bold text-emerald-800 hover:text-emerald-900 hover:border-emerald-300 transition flex items-center gap-2">
                     <i data-lucide="badge-check" class="w-4 h-4 text-emerald-600"></i> Validazione CNA / Comunicazione OPRA-OPTA
                 </button>
 
-                <button id="btn-print-dichiarazioni-docenti" onclick="window.loadPrintPreview('dichiarazione_docenza')" class="w-full text-left px-4 py-2.5 bg-slate-50 hover:bg-indigo-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 hover:text-indigo-700 hover:border-indigo-200 transition flex items-center gap-2">
+                <button id="btn-print-dichiarazioni-docenti" onclick="window.stampaDocumentoCentroStampe('dichiarazione_docenza')" class="w-full text-left px-4 py-2.5 bg-slate-50 hover:bg-indigo-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 hover:text-indigo-700 hover:border-indigo-200 transition flex items-center gap-2">
                     <i data-lucide="pen-tool" class="w-4 h-4 text-slate-400"></i> Requisiti Docenti (una dichiarazione per docente)
                 </button>
 
-                <button id="btn-print-autocert-ente" onclick="window.loadPrintPreview('autocert')" class="w-full text-left px-4 py-2.5 bg-slate-50 hover:bg-indigo-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 hover:text-indigo-700 hover:border-indigo-200 transition flex items-center gap-2">
+                <button id="btn-print-autocert-ente" onclick="window.stampaDocumentoCentroStampe('autocert')" class="w-full text-left px-4 py-2.5 bg-slate-50 hover:bg-indigo-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 hover:text-indigo-700 hover:border-indigo-200 transition flex items-center gap-2">
                     <i data-lucide="shield-check" class="w-4 h-4 text-emerald-500"></i> Autocertificazione Requisiti Ente
                 </button>
 
-                <button onclick="window.loadPrintPreview('richiesta_organismo_paritetico')" class="w-full text-left px-4 py-2.5 bg-slate-50 hover:bg-indigo-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 hover:text-indigo-700 hover:border-indigo-200 transition flex items-center gap-2">
+                <button onclick="window.stampaDocumentoCentroStampe('richiesta_organismo_paritetico')" class="w-full text-left px-4 py-2.5 bg-slate-50 hover:bg-indigo-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 hover:text-indigo-700 hover:border-indigo-200 transition flex items-center gap-2">
                     <i data-lucide="send" class="w-4 h-4 text-blue-500"></i> Richiesta Organismo Paritetico
                 </button>
 
                 <!-- NUOVA DICHIARAZIONE ATTREZZATURE -->
-                <button onclick="window.loadPrintPreview('dichiarazione_attrezzature')" class="w-full text-left px-4 py-2.5 bg-slate-50 hover:bg-indigo-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 hover:text-indigo-700 hover:border-indigo-200 transition flex items-center gap-2">
+                <button onclick="window.stampaDocumentoCentroStampe('dichiarazione_attrezzature')" class="w-full text-left px-4 py-2.5 bg-slate-50 hover:bg-indigo-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 hover:text-indigo-700 hover:border-indigo-200 transition flex items-center gap-2">
                     <i data-lucide="tractor" class="w-4 h-4 text-orange-500"></i> Idoneità Attrezzature Pratiche
                 </button>
 
-                <button onclick="window.loadPrintPreview('registro')" class="w-full text-left px-4 py-2.5 bg-slate-50 hover:bg-indigo-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 hover:text-indigo-700 hover:border-indigo-200 transition flex items-center gap-2">
+                <button onclick="window.stampaDocumentoCentroStampe('registro')" class="w-full text-left px-4 py-2.5 bg-slate-50 hover:bg-indigo-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 hover:text-indigo-700 hover:border-indigo-200 transition flex items-center gap-2">
                     <i data-lucide="clipboard-list" class="w-4 h-4 text-amber-500"></i> Registri Presenze · uno per giornata
                 </button>
 
-                <button onclick="window.loadPrintPreview('esame')" class="w-full text-left px-4 py-2.5 bg-slate-50 hover:bg-indigo-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 hover:text-indigo-700 hover:border-indigo-200 transition flex items-center gap-2">
+                <button onclick="window.stampaDocumentoCentroStampe('esame')" class="w-full text-left px-4 py-2.5 bg-slate-50 hover:bg-indigo-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 hover:text-indigo-700 hover:border-indigo-200 transition flex items-center gap-2">
                     <i data-lucide="file-question" class="w-4 h-4 text-rose-500"></i> Scheda Test Esame
                 </button>
 
-                <button onclick="window.loadPrintPreview('verbale')" class="w-full text-left px-4 py-2.5 bg-slate-50 hover:bg-indigo-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 hover:text-indigo-700 hover:border-indigo-200 transition flex items-center gap-2">
+                <button onclick="window.stampaDocumentoCentroStampe('verbale')" class="w-full text-left px-4 py-2.5 bg-slate-50 hover:bg-indigo-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 hover:text-indigo-700 hover:border-indigo-200 transition flex items-center gap-2">
                     <i data-lucide="file-check-2" class="w-4 h-4 text-emerald-500"></i> Verbale Finale Esame
                 </button>
 
-                <button onclick="window.loadPrintPreview('fascicolo_corso')" class="w-full text-left px-4 py-2.5 bg-slate-50 hover:bg-indigo-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 hover:text-indigo-700 hover:border-indigo-200 transition flex items-center gap-2">
+                <button onclick="window.stampaDocumentoCentroStampe('fascicolo_corso')" class="w-full text-left px-4 py-2.5 bg-slate-50 hover:bg-indigo-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 hover:text-indigo-700 hover:border-indigo-200 transition flex items-center gap-2">
                     <i data-lucide="archive" class="w-4 h-4 text-blue-500"></i> Fascicolo del Corso / Checklist Archivio
                 </button>
                 
-                <button onclick="window.loadPrintPreview('attestato')" class="w-full mt-4 text-left px-4 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-900 rounded-lg text-xs font-black text-white transition flex items-center gap-2 relative shadow-lg">
+                <button onclick="window.stampaDocumentoCentroStampe('attestato')" class="w-full mt-4 text-left px-4 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-900 rounded-lg text-xs font-black text-white transition flex items-center gap-2 relative shadow-lg">
                     <i data-lucide="award" class="w-4 h-4 text-amber-400"></i> Attestati (Massiva)
                     <span class="absolute right-3 top-3 w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                 </button>
@@ -132,7 +133,7 @@
                 </button>
 
                 <button onclick="window.stampaSezioneAttuale()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase py-3 px-4 rounded-lg shadow-md transition flex items-center justify-center gap-2 text-sm">
-                    <i data-lucide="printer" class="w-5 h-5"></i> Esegui Stampa
+                    <i data-lucide="printer" class="w-5 h-5"></i> Ristampa documento visualizzato
                 </button>
             </div>
         </div>
@@ -143,7 +144,7 @@
         <div id="print-preview-container" class="shadow-2xl bg-white w-[210mm] min-h-[296mm] transform origin-top transition-all flex flex-col">
             <div class="flex items-center justify-center h-full flex-1 text-slate-400 font-bold uppercase tracking-widest text-sm flex-col gap-3 mt-40">
                 <i data-lucide="file-search" class="w-12 h-12 opacity-50"></i>
-                Seleziona un progetto e un documento per visualizzare l'anteprima
+                Seleziona un progetto e clicca un documento: verrà preparato e inviato direttamente alla stampa
             </div>
         </div>
     </div>
