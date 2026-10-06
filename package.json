@@ -5,7 +5,7 @@
   "description": "SafetyManagerPro web application",
   "scripts": {
     "test": "node tests/step67_completion_engine.test.cjs",
-    "check": "node --check js/modules/step67_chiusura_intelligente.js && node --check js/modules/checklist_corso.js && node --check js/modules/chiusura_corso.js && node --check js/modules/dashboard_pro.js && node --check js/modules/rientro_documenti.js && node --check js/modules/dashboard_document_lifecycle.js && node --check js/modules/navigation_system.js && node --check js/modules/professional_suite.js"
+    "check": "node --check js/modules/step67_chiusura_intelligente.js && node --check js/modules/checklist_corso.js && node --check js/modules/chiusura_corso.js && node --check js/modules/dashboard_pro.js && node --check js/modules/rientro_documenti.js && node --check js/modules/dashboard_document_lifecycle.js && node --check js/modules/navigation_system.js && node --check js/modules/ui_integrity_guard.js && node --check js/modules/professional_suite.js"
   },
   "dependencies": {
     "ai": "7.0.100"
