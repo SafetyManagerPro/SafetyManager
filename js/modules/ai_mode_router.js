@@ -54,6 +54,15 @@
     modal.classList.remove('flex');
   }
 
+  function shouldFallback(text) {
+    const value = String(text || '').toLowerCase();
+    if (!value) return false;
+    // Errori di autenticazione SafetyManager vanno risolti con il login, non con il fallback.
+    if (/sessione scaduta|effettua nuovamente l.?accesso|non autorizzat|login/.test(value)) return false;
+    // Fallback solo per indisponibilita del servizio/API, limiti o problemi di billing/provider.
+    return /assistente ia non disponibile|gateway|api|billing|payment|carta|card|quota|credit|provider|forbidden|unauthorized provider|\b403\b|\b429\b|\b500\b|\b502\b|\b503\b|\b504\b/.test(value);
+  }
+
   function openFreeFallback() {
     if (fallbackLock || !lastFieldId) return;
     const field = document.getElementById(lastFieldId);
@@ -83,7 +92,7 @@
     const observer = new MutationObserver(() => {
       const visible = !errorBox.classList.contains('hidden');
       const text = String(errorBox.textContent || '').trim();
-      if (visible && text) openFreeFallback();
+      if (visible && shouldFallback(text)) openFreeFallback();
     });
     observer.observe(errorBox, { childList:true, subtree:true, characterData:true, attributes:true, attributeFilter:['class'] });
   }
