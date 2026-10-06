@@ -14,6 +14,7 @@
       .safety-modal-normalized{overflow-y:auto!important;overscroll-behavior:contain!important;-webkit-overflow-scrolling:touch;padding:clamp(.5rem,1.4vw,1.25rem)!important;isolation:isolate}
       .safety-modal-normalized> :not(.safety-popup-nav){max-width:calc(100vw - 1rem)!important;max-height:calc(100dvh - 1rem)!important}
       .safety-modal-normalized [data-safety-native-close="1"]{position:relative;z-index:2}
+      .safety-modal-normalized [data-safety-native-close="1"].safety-native-close-proxied{display:none!important}
       @media print{.safety-modal-normalized{overflow:visible!important;padding:0!important}}
     `;
     document.head.appendChild(s);
@@ -45,6 +46,12 @@
     })||null;
   }
 
+  function syncNativeCloseVisibility(overlay,close){
+    if(!close) return;
+    const hasStandardNav=!!overlay.querySelector(':scope > .safety-popup-nav');
+    close.classList.toggle('safety-native-close-proxied',hasStandardNav);
+  }
+
   function normalize(){
     injectStyle();
     const visible=candidates();
@@ -60,8 +67,10 @@
         if(!close.getAttribute('aria-label')) close.setAttribute('aria-label','Chiudi');
         if(!close.getAttribute('title')) close.setAttribute('title','Chiudi');
       }
+      syncNativeCloseVisibility(overlay,close);
     });
     if(typeof window.SafetyNavigation?.decorate==='function') window.SafetyNavigation.decorate();
+    visible.forEach(overlay=>syncNativeCloseVisibility(overlay,nativeClose(overlay)));
     return visible;
   }
 
@@ -73,6 +82,7 @@
       id:el.id||'(senza id)',
       navigation:!!el.querySelector(':scope > .safety-popup-nav'),
       nativeClose:!!nativeClose(el),
+      duplicateVisibleClose:!!el.querySelector('[data-safety-native-close="1"]:not(.safety-native-close-proxied)')&&!!el.querySelector(':scope > .safety-popup-nav'),
       normalized:el.dataset.safetyUiNormalized==='1',
       zIndex:parseInt(getComputedStyle(el).zIndex,10)||0,
       overflowY:getComputedStyle(el).overflowY
@@ -81,7 +91,7 @@
       pageNavigation:pageNav,
       visiblePopups:popupRows.length,
       popups:popupRows,
-      ok:pageNav&&popupRows.every(r=>r.navigation&&r.normalized&&r.zIndex>=BASE_Z)
+      ok:pageNav&&popupRows.every(r=>r.navigation&&r.normalized&&r.zIndex>=BASE_Z&&!r.duplicateVisibleClose)
     };
   }
 
