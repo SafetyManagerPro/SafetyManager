@@ -56,4 +56,9 @@
             busy = false;
         }
     };
+
+    // Il pacchetto corso usa lo stesso motore di stampa e aggiunge il pulsante dedicato al Centro Stampe.
+    if (typeof window.loadOptionalSafetyScript === 'function') {
+        window.loadOptionalSafetyScript('js/modules/pacchetto_corso.js');
+    }
 })();
