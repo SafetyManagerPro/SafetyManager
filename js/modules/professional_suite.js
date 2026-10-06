@@ -20,6 +20,7 @@
       'js/modules/audit_attivita.js',
       'js/modules/chiusura_corso.js',
       'js/modules/step67_chiusura_intelligente.js',
+      'js/modules/rientro_documenti.js',
       'js/modules/prepara_corso_unificato.js',
       'js/modules/scadenze_avanzate.js',
       'js/modules/kit_cliente_pro.js',
@@ -42,6 +43,7 @@
     if(!grid || grid.dataset.professionalActions==='1') return;
     grid.dataset.professionalActions='1';
     const items=[
+      ['window.apriRientroDocumenti && window.apriRientroDocumenti()','scan-line','Rientro documenti','violet'],
       ['window.apriChiusuraCorsiGuidata && window.apriChiusuraCorsiGuidata()','lock-keyhole','Chiusura corso','amber'],
       ["window.loadModule('attivita')",'history','Attività','cyan'],
       ["window.loadModule('collaudo')",'shield-check','Collaudo','emerald']
