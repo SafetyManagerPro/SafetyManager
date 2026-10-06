@@ -8,6 +8,7 @@
     const files=[
       'js/modules/ui_refinements.js',
       'js/modules/navigation_system.js',
+      'js/modules/ui_integrity_guard.js',
       'js/modules/workflow_guard.js',
       'js/modules/anagrafica_duplicate_guard.js',
       'js/modules/chatgpt_free_mode.js',
@@ -36,6 +37,7 @@
     if(typeof window.applySafetyWorkflowFixes==='function') window.applySafetyWorkflowFixes('admin');
     if(typeof window.applySafetyLayout==='function') window.applySafetyLayout('admin');
     if(typeof window.SafetyNavigation?.decorate==='function') window.SafetyNavigation.decorate();
+    if(typeof window.SafetyUIIntegrity?.normalize==='function') window.SafetyUIIntegrity.normalize();
     if(typeof window.refreshDashboardDocumentLifecycle==='function') window.refreshDashboardDocumentLifecycle();
   };
 
@@ -69,6 +71,7 @@
     if(document.getElementById('dash-action-plan')) injectDashboardActions();
     if(typeof window.applySafetyLayout==='function') window.applySafetyLayout();
     if(typeof window.SafetyNavigation?.decorate==='function') window.SafetyNavigation.decorate();
+    if(typeof window.SafetyUIIntegrity?.schedule==='function') window.SafetyUIIntegrity.schedule();
   });
   obs.observe(root,{childList:true,subtree:true});
 })();
