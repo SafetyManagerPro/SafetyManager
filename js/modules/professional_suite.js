@@ -11,6 +11,7 @@
       'js/modules/navigation_system.js',
       'js/modules/ui_integrity_guard.js',
       'js/modules/local_evidence_picker.js',
+      'js/modules/local_evidence_preview.js',
       'js/modules/workflow_guard.js',
       'js/modules/anagrafica_duplicate_guard.js',
       'js/modules/chatgpt_free_mode.js',
