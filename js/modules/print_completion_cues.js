@@ -170,9 +170,10 @@
       page.appendChild(hint);
     }
     const escaped=text.replace(/^✓\s*=\s*/, '');
-    hint.innerHTML=text.startsWith('✓')
+    const desiredHtml=text.startsWith('✓')
       ? `<span class="safety-hint-check">✓</span> = firma richiesta · ${escaped.replace(/^firma richiesta\s*·\s*/i,'')}`
       : text;
+    if(hint.innerHTML!==desiredHtml) hint.innerHTML=desiredHtml;
   };
 
   const decoratePage=(page)=>{
