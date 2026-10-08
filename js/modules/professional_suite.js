@@ -25,6 +25,7 @@
       'js/modules/chiusura_corso.js',
       'js/modules/step67_chiusura_intelligente.js',
       'js/modules/rientro_documenti.js',
+      'js/modules/rientro_evidence_bridge.js',
       'js/modules/dashboard_document_lifecycle.js',
       'js/modules/prepara_corso_unificato.js',
       'js/modules/scadenze_avanzate.js',
@@ -41,6 +42,7 @@
     if(typeof window.SafetyNavigation?.decorate==='function') window.SafetyNavigation.decorate();
     if(typeof window.SafetyUIIntegrity?.normalize==='function') window.SafetyUIIntegrity.normalize();
     if(typeof window.SafetyLocalEvidence?.decorate==='function') window.SafetyLocalEvidence.decorate();
+    if(typeof window.SafetyRientroEvidence?.decorate==='function') window.SafetyRientroEvidence.decorate();
     if(typeof window.refreshDashboardDocumentLifecycle==='function') window.refreshDashboardDocumentLifecycle();
   };
 
@@ -76,6 +78,7 @@
     if(typeof window.SafetyNavigation?.decorate==='function') window.SafetyNavigation.decorate();
     if(typeof window.SafetyUIIntegrity?.schedule==='function') window.SafetyUIIntegrity.schedule();
     if(typeof window.SafetyLocalEvidence?.decorate==='function') window.SafetyLocalEvidence.decorate();
+    if(typeof window.SafetyRientroEvidence?.decorate==='function') window.SafetyRientroEvidence.decorate();
   });
   obs.observe(root,{childList:true,subtree:true});
 })();
