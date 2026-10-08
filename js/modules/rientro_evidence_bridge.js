@@ -80,13 +80,21 @@
   async function pick(itemKey,enrollmentId){
     const projectId=currentProjectId();
     if(!projectId||!window.apriStep67ItemEditor||!window.SafetyLocalEvidence?.chooseForField) return;
+    const temp=document.createElement('input');
+    temp.type='text';
+    temp.hidden=true;
+    document.body.appendChild(temp);
     try{
+      // Il file picker parte direttamente dal click: necessario per i permessi browser.
+      await window.SafetyLocalEvidence.chooseForField(temp);
+      const selected=temp.value;
+      if(!selected) return;
       await window.apriStep67ItemEditor(projectId,itemKey,enrollmentId||'');
       const field=await waitForField();
       if(!field) throw new Error('Editor evidenza non disponibile.');
-      const before=field.value;
-      await window.SafetyLocalEvidence.chooseForField(field);
-      if(!field.value||field.value===before) return;
+      field.value=selected;
+      field.dispatchEvent(new Event('input',{bubbles:true}));
+      field.dispatchEvent(new Event('change',{bubbles:true}));
       const mode=document.getElementById('step67-mode');
       const activity=document.getElementById('step67-activity');
       const recording=document.getElementById('step67-recording');
@@ -100,6 +108,8 @@
       if(window.SafetyRientroDocumenti?.setStatus) await window.SafetyRientroDocumenti.setStatus(itemKey,enrollmentId||null,'scanned');
     }catch(error){
       if(error?.name!=='AbortError') console.warn('Rientro evidenze: selezione non riuscita',error);
+    }finally{
+      temp.remove();
     }
   }
 
