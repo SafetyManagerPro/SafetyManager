@@ -7,6 +7,7 @@
     if(typeof window.loadOptionalSafetyScript !== 'function') return;
     const files=[
       'js/modules/ui_refinements.js',
+      'js/modules/signature_identity_guard.js',
       'js/modules/soft_ui_theme.js',
       'js/modules/navigation_system.js',
       'js/modules/ui_integrity_guard.js',
