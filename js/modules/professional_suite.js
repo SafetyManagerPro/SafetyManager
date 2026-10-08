@@ -8,6 +8,7 @@
     const files=[
       'js/modules/ui_refinements.js',
       'js/modules/signature_identity_guard.js',
+      'js/modules/print_completion_cues.js',
       'js/modules/soft_ui_theme.js',
       'js/modules/navigation_system.js',
       'js/modules/ui_integrity_guard.js',
@@ -45,6 +46,7 @@
     if(typeof window.SafetyUIIntegrity?.normalize==='function') window.SafetyUIIntegrity.normalize();
     if(typeof window.SafetyLocalEvidence?.decorate==='function') window.SafetyLocalEvidence.decorate();
     if(typeof window.SafetyRientroEvidence?.decorate==='function') window.SafetyRientroEvidence.decorate();
+    if(typeof window.SafetyPrintCompletionCues?.schedule==='function') window.SafetyPrintCompletionCues.schedule();
     if(typeof window.refreshDashboardDocumentLifecycle==='function') window.refreshDashboardDocumentLifecycle();
   };
 
@@ -81,6 +83,7 @@
     if(typeof window.SafetyUIIntegrity?.schedule==='function') window.SafetyUIIntegrity.schedule();
     if(typeof window.SafetyLocalEvidence?.decorate==='function') window.SafetyLocalEvidence.decorate();
     if(typeof window.SafetyRientroEvidence?.decorate==='function') window.SafetyRientroEvidence.decorate();
+    if(typeof window.SafetyPrintCompletionCues?.schedule==='function') window.SafetyPrintCompletionCues.schedule();
   });
   obs.observe(root,{childList:true,subtree:true});
 })();
