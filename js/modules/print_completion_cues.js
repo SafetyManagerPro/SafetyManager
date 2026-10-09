@@ -22,10 +22,10 @@
       .safety-sign-cue{
         position:absolute!important;
         z-index:6!important;
-        width:3.2mm!important;
-        height:3.2mm!important;
-        min-width:3.2mm!important;
-        min-height:3.2mm!important;
+        width:3mm!important;
+        height:3mm!important;
+        min-width:3mm!important;
+        min-height:3mm!important;
         border-radius:999px!important;
         background:#16a34a!important;
         color:#fff!important;
@@ -33,39 +33,43 @@
         align-items:center!important;
         justify-content:center!important;
         font-family:Arial,sans-serif!important;
-        font-size:6.2px!important;
+        font-size:6px!important;
         line-height:1!important;
         font-weight:900!important;
-        box-shadow:0 0 0 .35mm rgba(255,255,255,.92)!important;
+        box-shadow:none!important;
         pointer-events:none!important;
         margin:0!important;
         padding:0!important;
         box-sizing:border-box!important;
+        overflow:hidden!important;
       }
-      .safety-sign-cue-anchor>.safety-sign-cue{top:.4mm!important;right:.5mm!important}
-      .safety-sign-cue-label>.safety-sign-cue{top:-.7mm!important;right:-.7mm!important}
+      /* Tutti gli indicatori restano rigorosamente DENTRO il box che li ospita.
+         Nessun offset negativo: evita che il browser allarghi il bounding box A4. */
+      .safety-sign-cue-anchor>.safety-sign-cue{top:.6mm!important;right:.8mm!important}
+      .safety-sign-cue-label>.safety-sign-cue{top:.25mm!important;right:.5mm!important}
       .safety-sign-cue-cell>.safety-sign-cue{top:.65mm!important;right:.65mm!important}
       .safety-fill-hint{
         position:absolute!important;
         z-index:5!important;
         left:50%!important;
-        bottom:.7mm!important;
+        bottom:1.2mm!important;
         transform:translateX(-50%)!important;
-        max-width:62%!important;
+        max-width:58%!important;
         white-space:nowrap!important;
         overflow:hidden!important;
         text-overflow:ellipsis!important;
         font-family:Arial,sans-serif!important;
-        font-size:5.1px!important;
+        font-size:5px!important;
         line-height:1!important;
         font-weight:700!important;
         letter-spacing:.01em!important;
         color:#475569!important;
-        background:rgba(255,255,255,.93)!important;
+        background:rgba(255,255,255,.94)!important;
         border-radius:2mm!important;
-        padding:.45mm 1.2mm!important;
+        padding:.4mm 1mm!important;
         pointer-events:none!important;
         box-sizing:border-box!important;
+        box-shadow:none!important;
       }
       .safety-fill-hint .safety-hint-check{color:#15803d!important;font-weight:900!important}
       @media print{
@@ -122,7 +126,6 @@
       if(el.matches('td') && el.closest('#r-rows')) return;
       const text=(directText(el) || (el.children.length===0 ? (el.textContent||'') : '')).replace(/\s+/g,' ').trim();
       if(!text || text.length>105 || !SIGN_RE.test(text)) return;
-      // Evita frasi descrittive del tipo "rilevati dalle firme" e checklist sulle firme.
       if(/\bfirme\b/i.test(text) || /rilevat[io].*firma/i.test(text) || /elenco.*firma/i.test(text)) return;
       if(addCue(el,'safety-sign-cue-label')) count+=1;
     });
@@ -178,6 +181,9 @@
 
   const decoratePage=(page)=>{
     if(!page || isCertificatePage(page)) return {excluded:true,signatures:0};
+    if(page.dataset.safetyCompletionCues==='1'){
+      return {excluded:false,signatures:page.querySelectorAll('.safety-sign-cue').length};
+    }
     const auto=decorateAutomaticSignatures(page);
     const manual=decorateManualLabels(page);
     const register=decorateRegisterCells(page);
@@ -187,7 +193,6 @@
     return {excluded:false,signatures};
   };
 
-  let scheduled=false;
   const decorate=(root=document)=>{
     injectStyle();
     const container=root?.querySelectorAll ? root : document;
@@ -198,27 +203,41 @@
     return pages.length;
   };
 
-  const schedule=()=>{
+  let scheduled=false;
+  const schedule=(root=document)=>{
     if(scheduled) return;
     scheduled=true;
     requestAnimationFrame(()=>{
       scheduled=false;
-      decorate(document);
+      decorate(root);
     });
   };
 
-  window.SafetyPrintCompletionCues={decorate,schedule,decoratePage,isCertificatePage};
-
-  document.addEventListener('DOMContentLoaded',schedule,{once:true});
-  window.addEventListener('beforeprint',()=>decorate(document));
-
-  const startObserver=()=>{
-    const root=document.body;
-    if(!root || typeof MutationObserver==='undefined') return;
-    const obs=new MutationObserver(schedule);
-    obs.observe(root,{childList:true,subtree:true});
-    schedule();
+  // La decorazione non osserva più l'intero DOM. Viene eseguita solo quando
+  // viene generata un'anteprima o immediatamente prima di una stampa reale.
+  const installPreviewHook=()=>{
+    if(typeof window.loadPrintPreview!=='function' || window.__safetyPrintCuesPreviewHooked) return false;
+    window.__safetyPrintCuesPreviewHooked=true;
+    const original=window.loadPrintPreview;
+    window.loadPrintPreview=async function(...args){
+      const result=await original.apply(this,args);
+      const preview=document.getElementById('print-preview-container');
+      if(preview) decorate(preview);
+      return result;
+    };
+    return true;
   };
-  if(document.body) startObserver();
-  else document.addEventListener('DOMContentLoaded',startObserver,{once:true});
+
+  const decorateForPrint=()=>{
+    const printArea=document.getElementById('print-area-temp');
+    if(printArea?.querySelector('.doc-page')) decorate(printArea);
+  };
+
+  window.SafetyPrintCompletionCues={decorate,schedule,decoratePage,isCertificatePage,decorateForPrint,installPreviewHook};
+
+  injectStyle();
+  installPreviewHook();
+  // Un solo tentativo differito copre il caso in cui utils.js completi il caricamento dopo questo modulo.
+  setTimeout(installPreviewHook,0);
+  window.addEventListener('beforeprint',decorateForPrint);
 })();
