@@ -7,6 +7,7 @@
     if(typeof window.loadOptionalSafetyScript!=='function') return;
     const files=[
       'js/modules/ui_refinements.js',
+      'js/modules/responsive_table_performance.js',
       'js/modules/signature_identity_guard.js',
       'js/modules/print_completion_cues.js',
       'js/modules/soft_ui_theme.js',
@@ -40,6 +41,7 @@
     for(const file of files) await window.loadOptionalSafetyScript(file);
     injectDashboardActions();
     if(typeof window.applySafetyUiRefinements==='function') window.applySafetyUiRefinements('admin');
+    if(typeof window.SafetyResponsiveTablePerformance?.bind==='function') window.SafetyResponsiveTablePerformance.bind(document);
     if(typeof window.applySafetyWorkflowFixes==='function') window.applySafetyWorkflowFixes('admin');
     if(typeof window.applySafetyLayout==='function') window.applySafetyLayout('admin');
     if(typeof window.SafetyNavigation?.decorate==='function') window.SafetyNavigation.decorate();
