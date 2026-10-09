@@ -15,6 +15,7 @@
       'js/modules/ui_integrity_guard.js',
       'js/modules/local_evidence_picker.js',
       'js/modules/local_evidence_preview.js',
+      'js/modules/universal_document_reference.js',
       'js/modules/workflow_guard.js',
       'js/modules/anagrafica_duplicate_guard.js',
       'js/modules/chatgpt_free_mode.js',
@@ -46,6 +47,7 @@
     if(typeof window.SafetyNavigation?.decorate==='function') window.SafetyNavigation.decorate();
     if(typeof window.SafetyUIIntegrity?.normalize==='function') window.SafetyUIIntegrity.normalize();
     if(typeof window.SafetyLocalEvidence?.decorate==='function') window.SafetyLocalEvidence.decorate(document);
+    if(typeof window.SafetyDocumentReferences?.decorate==='function') window.SafetyDocumentReferences.decorate(document);
     if(typeof window.SafetyRientroEvidence?.decorate==='function') window.SafetyRientroEvidence.decorate();
     if(typeof window.refreshDashboardDocumentLifecycle==='function') window.refreshDashboardDocumentLifecycle();
     installCoordinator();
@@ -76,22 +78,24 @@
 
   const POPUP_SELECTOR='[id*="modal"],[id*="popup"],#panel-iscrizioni,.fixed.inset-0';
   const EVIDENCE_SELECTOR='#step67-evidence-url,[data-safety-evidence-path="1"],input[id*="evidence"][type="text"],input[name*="evidence"][type="text"],input[id*="evidenza"][type="text"],input[name*="evidenza"][type="text"]';
+  const DOCUMENT_REF_SELECTOR='#az-legale-doc-url,#doc-doc-identita-url,#doc-doc-cf-url,#cor-doc-identita-url,#cor-doc-cf-url,#cor-lingua-documento-url,#step67-evidence-url,[data-safety-evidence-path="1"]';
   const RIENTRO_BUTTON_SELECTOR='button[onclick*="SafetyRientroDocumenti.setStatus"]';
 
-  const pending={frame:false,layout:false,navigation:false,ui:false,dashboard:false,rientro:false,evidenceRoots:new Set()};
+  const pending={frame:false,layout:false,navigation:false,ui:false,dashboard:false,rientro:false,evidenceRoots:new Set(),documentRoots:new Set()};
 
   function queueFlush(){
     if(pending.frame) return;
     pending.frame=true;
     requestAnimationFrame(()=>{
       pending.frame=false;
-      const work={layout:pending.layout,navigation:pending.navigation,ui:pending.ui,dashboard:pending.dashboard,rientro:pending.rientro,evidenceRoots:[...pending.evidenceRoots]};
+      const work={layout:pending.layout,navigation:pending.navigation,ui:pending.ui,dashboard:pending.dashboard,rientro:pending.rientro,evidenceRoots:[...pending.evidenceRoots],documentRoots:[...pending.documentRoots]};
       pending.layout=pending.navigation=pending.ui=pending.dashboard=pending.rientro=false;
-      pending.evidenceRoots.clear();
+      pending.evidenceRoots.clear();pending.documentRoots.clear();
 
       if(work.dashboard) injectDashboardActions();
       if(work.layout&&typeof window.applySafetyLayout==='function') window.applySafetyLayout();
       if(work.evidenceRoots.length&&typeof window.SafetyLocalEvidence?.decorate==='function') work.evidenceRoots.forEach(root=>window.SafetyLocalEvidence.decorate(root));
+      if(work.documentRoots.length&&typeof window.SafetyDocumentReferences?.decorate==='function') work.documentRoots.forEach(root=>window.SafetyDocumentReferences.decorate(root));
       if(work.rientro&&typeof window.SafetyRientroEvidence?.decorate==='function') window.SafetyRientroEvidence.decorate();
       if(work.ui&&typeof window.SafetyUIIntegrity?.schedule==='function') window.SafetyUIIntegrity.schedule();
       if(work.navigation&&typeof window.SafetyNavigation?.decorate==='function') window.SafetyNavigation.decorate();
@@ -100,6 +104,7 @@
 
   function queue(key,root){
     if(key==='evidence') pending.evidenceRoots.add(root||document);
+    else if(key==='documents') pending.documentRoots.add(root||document);
     else pending[key]=true;
     queueFlush();
   }
@@ -120,6 +125,11 @@
     if(el.matches?.('label')) labels.push(el);
     el.querySelectorAll?.('label').forEach(label=>labels.push(label));
     return labels.some(label=>/link o percorso evidenza|percorso evidenza|link evidenza/i.test(String(label.textContent||'')));
+  }
+
+  function documentSignal(el){
+    if(!el) return false;
+    return !!(el.matches?.(DOCUMENT_REF_SELECTOR)||el.querySelector?.(DOCUMENT_REF_SELECTOR));
   }
 
   function rientroSignal(el){
@@ -165,6 +175,7 @@
           if(dashboardSignal(el)) queue('dashboard');
           if(popupSignal(el)){queue('ui');queue('navigation');}
           if(evidenceSignal(el)) queue('evidence',el);
+          if(documentSignal(el)) queue('documents',el);
           if(rientroSignal(el)) queue('rientro');
         }
       }
@@ -173,7 +184,7 @@
     observer.observe(root,{childList:true,subtree:true,attributes:true,attributeFilter:['class','style','aria-hidden']});
     window.SafetyDomCoordinator={
       refreshAll(){
-        queue('layout');queue('navigation');queue('ui');queue('evidence',document);
+        queue('layout');queue('navigation');queue('ui');queue('evidence',document);queue('documents',document);
         if(document.getElementById('safety-rientro-documenti-modal')) queue('rientro');
       },
       observer
