@@ -11,23 +11,14 @@
     if(typeof window.showSafetyToast==='function') window.showSafetyToast(message,{type,title});
     else alert(message);
   };
-
   const uid=()=>window.crypto?.randomUUID?.()||`loc-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  const formatBytes=n=>{
-    const x=Number(n||0); if(!x) return 'dimensione n/d';
-    const units=['B','KB','MB','GB']; let v=x,i=0;
-    while(v>=1024&&i<units.length-1){v/=1024;i++;}
-    return `${v>=10||i===0?v.toFixed(0):v.toFixed(1)} ${units[i]}`;
-  };
+  const formatBytes=n=>{const x=Number(n||0);if(!x)return 'dimensione n/d';const units=['B','KB','MB','GB'];let v=x,i=0;while(v>=1024&&i<units.length-1){v/=1024;i++;}return `${v>=10||i===0?v.toFixed(0):v.toFixed(1)} ${units[i]}`;};
 
   function openDb(){
     return new Promise((resolve,reject)=>{
       if(!window.indexedDB) return reject(new Error('Archivio locale del browser non disponibile.'));
       const req=indexedDB.open(DB_NAME,1);
-      req.onupgradeneeded=()=>{
-        const db=req.result;
-        if(!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE,{keyPath:'token'});
-      };
+      req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE,{keyPath:'token'});};
       req.onsuccess=()=>resolve(req.result);
       req.onerror=()=>reject(req.error||new Error('Impossibile aprire archivio locale.'));
     });
@@ -53,7 +44,7 @@
         req.onerror=()=>reject(req.error);
         tx.oncomplete=()=>db.close();
       });
-    }catch(_e){ return null; }
+    }catch(_e){return null;}
   }
 
   function makeRef(token,file){
@@ -61,7 +52,6 @@
     const q=new URLSearchParams({size:String(file?.size||0),type:file?.type||'',modified:String(file?.lastModified||0)});
     return `${PREFIX}${token}/${name}?${q.toString()}`;
   }
-
   function parseRef(value){
     const raw=String(value||'').trim();
     if(!raw.startsWith(PREFIX)) return null;
@@ -69,7 +59,7 @@
       const u=new URL(raw);
       const name=decodeURIComponent(u.pathname.replace(/^\//,''))||'file';
       return {raw,token:u.hostname,name,size:Number(u.searchParams.get('size')||0),type:u.searchParams.get('type')||'',modified:Number(u.searchParams.get('modified')||0)};
-    }catch(_e){ return null; }
+    }catch(_e){return null;}
   }
 
   function setField(field,value){
@@ -88,13 +78,9 @@
 
   async function chooseFallback(field){
     const input=document.createElement('input');
-    input.type='file';
-    input.style.display='none';
-    document.body.appendChild(input);
+    input.type='file';input.style.display='none';document.body.appendChild(input);
     input.onchange=async()=>{
-      const file=input.files?.[0];
-      input.remove();
-      if(!file) return;
+      const file=input.files?.[0];input.remove();if(!file)return;
       const token=uid();
       await putRecord({token,name:file.name,size:file.size,type:file.type,lastModified:file.lastModified,createdAt:new Date().toISOString(),handle:null,fallback:true});
       setField(field,makeRef(token,file));
@@ -107,7 +93,7 @@
     try{
       if(typeof window.showOpenFilePicker==='function'){
         const handles=await window.showOpenFilePicker({multiple:false});
-        const handle=handles?.[0]; if(!handle) return;
+        const handle=handles?.[0];if(!handle)return;
         const file=await handle.getFile();
         const token=uid();
         await putRecord({token,name:file.name,size:file.size,type:file.type,lastModified:file.lastModified,createdAt:new Date().toISOString(),handle,fallback:false});
@@ -116,18 +102,15 @@
         return;
       }
       await chooseFallback(field);
-    }catch(e){
-      if(e?.name==='AbortError') return;
-      toast(e?.message||String(e),'error');
-    }
+    }catch(e){if(e?.name==='AbortError')return;toast(e?.message||String(e),'error');}
   }
 
   async function requestRead(handle){
-    if(!handle) return false;
-    if(typeof handle.queryPermission!=='function') return true;
+    if(!handle)return false;
+    if(typeof handle.queryPermission!=='function')return true;
     let p=await handle.queryPermission({mode:'read'});
-    if(p==='granted') return true;
-    if(typeof handle.requestPermission==='function') p=await handle.requestPermission({mode:'read'});
+    if(p==='granted')return true;
+    if(typeof handle.requestPermission==='function')p=await handle.requestPermission({mode:'read'});
     return p==='granted';
   }
 
@@ -135,44 +118,47 @@
     const ref=parseRef(field?.value);
     if(!ref){
       const raw=String(field?.value||'').trim();
-      if(/^https?:\/\//i.test(raw)){ window.open(raw,'_blank','noopener'); return; }
-      toast(raw?'È un percorso/riferimento manuale: SafetyManager non può aprirlo direttamente dal browser.':'Nessuna evidenza indicata.','info');
-      return;
+      if(/^https?:\/\//i.test(raw)){window.open(raw,'_blank','noopener');return;}
+      toast(raw?'È un percorso/riferimento manuale: SafetyManager non può aprirlo direttamente dal browser.':'Nessuna evidenza indicata.','info');return;
     }
     const record=await getRecord(ref.token);
-    if(!record?.handle){
-      toast(`L’evidenza “${ref.name}” è registrata, ma il file non è disponibile in questo browser/PC. Aprilo dal PC sul quale è stato collegato.`,'info');
-      return;
-    }
+    if(!record?.handle){toast(`L’evidenza “${ref.name}” è registrata, ma il file non è disponibile in questo browser/PC. Aprilo dal PC sul quale è stato collegato.`,'info');return;}
     try{
-      if(!await requestRead(record.handle)) throw new Error('Permesso di lettura non concesso.');
+      if(!await requestRead(record.handle))throw new Error('Permesso di lettura non concesso.');
       const file=await record.handle.getFile();
       const url=URL.createObjectURL(file);
       window.open(url,'_blank','noopener');
       setTimeout(()=>URL.revokeObjectURL(url),120000);
-    }catch(e){ toast(`File locale non accessibile: ${e?.message||e}`,'error'); }
+    }catch(e){toast(`File locale non accessibile: ${e?.message||e}`,'error');}
   }
 
   async function verifyField(field){
     const ref=parseRef(field?.value);
-    if(!ref){ toast(String(field?.value||'').trim()?'Riferimento manuale presente. La presenza fisica va verificata sul PC.':'Nessuna evidenza indicata.','info'); return; }
+    if(!ref){toast(String(field?.value||'').trim()?'Riferimento manuale presente. La presenza fisica va verificata sul PC.':'Nessuna evidenza indicata.','info');return;}
     const record=await getRecord(ref.token);
-    if(!record?.handle){ toast(`“${ref.name}” risulta registrato, ma non è verificabile da questo PC/browser.`,'info'); return; }
+    if(!record?.handle){toast(`“${ref.name}” risulta registrato, ma non è verificabile da questo PC/browser.`,'info');return;}
     try{
-      if(!await requestRead(record.handle)) throw new Error('Permesso di lettura non concesso.');
+      if(!await requestRead(record.handle))throw new Error('Permesso di lettura non concesso.');
       const file=await record.handle.getFile();
       toast(`File presente: ${file.name} · ${formatBytes(file.size)}.`,'ok');
-    }catch(e){ toast(`Riferimento registrato, ma il file non è più accessibile da questa posizione.`,'error'); }
+    }catch(e){toast('Riferimento registrato, ma il file non è più accessibile da questa posizione.','error');}
   }
 
-  function candidateFields(){
+  const DIRECT_SELECTORS=['#step67-evidence-url','[data-safety-evidence-path="1"]','input[id*="evidence"][type="text"]','input[name*="evidence"][type="text"]','input[id*="evidenza"][type="text"]','input[name*="evidenza"][type="text"]'];
+  function candidateFields(root=document){
     const set=new Set();
-    const direct=['#step67-evidence-url','[data-safety-evidence-path="1"]','input[id*="evidence"][type="text"]','input[name*="evidence"][type="text"]','input[id*="evidenza"][type="text"]','input[name*="evidenza"][type="text"]'];
-    direct.forEach(sel=>document.querySelectorAll(sel).forEach(el=>set.add(el)));
-    document.querySelectorAll('label').forEach(label=>{
+    const scope=root?.querySelectorAll?root:document;
+    DIRECT_SELECTORS.forEach(sel=>{
+      if(scope.matches?.(sel)) set.add(scope);
+      scope.querySelectorAll?.(sel).forEach(el=>set.add(el));
+    });
+    const labels=[];
+    if(scope.matches?.('label')) labels.push(scope);
+    scope.querySelectorAll?.('label').forEach(label=>labels.push(label));
+    labels.forEach(label=>{
       const text=String(label.textContent||'').toLowerCase();
       if(/link o percorso evidenza|percorso evidenza|link evidenza/.test(text)){
-        const field=label.querySelector('input:not([type="hidden"]),textarea'); if(field) set.add(field);
+        const field=label.querySelector('input:not([type="hidden"]),textarea');if(field)set.add(field);
       }
     });
     return [...set].filter(el=>el instanceof HTMLInputElement||el instanceof HTMLTextAreaElement);
@@ -180,25 +166,24 @@
 
   async function refreshOne(field){
     const toolbar=field.parentElement?.querySelector?.(`.safety-local-evidence-tools[data-for="${CSS.escape(field.dataset.safetyEvidenceKey||'')}"]`);
-    if(!toolbar) return;
+    if(!toolbar)return;
     const status=toolbar.querySelector('[data-local-evidence-status]');
     const open=toolbar.querySelector('[data-local-evidence-open]');
     const verify=toolbar.querySelector('[data-local-evidence-verify]');
     const ref=parseRef(field.value);
     if(!ref){
-      if(status) status.textContent=String(field.value||'').trim()?'Percorso/riferimento manuale':'Nessuna evidenza collegata';
-      if(open) open.disabled=!String(field.value||'').trim();
-      if(verify) verify.disabled=!String(field.value||'').trim();
+      if(status)status.textContent=String(field.value||'').trim()?'Percorso/riferimento manuale':'Nessuna evidenza collegata';
+      if(open)open.disabled=!String(field.value||'').trim();
+      if(verify)verify.disabled=!String(field.value||'').trim();
       return;
     }
     const record=await getRecord(ref.token);
-    if(status) status.textContent=`${ref.name} · ${formatBytes(ref.size)} · ${record?.handle?'apribile su questo PC':'registrata su altro PC/browser'}`;
-    if(open) open.disabled=false;
-    if(verify) verify.disabled=false;
+    if(status)status.textContent=`${ref.name} · ${formatBytes(ref.size)} · ${record?.handle?'apribile su questo PC':'registrata su altro PC/browser'}`;
+    if(open)open.disabled=false;if(verify)verify.disabled=false;
   }
 
   function decorateField(field){
-    if(field.dataset.safetyLocalEvidence==='1') return;
+    if(field.dataset.safetyLocalEvidence==='1')return false;
     field.dataset.safetyLocalEvidence='1';
     field.dataset.safetyEvidenceKey=field.id||field.name||uid();
     const box=document.createElement('div');
@@ -215,15 +200,30 @@
     box.querySelector('[data-local-evidence-verify]').onclick=()=>verifyField(field);
     field.addEventListener('input',()=>refreshOne(field));
     refreshOne(field);
-    if(window.lucide) window.lucide.createIcons();
+    return true;
   }
 
-  function decorate(){ candidateFields().forEach(decorateField); }
-  let pending=false;
-  function schedule(){ if(pending)return; pending=true; requestAnimationFrame(()=>{pending=false;decorate();}); }
-  const obs=new MutationObserver(schedule);
-  obs.observe(document.body,{childList:true,subtree:true});
-  schedule();
+  function decorate(root=document){
+    let created=0;
+    candidateFields(root).forEach(field=>{if(decorateField(field))created+=1;});
+    if(created&&window.lucide)window.lucide.createIcons();
+    return created;
+  }
 
+  let pending=false;
+  const pendingRoots=new Set();
+  function schedule(root=document){
+    pendingRoots.add(root||document);
+    if(pending)return;
+    pending=true;
+    requestAnimationFrame(()=>{
+      pending=false;
+      const roots=[...pendingRoots];pendingRoots.clear();
+      roots.forEach(r=>decorate(r));
+    });
+  }
+
+  // Niente observer globale: professional_suite invia solo i nuovi nodi che possono contenere evidenze.
+  schedule(document);
   window.SafetyLocalEvidence={decorate:schedule,chooseForField,openForField,verifyField,parseRef,getRecord};
 })();
