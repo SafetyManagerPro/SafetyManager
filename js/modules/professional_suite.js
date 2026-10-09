@@ -84,10 +84,7 @@
     pending.frame=true;
     requestAnimationFrame(()=>{
       pending.frame=false;
-      const work={
-        layout:pending.layout,navigation:pending.navigation,ui:pending.ui,dashboard:pending.dashboard,rientro:pending.rientro,
-        evidenceRoots:[...pending.evidenceRoots]
-      };
+      const work={layout:pending.layout,navigation:pending.navigation,ui:pending.ui,dashboard:pending.dashboard,rientro:pending.rientro,evidenceRoots:[...pending.evidenceRoots]};
       pending.layout=pending.navigation=pending.ui=pending.dashboard=pending.rientro=false;
       pending.evidenceRoots.clear();
 
@@ -127,12 +124,9 @@
   function rientroSignal(el){
     if(!el) return false;
     if(el.id==='safety-rientro-documenti-modal') return true;
-    if(el.matches?.(RientRO_BUTTON_SELECTOR)) return true;
-    return !!el.querySelector?.(RientRO_BUTTON_SELECTOR);
+    if(el.matches?.(RIENTRO_BUTTON_SELECTOR)) return true;
+    return !!el.querySelector?.(RIENTRO_BUTTON_SELECTOR);
   }
-
-  // alias locale per evitare lookup ripetuti e mantenere il selettore leggibile
-  const RientRO_BUTTON_SELECTOR=RientRO_BUTTON_SELECTOR;
 
   function dashboardSignal(el){
     if(!el) return false;
@@ -158,8 +152,7 @@
         if(mutation.type==='attributes'){
           const target=asElement(mutation.target);
           if(target?.matches?.(POPUP_SELECTOR)&&!isInsideOwnNavigation(target)){
-            queue('ui');
-            queue('navigation');
+            queue('ui');queue('navigation');
           }
           continue;
         }
@@ -167,16 +160,9 @@
         for(const node of mutation.addedNodes){
           const el=asElement(node);
           if(!el) continue;
-
-          if(moduleStructureSignal(mutation,el)){
-            queue('layout');
-            queue('navigation');
-          }
+          if(moduleStructureSignal(mutation,el)){queue('layout');queue('navigation');}
           if(dashboardSignal(el)) queue('dashboard');
-          if(popupSignal(el)){
-            queue('ui');
-            queue('navigation');
-          }
+          if(popupSignal(el)){queue('ui');queue('navigation');}
           if(evidenceSignal(el)) queue('evidence',el);
           if(rientroSignal(el)) queue('rientro');
         }
@@ -185,7 +171,10 @@
 
     observer.observe(root,{childList:true,subtree:true,attributes:true,attributeFilter:['class','style','aria-hidden']});
     window.SafetyDomCoordinator={
-      refreshAll(){queue('layout');queue('navigation');queue('ui');queue('evidence',document);if(document.getElementById('safety-rientro-documenti-modal'))queue('rientro');},
+      refreshAll(){
+        queue('layout');queue('navigation');queue('ui');queue('evidence',document);
+        if(document.getElementById('safety-rientro-documenti-modal')) queue('rientro');
+      },
       observer
     };
   }
