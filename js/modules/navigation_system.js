@@ -85,8 +85,8 @@
 
   function decoratePage(){
     const app=document.getElementById('app-content'), root=pageRoot();
-    if(!app||!root||root.querySelector(':scope > .safety-page-nav')) return;
-    if(root.querySelector('#safety-login-email')) return;
+    if(!app||!root||root.querySelector(':scope > .safety-page-nav')) return false;
+    if(root.querySelector('#safety-login-email')) return false;
     const current=inferModule();
     if(current&&!state.history.length){state.history=[current];state.index=0;}
     const nav=document.createElement('div');
@@ -100,7 +100,7 @@
     nav.querySelector('[data-safety-nav="forward"]').onclick=goForward;
     nav.querySelector('[data-safety-nav="close"]').onclick=closePage;
     root.insertBefore(nav,root.firstChild);
-    updateButtons();
+    return true;
   }
 
   function isVisible(el){
@@ -144,16 +144,11 @@
     },0);
   }
 
-  async function popupBack(overlay){
-    closeOverlay(overlay);
-    if(canBack()) await goBack();
-  }
-  async function popupForward(overlay){
-    closeOverlay(overlay);
-    if(canForward()) await goForward();
-  }
+  async function popupBack(overlay){closeOverlay(overlay);if(canBack()) await goBack();}
+  async function popupForward(overlay){closeOverlay(overlay);if(canForward()) await goForward();}
 
   function decoratePopups(){
+    let created=0;
     popupCandidates().forEach(overlay=>{
       if(overlay.querySelector(':scope > .safety-popup-nav')) return;
       const nav=document.createElement('div');
@@ -167,15 +162,15 @@
       nav.querySelector('[data-safety-popup-nav="forward"]').onclick=()=>popupForward(overlay);
       nav.querySelector('[data-safety-popup-nav="close"]').onclick=()=>closeOverlay(overlay);
       overlay.appendChild(nav);
+      created+=1;
     });
-    updateButtons();
+    return created;
   }
 
   function updateButtons(){
     document.querySelectorAll('.safety-page-nav [data-safety-nav="back"]').forEach(b=>b.disabled=!canBack());
     document.querySelectorAll('.safety-page-nav [data-safety-nav="forward"],.safety-popup-nav [data-safety-popup-nav="forward"]').forEach(b=>b.disabled=!canForward());
     document.querySelectorAll('.safety-page-nav [data-safety-nav="close"]').forEach(b=>b.disabled=inferModule()==='admin');
-    if(window.lucide) window.lucide.createIcons();
   }
 
   let scheduled=false;
@@ -185,9 +180,10 @@
     requestAnimationFrame(()=>{
       scheduled=false;
       injectStyle();
-      decoratePage();
-      decoratePopups();
+      const pageCreated=decoratePage();
+      const popupCreated=decoratePopups();
       updateButtons();
+      if((pageCreated||popupCreated)&&window.lucide) window.lucide.createIcons();
     });
   }
 
@@ -210,8 +206,7 @@
   installLoadModuleWrapper();
   scheduleDecorate();
 
-  const observer=new MutationObserver(scheduleDecorate);
-  observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class','style','aria-hidden']});
+  // Le variazioni DOM sono coordinate da professional_suite: niente observer globale duplicato qui.
   window.addEventListener('resize',scheduleDecorate,{passive:true});
 
   window.SafetyNavigation={goBack,goForward,closePage,closeOverlay,decorate:scheduleDecorate,getState:()=>({history:[...state.history],index:state.index,current:state.history[state.index]||inferModule()})};
