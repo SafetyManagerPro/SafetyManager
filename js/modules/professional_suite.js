@@ -46,7 +46,6 @@
     if(typeof window.SafetyUIIntegrity?.normalize==='function') window.SafetyUIIntegrity.normalize();
     if(typeof window.SafetyLocalEvidence?.decorate==='function') window.SafetyLocalEvidence.decorate();
     if(typeof window.SafetyRientroEvidence?.decorate==='function') window.SafetyRientroEvidence.decorate();
-    if(typeof window.SafetyPrintCompletionCues?.schedule==='function') window.SafetyPrintCompletionCues.schedule();
     if(typeof window.refreshDashboardDocumentLifecycle==='function') window.refreshDashboardDocumentLifecycle();
   };
 
@@ -83,7 +82,6 @@
     if(typeof window.SafetyUIIntegrity?.schedule==='function') window.SafetyUIIntegrity.schedule();
     if(typeof window.SafetyLocalEvidence?.decorate==='function') window.SafetyLocalEvidence.decorate();
     if(typeof window.SafetyRientroEvidence?.decorate==='function') window.SafetyRientroEvidence.decorate();
-    if(typeof window.SafetyPrintCompletionCues?.schedule==='function') window.SafetyPrintCompletionCues.schedule();
   });
   obs.observe(root,{childList:true,subtree:true});
 })();
