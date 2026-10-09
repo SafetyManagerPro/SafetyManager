@@ -56,20 +56,20 @@
     injectStyle();
     const visible=candidates();
     visible.forEach((overlay,index)=>{
-      overlay.classList.add('safety-modal-normalized');
-      overlay.dataset.safetyUiNormalized='1';
+      if(!overlay.classList.contains('safety-modal-normalized')) overlay.classList.add('safety-modal-normalized');
+      if(overlay.dataset.safetyUiNormalized!=='1') overlay.dataset.safetyUiNormalized='1';
       const z=parseInt(getComputedStyle(overlay).zIndex,10);
       const desired=BASE_Z+(index*20);
       if(!Number.isFinite(z)||z<desired) overlay.style.zIndex=String(desired);
       const close=nativeClose(overlay);
       if(close){
-        close.dataset.safetyNativeClose='1';
+        if(close.dataset.safetyNativeClose!=='1') close.dataset.safetyNativeClose='1';
         if(!close.getAttribute('aria-label')) close.setAttribute('aria-label','Chiudi');
         if(!close.getAttribute('title')) close.setAttribute('title','Chiudi');
       }
       syncNativeCloseVisibility(overlay,close);
     });
-    if(typeof window.SafetyNavigation?.decorate==='function') window.SafetyNavigation.decorate();
+    if(visible.length&&typeof window.SafetyNavigation?.decorate==='function') window.SafetyNavigation.decorate();
     visible.forEach(overlay=>syncNativeCloseVisibility(overlay,nativeClose(overlay)));
     return visible;
   }
@@ -112,8 +112,7 @@
     }
   });
 
-  const obs=new MutationObserver(schedule);
-  obs.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class','style','aria-hidden']});
+  // Le mutazioni DOM sono filtrate e coordinate da professional_suite.
   window.addEventListener('resize',schedule,{passive:true});
   window.addEventListener('orientationchange',schedule,{passive:true});
   injectStyle();
