@@ -9,12 +9,9 @@
     '#doc-doc-cf-url',
     '#cor-doc-identita-url',
     '#cor-doc-cf-url',
-    '#cor-lingua-documento-url',
-    '#step67-evidence-url',
-    '[data-safety-evidence-path="1"]'
+    '#cor-lingua-documento-url'
   ].join(',');
 
-  const esc=v=>window.dashEscape?window.dashEscape(v):String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
   const toast=(message,type='info')=>{
     if(typeof window.showSafetyToast==='function') window.showSafetyToast(message,{title:'Riferimento documento',type});
     else alert(message);
