@@ -32,7 +32,7 @@
     if(/^[a-z][a-z0-9+.-]*:/i.test(raw)) return {kind:'custom',raw,href:raw};
     if(raw.startsWith('//')) return {kind:'web-secure',raw,href:'https:'+raw};
     if(/^www\./i.test(raw)||/^[a-z0-9.-]+\.[a-z]{2,}(?:[/:?#]|$)/i.test(raw)) return {kind:'web-secure',raw,href:'https://'+raw};
-    return {kind:'manual',raw,href:raw};
+    return {kind:'manual',raw,href:''};
   }
 
   function normalize(value=''){
@@ -136,10 +136,7 @@
     }
     if(info.kind==='local') return openLocalEvidence(info.raw);
     if(info.kind==='web-secure'||info.kind==='blob'||info.kind==='data') return openWebViewer(info.href,label);
-    if(info.kind==='web-insecure'){
-      // Da una PWA HTTPS un iframe HTTP può essere bloccato come mixed content.
-      return openReferencePanel(info,label);
-    }
+    if(info.kind==='web-insecure') return openReferencePanel(info,label);
     return openReferencePanel(info,label);
   }
 
