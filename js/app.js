@@ -286,6 +286,8 @@ window.loadModule = async function(moduleId) {
 document.addEventListener("DOMContentLoaded", async () => {
     // PWA prima degli altri moduli: mantiene attivo il service worker e abilita il prompt di installazione.
     await window.loadOptionalSafetyScript('js/pwa.js');
+    // Il catalogo emergenze integra DB_CORSI prima che vengano aperti i moduli gestionali.
+    await window.loadOptionalSafetyScript('js/modules/emergency_courses_catalog.js');
     await window.loadOptionalSafetyScript('js/modules/firme_unificate.js');
     await window.loadOptionalSafetyScript('js/modules/corsisti_ruolo_azienda.js');
     await window.loadOptionalSafetyScript('js/modules/ai_assistant.js');
