@@ -30,4 +30,6 @@
     }
   `;
   document.head.appendChild(style);
+  // Integrazione opzionale: caricata solo quando la suite professionale è attiva.
+  if(typeof window.loadOptionalSafetyScript==='function') window.loadOptionalSafetyScript('js/modules/safetytraining_bridge.js');
 })();
