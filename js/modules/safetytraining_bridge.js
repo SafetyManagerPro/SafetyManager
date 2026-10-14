@@ -11,11 +11,10 @@
   function uuid(){
     return globalThis.crypto?.randomUUID?.() || 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0,v=c==='x'?r:(r&3|8);return v.toString(16);});
   }
-  function courseLabel(project){
-    const c=window.DB_CORSI?.[project?.corso_id];
-    return c?.t || project?.corso_id || 'Corso non indicato';
-  }
+  function courseData(project){return window.DB_CORSI?.[project?.corso_id]||{};}
+  function courseLabel(project){const c=courseData(project);return c?.t || project?.corso_id || 'Corso non indicato';}
   function companyName(project){return project?.aziende?.ragione_sociale || 'Azienda non collegata';}
+  function requiresPresence(project){return window.isCorsoPresenzaObbligatoria?.(project?.corso_id)===true;}
   function download(name,data){
     const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
     const url=URL.createObjectURL(blob),a=document.createElement('a');
@@ -44,8 +43,8 @@
       <div class="p-5 space-y-5">
         <div><label class="text-[10px] font-black uppercase tracking-widest text-slate-500">Progetto / corso</label><select id="stx-project" class="input-field mt-1"><option value="">Caricamento…</option></select></div>
         <div id="stx-preview" class="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">Seleziona un progetto.</div>
-        <div class="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-xs text-blue-950 leading-relaxed"><strong>Importati:</strong> azienda, ATECO/P.IVA-CF, corsisti iscritti, codice corso, date e assegnazioni. Documenti, firme, dati sanitari e altre informazioni non necessarie non vengono esportati.</div>
-        <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-950 leading-relaxed">Se il codice corso SafetyManager non ha ancora una corrispondenza in SafetyTraining, i dati anagrafici vengono comunque acquisiti e SafetyTraining chiederà all'admin di associare quel codice una sola volta.</div>
+        <div class="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-xs text-blue-950 leading-relaxed"><strong>Importati:</strong> azienda, ATECO/P.IVA-CF, corsisti iscritti, codice e titolo corso, durata, vincolo presenza/pratica, date e assegnazioni. Documenti, firme, dati sanitari e altre informazioni non necessarie non vengono esportati.</div>
+        <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-950 leading-relaxed">Se il corso non esiste ancora in SafetyTraining, viene acquisito automaticamente nel <strong>Catalogo corsi SafetyManager</strong> come “Da configurare”. Azienda, corsisti, edizione e iscrizioni vengono comunque importati; il percorso resta bloccato finché i contenuti non sono pronti.</div>
         <div id="stx-message" class="text-xs min-h-5"></div>
       </div>
       <div class="p-5 border-t border-slate-200 bg-slate-50 flex justify-end gap-3"><button id="stx-cancel" class="px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-xs font-black uppercase">Annulla</button><button id="stx-export" class="px-5 py-2.5 rounded-xl bg-cyan-700 hover:bg-cyan-600 text-white text-xs font-black uppercase">Esporta JSON</button></div>
@@ -72,9 +71,9 @@
     const id=document.getElementById('stx-project')?.value,box=document.getElementById('stx-preview');
     const p=state.projects.find(x=>x.id===id);state.selected=p||null;
     if(!p){box.innerHTML='Seleziona un progetto.';return;}
-    let count='…';
+    const course=courseData(p); let count='…';
     try{const i=typeof window.getIscrizioni==='function'?await window.getIscrizioni(p.id):[];count=(i||[]).length;}catch(_e){count='n/d';}
-    box.innerHTML=`<div class="grid sm:grid-cols-2 gap-3"><div><span class="text-[10px] uppercase font-black text-slate-400">Azienda</span><strong class="block text-slate-900">${esc(companyName(p))}</strong></div><div><span class="text-[10px] uppercase font-black text-slate-400">Corso</span><strong class="block text-slate-900">${esc(courseLabel(p))}</strong><small>codice: ${esc(p.corso_id||'—')}</small></div><div><span class="text-[10px] uppercase font-black text-slate-400">Periodo</span><strong class="block text-slate-900">${esc(p.data_inizio||'—')} → ${esc(p.data_esame||'—')}</strong></div><div><span class="text-[10px] uppercase font-black text-slate-400">Corsisti iscritti</span><strong class="block text-slate-900">${esc(count)}</strong></div></div>`;
+    box.innerHTML=`<div class="grid sm:grid-cols-2 gap-3"><div><span class="text-[10px] uppercase font-black text-slate-400">Azienda</span><strong class="block text-slate-900">${esc(companyName(p))}</strong></div><div><span class="text-[10px] uppercase font-black text-slate-400">Corso</span><strong class="block text-slate-900">${esc(courseLabel(p))}</strong><small>codice: ${esc(p.corso_id||'—')} · ${esc(course.ore||'—')} h${requiresPresence(p)?' · presenza/pratica':''}</small></div><div><span class="text-[10px] uppercase font-black text-slate-400">Periodo</span><strong class="block text-slate-900">${esc(p.data_inizio||'—')} → ${esc(p.data_esame||'—')}</strong></div><div><span class="text-[10px] uppercase font-black text-slate-400">Corsisti iscritti</span><strong class="block text-slate-900">${esc(count)}</strong></div></div>`;
   }
 
   async function exportSelected(){
@@ -84,6 +83,7 @@
       msg.textContent='Preparazione file…';
       const iscrizioni=typeof window.getIscrizioni==='function'?await window.getIscrizioni(p.id):[];
       const company=p.aziende || (typeof window.getAziende==='function'?(await window.getAziende()).find(a=>a.id===p.azienda_id):null) || {};
+      const course=courseData(p);
       const learners=(iscrizioni||[]).map(i=>{
         const c=i.corsisti||{};
         return {
@@ -91,20 +91,27 @@
           enrollment_external_id:String(i.id||''),
           full_name:c.nome_cognome||'',
           fiscal_code:c.cf||'',
-          email:'',
+          email:c.email||'',
           job_title:i.mansione_storica||c.mansione_storica||c.ruolo_aziendale||''
         };
       }).filter(x=>x.external_id);
       const payload={
         schema:'safetytraining.transfer',schema_version:'1.0',source_system:'safetymanager',export_id:uuid(),exported_at:new Date().toISOString(),
         company:{external_id:String(p.azienda_id||company.id||''),name:company.ragione_sociale||'',vat_or_fiscal_code:company.piva_cf||'',ateco_code:company.ateco||''},
-        project:{external_id:String(p.id),code:p.codice||'',course_code:p.corso_id||'',course_title:courseLabel(p),title:`${p.codice||'Corso'} · ${courseLabel(p)}`,available_from:p.data_inizio||null,recommended_due_at:p.data_esame||null,source_mode:p.modalita||''},
+        project:{
+          external_id:String(p.id),code:p.codice||'',course_code:p.corso_id||'',course_title:courseLabel(p),
+          course_duration_minutes:Number(course.ore||0)>0?Number(course.ore)*60:null,
+          course_normative_ref:course.norma||'',
+          requires_presence:requiresPresence(p),
+          title:`${p.codice||'Corso'} · ${courseLabel(p)}`,
+          available_from:p.data_inizio||null,recommended_due_at:p.data_esame||null,source_mode:p.modalita||''
+        },
         learners
       };
       if(!payload.company.external_id) throw new Error('Il progetto non ha un’azienda collegata.');
       const safeCode=String(p.codice||p.id).replace(/[^a-z0-9_-]+/gi,'_');
       download(`SafetyTraining_${safeCode}_${new Date().toISOString().slice(0,10)}.json`,payload);
-      msg.textContent=`File creato: ${learners.length} corsisti inclusi. Importalo dalla Console Admin di SafetyTraining.`;
+      msg.textContent=`File creato: ${learners.length} corsisti inclusi. Il catalogo corso verrà acquisito automaticamente in SafetyTraining.`;
     }catch(e){msg.textContent='Esportazione non riuscita: '+(e?.message||e);}
   }
 
