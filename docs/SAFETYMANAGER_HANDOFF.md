@@ -6,96 +6,88 @@ Aggiornato: 2026-10-17
 Questo file è il riferimento persistente per lo stato tecnico di SafetyManager. Dopo ogni modifica sostanziale va aggiornato insieme a `docs/SAFETYMANAGER_HANDOFF_LATEST.md`.
 
 ## Integrazione SafetyTraining — LIVE
-Il ponte manuale SafetyManager → SafetyTraining è operativo in produzione in `js/modules/safetytraining_bridge.js` e usa il formato `safetytraining.transfer` v1.2.
+Il ponte manuale SafetyManager → SafetyTraining è operativo in produzione in `js/modules/safetytraining_bridge.js` e usa `safetytraining.transfer` v1.2.
 
-### Avvio e UI
-- Il bridge viene caricato direttamente dal bootstrap `js/app.js`; non dipende dal loader grafico opzionale.
-- Pulsante globale `SafetyTraining` nella navbar.
-- Pulsante contestuale `SafetyTraining` nell'intestazione della scheda Progetto; apre il modal già posizionato sul progetto salvato.
-- Un progetto non ancora salvato non può essere esportato.
+### Avvio / UI / payload
+- direct load da `js/app.js`;
+- pulsante globale + pulsante contestuale nella scheda Progetto;
+- normalizzazione P.IVA/CF azienda e CF corsisti;
+- export di azienda, progetto/corso, date/sede, rischi e iscritti;
+- nessun documento, firma, dato sanitario, credenziale o dato contatto inventato.
 
-### Dati sorgente
-- Azienda: `aziende`.
-- Corsisti: `corsisti`.
-- Progetto/corso: `progetti`.
-- Iscrizioni: `iscrizioni`.
-- La tabella `corsisti` non contiene email o telefono: il bridge non inventa questi campi.
+### Regola storica
+Se l'azienda corrente del corsista differisce dall'azienda del progetto, SafetyManager mostra warning e NON blocca. L'azienda del progetto rappresenta il contesto storico dell'iscrizione.
 
-### Payload v1.2
-Trasferisce:
-- azienda: external_id, ragione sociale, P.IVA/CF normalizzato, ATECO, indirizzo/sede;
-- progetto: external_id, codice, corso, durata, riferimento normativo, modalità, date, sede, componente pratica/presenza;
-- contesto rischi: settore, codici rischio, rischi personalizzati, stato analisi fabbisogni;
-- corsisti iscritti: external_id, enrollment_external_id, nome completo, CF normalizzato, mansione.
-
-Non trasferisce documenti, firme, dati sanitari o credenziali.
-
-### Regole anagrafiche
-- P.IVA/CF azienda: uppercase, soli caratteri alfanumerici; prefisso `IT` rimosso quando seguito da 11 cifre.
-- CF corsista: uppercase e soli caratteri alfanumerici.
-- Export bloccato se mancano azienda/identificativo fiscale/corso/corsisti/CF, oppure se lo stesso CF compare due volte nello stesso progetto.
-- Se il corsista oggi appartiene a un'azienda diversa da quella del progetto, il bridge mostra un warning ma NON blocca: per l'iscrizione vale il contesto storico dell'azienda del progetto.
-
-### QA dati reali SafetyManager
-Controllo in sola lettura 2026-10-17:
+QA SafetyManager reale:
 - 72 progetti con azienda + corso;
-- 138 righe iscrizione;
+- 138 iscrizioni;
 - 0 aziende senza P.IVA/CF;
 - 0 corsisti senza CF;
-- 0 gruppi CF duplicati nello stesso progetto;
-- 40 iscrizioni con azienda corrente del corsista diversa dall'azienda del progetto: casi storici, quindi warning.
+- 0 CF duplicati nello stesso progetto;
+- 40 mismatch azienda corrente/progetto gestiti come storico/warning.
 
-## E2E SafetyManager → SafetyTraining — VERDE
-Eseguito test transazionale su SafetyTraining con payload `safetytraining.transfer` v1.2 e rollback finale.
+## E2E SafetyManager → SafetyTraining
+Il doppio import dello stesso payload v1.2 resta VERDE e idempotente: secondo import senza duplicati di company, learner, edition, enrollment o placeholder. Rollback QA pulito.
 
-Primo import dello stesso pacchetto QA:
-- `created_company=1`
-- `created_learners=1`
-- `created_edition=1`
-- `created_enrollments=1`
-- `created_placeholder_course=1`
-- `reused_enrollments=0`
-- course delivery `needs_configuration`, come previsto per course code sconosciuto.
+## Hardening storico lato SafetyTraining — CHIUSO
+SafetyTraining ha ora migration `v21_023_preserve_current_company_training_history`.
 
-Secondo import identico:
-- stessi `company_id`, `course_id`, `edition_id`;
-- `created_company=0`
-- `created_learners=0`
-- `created_edition=0`
-- `created_enrollments=0`
-- `created_placeholder_course=0`
-- `reused_enrollments=1`
-- `updated_or_reused_learners=1`.
+Regola definitiva:
+- `learners.company_id` = azienda corrente;
+- l'azienda associata a un corso/iscrizione viene conservata in `learner_company_training_history`;
+- importare un progetto SafetyManager storico non sovrascrive più l'azienda corrente di un learner già esistente.
 
-Quindi mapping e dedupe sono idempotenti. Dopo `ROLLBACK`, verifica separata: 0 mapping QA, 0 aziende QA, 0 learner QA, 0 righe catalogo QA.
+Il nuovo `import_safetymanager_package(jsonb)`:
+- preserva la company corrente preesistente;
+- esegue l'import compatibile v1.x;
+- registra la company del corso nello storico training;
+- mantiene mapping esterni, dedupe e idempotenza.
 
-## PWA / check
-- cache PWA live: `safetymanager-pwa-v11`;
-- `js/modules/safetytraining_bridge.js` è nella APP_SHELL;
-- `npm run check` include `node --check js/modules/safetytraining_bridge.js`;
-- il repository SafetyManager non ha workflow GitHub Actions configurati (`actions/runs` = 0): non dichiarare CI automatica verde.
+QA reale transazionale:
+- learner con current company `COMUNE DI SAN MARTINO VALLE CAUDINA`;
+- progetto storico importato da `G. & G. AUTO SERVICE S.A.S. DI NATALE GAETANO & C.`;
+- `preserved_current_company=1`;
+- current company finale ancora Comune;
+- storico training company correttamente G. & G. Auto Service;
+- `training_company_history_rows=1`;
+- rollback e 0 residui QA.
 
-## Compatibilità SafetyTraining
-SafetyTraining accetta tutte le versioni `1.x` del formato tramite `import_safetymanager_package(jsonb)` con mapping esterni idempotenti, dedupe CF/P.IVA e placeholder draft per course code sconosciuti. Nessuna migration SafetyTraining è stata necessaria per il payload v1.2.
+Quindi il precedente punto aperto “azienda storica che diventa corrente” è risolto.
 
-## Produzione Vercel — COMPLETAMENTE ALLINEATA
-Progetto: `safety-manager-ultimate` (`prj_kt0816jMHpCirQx2ZAUB1vn99yqS`).
+## Dashboard amministrativa SafetyTraining
+Nello stesso blocco è stato diagnosticato e corretto un problema di caricamento della console SafetyTraining.
 
-Deployment verificato:
+Le query DB rispondono correttamente. La causa era frontend: `admin-backend-v21.js` usava un `MutationObserver` globale capace di generare refresh/richieste ricorsive mentre il DOM veniva aggiornato.
+
+Fix SafetyTraining live:
+- rimosso MutationObserver globale;
+- refresh solo su eventi espliciti;
+- guardia contro risposte stale;
+- dashboard alimentata/fallback con una singola `admin_dashboard_summary()`;
+- PWA aggiornata a `safety-training-v21-10`.
+
+Produzione SafetyTraining funzionale:
+- deployment `dpl_D4APzr14W8puJLePb4HDgiHKvrtP`
+- commit `e74418900ec0cb5e19b12441e3ebe90839cb3ae0`
+- READY / production.
+
+## Produzione SafetyManager
+Vercel:
 - `dpl_2bAGCma5NeQVgv2L49rdhZ2yaZVm`
 - commit `3cc579b80dbec9c1cc68e4158ce2c0c3fe592175`
-- target production
-- stato `READY`
+- production / READY
 - alias `safety-manager-ultimate-safety-manager.vercel.app`.
 
-Smoke live HTTP 200:
-- `/js/app.js` carica direttamente `js/modules/safetytraining_bridge.js`;
-- `/js/modules/safetytraining_bridge.js` è v1.2 e tratta cambio azienda corrente/progetto come warning storico;
-- `/sw.js` serve `safetymanager-pwa-v11` e include il bridge nella APP_SHELL.
+Smoke live SafetyManager:
+- app.js direct-load bridge;
+- bridge v1.2 con warning storico;
+- PWA `safetymanager-pwa-v11`.
 
-Il precedente blocco `api-deployments-free-per-day` del piano Hobby non è più attivo per questo deployment.
+## PWA / check SafetyManager
+- cache `safetymanager-pwa-v11`;
+- bridge nella APP_SHELL;
+- `npm run check` include syntax check bridge;
+- il repo SafetyManager NON ha workflow GitHub Actions configurati, quindi non dichiarare CI automatica verde.
 
-## Prossimo blocco consigliato
-1. Prima di automatizzare ulteriormente il ponte, valutare l'hardening del caso learner già esistente in SafetyTraining con azienda corrente diversa: l'importer SafetyManager oggi riallinea `learners.company_id` all'azienda del progetto; con progetti storici questo può confondere azienda corrente e storica.
-2. Proseguire poi con E2E learner SafetyTraining: invito → delivery → Auth → verifica identità → claim → dashboard.
-3. Eventuale invio server-to-server firmato/API solo se serve davvero; il JSON manuale resta il percorso più semplice e controllabile.
+## Prossimo passo
+Il bridge manuale è ora funzionalmente stabilizzato anche sul caso storico. Proseguire con l'E2E learner SafetyTraining: invito → delivery → Auth → verifica identità → claim → dashboard. Eventuale API server-to-server solo se servirà davvero; il JSON manuale resta il percorso più controllabile.
