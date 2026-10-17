@@ -13,6 +13,7 @@ Il ponte manuale SafetyManager → SafetyTraining è operativo in produzione in 
 - pulsante globale + pulsante contestuale nella scheda Progetto;
 - normalizzazione P.IVA/CF azienda e CF corsisti;
 - export di azienda, progetto/corso, date/sede, rischi e iscritti;
+- corsista esportato con `full_name` unico, CF, mansione e riferimenti esterni;
 - nessun documento, firma, dato sanitario, credenziale o dato contatto inventato.
 
 ### Regola storica
@@ -29,53 +30,66 @@ QA SafetyManager reale:
 ## E2E SafetyManager → SafetyTraining
 Il doppio import dello stesso payload v1.2 resta VERDE e idempotente: secondo import senza duplicati di company, learner, edition, enrollment o placeholder. Rollback QA pulito.
 
-## Hardening storico lato SafetyTraining — CHIUSO
-SafetyTraining ha ora migration `v21_023_preserve_current_company_training_history`.
-
+## Hardening storico lato SafetyTraining — v21_023 CHIUSO
 Regola definitiva:
 - `learners.company_id` = azienda corrente;
 - l'azienda associata a un corso/iscrizione viene conservata in `learner_company_training_history`;
-- importare un progetto SafetyManager storico non sovrascrive più l'azienda corrente di un learner già esistente.
+- importare un progetto SafetyManager storico non sovrascrive l'azienda corrente di un learner già esistente.
 
-Il nuovo `import_safetymanager_package(jsonb)`:
-- preserva la company corrente preesistente;
-- esegue l'import compatibile v1.x;
-- registra la company del corso nello storico training;
-- mantiene mapping esterni, dedupe e idempotenza.
+Il wrapper `import_safetymanager_package(jsonb)` preserva la company corrente, registra la company del corso nello storico e mantiene mapping, dedupe e idempotenza.
 
-QA reale transazionale:
-- learner con current company `COMUNE DI SAN MARTINO VALLE CAUDINA`;
-- progetto storico importato da `G. & G. AUTO SERVICE S.A.S. DI NATALE GAETANO & C.`;
-- `preserved_current_company=1`;
-- current company finale ancora Comune;
-- storico training company correttamente G. & G. Auto Service;
-- `training_company_history_rows=1`;
-- rollback e 0 residui QA.
+QA reale transazionale precedente verde con current company `COMUNE DI SAN MARTINO VALLE CAUDINA`, progetto storico `G. & G. AUTO SERVICE S.A.S. DI NATALE GAETANO & C.`, `preserved_current_company=1`, `training_company_history_rows=1` e rollback senza residui.
 
-Quindi il precedente punto aperto “azienda storica che diventa corrente” è risolto.
+## Compatibilità anagrafica downstream — SafetyTraining admin UX v21.4
+SafetyTraining ora usa nella console un unico campo corsista `Cognome/Nome`, coerente con il `full_name` singolo del bridge SafetyManager.
 
-## Dashboard amministrativa SafetyTraining
-Nello stesso blocco è stato diagnosticato e corretto un problema di caricamento della console SafetyTraining.
+Regole downstream:
+- i vecchi record SafetyTraining con `first_name + last_name` vengono riuniti in visualizzazione;
+- `metadata.source_full_name`, se presente, ha precedenza;
+- il salvataggio manuale conserva un nome completo unico senza richiedere una migrazione distruttiva dello schema;
+- CF tenant-scoped, mapping esterni, dedupe, storico azienda e payload v1.2 NON cambiano.
 
-Le query DB rispondono correttamente. La causa era frontend: `admin-backend-v21.js` usava un `MutationObserver` globale capace di generare refresh/richieste ricorsive mentre il DOM veniva aggiornato.
+Non separare artificialmente il `full_name` SafetyManager in nome/cognome nel bridge: la sorgente non garantisce quella separazione.
 
-Fix SafetyTraining live:
-- rimosso MutationObserver globale;
+## Readiness SafetyTraining v21_024
+È stato corretto un falso `missing_test_definition`: il gate SafetyTraining usava il legacy metadata `bank_required` invece dei test attivi e delle domande attive collegate.
+
+Stato dopo il fix:
+- 92 record readiness totali;
+- 65 pubblicati;
+- 22 pronti per revisione;
+- 2 da configurare;
+- 3 bloccati, tutti frozen/fuori roadmap: Spazi confinati, RSPP/ASPP Modulo A e Modulo B comune.
+
+Non cambiare il bridge SafetyManager per compensare la readiness: catalogo/mapping e governance didattica rimangono separati.
+
+## Dashboard / admin SafetyTraining
+Resta valido il fix v21.3:
+- nessun MutationObserver globale;
 - refresh solo su eventi espliciti;
 - guardia contro risposte stale;
-- dashboard alimentata/fallback con una singola `admin_dashboard_summary()`;
-- PWA aggiornata a `safety-training-v21-10`.
+- dashboard via `admin_dashboard_summary()`.
 
-Produzione SafetyTraining funzionale:
-- deployment `dpl_D4APzr14W8puJLePb4HDgiHKvrtP`
-- commit `e74418900ec0cb5e19b12441e3ebe90839cb3ae0`
-- READY / production.
+Admin v21.4 aggiunge inoltre:
+- creazione organizzazioni;
+- vista completa aziende;
+- `Cognome/Nome` unico corsista;
+- disattivazione/archiviazione edizioni senza delete fisico;
+- guide Catalogo/Blueprint/Readiness;
+- responsive hardening per desktop/tablet/mobile.
+
+## Produzione SafetyTraining collegata
+- PWA `safety-training-v21-11`;
+- commit funzionale più recente `87c077aa2d11bd29ade8a79a091c267975606b76`;
+- deployment `dpl_8ardDTVN2hJ46Q2GEx9LNYzmT11V`;
+- production / READY;
+- checks SafetyTraining #292 e #293 SUCCESS.
 
 ## Produzione SafetyManager
 Vercel:
-- `dpl_2bAGCma5NeQVgv2L49rdhZ2yaZVm`
-- commit `3cc579b80dbec9c1cc68e4158ce2c0c3fe592175`
-- production / READY
+- `dpl_2bAGCma5NeQVgv2L49rdhZ2yaZVm`;
+- commit `3cc579b80dbec9c1cc68e4158ce2c0c3fe592175`;
+- production / READY;
 - alias `safety-manager-ultimate-safety-manager.vercel.app`.
 
 Smoke live SafetyManager:
@@ -90,4 +104,4 @@ Smoke live SafetyManager:
 - il repo SafetyManager NON ha workflow GitHub Actions configurati, quindi non dichiarare CI automatica verde.
 
 ## Prossimo passo
-Il bridge manuale è ora funzionalmente stabilizzato anche sul caso storico. Proseguire con l'E2E learner SafetyTraining: invito → delivery → Auth → verifica identità → claim → dashboard. Eventuale API server-to-server solo se servirà davvero; il JSON manuale resta il percorso più controllabile.
+Nessuna modifica al bridge richiesta dal blocco v21.4. Proseguire lato SafetyTraining con smoke visuale admin desktop/tablet/mobile e poi E2E learner: invito → delivery → Auth → verifica identità → claim → dashboard. Eventuale API server-to-server solo se servirà davvero; il JSON manuale resta il percorso più controllabile.
