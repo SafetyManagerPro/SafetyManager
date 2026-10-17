@@ -1,5 +1,5 @@
-// SafetyManager -> SafetyTraining v1 manual transfer bridge.
-// Exports only the administrative/training context needed by SafetyTraining.
+// SafetyManager -> SafetyTraining v1.2 manual transfer bridge.
+// Exports the administrative/training context needed by SafetyTraining with identifier checks.
 (function(){
   'use strict';
   if(window.__safetyTrainingBridgeLoaded) return;
@@ -11,6 +11,14 @@
   function uuid(){
     return globalThis.crypto?.randomUUID?.() || 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0,v=c==='x'?r:(r&3|8);return v.toString(16);});
   }
+  function normalizeIdentifier(value){
+    return String(value||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
+  }
+  function normalizeCompanyIdentifier(value){
+    const normalized=normalizeIdentifier(value);
+    return /^IT[0-9]{11}$/.test(normalized) ? normalized.slice(2) : normalized;
+  }
+  function normalizeLearnerFiscalCode(value){ return normalizeIdentifier(value); }
   function courseData(project){return window.DB_CORSI?.[project?.corso_id]||{};}
   function courseLabel(project){const c=courseData(project);return c?.t || project?.corso_id || 'Corso non indicato';}
   function companyName(project){return project?.aziende?.ragione_sociale || 'Azienda non collegata';}
@@ -42,6 +50,90 @@
     a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
   }
 
+  function buildTransfer(project,iscrizioni,company){
+    const course=courseData(project),ctx=riskContext(project);
+    const learners=(iscrizioni||[]).map(i=>{
+      const c=i.corsisti||{};
+      return {
+        external_id:String(i.corsista_id||c.id||''),
+        enrollment_external_id:String(i.id||''),
+        full_name:String(c.nome_cognome||'').trim(),
+        fiscal_code:normalizeLearnerFiscalCode(c.cf),
+        job_title:String(i.mansione_storica||c.mansione_storica||c.ruolo_aziendale||'').trim(),
+        source_company_id:String(c.azienda_id||'')
+      };
+    }).filter(x=>x.external_id);
+
+    return {
+      schema:'safetytraining.transfer',
+      schema_version:'1.2',
+      source_system:'safetymanager',
+      export_id:uuid(),
+      exported_at:new Date().toISOString(),
+      company:{
+        external_id:String(project?.azienda_id||company?.id||''),
+        name:String(company?.ragione_sociale||'').trim(),
+        vat_or_fiscal_code:normalizeCompanyIdentifier(company?.piva_cf),
+        ateco_code:String(company?.ateco||'').trim(),
+        address:String(company?.indirizzo||'').trim(),
+        operating_site:String(company?.sede_operativa||'').trim()
+      },
+      project:{
+        external_id:String(project?.id||''),
+        code:String(project?.codice||'').trim(),
+        course_code:String(project?.corso_id||'').trim(),
+        course_title:courseLabel(project),
+        course_duration_minutes:Number(course.ore||0)>0?Number(course.ore)*60:null,
+        course_normative_ref:String(course.norma||'').trim(),
+        requires_presence:requiresPresence(project),
+        title:`${project?.codice||'Corso'} · ${courseLabel(project)}`,
+        available_from:project?.data_inizio||null,
+        recommended_due_at:project?.data_esame||null,
+        source_mode:String(project?.modalita||'').trim(),
+        site:String(project?.sede||'').trim(),
+        risk_sector_code:ctx.risk_sector_code,
+        risk_sector_label:ctx.risk_sector_label,
+        risk_codes:ctx.risk_codes,
+        custom_risks:ctx.custom_risks,
+        needs_analysis_accepted:ctx.needs_analysis_accepted
+      },
+      learners
+    };
+  }
+
+  function validateTransfer(payload){
+    const errors=[],warnings=[];
+    if(payload?.schema!=='safetytraining.transfer'||payload?.source_system!=='safetymanager') errors.push('Formato trasferimento non valido.');
+    if(!payload?.company?.external_id) errors.push('Il progetto non ha un’azienda collegata.');
+    if(!payload?.company?.name) errors.push('La ragione sociale dell’azienda è mancante.');
+    if(!payload?.company?.vat_or_fiscal_code) errors.push('P. IVA / Codice Fiscale azienda mancante: completare l’anagrafica prima dell’export per evitare doppioni.');
+    if(!payload?.project?.external_id) errors.push('ID progetto mancante.');
+    if(!payload?.project?.course_code) errors.push('Tipologia corso mancante.');
+    if(!Array.isArray(payload?.learners)||!payload.learners.length) errors.push('Il progetto non ha corsisti iscritti da trasferire.');
+
+    const seen=new Map();
+    (payload.learners||[]).forEach((learner,index)=>{
+      const label=learner.full_name||`corsista ${index+1}`;
+      if(!learner.external_id) errors.push(`${label}: ID corsista mancante.`);
+      if(!learner.fiscal_code) errors.push(`${label}: Codice Fiscale mancante.`);
+      if(learner.fiscal_code){
+        if(seen.has(learner.fiscal_code)) errors.push(`Codice Fiscale duplicato nel progetto: ${learner.fiscal_code}.`);
+        else seen.set(learner.fiscal_code,learner.external_id);
+      }
+      if(learner.source_company_id && learner.source_company_id!==payload.company.external_id){
+        errors.push(`${label}: il corsista risulta collegato a un’azienda diversa da quella del progetto.`);
+      }
+    });
+
+    if(!(payload.project.risk_codes||[]).length && !(payload.project.custom_risks||[]).length){
+      warnings.push('Nessun rischio specifico di progetto: SafetyTraining userà solo il profilo generico del corso finché l’analisi non viene completata.');
+    }
+    if(payload.project.needs_analysis_accepted!==true){
+      warnings.push('Analisi fabbisogni/rischi non validata nel progetto.');
+    }
+    return {ok:errors.length===0,errors,warnings};
+  }
+
   function ensureButton(){
     const nav=document.getElementById('top-nav-buttons');
     if(!nav||document.getElementById('nav-safetytraining-export')) return;
@@ -49,9 +141,27 @@
     b.id='nav-safetytraining-export';b.type='button';b.className='btn-tab flex items-center gap-2 px-3 py-2 rounded-xl font-bold text-xs transition-all duration-300 hover:text-white hover:bg-slate-800 group text-slate-400';
     b.title='Esporta azienda, corsisti, corso e contesto rischi per SafetyTraining';
     b.innerHTML='<div class="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center group-hover:bg-cyan-600 transition-all"><i data-lucide="send" class="w-3.5 h-3.5 group-hover:text-white"></i></div><span class="hidden xl:block">SafetyTraining</span>';
-    b.onclick=open;
+    b.onclick=()=>open();
     const logout=document.getElementById('nav-safety-logout');
     nav.insertBefore(b,logout||null);
+    if(typeof lucide!=='undefined') lucide.createIcons();
+  }
+
+  function ensureProjectButton(){
+    const header=document.getElementById('popup-project-header');
+    if(!header||document.getElementById('btn-project-safetytraining-export')) return;
+    const b=document.createElement('button');
+    b.id='btn-project-safetytraining-export';b.type='button';
+    b.className='ml-auto bg-cyan-50 hover:bg-cyan-100 text-cyan-800 border border-cyan-200 px-3 py-2 rounded-lg transition text-[10px] font-black uppercase tracking-wide flex items-center gap-2';
+    b.title='Esporta questo progetto e i suoi corsisti in SafetyTraining';
+    b.innerHTML='<i data-lucide="send" class="w-4 h-4"></i><span class="hidden sm:inline">SafetyTraining</span>';
+    b.onclick=()=>{
+      const projectId=document.getElementById('prog-id')?.value||'';
+      if(!projectId){ alert('Salva prima il progetto: l’export SafetyTraining richiede un progetto già registrato.'); return; }
+      open(projectId);
+    };
+    const closeBtn=document.getElementById('btn-close-project-popup');
+    if(closeBtn) header.insertBefore(b,closeBtn); else header.appendChild(b);
     if(typeof lucide!=='undefined') lucide.createIcons();
   }
 
@@ -60,12 +170,12 @@
     if(modal) return modal;
     modal=document.createElement('div');modal.id='safetytraining-export-modal';modal.className='hidden fixed inset-0 z-[120000] bg-slate-950/75 backdrop-blur-sm p-4 items-center justify-center';
     modal.innerHTML=`<div class="w-full max-w-3xl max-h-[92vh] overflow-auto bg-white rounded-3xl shadow-2xl border border-slate-200">
-      <div class="p-5 bg-slate-950 text-white flex items-start justify-between gap-4"><div><div class="text-[10px] font-black uppercase tracking-widest text-cyan-300">Ponte dati v1</div><h2 class="text-xl font-black mt-1">Esporta per SafetyTraining</h2><p class="text-xs text-slate-300 mt-1">File JSON: nessun database condiviso e nessuna chiave privilegiata nel browser.</p></div><button id="stx-close" class="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 text-xl">×</button></div>
+      <div class="p-5 bg-slate-950 text-white flex items-start justify-between gap-4"><div><div class="text-[10px] font-black uppercase tracking-widest text-cyan-300">Ponte dati v1.2</div><h2 class="text-xl font-black mt-1">Esporta per SafetyTraining</h2><p class="text-xs text-slate-300 mt-1">File JSON idempotente: nessun database condiviso e nessuna chiave privilegiata nel browser.</p></div><button id="stx-close" class="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 text-xl">×</button></div>
       <div class="p-5 space-y-5">
         <div><label class="text-[10px] font-black uppercase tracking-widest text-slate-500">Progetto / corso</label><select id="stx-project" class="input-field mt-1"><option value="">Caricamento…</option></select></div>
         <div id="stx-preview" class="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">Seleziona un progetto.</div>
-        <div class="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-xs text-blue-950 leading-relaxed"><strong>Importati:</strong> azienda, ATECO/P.IVA-CF, corsisti iscritti, corso, date, assegnazioni e — se compilata — l’analisi dei fabbisogni con settore e rischi selezionati. Documenti, firme e dati sanitari non vengono esportati.</div>
-        <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-950 leading-relaxed">I rischi servono a <strong>proporre</strong> le Learning Unit pertinenti. Non sostituiscono DVR, mansione, procedure aziendali, addestramento o componenti pratiche.</div>
+        <div class="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-xs text-blue-950 leading-relaxed"><strong>Trasferiti:</strong> azienda e identificativo fiscale, ATECO, corsisti iscritti e Codici Fiscali, corso, date, sede, assegnazioni e contesto rischi. Documenti, firme e dati sanitari non vengono esportati.</div>
+        <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-950 leading-relaxed">P. IVA/CF azienda e CF corsisti vengono normalizzati prima dell’export. Se mancano o ci sono incoerenze azienda-corsista, il file non viene creato.</div>
         <div id="stx-message" class="text-xs min-h-5"></div>
       </div>
       <div class="p-5 border-t border-slate-200 bg-slate-50 flex justify-end gap-3"><button id="stx-cancel" class="px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-xs font-black uppercase">Annulla</button><button id="stx-export" class="px-5 py-2.5 rounded-xl bg-cyan-700 hover:bg-cyan-600 text-white text-xs font-black uppercase">Esporta JSON</button></div>
@@ -76,56 +186,66 @@
     return modal;
   }
 
-  async function open(){
+  async function open(projectId=''){
     const modal=ensureModal();modal.classList.remove('hidden');modal.classList.add('flex');
     const sel=modal.querySelector('#stx-project'),msg=modal.querySelector('#stx-message');
     msg.textContent='Caricamento progetti…';
     try{
       state.projects=typeof window.getProgetti==='function'?await window.getProgetti():[];
       sel.innerHTML='<option value="">Seleziona un progetto…</option>'+state.projects.map(p=>`<option value="${esc(p.id)}">${esc(p.codice||'Senza codice')} · ${esc(courseLabel(p))} · ${esc(companyName(p))}</option>`).join('');
-      msg.textContent=state.projects.length?`${state.projects.length} progetti disponibili.`:'Nessun progetto disponibile.';
+      if(projectId && state.projects.some(p=>String(p.id)===String(projectId))){
+        sel.value=String(projectId);
+        await preview();
+      }else{
+        state.selected=null;
+        msg.textContent=state.projects.length?`${state.projects.length} progetti disponibili.`:'Nessun progetto disponibile.';
+      }
     }catch(e){msg.textContent='Errore caricamento progetti: '+(e?.message||e);}
   }
   function close(){const m=document.getElementById('safetytraining-export-modal');m?.classList.add('hidden');m?.classList.remove('flex');}
 
+  async function getTransferForProject(project){
+    const iscrizioni=typeof window.getIscrizioni==='function'?await window.getIscrizioni(project.id):[];
+    const company=project.aziende || (typeof window.getAziende==='function'?(await window.getAziende()).find(a=>a.id===project.azienda_id):null) || {};
+    return buildTransfer(project,iscrizioni,company);
+  }
+
   async function preview(){
-    const id=document.getElementById('stx-project')?.value,box=document.getElementById('stx-preview');
-    const p=state.projects.find(x=>x.id===id);state.selected=p||null;
-    if(!p){box.innerHTML='Seleziona un progetto.';return;}
-    const course=courseData(p),ctx=riskContext(p); let count='…';
-    try{const i=typeof window.getIscrizioni==='function'?await window.getIscrizioni(p.id):[];count=(i||[]).length;}catch(_e){count='n/d';}
-    box.innerHTML=`<div class="grid sm:grid-cols-2 gap-3"><div><span class="text-[10px] uppercase font-black text-slate-400">Azienda</span><strong class="block text-slate-900">${esc(companyName(p))}</strong></div><div><span class="text-[10px] uppercase font-black text-slate-400">Corso</span><strong class="block text-slate-900">${esc(courseLabel(p))}</strong><small>codice: ${esc(p.corso_id||'—')} · ${esc(course.ore||'—')} h${requiresPresence(p)?' · presenza/pratica':''}</small></div><div><span class="text-[10px] uppercase font-black text-slate-400">Periodo</span><strong class="block text-slate-900">${esc(p.data_inizio||'—')} → ${esc(p.data_esame||'—')}</strong></div><div><span class="text-[10px] uppercase font-black text-slate-400">Corsisti iscritti</span><strong class="block text-slate-900">${esc(count)}</strong></div><div class="sm:col-span-2"><span class="text-[10px] uppercase font-black text-slate-400">Contesto rischi</span><strong class="block text-slate-900">${esc(ctx.risk_sector_label||ctx.risk_sector_code||'Settore non indicato')} · ${ctx.risk_codes.length} rischi selezionati${ctx.custom_risks.length?` + ${ctx.custom_risks.length} personalizzati`:''}</strong><small>${ctx.needs_analysis_accepted?'Analisi fabbisogni validata':'Analisi fabbisogni da validare / non presente'}</small></div></div>`;
+    const id=document.getElementById('stx-project')?.value,box=document.getElementById('stx-preview'),msg=document.getElementById('stx-message');
+    const p=state.projects.find(x=>String(x.id)===String(id));state.selected=p||null;
+    if(!p){box.innerHTML='Seleziona un progetto.';if(msg)msg.textContent='';return;}
+    try{
+      const payload=await getTransferForProject(p),check=validateTransfer(payload),course=courseData(p),ctx=riskContext(p);
+      const issues=check.errors.length?`<div class="mt-3 text-red-700"><strong>Da correggere:</strong><br>${check.errors.map(esc).join('<br>')}</div>`:'';
+      const warnings=check.warnings.length?`<div class="mt-3 text-amber-700"><strong>Avvisi:</strong><br>${check.warnings.map(esc).join('<br>')}</div>`:'';
+      box.innerHTML=`<div class="grid sm:grid-cols-2 gap-3"><div><span class="text-[10px] uppercase font-black text-slate-400">Azienda</span><strong class="block text-slate-900">${esc(payload.company.name||companyName(p))}</strong><small>ID fiscale normalizzato: ${esc(payload.company.vat_or_fiscal_code||'—')}</small></div><div><span class="text-[10px] uppercase font-black text-slate-400">Corso</span><strong class="block text-slate-900">${esc(courseLabel(p))}</strong><small>codice: ${esc(p.corso_id||'—')} · ${esc(course.ore||'—')} h${requiresPresence(p)?' · presenza/pratica':''}</small></div><div><span class="text-[10px] uppercase font-black text-slate-400">Periodo</span><strong class="block text-slate-900">${esc(p.data_inizio||'—')} → ${esc(p.data_esame||'—')}</strong></div><div><span class="text-[10px] uppercase font-black text-slate-400">Corsisti iscritti</span><strong class="block text-slate-900">${payload.learners.length}</strong></div><div class="sm:col-span-2"><span class="text-[10px] uppercase font-black text-slate-400">Contesto rischi</span><strong class="block text-slate-900">${esc(ctx.risk_sector_label||ctx.risk_sector_code||'Settore non indicato')} · ${ctx.risk_codes.length} rischi selezionati${ctx.custom_risks.length?` + ${ctx.custom_risks.length} personalizzati`:''}</strong><small>${ctx.needs_analysis_accepted?'Analisi fabbisogni validata':'Analisi fabbisogni da validare / non presente'}</small></div></div>${issues}${warnings}`;
+      const run=document.getElementById('stx-export');if(run)run.disabled=!check.ok;
+      if(msg)msg.textContent=check.ok?'Controlli anagrafici superati. File pronto per l’export.':'Correggi gli errori indicati prima dell’export.';
+    }catch(e){box.innerHTML=`<span class="text-red-700">${esc(e?.message||e)}</span>`;}
   }
 
   async function exportSelected(){
-    const msg=document.getElementById('stx-message'),p=state.selected||state.projects.find(x=>x.id===document.getElementById('stx-project')?.value);
+    const msg=document.getElementById('stx-message'),p=state.selected||state.projects.find(x=>String(x.id)===String(document.getElementById('stx-project')?.value));
     if(!p){msg.textContent='Seleziona prima un progetto.';return;}
     try{
       msg.textContent='Preparazione file…';
-      const iscrizioni=typeof window.getIscrizioni==='function'?await window.getIscrizioni(p.id):[];
-      const company=p.aziende || (typeof window.getAziende==='function'?(await window.getAziende()).find(a=>a.id===p.azienda_id):null) || {};
-      const course=courseData(p),ctx=riskContext(p);
-      const learners=(iscrizioni||[]).map(i=>{
-        const c=i.corsisti||{};
-        return {external_id:String(i.corsista_id||c.id||''),enrollment_external_id:String(i.id||''),full_name:c.nome_cognome||'',fiscal_code:c.cf||'',email:c.email||'',job_title:i.mansione_storica||c.mansione_storica||c.ruolo_aziendale||''};
-      }).filter(x=>x.external_id);
-      const payload={
-        schema:'safetytraining.transfer',schema_version:'1.1',source_system:'safetymanager',export_id:uuid(),exported_at:new Date().toISOString(),
-        company:{external_id:String(p.azienda_id||company.id||''),name:company.ragione_sociale||'',vat_or_fiscal_code:company.piva_cf||'',ateco_code:company.ateco||''},
-        project:{
-          external_id:String(p.id),code:p.codice||'',course_code:p.corso_id||'',course_title:courseLabel(p),course_duration_minutes:Number(course.ore||0)>0?Number(course.ore)*60:null,course_normative_ref:course.norma||'',requires_presence:requiresPresence(p),title:`${p.codice||'Corso'} · ${courseLabel(p)}`,available_from:p.data_inizio||null,recommended_due_at:p.data_esame||null,source_mode:p.modalita||'',
-          risk_sector_code:ctx.risk_sector_code,risk_sector_label:ctx.risk_sector_label,risk_codes:ctx.risk_codes,custom_risks:ctx.custom_risks,needs_analysis_accepted:ctx.needs_analysis_accepted
-        },learners
-      };
-      if(!payload.company.external_id) throw new Error('Il progetto non ha un’azienda collegata.');
+      const payload=await getTransferForProject(p),check=validateTransfer(payload);
+      if(!check.ok) throw new Error(check.errors.join(' '));
       const safeCode=String(p.codice||p.id).replace(/[^a-z0-9_-]+/gi,'_');
       download(`SafetyTraining_${safeCode}_${new Date().toISOString().slice(0,10)}.json`,payload);
-      msg.textContent=`File creato: ${learners.length} corsisti, ${ctx.risk_codes.length} rischi catalogati e ${ctx.custom_risks.length} rischi personalizzati inclusi.`;
+      msg.textContent=`File creato: ${payload.learners.length} corsisti con CF normalizzato, azienda identificata e ${(payload.project.risk_codes||[]).length} rischi catalogati inclusi.`;
     }catch(e){msg.textContent='Esportazione non riuscita: '+(e?.message||e);}
   }
 
   window.openSafetyTrainingExport=open;
-  window.SafetyTrainingBridge={open,exportSelected,riskContext};
-  const boot=()=>{ensureButton();const obs=new MutationObserver(ensureButton);obs.observe(document.body,{childList:true,subtree:true});};
+  window.SafetyTrainingBridge={
+    open,exportSelected,riskContext,buildTransfer,validateTransfer,
+    normalizeCompanyIdentifier,normalizeLearnerFiscalCode
+  };
+  const boot=()=>{
+    const ensure=()=>{ensureButton();ensureProjectButton();};
+    ensure();
+    const obs=new MutationObserver(ensure);obs.observe(document.body,{childList:true,subtree:true});
+  };
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
 })();
