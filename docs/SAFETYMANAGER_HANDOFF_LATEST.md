@@ -1,68 +1,77 @@
 # SafetyManager — Ultimo blocco
 
 Aggiornato: 2026-10-17
-Stato: bridge SafetyTraining v1.2 completo nel sorgente `main`; produzione Vercel solo parzialmente aggiornata per limite giornaliero Hobby.
+Stato: bridge SafetyTraining v1.2 LIVE in produzione; E2E doppio import idempotente VERDE con rollback pulito.
 
-## Blocco completato nel sorgente: export completo verso SafetyTraining
+## Blocco chiuso: SafetyManager → SafetyTraining
 
-È stato reso realmente operativo il bridge `js/modules/safetytraining_bridge.js`.
-
-### Modifiche funzionali
-- formato trasferimento `safetytraining.transfer` v1.2;
-- caricamento diretto da `js/app.js` all'avvio;
+### Sorgente / UI
+`js/modules/safetytraining_bridge.js`:
+- formato `safetytraining.transfer` v1.2;
+- direct load da `js/app.js`;
 - pulsante globale navbar + pulsante contestuale nella scheda Progetto;
-- pre-selezione automatica del progetto quando si parte dalla scheda;
-- normalizzazione P.IVA/CF azienda e CF corsisti coerente con SafetyTraining;
-- validazione preventiva di azienda, corso, corsisti, identificativi fiscali e CF duplicati;
-- inclusione di sede/indirizzo e contesto rischi già disponibili;
-- nessun export di documenti, firme, dati sanitari o credenziali;
-- nessuna email/telefono inventati: lo schema SafetyManager `corsisti` non li possiede.
+- progetto pre-selezionato dal popup;
+- progetto non salvato non esportabile;
+- normalizzazione P.IVA/CF azienda e CF corsisti;
+- blocco su identificativi mancanti e CF duplicati nel progetto;
+- cambio azienda corrente rispetto all'azienda storica del progetto = warning, non blocco;
+- esporta azienda, corso/progetto, date/sede, rischi e corsisti iscritti;
+- non esporta documenti, firme, dati sanitari o credenziali;
+- non inventa email/telefono non presenti nello schema SafetyManager.
 
-### Correzione emersa dal QA
-Il primo controllo considerava errore un corsista la cui azienda anagrafica corrente differiva dall'azienda del progetto. Il DB reale ha mostrato 40 iscrizioni di questo tipo: sono casi compatibili con cambio azienda nel tempo. La regola è stata corretta: warning, non blocco; l'azienda del progetto resta il contesto storico dell'iscrizione.
-
-### QA DB in sola lettura
+### QA SafetyManager reale in sola lettura
 - 72 progetti con azienda e corso;
+- 138 iscrizioni;
 - 0 aziende senza P.IVA/CF;
-- 138 iscrizioni controllate;
 - 0 corsisti senza CF;
 - 0 CF duplicati nello stesso progetto;
-- 40 mismatch azienda corrente/progetto gestiti come storico.
+- 40 mismatch azienda corrente/progetto correttamente gestiti come storico/warning.
 
-### Build/PWA
-- `npm run check` include il bridge;
-- cache sorgente PWA `safetymanager-pwa-v11`;
-- bridge nella APP_SHELL;
-- nessun workflow GitHub Actions configurato sul repo SafetyManager: `actions/runs` restituisce 0. Non parlare quindi di CI automatica completata.
+## E2E import SafetyTraining
+Payload QA v1.2 importato due volte dentro una transazione SafetyTraining.
 
-### Commit funzionali del blocco
-- `cff8aea4945d216f26af5988db0635b8d7cf526d` — hardening bridge v1.2;
-- `20976a470698e8d2bf2a86d3a35a4e34d3202a3f` — cache PWA v11;
-- `bddb8106c61fc4384f4dd564f7c5ba6636395ebb` — syntax check bridge nel comando `npm run check`;
-- `58ccfe9ac2e4a7972cd0a6c611ff97debbf71f12` — preserve historical company context;
-- `6e3c7e14f6a103fd56e69728420d3669667c9ca6` — direct startup load.
+Primo import:
+- azienda 1 creata
+- learner 1 creato
+- edizione 1 creata
+- enrollment 1 creato
+- placeholder corso 1 creato
+- delivery `needs_configuration`.
 
-## Compatibilità destinazione SafetyTraining
-`apps/training/integration-import.js` accetta tutti i payload `1.x` e chiama `import_safetymanager_package()` + `sync_safetymanager_training_context()`. Il backend SafetyTraining ha già mapping idempotenti e dedupe CF/P.IVA. Nessuna modifica DB SafetyTraining necessaria per il formato v1.2.
+Secondo import identico:
+- stessa company/course/edition
+- 0 nuove aziende
+- 0 nuovi learner
+- 0 nuove edizioni
+- 0 nuovi enrollment
+- 0 nuovi placeholder
+- 1 enrollment riusato
+- 1 learner aggiornato/riusato.
 
-## Produzione Vercel — stato reale
-Progetto: `safety-manager-ultimate`.
+Conclusione: idempotenza e dedupe verificati. Rollback finale; controllo separato post-rollback = 0 mapping QA, 0 aziende QA, 0 learner QA, 0 catalog rows QA.
 
-Ultimo production verificato:
-- deployment `dpl_8kpuPLosszeyf4jpsin7bVEK15ba`;
-- `READY`;
-- commit `cff8aea4945d216f26af5988db0635b8d7cf526d`.
+## Produzione Vercel
+Deployment completo:
+- `dpl_2bAGCma5NeQVgv2L49rdhZ2yaZVm`
+- commit `3cc579b80dbec9c1cc68e4158ce2c0c3fe592175`
+- production / `READY`
+- alias `safety-manager-ultimate-safety-manager.vercel.app`.
 
-Quindi è live soltanto il primo commit del blocco. NON risultano live/verificati i commit successivi con:
-- warning storico al posto del blocco sui cambi azienda;
-- PWA v11;
-- caricamento diretto da `app.js`.
+Smoke live:
+- `app.js` HTTP 200 e direct-load del bridge;
+- bridge HTTP 200, v1.2, warning storico presente;
+- `sw.js` HTTP 200, cache `safetymanager-pwa-v11`, bridge in APP_SHELL.
 
-Tentato deployment production forzato dell'HEAD completo: Vercel ha risposto `402 payment_required`, codice `api-deployments-free-per-day`, perché il piano Hobby ha superato il limite giornaliero di deployment API (>100). Non modificare billing/piano automaticamente.
+Il precedente limite Vercel Hobby non blocca più questo deployment.
 
-## Prossimo passo esatto
-1. Appena il limite Vercel si libera o l'auto-deploy riparte, pubblicare l'HEAD corrente di `main`.
-2. Smoke live di `js/app.js`, `js/modules/safetytraining_bridge.js` e `sw.js`.
-3. Confermare `schema_version:'1.2'`, mismatch azienda come warning e cache `safetymanager-pwa-v11`.
-4. Eseguire un export/import di prova SafetyManager → SafetyTraining e ripeterlo una seconda volta per confermare idempotenza/dedupe.
-5. Aggiornare SEMPRE questo file e `docs/SAFETYMANAGER_HANDOFF.md` dopo la verifica.
+## Check / CI
+- `npm run check` include il bridge.
+- Il repo SafetyManager NON ha workflow GitHub Actions configurati; non dichiarare CI automatica.
+
+## Compatibilità SafetyTraining
+`import_safetymanager_package(jsonb)` accetta `1.x`; mapping company/learner/project/enrollment sono idempotenti. Course code sconosciuto genera correttamente un placeholder draft `needs_configuration`. Nessuna migration SafetyTraining necessaria per v1.2.
+
+## Prossimo punto tecnico da affrontare
+L'importer SafetyManager, quando trova un learner esistente, oggi imposta `learners.company_id` all'azienda del progetto importato. Con progetti storici questo può trasformare un datore storico nel datore corrente. Prima di automatizzare ulteriormente il bridge, valutare una correzione che preservi la company corrente o introduca uno storico formale learner↔azienda.
+
+Dopo questo hardening, tornare all'E2E learner SafetyTraining: invito → delivery → Auth → verifica identità → claim → dashboard.
