@@ -121,7 +121,7 @@
         else seen.set(learner.fiscal_code,learner.external_id);
       }
       if(learner.source_company_id && learner.source_company_id!==payload.company.external_id){
-        errors.push(`${label}: il corsista risulta collegato a un’azienda diversa da quella del progetto.`);
+        warnings.push(`${label}: anagrafica corrente su azienda diversa; per il trasferimento vale l’azienda storica del progetto.`);
       }
     });
 
@@ -175,7 +175,7 @@
         <div><label class="text-[10px] font-black uppercase tracking-widest text-slate-500">Progetto / corso</label><select id="stx-project" class="input-field mt-1"><option value="">Caricamento…</option></select></div>
         <div id="stx-preview" class="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">Seleziona un progetto.</div>
         <div class="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-xs text-blue-950 leading-relaxed"><strong>Trasferiti:</strong> azienda e identificativo fiscale, ATECO, corsisti iscritti e Codici Fiscali, corso, date, sede, assegnazioni e contesto rischi. Documenti, firme e dati sanitari non vengono esportati.</div>
-        <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-950 leading-relaxed">P. IVA/CF azienda e CF corsisti vengono normalizzati prima dell’export. Se mancano o ci sono incoerenze azienda-corsista, il file non viene creato.</div>
+        <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-950 leading-relaxed">P. IVA/CF azienda e CF corsisti vengono normalizzati prima dell’export. Identificativi mancanti o CF duplicati bloccano il file; un cambio azienda successivo del corsista viene segnalato senza perdere il contesto storico del progetto.</div>
         <div id="stx-message" class="text-xs min-h-5"></div>
       </div>
       <div class="p-5 border-t border-slate-200 bg-slate-50 flex justify-end gap-3"><button id="stx-cancel" class="px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-xs font-black uppercase">Annulla</button><button id="stx-export" class="px-5 py-2.5 rounded-xl bg-cyan-700 hover:bg-cyan-600 text-white text-xs font-black uppercase">Esporta JSON</button></div>
