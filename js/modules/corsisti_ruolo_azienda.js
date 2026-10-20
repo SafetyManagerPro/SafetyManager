@@ -56,18 +56,10 @@
   // storicamente non includeva ruolo_aziendale. Recuperiamo quindi il valore reale dal DB
   // e lo reinseriamo nei record usati dall'Anagrafica senza perdere iscrizioni/relazioni.
   async function refreshRoleCache(){
-    if(typeof window.getCorsisti !== 'function') return;
-    try {
-      const fresh = await window.getCorsisti();
-      const map = new Map((fresh || []).map(c => [String(c.id), normalizeRole(c.ruolo_aziendale)]));
-      window.__safetyCorsistiRoleMap = map;
-      (window.corsistiList || []).forEach(c => {
-        const role = map.get(String(c.id));
-        if(role) c.ruolo_aziendale = role;
-      });
-    } catch(e) {
-      console.warn('Ruolo aziendale: impossibile riallineare i valori dall’anagrafica.', e);
-    }
+    const current=Array.isArray(window.corsistiList)?window.corsistiList:[];
+    if(!current.length) return;
+    const map=new Map(current.map(c=>[String(c.id),normalizeRole(c.ruolo_aziendale)]));
+    window.__safetyCorsistiRoleMap=map;
   }
 
   function roleForId(id){
