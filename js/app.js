@@ -62,15 +62,28 @@ window.getSafetySession = async function() {
     }
 };
 
-window.getSafetyAdminUser = async function() {
+window.SAFETY_ADMIN_CACHE_MS = 30000;
+window.__safetyAdminUserCache = null;
+
+window.getSafetyAdminUser = async function(options = {}) {
     if (!window.supabaseClient?.auth) return null;
+    const now = Date.now();
+    const cached = window.__safetyAdminUserCache;
+    if (!options.force && cached?.user && (now - cached.checkedAt) < window.SAFETY_ADMIN_CACHE_MS) {
+        return cached.user;
+    }
     try {
         const { data, error } = await window.supabaseClient.auth.getUser();
         if (error) throw error;
         const user = data?.user || null;
-        if (!user || !window.isSafetyAdminEmail(user.email)) return null;
+        if (!user || !window.isSafetyAdminEmail(user.email)) {
+            window.__safetyAdminUserCache = null;
+            return null;
+        }
+        window.__safetyAdminUserCache = { user, checkedAt: now };
         return user;
     } catch (error) {
+        window.__safetyAdminUserCache = null;
         console.warn('SafetyManager: utente Supabase non disponibile.', error);
         return null;
     }
@@ -136,6 +149,7 @@ window.handleSafetyLogin = async function(event) {
             alert('Utente non autorizzato.');
             return;
         }
+        window.__safetyAdminUserCache = { user: data.user, checkedAt: Date.now() };
         if (typeof window.installSafetySignaturePatches === 'function') window.installSafetySignaturePatches();
         await window.loadModule('admin');
     } catch (error) {
@@ -165,6 +179,7 @@ window.sendSafetyMagicLink = async function() {
 };
 
 window.logoutSafetyAdmin = async function() {
+    window.__safetyAdminUserCache = null;
     try {
         await window.supabaseClient.auth.signOut();
     } catch (error) {
@@ -302,13 +317,17 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (window.supabaseClient?.auth?.onAuthStateChange) {
         window.supabaseClient.auth.onAuthStateChange(async (event, session) => {
             if (event === 'SIGNED_OUT') {
+                window.__safetyAdminUserCache = null;
                 window.showSafetyLogin('Sessione chiusa.');
                 return;
             }
             if (session?.user && window.isSafetyAdminEmail(session.user.email)) {
+                window.__safetyAdminUserCache = { user: session.user, checkedAt: Date.now() };
                 if (!window.safetyAuthChecked) return;
-                if (typeof window.installSafetySignaturePatches === 'function') window.installSafetySignaturePatches();
-                await window.loadModule('admin');
+                if (event === 'SIGNED_IN') {
+                    if (typeof window.installSafetySignaturePatches === 'function') window.installSafetySignaturePatches();
+                    await window.loadModule('admin');
+                }
             }
         });
     }
