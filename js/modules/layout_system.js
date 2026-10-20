@@ -18,7 +18,16 @@
       body:not(.is-printing-temp) #docente-form-card,
       body:not(.is-printing-temp) #progetto-form-col:not(.fixed) #progetto-form-card,
       body:not(.is-printing-temp) #app-content[data-safety-module="corsisti"]>.safety-module-root>div:first-child>.sticky,
-      body:not(.is-printing-temp) #app-content[data-safety-module="stampe"]>.safety-module-root>div:first-child>.sticky{top:calc(var(--nav-offset,84px) + var(--safety-sticky-gap))!important;max-height:calc(100dvh - var(--nav-offset,84px) - 24px)!important;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain;scrollbar-gutter:stable}
+      body:not(.is-printing-temp) #app-content[data-safety-module="stampe"]>.safety-module-root>div:first-child>.sticky{
+        top:calc(var(--nav-offset,84px) + var(--safety-sticky-gap))!important;
+        max-height:calc(100dvh - var(--nav-offset,84px) - 24px)!important;
+        overflow:auto!important;
+        overscroll-behavior:contain;
+        scrollbar-gutter:stable both-edges;
+        scrollbar-width:thin;
+        scrollbar-color:#94a3b8 #f8fafc;
+        -webkit-overflow-scrolling:touch
+      }
     }
     @media(max-width:1023px){
       body:not(.is-printing-temp) #view-aziende>.grid>.sticky,
@@ -27,6 +36,26 @@
       body:not(.is-printing-temp) #app-content[data-safety-module="corsisti"]>.safety-module-root>div:first-child>.sticky,
       body:not(.is-printing-temp) #app-content[data-safety-module="stampe"]>.safety-module-root>div:first-child>.sticky{position:static!important;top:auto!important;max-height:none!important;overflow:visible!important}
     }
+    body:not(.is-printing-temp) #view-aziende>.grid>.sticky *,
+    body:not(.is-printing-temp) #docente-form-card *,
+    body:not(.is-printing-temp) #progetto-form-card *,
+    body:not(.is-printing-temp) #app-content[data-safety-module="corsisti"]>.safety-module-root>div:first-child>.sticky *{min-width:0;box-sizing:border-box}
+    body:not(.is-printing-temp) #view-aziende>.grid>.sticky input,
+    body:not(.is-printing-temp) #view-aziende>.grid>.sticky select,
+    body:not(.is-printing-temp) #view-aziende>.grid>.sticky textarea,
+    body:not(.is-printing-temp) #docente-form-card input,
+    body:not(.is-printing-temp) #docente-form-card select,
+    body:not(.is-printing-temp) #docente-form-card textarea,
+    body:not(.is-printing-temp) #progetto-form-card input,
+    body:not(.is-printing-temp) #progetto-form-card select,
+    body:not(.is-printing-temp) #progetto-form-card textarea,
+    body:not(.is-printing-temp) #app-content[data-safety-module="corsisti"]>.safety-module-root>div:first-child>.sticky input,
+    body:not(.is-printing-temp) #app-content[data-safety-module="corsisti"]>.safety-module-root>div:first-child>.sticky select,
+    body:not(.is-printing-temp) #app-content[data-safety-module="corsisti"]>.safety-module-root>div:first-child>.sticky textarea{max-width:100%!important}
+    body:not(.is-printing-temp) #prog-draft-iscritti-box [data-always-visible],
+    body:not(.is-printing-temp) #panel-iscrizioni [data-always-visible]{flex-shrink:0!important;white-space:nowrap!important}
+    body:not(.is-printing-temp) #popup-corsisti-box:not(.hidden){display:flex!important;flex-direction:column!important}
+    body:not(.is-printing-temp) #popup-corsisti-list{flex:1 1 auto!important;min-height:0!important;overflow-y:auto!important;overflow-x:auto!important;overscroll-behavior:contain!important;scrollbar-gutter:stable both-edges}
     body:not(.is-printing-temp) .safety-print-viewport{overflow:auto!important;min-width:0!important;max-width:100%!important;align-items:flex-start!important;justify-content:flex-start!important;padding:clamp(.5rem,2vw,2rem)!important;overscroll-behavior:contain;scrollbar-gutter:stable both-edges}
     body:not(.is-printing-temp) .safety-print-viewport.safety-preview-has-room{justify-content:center!important}
     body:not(.is-printing-temp) .safety-print-viewport #print-preview-container{flex:0 0 auto!important;max-width:none!important}
