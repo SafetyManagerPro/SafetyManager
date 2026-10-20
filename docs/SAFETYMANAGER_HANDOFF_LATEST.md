@@ -1,6 +1,6 @@
 # SafetyManager — Ultimo blocco
 
-Aggiornato: 2026-10-17
+Aggiornato: 2026-10-20
 Stato: bridge SafetyTraining v1.2 LIVE e invariato; SafetyTraining v21_024/admin UX v21.4 ora espone l'anagrafica corsista con un unico campo `Cognome/Nome`, coerente con `full_name` esportato da SafetyManager.
 
 ## Bridge SafetyManager — payload invariato
@@ -59,3 +59,39 @@ Il repo SafetyManager non ha GitHub Actions configurati: non dichiarare CI autom
 
 ## Prossimo passo esatto
 Nessuna modifica bridge richiesta. Proseguire lato SafetyTraining con smoke visuale admin desktop/tablet/mobile e poi E2E learner: invito → delivery → Auth → verifica identità → claim → dashboard.
+
+
+## SafetyManager — ottimizzazioni e layout recenti (20/10/2026)
+
+### Prestazioni caricamento
+Intervento completato e verificato con riscontro utente di notevole aumento della velocità:
+- eliminato il loop del directory documenti che poteva moltiplicare le letture `corsisti`;
+- eliminate letture duplicate dei ruoli corsista;
+- caricamento Aziende/Docenti/Corsisti/Progetti parallelizzato;
+- Step 67 e audit Dashboard eseguiti in batch;
+- deduplicate le letture Supabase identiche contemporanee;
+- attivato `responsive_table_performance.js`;
+- verifica admin Supabase riutilizzata per una finestra breve di 30 secondi, con invalidazione su logout/cambio sessione.
+Non sono state introdotte migrazioni o modifiche allo schema Supabase.
+
+### Sidebar Aziende / Docenti / Corsisti / Progetti
+Verifica e correzione layout completate:
+- su desktop le quattro sidebar sticky hanno altezza massima legata al viewport e `overflow:auto`, quindi possono scorrere verticalmente e, solo quando serve, orizzontalmente;
+- scrollbar stabilizzata e resa più evidente;
+- input/select/textarea nelle sidebar non possono più imporre larghezze oltre il pannello;
+- su tablet/mobile le sidebar restano nel flusso normale e usa lo scroll della pagina;
+- le tabelle mantengono i rispettivi wrapper `overflow-x-auto`.
+
+### Visibilità “Aggiungi corsista”
+Corretto il blocco Preiscrizione corsisti in Progetti:
+- select con `min-w-0`;
+- pulsanti `Aggiungi corsista` e `Nuovo` non comprimibili;
+- etichetta `Aggiungi corsista` sempre esplicita;
+- stessi vincoli applicati al pannello Gestione Iscritti;
+- `popup-corsisti-list` dispone ora di scroll verticale/orizzontale proprio, evitando tagli con liste lunghe.
+
+Commit funzionali di questo intervento:
+- `3c71aa0e3fd0e528096bd9b6969f79160a907ad2` — sidebar scrollabili/stabili;
+- `c95259865777cbdcbd812f50c4e3b80e728a0e24` — visibilità Aggiungi corsista.
+
+Regola operativa: dopo ogni modifica SafetyManager aggiornare questo handoff/promemoria con modifica, motivo, file coinvolti, commit, verifica produzione ed eventuali problemi aperti.
