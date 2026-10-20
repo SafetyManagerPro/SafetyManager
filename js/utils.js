@@ -460,12 +460,20 @@ window.loadDashboardCompliance = async function() {
         ? await window.getIscrizioniPerProgetti(projectIds)
         : await window.buildIscrizioniMapFallback(projects);
 
-    const projectIssues = [];
-    for (const p of projects) {
+    const step67Map = window.SafetyStep67?.evaluateProjects
+        ? await window.SafetyStep67.evaluateProjects(projects, iscrizioniMap)
+        : {};
+
+    const issueResults = await Promise.all(projects.map(async p => {
         const iscritti = iscrizioniMap[p.id] || [];
         const issues = window.dashGetProjectOverallIssues
-            ? await window.dashGetProjectOverallIssues(p, iscritti)
+            ? await window.dashGetProjectOverallIssues(p, iscritti, step67Map[p.id] || null)
             : [];
+        return { p, issues };
+    }));
+
+    const projectIssues = [];
+    issueResults.forEach(({ p, issues }) => {
         if (issues && issues.length) {
             projectIssues.push({
                 project_id: p.id,
@@ -475,7 +483,7 @@ window.loadDashboardCompliance = async function() {
                 fix: 'Apri il progetto, completa i dati evidenziati, verifica iscritti/documenti e ristampa il fascicolo se necessario.'
             });
         }
-    }
+    });
 
     window.dashRenderPanel(
         'dash-raccolta-errori-checks',
