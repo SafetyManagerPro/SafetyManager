@@ -25,24 +25,38 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
 });
 window.supabaseClient = supabaseClient;
 
+// Deduplica soltanto letture contemporanee identiche.
+// Non conserva risultati dopo la risposta: nessun rischio di mostrare dati obsoleti.
+window.__safetyReadInflight = window.__safetyReadInflight || new Map();
+window.safetyDedupRead = function(key, loader) {
+    const map = window.__safetyReadInflight;
+    if (map.has(key)) return map.get(key);
+    const promise = Promise.resolve().then(loader).finally(() => {
+        if (map.get(key) === promise) map.delete(key);
+    });
+    map.set(key, promise);
+    return promise;
+};
+
 // ==========================================
 // API AZIENDE (CRM)
 // ==========================================
 
 // Legge tutte le aziende in ordine alfabetico
 window.getAziende = async function() {
-    try {
-        const { data, error } = await supabaseClient
-            .from('aziende')
-            .select('*')
-            .order('ragione_sociale', { ascending: true });
-            
-        if (error) throw error;
-        return data || [];
-    } catch (err) {
-        console.error("Errore lettura Aziende:", err);
-        return [];
-    }
+    return window.safetyDedupRead('aziende:list', async () => {
+        try {
+            const { data, error } = await supabaseClient
+                .from('aziende')
+                .select('*')
+                .order('ragione_sociale', { ascending: true });
+            if (error) throw error;
+            return data || [];
+        } catch (err) {
+            console.error("Errore lettura Aziende:", err);
+            return [];
+        }
+    });
 };
 
 // Crea o aggiorna un'azienda
@@ -98,10 +112,13 @@ window.deleteAzienda = async function(id) {
 // API DOCENTI
 // ==========================================
 window.getDocenti = async function() {
-    try {
-        const { data, error } = await supabaseClient.from('docenti').select('*').order('nome_cognome');
-        if (error) throw error; return data || [];
-    } catch (err) { console.error(err); return []; }
+    return window.safetyDedupRead('docenti:list', async () => {
+        try {
+            const { data, error } = await supabaseClient.from('docenti').select('*').order('nome_cognome');
+            if (error) throw error;
+            return data || [];
+        } catch (err) { console.error(err); return []; }
+    });
 };
 
 window.saveDocente = async function(record) {
@@ -138,13 +155,16 @@ window.deleteDocente = async function(id) {
 // API CORSISTI (Con Join su Aziende)
 // ==========================================
 window.getCorsisti = async function() {
-    try {
-        const { data, error } = await supabaseClient
-            .from('corsisti')
-            .select('*, aziende(ragione_sociale, piva_cf, indirizzo, sede_operativa, ateco, referente)')
-            .order('nome_cognome');
-        if (error) throw error; return data || [];
-    } catch (err) { console.error(err); return []; }
+    return window.safetyDedupRead('corsisti:list', async () => {
+        try {
+            const { data, error } = await supabaseClient
+                .from('corsisti')
+                .select('*, aziende(ragione_sociale, piva_cf, indirizzo, sede_operativa, ateco, referente)')
+                .order('nome_cognome');
+            if (error) throw error;
+            return data || [];
+        } catch (err) { console.error(err); return []; }
+    });
 };
 
 window.normalizzaCodiceFiscale = function(cf) {
@@ -223,13 +243,16 @@ window.deleteCorsistaData = async function(id) {
 // API PROGETTI
 // ==========================================
 window.getProgetti = async function() {
-    try {
-        const { data, error } = await supabaseClient
-            .from('progetti')
-            .select('*, aziende(ragione_sociale, piva_cf, indirizzo, sede_operativa, ateco, referente)')
-            .order('data_esame', { ascending: false });
-        if (error) throw error; return data || [];
-    } catch (err) { console.error(err); return []; }
+    return window.safetyDedupRead('progetti:list', async () => {
+        try {
+            const { data, error } = await supabaseClient
+                .from('progetti')
+                .select('*, aziende(ragione_sociale, piva_cf, indirizzo, sede_operativa, ateco, referente)')
+                .order('data_esame', { ascending: false });
+            if (error) throw error;
+            return data || [];
+        } catch (err) { console.error(err); return []; }
+    });
 };
 
 window.saveProgetto = async function(record) {
