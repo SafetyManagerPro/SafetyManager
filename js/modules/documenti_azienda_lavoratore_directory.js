@@ -56,41 +56,48 @@
 
   async function loadDirectory(force=false){
     if(D.directoryCache && !force) return D.directoryCache;
-    const [companies,people,projects]=await Promise.all([
-      typeof window.getAziende==='function'?window.getAziende():Promise.resolve(window.aziendeList||[]),
-      typeof window.getCorsisti==='function'?window.getCorsisti():Promise.resolve(window.corsistiList||[]),
-      typeof window.getProgetti==='function'?window.getProgetti():Promise.resolve(window.progettiList||[])
-    ]);
-    window.aziendeList=companies||[];
-    window.corsistiList=people||[];
-    window.progettiList=projects||[];
+    if(D.directoryLoadPromise) return D.directoryLoadPromise;
 
-    const companyMap=new Map((companies||[]).map(a=>[String(a.id),a]));
-    const projectMap=new Map((projects||[]).map(p=>[String(p.id),p]));
-    const viewPeople=(people||[]).map(p=>personView(p,companyMap));
-    const histories=new Map(viewPeople.map(p=>[p.id,[]]));
-    const ids=(projects||[]).map(p=>p.id).filter(Boolean);
-    let enrollmentMap={};
+    D.directoryLoadPromise=(async()=>{
+      const [companies,people,projects]=await Promise.all([
+        (Array.isArray(window.aziendeList)&&window.aziendeList.length&&!force)?Promise.resolve(window.aziendeList):(typeof window.getAziende==='function'?window.getAziende():Promise.resolve([])),
+        (Array.isArray(window.corsistiList)&&window.corsistiList.length&&!force)?Promise.resolve(window.corsistiList):(typeof window.getCorsisti==='function'?window.getCorsisti():Promise.resolve([])),
+        (Array.isArray(window.progettiList)&&window.progettiList.length&&!force)?Promise.resolve(window.progettiList):(typeof window.getProgetti==='function'?window.getProgetti():Promise.resolve([]))
+      ]);
+      window.aziendeList=companies||[];
+      window.corsistiList=people||[];
+      window.progettiList=projects||[];
 
-    if(ids.length && typeof window.getIscrizioniPerProgetti==='function') enrollmentMap=await window.getIscrizioniPerProgetti(ids);
-    else if(typeof window.getIscrizioni==='function'){
-      for(const id of ids) enrollmentMap[id]=await window.getIscrizioni(id);
-    }
+      const companyMap=new Map((companies||[]).map(a=>[String(a.id),a]));
+      const projectMap=new Map((projects||[]).map(p=>[String(p.id),p]));
+      const viewPeople=(people||[]).map(p=>personView(p,companyMap));
+      const histories=new Map(viewPeople.map(p=>[p.id,[]]));
+      const ids=(projects||[]).map(p=>p.id).filter(Boolean);
+      let enrollmentMap={};
 
-    (projects||[]).forEach(project=>{
-      (enrollmentMap[project.id]||[]).forEach(enrollment=>{
-        const cid=String(enrollment.corsista_id||enrollment.corsisti?.id||'');
-        if(!cid || !histories.has(cid)) return;
-        const course=D.courseFrom(project);
-        const history={project,enrollment,course,role:D.inferRole(course.id)};
-        history.completed=trainingCompleted(history);
-        histories.get(cid).push(history);
+      if(ids.length && typeof window.getIscrizioniPerProgetti==='function') enrollmentMap=await window.getIscrizioniPerProgetti(ids);
+      else if(typeof window.getIscrizioni==='function'){
+        for(const id of ids) enrollmentMap[id]=await window.getIscrizioni(id);
+      }
+
+      (projects||[]).forEach(project=>{
+        (enrollmentMap[project.id]||[]).forEach(enrollment=>{
+          const cid=String(enrollment.corsista_id||enrollment.corsisti?.id||'');
+          if(!cid || !histories.has(cid)) return;
+          const course=D.courseFrom(project);
+          const history={project,enrollment,course,role:D.inferRole(course.id)};
+          history.completed=trainingCompleted(history);
+          histories.get(cid).push(history);
+        });
       });
-    });
-    histories.forEach(list=>list.sort((a,b)=>String(b.project?.data_esame||b.project?.data_inizio||'').localeCompare(String(a.project?.data_esame||a.project?.data_inizio||''))));
+      histories.forEach(list=>list.sort((a,b)=>String(b.project?.data_esame||b.project?.data_inizio||'').localeCompare(String(a.project?.data_esame||a.project?.data_inizio||''))));
 
-    D.directoryCache={companies:companies||[],people:viewPeople,projects:projects||[],projectMap,histories,loadedAt:Date.now()};
-    return D.directoryCache;
+      D.directoryCache={companies:companies||[],people:viewPeople,projects:projects||[],projectMap,histories,loadedAt:Date.now()};
+      return D.directoryCache;
+    })();
+
+    try{return await D.directoryLoadPromise;}
+    finally{D.directoryLoadPromise=null;}
   }
 
   D.loadDirectory=loadDirectory;
@@ -179,17 +186,26 @@
     const box=document.getElementById('safety-company-doc-buttons');
     if(!box) return false;
     if(box.dataset.directoryReady==='1'&&!force){updateLauncherState();return true;}
+    if(box.dataset.directoryLoading==='1'&&!force) return false;
+
+    box.dataset.directoryLoading='1';
     box.innerHTML='<div class="p-3 text-[10px] font-bold text-slate-500">Caricamento anagrafiche e storico formativo...</div>';
-    await loadDirectory(force);
-    box.innerHTML=launcherHtml();
-    box.dataset.directoryReady='1';
-    const cs=document.getElementById('scd-launch-company');
-    cs.innerHTML='<option value="">-- Seleziona azienda --</option>'+D.directoryCache.companies.map(a=>`<option value="${esc(a.id)}">${esc(a.ragione_sociale||'Azienda')}</option>`).join('');
-    const preferred=latestProjectCompany()||String(D.directoryCache.companies[0]?.id||'');
-    if(preferred) cs.value=preferred;
-    populatePersons('__all__');
-    updateLauncherState();
-    return true;
+    try{
+      await loadDirectory(force);
+      if(!box.isConnected) return false;
+      box.innerHTML=launcherHtml();
+      box.dataset.directoryReady='1';
+      const cs=document.getElementById('scd-launch-company');
+      if(!cs) return false;
+      cs.innerHTML='<option value="">-- Seleziona azienda --</option>'+D.directoryCache.companies.map(a=>`<option value="${esc(a.id)}">${esc(a.ragione_sociale||'Azienda')}</option>`).join('');
+      const preferred=latestProjectCompany()||String(D.directoryCache.companies[0]?.id||'');
+      if(preferred) cs.value=preferred;
+      populatePersons('__all__');
+      updateLauncherState();
+      return true;
+    } finally {
+      if(box.isConnected) delete box.dataset.directoryLoading;
+    }
   }
 
   window.scdLauncherCompanyChanged=()=>{populatePersons('__all__');updateLauncherState();};
@@ -363,6 +379,19 @@
 
   D.refreshDirectoryLauncher=refreshLauncher;
   const root=document.getElementById('app-content')||document.body;
-  new MutationObserver(()=>{if(document.getElementById('safety-company-doc-buttons'))setTimeout(upgrade,30);}).observe(root,{childList:true,subtree:true});
-  setTimeout(upgrade,100);
+  let upgradeTimer=null;
+  const scheduleUpgrade=()=>{
+    const box=document.getElementById('safety-company-doc-buttons');
+    if(!box||box.dataset.directoryReady==='1'||box.dataset.directoryLoading==='1') return;
+    clearTimeout(upgradeTimer);
+    upgradeTimer=setTimeout(upgrade,30);
+  };
+  new MutationObserver(mutations=>{
+    if(!mutations.some(m=>[...m.addedNodes].some(node=>{
+      if(!(node instanceof HTMLElement)) return false;
+      return node.id==='safety-company-doc-buttons'||!!node.querySelector?.('#safety-company-doc-buttons');
+    }))) return;
+    scheduleUpgrade();
+  }).observe(root,{childList:true,subtree:true});
+  setTimeout(scheduleUpgrade,100);
 })();
