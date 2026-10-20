@@ -351,15 +351,17 @@ window.dashGetDigitalProcedureIssues = function(p, iscritti) {
 };
 
 
-window.dashGetCourseDoneIssues = async function(p, iscrittiOverride = null) {
+window.dashGetCourseDoneIssues = async function(p, iscrittiOverride = null, step67StateOverride = null) {
     if (!window.dashIsPastOrToday(p.data_esame)) return null;
     const iscritti = Array.isArray(iscrittiOverride) ? iscrittiOverride : await window.getIscrizioni(p.id);
 
     // Quando Step 67 è disponibile, il vecchio audit eredita le stesse categorie
     // della checklist e della chiusura: qui restano solo gli errori sostanziali.
-    if (window.SafetyStep67?.evaluateProject) {
-        const state67 = await window.SafetyStep67.evaluateProject(p, iscritti);
-        const errors67 = (state67.errori || []).map(item => item.detail ? `${item.label}: ${item.detail}` : item.label);
+    // Se la lista Progetti ha già calcolato Step 67 in batch, riusa quello stato
+    // invece di effettuare due query aggiuntive per ogni singolo progetto.
+    if (step67StateOverride || window.SafetyStep67?.evaluateProject) {
+        const state67 = step67StateOverride || await window.SafetyStep67.evaluateProject(p, iscritti);
+        const errors67 = (state67?.errori || []).map(item => item.detail ? `${item.label}: ${item.detail}` : item.label);
         return errors67.length ? {
             project_id: p.id,
             target: 'corsi_svolti',
@@ -420,12 +422,12 @@ window.dashGetCommunicationIssues = function(p) {
 };
 
 
-window.dashGetProjectOverallIssues = async function(p, iscrittiOverride = null) {
+window.dashGetProjectOverallIssues = async function(p, iscrittiOverride = null, step67StateOverride = null) {
     const issues = [];
     const iscritti = Array.isArray(iscrittiOverride) ? iscrittiOverride : await window.getIscrizioni(p.id);
     const pi = await window.dashGetProjectIssues(p, iscritti);
     if (pi) issues.push(...pi.errors);
-    const ci = await window.dashGetCourseDoneIssues(p, iscritti);
+    const ci = await window.dashGetCourseDoneIssues(p, iscritti, step67StateOverride);
     if (ci) issues.push(...ci.errors);
     return issues;
 };
@@ -1011,6 +1013,7 @@ window.loadCorsistiTable = async function() {
             luogo_data_nascita,
             mansione_storica,
             azienda_id,
+            ruolo_aziendale,
             documento_identita_url,
             codice_fiscale_url,
             cittadinanza,
@@ -1085,6 +1088,7 @@ window.loadCorsistiTable = async function() {
                 luogo_data_nascita,
                 mansione_storica,
                 azienda_id,
+                ruolo_aziendale,
                 aziende ( ragione_sociale, sede_operativa ),
                 iscrizioni (
                     id_certificato,
@@ -3307,11 +3311,18 @@ window.loadProgettiTable = async function() {
     // L'utente può aprirlo manualmente con la freccia/pulsante "Apri cruscotto".
     window.projectQualityExpanded = {};
     
-    // Step 42: ricarico sempre anagrafiche collegate, così modifiche a clienti/docenti/corsisti
-    // si propagano subito nella vista Progetti e nelle successive stampe.
-    window.aziendeList = await window.getAziende();
-    window.docentiList = await window.getDocenti();
-    window.corsistiList = await window.getCorsisti();
+    // Le anagrafiche e i progetti sono indipendenti: li carichiamo in parallelo
+    // per evitare quattro latenze di rete consecutive all'apertura della vista.
+    const [aziende, docenti, corsisti, progetti] = await Promise.all([
+        window.getAziende(),
+        window.getDocenti(),
+        window.getCorsisti(),
+        window.getProgetti()
+    ]);
+    window.aziendeList = aziende || [];
+    window.docentiList = docenti || [];
+    window.corsistiList = corsisti || [];
+    window.progettiList = progetti || [];
     
     const selAzienda = document.getElementById('prog-azienda');
     if(selAzienda) {
@@ -3346,8 +3357,6 @@ window.loadProgettiTable = async function() {
     if (mobileBox) mobileBox.innerHTML = '<div class="p-6 text-center text-slate-400 font-bold uppercase text-xs"><i data-lucide="loader-2" class="w-5 h-5 animate-spin mx-auto mb-2"></i> Caricamento progetti...</div>';
     if(typeof lucide !== 'undefined') lucide.createIcons();
 
-    window.progettiList = await window.getProgetti();
-
     if (window.progettiList.length === 0) {
         if (tbody) tbody.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-slate-500 italic">Nessun corso registrato.</td></tr>';
         if (mobileBox) mobileBox.innerHTML = '<div class="p-6 text-center text-slate-500 italic bg-slate-900 rounded-xl border border-slate-700">Nessun corso registrato.</div>';
@@ -3359,11 +3368,26 @@ window.loadProgettiTable = async function() {
         ? await window.getIscrizioniPerProgetti(ids)
         : await window.buildIscrizioniMapFallback(window.progettiList);
 
+    // Step 67 viene calcolato una sola volta per tutti i progetti.
+    // Prima il ciclo sottostante poteva generare 2 query per ogni progetto.
+    const step67Map = window.SafetyStep67?.evaluateProjects
+        ? await window.SafetyStep67.evaluateProjects(window.progettiList, window.progettiIscrizioniMap)
+        : {};
+
+    const issuePairs = await Promise.all(window.progettiList.map(async p => {
+        const iscritti = window.progettiIscrizioniMap[p.id] || [];
+        const issues = (typeof window.dashGetProjectOverallIssues === 'function')
+            ? await window.dashGetProjectOverallIssues(p, iscritti, step67Map[p.id] || null)
+            : [];
+        return [p.id, issues];
+    }));
+    const issuesByProject = Object.fromEntries(issuePairs);
+
     let tableHtml = '';
     let mobileHtml = '';
     for (const p of window.progettiList) {
         const iscritti = window.progettiIscrizioniMap[p.id] || [];
-        const issues = (typeof window.dashGetProjectOverallIssues === 'function') ? await window.dashGetProjectOverallIssues(p, iscritti) : [];
+        const issues = issuesByProject[p.id] || [];
         tableHtml += window.renderProjectDesktopRows(p, iscritti, issues);
         mobileHtml += window.renderProjectMobileCard(p, iscritti, issues);
     }
