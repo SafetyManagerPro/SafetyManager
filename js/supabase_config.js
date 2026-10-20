@@ -297,40 +297,46 @@ window.getIscrizioni = async function(progetto_id) {
 
 window.getIscrizioniPerProgetti = async function(progettoIds = []) {
     const ids = [...new Set((progettoIds || []).filter(Boolean))];
-    const map = {};
-    ids.forEach(id => { map[id] = []; });
-    if (!ids.length) return map;
+    const emptyMap = {};
+    ids.forEach(id => { emptyMap[id] = []; });
+    if (!ids.length) return emptyMap;
 
-    try {
-        let { data, error } = await supabaseClient
-            .from('iscrizioni')
-            .select('*, corsisti(id, azienda_id, nome_cognome, cf, luogo_data_nascita, mansione_storica, cittadinanza, studi_scolastici_italia, lingua_test_stato, lingua_test_data, lingua_test_parte1, lingua_test_parte2, lingua_test_parte3, lingua_test_valutatore, lingua_test_dichiarazione_dl, lingua_test_documento_url, lingua_test_note)')
-            .in('progetto_id', ids)
-            .order('created_at', { ascending: true });
-        if (error && (
-            String(error.message || '').includes('lingua_test_') ||
-            String(error.message || '').includes('cittadinanza') ||
-            String(error.message || '').includes('studi_scolastici_italia')
-        )) {
-            const retry = await supabaseClient
+    const key = 'iscrizioni:batch:' + [...ids].sort().join(',');
+    return window.safetyDedupRead(key, async () => {
+        const map = {};
+        ids.forEach(id => { map[id] = []; });
+
+        try {
+            let { data, error } = await supabaseClient
                 .from('iscrizioni')
-                .select('*, corsisti(id, azienda_id, nome_cognome, cf, luogo_data_nascita, mansione_storica)')
+                .select('*, corsisti(id, azienda_id, nome_cognome, cf, luogo_data_nascita, mansione_storica, cittadinanza, studi_scolastici_italia, lingua_test_stato, lingua_test_data, lingua_test_parte1, lingua_test_parte2, lingua_test_parte3, lingua_test_valutatore, lingua_test_dichiarazione_dl, lingua_test_documento_url, lingua_test_note)')
                 .in('progetto_id', ids)
                 .order('created_at', { ascending: true });
-            data = retry.data; error = retry.error;
+            if (error && (
+                String(error.message || '').includes('lingua_test_') ||
+                String(error.message || '').includes('cittadinanza') ||
+                String(error.message || '').includes('studi_scolastici_italia')
+            )) {
+                const retry = await supabaseClient
+                    .from('iscrizioni')
+                    .select('*, corsisti(id, azienda_id, nome_cognome, cf, luogo_data_nascita, mansione_storica)')
+                    .in('progetto_id', ids)
+                    .order('created_at', { ascending: true });
+                data = retry.data;
+                error = retry.error;
+            }
+            if (error) throw error;
+            (data || []).forEach(row => {
+                if (!map[row.progetto_id]) map[row.progetto_id] = [];
+                map[row.progetto_id].push(row);
+            });
+            return map;
+        } catch (err) {
+            console.error('Errore caricamento batch iscrizioni:', err);
+            return map;
         }
-        if (error) throw error;
-        (data || []).forEach(row => {
-            if (!map[row.progetto_id]) map[row.progetto_id] = [];
-            map[row.progetto_id].push(row);
-        });
-        return map;
-    } catch (err) {
-        console.error('Errore caricamento batch iscrizioni:', err);
-        return map;
-    }
+    });
 };
-
 
 window.updateIscrizioniCorsistaSnapshot = async function(corsistaId, corsistaRecord = {}) {
     if (!corsistaId) return true;
