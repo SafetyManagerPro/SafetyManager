@@ -167,6 +167,23 @@ window.getCorsisti = async function() {
     });
 };
 
+window.getCorsistaCompanyHistory = async function(corsistaId) {
+    if (!corsistaId) return [];
+    try {
+        const { data, error } = await supabaseClient
+            .from('corsisti_rapporti_azienda')
+            .select('*')
+            .eq('corsista_id', corsistaId)
+            .order('data_inizio', { ascending: false, nullsFirst: false })
+            .order('created_at', { ascending: false });
+        if (error) throw error;
+        return data || [];
+    } catch (err) {
+        console.error('Errore lettura storico aziende corsista:', err);
+        return [];
+    }
+};
+
 window.normalizzaCodiceFiscale = function(cf) {
     return String(cf || '').trim().toUpperCase().replace(/\s+/g, '');
 };
@@ -339,25 +356,10 @@ window.getIscrizioniPerProgetti = async function(progettoIds = []) {
 };
 
 window.updateIscrizioniCorsistaSnapshot = async function(corsistaId, corsistaRecord = {}) {
-    if (!corsistaId) return true;
-    const payload = {};
-    // In iscrizioni è presente almeno la mansione storica: va riallineata quando si modifica il corsista.
-    if (corsistaRecord.mansione_storica !== undefined) {
-        payload.mansione_storica = corsistaRecord.mansione_storica || '';
-    }
-    if (!Object.keys(payload).length) return true;
-
-    try {
-        const { error } = await supabaseClient
-            .from('iscrizioni')
-            .update(payload)
-            .eq('corsista_id', corsistaId);
-        if (error) throw error;
-        return true;
-    } catch (err) {
-        console.error('Errore propagazione dati corsista nelle iscrizioni:', err);
-        return false;
-    }
+    // Le iscrizioni sono record storici: azienda, mansione e ruolo del corso non devono
+    // cambiare quando viene aggiornata l'anagrafica corrente del corsista.
+    // La funzione resta per compatibilità con i vecchi chiamanti, ma non riscrive lo storico.
+    return true;
 };
 
 window.saveIscrizione = async function(record) {
