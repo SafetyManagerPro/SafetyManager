@@ -50,10 +50,12 @@ Non modificare SafetyManager per compensare questi stati: la governance dei cors
 - checks SafetyTraining #292 e #293 SUCCESS.
 
 ## Produzione SafetyManager
-- deployment `dpl_2bAGCma5NeQVgv2L49rdhZ2yaZVm`;
-- commit `3cc579b80dbec9c1cc68e4158ce2c0c3fe592175`;
+- deployment `dpl_6r8qf2LzDasFKDMQhBWK1Ls5RzXt`;
+- commit `5052a0d400ab5ab59e09a155d67b312dac995b5c`;
 - READY / production;
-- PWA `safetymanager-pwa-v11`.
+- PWA `safetymanager-pwa-v11`;
+- ultimo collaudo JS produzione: `supabase_config.js`, `utils.js`, `corsisti_ruolo_azienda.js` tutti `node --check OK`;
+- runtime errors Vercel rilevati dopo l'intervento: 0.
 
 Il repo SafetyManager non ha GitHub Actions configurati: non dichiarare CI automatica.
 
