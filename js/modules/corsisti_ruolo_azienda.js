@@ -17,6 +17,16 @@
     ? 'Datore di lavoro / legale rappresentante'
     : 'Lavoratore';
 
+  const esc = value => String(value ?? '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+
+  const formatDate = value => {
+    if(!value) return 'data non indicata';
+    const parts=String(value).split('-');
+    return parts.length===3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : String(value);
+  };
+
   window.__safetyCorsistiRoleMap = window.__safetyCorsistiRoleMap || new Map();
 
   function injectMainField(){
@@ -34,6 +44,76 @@
       </select>
       <p class="text-[9px] text-slate-400 font-bold uppercase mt-1">Il ruolo viene salvato insieme al record solo premendo “Salva Record”.</p>`;
     host.parentElement.insertBefore(wrap, host.nextSibling);
+  }
+
+  function injectCompanyHistoryPanel(){
+    const form=document.getElementById('form-corsista');
+    const company=document.getElementById('cor-azienda');
+    if(!form||!company||document.getElementById('cor-company-history-wrap')) return;
+    const host=company.closest('div');
+    if(!host||!host.parentElement) return;
+
+    const wrap=document.createElement('div');
+    wrap.id='cor-company-history-wrap';
+    wrap.className='rounded-xl border border-violet-200 bg-violet-50 p-3 space-y-2';
+    wrap.innerHTML=`
+      <div>
+        <p class="text-[10px] font-black uppercase text-violet-900 flex items-center gap-2">
+          <i data-lucide="history" class="w-4 h-4"></i> Azienda attuale e storico
+        </p>
+        <p class="text-[9px] leading-snug text-violet-800 mt-1">Per un cambio azienda modifica “Azienda di appartenenza” e salva. I corsi e gli attestati già svolti restano collegati all’azienda del relativo progetto storico.</p>
+      </div>
+      <div id="cor-company-change-warning" class="hidden rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-[9px] font-bold text-amber-900">
+        Stai cambiando l’azienda corrente. Al salvataggio il rapporto precedente verrà chiuso e ne verrà aperto uno nuovo; lo storico formativo non verrà modificato.
+      </div>
+      <details id="cor-company-history-details" class="rounded-lg border border-violet-200 bg-white">
+        <summary class="cursor-pointer px-3 py-2 text-[9px] font-black uppercase text-violet-800">Mostra storico aziende</summary>
+        <div id="cor-company-history-list" class="border-t border-violet-100 p-2 text-[9px] text-slate-600">
+          Seleziona un corsista per visualizzare lo storico.
+        </div>
+      </details>`;
+    host.parentElement.insertBefore(wrap,host.nextSibling);
+
+    company.addEventListener('change',()=>{
+      const warning=document.getElementById('cor-company-change-warning');
+      const original=company.dataset.originalCompanyId ?? '';
+      const current=company.value || '';
+      if(warning) warning.classList.toggle('hidden',!document.getElementById('cor-id')?.value || original===current);
+    });
+    if(window.lucide) window.lucide.createIcons({attrs:{'aria-hidden':'true'}});
+  }
+
+  async function loadCompanyHistory(corsistaId){
+    const list=document.getElementById('cor-company-history-list');
+    if(!list) return;
+    if(!corsistaId){
+      list.innerHTML='Seleziona un corsista per visualizzare lo storico.';
+      return;
+    }
+    list.innerHTML='<div class="py-2 text-slate-400 font-bold">Caricamento storico...</div>';
+    const rows=typeof window.getCorsistaCompanyHistory==='function'
+      ? await window.getCorsistaCompanyHistory(corsistaId)
+      : [];
+    if(!rows.length){
+      list.innerHTML='<div class="py-2 text-slate-400 font-bold">Nessun rapporto storico registrato.</div>';
+      return;
+    }
+    list.innerHTML=rows.map(row=>{
+      const current=!row.data_fine;
+      const company=row.azienda_nome_storica || (row.azienda_id ? 'Azienda registrata' : 'Nessuna azienda');
+      const period=`${row.data_inizio ? 'dal '+formatDate(row.data_inizio) : 'inizio non indicato'}${row.data_fine ? ' al '+formatDate(row.data_fine) : ' · attuale'}`;
+      return `<div class="py-2 border-b border-violet-100 last:border-b-0">
+        <div class="flex items-start justify-between gap-2">
+          <div class="min-w-0">
+            <p class="font-black uppercase text-slate-800 break-words">${esc(company)}</p>
+            <p class="font-mono text-[8px] text-slate-500">${esc(row.azienda_piva_cf_storica || '')}</p>
+            <p class="mt-1 text-slate-600">${esc(period)}</p>
+            <p class="mt-1"><strong>Mansione:</strong> ${esc(row.mansione_storica || '-')} · <strong>Ruolo:</strong> ${esc(window.getSafetyPersonRoleLabel(row.ruolo_aziendale))}</p>
+          </div>
+          ${current?'<span class="shrink-0 rounded-full bg-emerald-100 border border-emerald-200 px-2 py-0.5 text-[8px] font-black uppercase text-emerald-700">Attuale</span>':''}
+        </div>
+      </div>`;
+    }).join('');
   }
 
   function injectQuickAddField(){
@@ -122,6 +202,20 @@
       };
       if(id) record.id = id;
 
+      const previous = id ? (window.corsistiList || []).find(c => String(c.id) === String(id)) : null;
+      const oldCompany = String(previous?.azienda_id || '');
+      const newCompany = String(record.azienda_id || '');
+      if(previous && oldCompany !== newCompany) {
+        const oldName = previous?.aziende?.ragione_sociale || (oldCompany ? 'azienda precedente' : 'nessuna azienda');
+        const newObj = (window.aziendeList || []).find(a => String(a.id) === newCompany);
+        const newName = newObj?.ragione_sociale || (newCompany ? 'nuova azienda' : 'nessuna azienda');
+        const ok = confirm(
+          `Cambio azienda: ${oldName} → ${newName}.\n\n` +
+          'Il rapporto precedente verrà conservato nello storico. I corsi e gli attestati già svolti NON verranno modificati. Procedere?'
+        );
+        if(!ok) return false;
+      }
+
       const savedCorsista = await window.saveCorsistaData(record);
       if(!savedCorsista){
         alert('Errore nel salvataggio. Assicurati che il Codice Fiscale non sia già registrato.');
@@ -207,6 +301,14 @@
       injectMainField();
       const select = document.getElementById('cor-ruolo-aziendale');
       if(select) select.value = roleForId(id);
+      const company=document.getElementById('cor-azienda');
+      if(company){
+        const current=(window.corsistiList || []).find(c=>String(c.id)===String(id));
+        company.dataset.originalCompanyId=String(current?.azienda_id || '');
+      }
+      const warning=document.getElementById('cor-company-change-warning');
+      if(warning) warning.classList.add('hidden');
+      loadCompanyHistory(id);
       return result;
     };
     wrapped.__safetyRoleWrapped = true;
@@ -220,6 +322,11 @@
       const result = fn.apply(this, args);
       const select = document.getElementById('cor-ruolo-aziendale');
       if(select) select.value = 'lavoratore';
+      const company=document.getElementById('cor-azienda');
+      if(company) delete company.dataset.originalCompanyId;
+      const warning=document.getElementById('cor-company-change-warning');
+      if(warning) warning.classList.add('hidden');
+      loadCompanyHistory('');
       return result;
     };
     wrapped.__safetyRoleWrapped = true;
@@ -240,6 +347,7 @@
 
   function apply(){
     injectMainField();
+    injectCompanyHistoryPanel();
     injectQuickAddField();
     wrapLoadCorsistiTable();
     installMainSave();
