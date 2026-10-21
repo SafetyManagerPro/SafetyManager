@@ -1978,11 +1978,23 @@ window.buildIscrizioneRecord = function(project, corsista) {
     const seriale = String(Math.floor(Math.random() * 1000)).padStart(3, '0');
     const id_cert = `C${annoCert}-${project.codice}-${cfPart}-${seriale}`;
 
+    // Snapshot immutabile del rapporto lavorativo al momento del corso.
+    // Per i corsi legati a una committente prevale l'azienda del progetto;
+    // se il progetto non ne ha una, usiamo l'azienda corrente del corsista.
+    const snapshotCompanyId = project.azienda_id || corsista.azienda_id || null;
+    const snapshotCompany = project.aziende
+        || (window.aziendeList || []).find(a => String(a.id) === String(snapshotCompanyId))
+        || null;
+
     return {
         progetto_id: project.id,
         corsista_id: corsista.id,
         id_certificato: id_cert,
         mansione_storica: corsista.mansione_storica || null,
+        azienda_storica_id: snapshotCompanyId,
+        azienda_storica_nome: snapshotCompany?.ragione_sociale || null,
+        azienda_storica_piva_cf: snapshotCompany?.piva_cf || null,
+        ruolo_aziendale_storico: corsista.ruolo_aziendale || 'lavoratore',
         esito: "Idoneo",
         data_scadenza: dataScadenzaISO
     };
