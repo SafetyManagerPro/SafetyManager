@@ -251,11 +251,85 @@ window.saveCorsistaData = async function(record) {
     } catch (err) { console.error(err); return false; }
 };
 
-window.deleteCorsistaData = async function(id) {
+window.archiveCorsistaData = async function(id, reason = '') {
     try {
-        const { error } = await supabaseClient.from('corsisti').delete().eq('id', id);
-        if (error) throw error; return true;
-    } catch (err) { console.error(err); return false; }
+        const { data, error } = await supabaseClient
+            .from('corsisti')
+            .update({
+                archived_at: new Date().toISOString(),
+                archived_reason: String(reason || '').trim() || null
+            })
+            .eq('id', id)
+            .select();
+        if (error) throw error;
+        return data?.[0] || true;
+    } catch (err) {
+        console.error('Errore archiviazione corsista:', err);
+        return false;
+    }
+};
+
+window.restoreCorsistaData = async function(id) {
+    try {
+        const { data, error } = await supabaseClient
+            .from('corsisti')
+            .update({ archived_at: null, archived_reason: null })
+            .eq('id', id)
+            .select();
+        if (error) throw error;
+        return data?.[0] || true;
+    } catch (err) {
+        console.error('Errore ripristino corsista:', err);
+        return false;
+    }
+};
+
+window.getCorsistaDeleteImpact = async function(id) {
+    if (!id) return null;
+    try {
+        const [
+            iscrizioni,
+            crediti,
+            verifiche,
+            rapporti
+        ] = await Promise.all([
+            supabaseClient.from('iscrizioni').select('*', { count: 'exact', head: true }).eq('corsista_id', id),
+            supabaseClient.from('training_credits').select('*', { count: 'exact', head: true }).eq('corsista_id', id),
+            supabaseClient.from('training_effectiveness_checks').select('*', { count: 'exact', head: true }).eq('corsista_id', id),
+            supabaseClient.from('corsisti_rapporti_azienda').select('*', { count: 'exact', head: true }).eq('corsista_id', id)
+        ]);
+        return {
+            iscrizioni: iscrizioni.count || 0,
+            crediti: crediti.count || 0,
+            verifiche: verifiche.count || 0,
+            rapporti: rapporti.count || 0
+        };
+    } catch (err) {
+        console.error('Errore analisi cancellazione corsista:', err);
+        return null;
+    }
+};
+
+window.hardDeleteCorsistaData = async function(id, confirmation) {
+    try {
+        const { data, error } = await supabaseClient.rpc('safety_hard_delete_corsista', {
+            p_corsista_id: id,
+            p_confirmation: confirmation
+        });
+        if (error) throw error;
+        return data || true;
+    } catch (err) {
+        console.error('Errore eliminazione definitiva corsista:', err);
+        alert('Eliminazione definitiva non riuscita: ' + (err?.message || err));
+        return false;
+    }
+};
+
+// Compatibilità: la vecchia delete diretta non viene più usata.
+// Restituisce false per impedire cancellazioni accidentali che aggirano la procedura protetta.
+window.deleteCorsistaData = async function(id) {
+    console.warn('Cancellazione diretta corsista bloccata. Usa archiviazione o eliminazione definitiva protetta.', id);
+    return false;
 };// ==========================================
 // API PROGETTI
 // ==========================================
