@@ -550,6 +550,7 @@ window.loadAziendeTable = async function() {
         `;
     });
     tbody.innerHTML = html;
+    if(typeof window.filtraCorsisti === 'function') window.filtraCorsisti();
     if(typeof lucide !== 'undefined') lucide.createIcons();
 };
 
@@ -1022,6 +1023,8 @@ window.loadCorsistiTable = async function() {
             mansione_storica,
             azienda_id,
             ruolo_aziendale,
+            archived_at,
+            archived_reason,
             documento_identita_url,
             codice_fiscale_url,
             cittadinanza,
@@ -1065,6 +1068,8 @@ window.loadCorsistiTable = async function() {
                 luogo_data_nascita,
                 mansione_storica,
                 azienda_id,
+                archived_at,
+                archived_reason,
                 documento_identita_url,
                 codice_fiscale_url,
                 aziende ( ragione_sociale, sede_operativa ),
@@ -1097,6 +1102,8 @@ window.loadCorsistiTable = async function() {
                 mansione_storica,
                 azienda_id,
                 ruolo_aziendale,
+                archived_at,
+                archived_reason,
                 aziende ( ragione_sociale, sede_operativa ),
                 iscrizioni (
                     id_certificato,
@@ -1167,9 +1174,13 @@ window.loadCorsistiTable = async function() {
             ? `<div class="mt-1">${window.getDocumentoLinkHtml(cor.lingua_test_documento_url, 'Test compilato')}</div>`
             : '';
 
+        const archived = !!cor.archived_at;
+        const archivedBadge = archived
+            ? '<span class="inline-flex ml-2 rounded-full border border-slate-300 bg-slate-100 px-2 py-0.5 text-[8px] font-black uppercase text-slate-600">Archiviato</span>'
+            : '';
         html += `
-            <tr class="hover:bg-slate-50 transition-colors" data-corsista-azienda="${cor.azienda_id || ''}" data-corsista-corsi="${window.dashEscape(corsiIds)}">
-                <td class="p-3 border-b font-bold text-slate-800 text-xs">${cor.nome_cognome}</td>
+            <tr class="${archived ? 'bg-slate-50 opacity-75' : 'hover:bg-slate-50'} transition-colors" data-corsista-stato="${archived ? 'archiviato' : 'attivo'}" data-corsista-azienda="${cor.azienda_id || ''}" data-corsista-corsi="${window.dashEscape(corsiIds)}">
+                <td class="p-3 border-b font-bold text-slate-800 text-xs">${cor.nome_cognome}${archivedBadge}</td>
                 <td class="p-3 border-b font-mono text-[10px] text-slate-600">${cor.cf}</td>
                 <td class="p-3 border-b text-[10px] text-slate-600">
                     <p class="font-bold text-slate-700">${window.dashEscape(cor.mansione_storica || '-')}</p>
@@ -1188,7 +1199,10 @@ window.loadCorsistiTable = async function() {
                 <td class="p-3 border-b text-center whitespace-nowrap">
                     <button onclick="window.modificaCorsista('${cor.id}')" class="text-blue-600 hover:bg-blue-200 bg-blue-100 p-1.5 rounded transition shadow-sm" title="Modifica corsista"><i data-lucide="edit" class="w-3.5 h-3.5"></i></button>
                     <button onclick="window.apriFormazionePregressa && window.apriFormazionePregressa('${cor.id}')" class="text-violet-700 hover:bg-violet-200 bg-violet-100 p-1.5 rounded transition shadow-sm ml-1" title="Formazione pregressa / crediti"><i data-lucide="history" class="w-3.5 h-3.5"></i></button>
-                    <button onclick="window.eliminaCorsistaData('${cor.id}')" class="text-red-600 hover:bg-red-200 bg-red-100 p-1.5 rounded transition shadow-sm ml-1" title="Elimina corsista"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+                    ${archived
+                        ? `<button onclick="window.ripristinaCorsistaData('${cor.id}')" class="text-emerald-700 hover:bg-emerald-200 bg-emerald-100 p-1.5 rounded transition shadow-sm ml-1" title="Ripristina corsista"><i data-lucide="archive-restore" class="w-3.5 h-3.5"></i></button>
+                           <button onclick="window.eliminaDefinitivamenteCorsistaData('${cor.id}')" class="text-red-700 hover:bg-red-200 bg-red-100 p-1.5 rounded transition shadow-sm ml-1" title="Elimina definitivamente"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>`
+                        : `<button onclick="window.archiviaCorsistaDataUI('${cor.id}')" class="text-amber-700 hover:bg-amber-200 bg-amber-100 p-1.5 rounded transition shadow-sm ml-1" title="Archivia corsista"><i data-lucide="archive" class="w-3.5 h-3.5"></i></button>`}
                 </td>
             </tr>
         `;
@@ -1242,13 +1256,57 @@ window.modificaCorsista = function(id) {
     if (typeof window.populateLinguaTestCorsistaForm === 'function') window.populateLinguaTestCorsistaForm(cor);
 };
 
-window.eliminaCorsistaData = async function(id) {
-    if(confirm("Sicuro di voler eliminare questo corsista? Tutti i suoi attestati e le iscrizioni verranno perse irreversibilmente.")) {
-        if(await window.deleteCorsistaData(id)) {
-            await window.reloadLinkedViewsAfterMutation('corsista-delete', { corsistaId: id });
-        }
+window.archiviaCorsistaDataUI = async function(id) {
+    const cor = (window.corsistiList || []).find(c => c.id === id);
+    if(!cor) return alert('Corsista non trovato.');
+    const reason = prompt('Motivo dell’archiviazione (facoltativo):', '') ?? null;
+    if(reason === null) return;
+    if(!confirm(`Archiviare ${cor.nome_cognome}?\n\nNon sarà più selezionabile per nuovi corsi. Tutto lo storico, le iscrizioni e gli attestati resteranno disponibili.`)) return;
+    if(await window.archiveCorsistaData(id, reason)) {
+        await window.reloadLinkedViewsAfterMutation('corsista-archive', { corsistaId: id });
     }
 };
+
+window.ripristinaCorsistaData = async function(id) {
+    const cor = (window.corsistiList || []).find(c => c.id === id);
+    if(!cor) return alert('Corsista non trovato.');
+    if(!confirm(`Ripristinare ${cor.nome_cognome}? Tornerà selezionabile nei nuovi corsi.`)) return;
+    if(await window.restoreCorsistaData(id)) {
+        await window.reloadLinkedViewsAfterMutation('corsista-restore', { corsistaId: id });
+    }
+};
+
+window.eliminaDefinitivamenteCorsistaData = async function(id) {
+    const cor = (window.corsistiList || []).find(c => c.id === id);
+    if(!cor) return alert('Corsista non trovato.');
+    if(!cor.archived_at) return alert('Per sicurezza devi prima archiviare il corsista.');
+
+    const impact = await window.getCorsistaDeleteImpact(id);
+    if(!impact) return alert('Impossibile verificare i dati collegati. Eliminazione annullata.');
+
+    const summary =
+        `ATTENZIONE: eliminazione definitiva di ${cor.nome_cognome}.\n\n` +
+        `Iscrizioni/corsi: ${impact.iscrizioni}\n` +
+        `Crediti formativi: ${impact.crediti}\n` +
+        `Verifiche efficacia: ${impact.verifiche}\n` +
+        `Rapporti aziendali: ${impact.rapporti}\n\n` +
+        'Questa operazione elimina definitivamente anche i dati formativi collegati e non è annullabile.';
+    if(!confirm(summary)) return;
+
+    const required = 'ELIMINA ' + (cor.cf || '');
+    const typed = prompt(`Per confermare digita esattamente:\n${required}`, '');
+    if(typed !== required) {
+        if(typed !== null) alert('Conferma non corretta. Nessun dato eliminato.');
+        return;
+    }
+
+    if(await window.hardDeleteCorsistaData(id, typed)) {
+        await window.reloadLinkedViewsAfterMutation('corsista-hard-delete', { corsistaId: id });
+    }
+};
+
+// Alias legacy: il vecchio pulsante non deve più provocare una delete diretta.
+window.eliminaCorsistaData = window.archiviaCorsistaDataUI;
 
 window.resetFormCorsista = function() {
     document.getElementById('cor-id').value = "";
@@ -1262,6 +1320,7 @@ window.filtraCorsisti = function() {
     const textFilter = (document.getElementById('search-corsisti')?.value || '').toLowerCase();
     const aziendaFilter = document.getElementById('filter-corsisti-azienda')?.value || '';
     const corsoFilter = document.getElementById('filter-corsisti-corso')?.value || '';
+    const statoFilter = document.getElementById('filter-corsisti-stato')?.value || 'attivo';
     const rows = document.getElementById('tabella-corsisti')?.getElementsByTagName('tr') || [];
 
     for (let i = 0; i < rows.length; i++) {
@@ -1270,7 +1329,9 @@ window.filtraCorsisti = function() {
         const azOk = !aziendaFilter || rows[i].getAttribute('data-corsista-azienda') === aziendaFilter;
         const corsi = rows[i].getAttribute('data-corsista-corsi') || '';
         const corsoOk = !corsoFilter || corsi.split('|').includes(corsoFilter);
-        rows[i].style.display = (textOk && azOk && corsoOk) ? "" : "none";
+        const stato = rows[i].getAttribute('data-corsista-stato') || 'attivo';
+        const statoOk = statoFilter === 'tutti' || stato === statoFilter;
+        rows[i].style.display = (textOk && azOk && corsoOk && statoOk) ? "" : "none";
     }
 };
 
@@ -1990,6 +2051,9 @@ window.buildIscrizioneRecord = function(project, corsista) {
         progetto_id: project.id,
         corsista_id: corsista.id,
         id_certificato: id_cert,
+        nome_cognome_storico: corsista.nome_cognome || null,
+        cf_storico: corsista.cf || null,
+        luogo_data_nascita_storico: corsista.luogo_data_nascita || null,
         mansione_storica: corsista.mansione_storica || null,
         azienda_storica_id: snapshotCompanyId,
         azienda_storica_nome: snapshotCompany?.ragione_sociale || null,
@@ -2009,6 +2073,10 @@ window.salvaDraftCorsistiPerProgetto = async function(project) {
     for (const id of ids) {
         const c = corsisti.find(x => x.id === id);
         if (!c) continue;
+        if (c.archived_at) {
+            console.warn('Corsista archiviato, non iscritto:', c.nome_cognome);
+            continue;
+        }
         if (project.ente_erogatore === 'azienda' && c.azienda_id !== project.azienda_id) {
             console.warn('Corsista non appartenente alla stessa azienda, non iscritto:', c.nome_cognome);
             continue;
@@ -2546,7 +2614,7 @@ window.progettiIscrizioniMap = window.progettiIscrizioniMap || {};
 
 window.getCorsistaOptionsForProject = function(projectId, selectedId = '') {
     const p = (window.progettiList || []).find(x => x.id === projectId);
-    const list = window.corsistiList || [];
+    const list = (window.corsistiList || []).filter(c => !c.archived_at);
     const dipendenti = list.filter(c => p && c.azienda_id && c.azienda_id === p.azienda_id);
     const altri = list.filter(c => !p || !c.azienda_id || c.azienda_id !== p.azienda_id);
     let html = '<option value="">-- Seleziona corsista --</option>';
@@ -2648,6 +2716,7 @@ window.aggiungiIscrizioneDaId = async function(projectId, corsistaId) {
     const p = window.progettiList.find(x => x.id === projectId);
     const c = window.corsistiList.find(x => x.id === corsistaId);
     if (!p || !c) return alert('Dati progetto/corsista non disponibili. Ricarica la pagina.');
+    if (c.archived_at) return alert('Il corsista è archiviato. Ripristinalo dall’Anagrafica Corsisti prima di iscriverlo a un nuovo corso.');
 
     const iscrittiEsistenti = await window.getIscrizioni(projectId);
 
@@ -4221,9 +4290,9 @@ window.caricaDatiStampa = async function(projectId = null, options = {}) {
         return {
             iscrizione_id: isc.id,
             corsista_id: isc.corsista_id,
-            nome: c.nome_cognome || "Corsista non disponibile",
-            cf: c.cf || "",
-            nascita: c.luogo_data_nascita || "",
+            nome: isc.nome_cognome_storico || c.nome_cognome || "Corsista non disponibile",
+            cf: isc.cf_storico || c.cf || "",
+            nascita: isc.luogo_data_nascita_storico || c.luogo_data_nascita || "",
             mansione: isc.mansione_storica || c.mansione_storica || "N/D",
             id_certificato: isc.id_certificato,
             data_scadenza: isc.data_scadenza,
