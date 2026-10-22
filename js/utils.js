@@ -1944,7 +1944,7 @@ window.renderProgettoDraftCorsistiControls = function() {
     if (!sel || !list) return;
 
     const aziendaId = document.getElementById('prog-azienda')?.value || '';
-    const corsisti = window.corsistiList || [];
+    const corsisti = (window.corsistiList || []).filter(c => !c.archived_at);
     const selected = new Set(window.progettoDraftCorsistiIds || []);
     const same = corsisti.filter(c => aziendaId && c.azienda_id === aziendaId && !selected.has(c.id));
     const others = corsisti.filter(c => (!aziendaId || c.azienda_id !== aziendaId) && !selected.has(c.id));
@@ -1994,6 +1994,8 @@ window.aggiungiCorsistaDraftProgetto = function(corsistaId = null) {
     const sel = document.getElementById('prog-draft-corsista');
     const id = corsistaId || sel?.value || '';
     if (!id) return alert('Seleziona un corsista da aggiungere al progetto.');
+    const selectedCorsista=(window.corsistiList || []).find(c=>String(c.id)===String(id));
+    if(selectedCorsista?.archived_at) return alert('Il corsista è archiviato. Ripristinalo prima di aggiungerlo a un nuovo progetto.');
     window.progettoDraftCorsistiIds = window.progettoDraftCorsistiIds || [];
     if (window.progettoDraftCorsistiIds.includes(id)) return alert('Corsista già presente nella preiscrizione.');
     window.progettoDraftCorsistiIds.push(id);
