@@ -1022,6 +1022,7 @@ window.loadCorsistiTable = async function() {
             luogo_data_nascita,
             mansione_storica,
             azienda_id,
+            azienda_data_inizio,
             ruolo_aziendale,
             archived_at,
             archived_reason,
@@ -1068,6 +1069,7 @@ window.loadCorsistiTable = async function() {
                 luogo_data_nascita,
                 mansione_storica,
                 azienda_id,
+                azienda_data_inizio,
                 archived_at,
                 archived_reason,
                 documento_identita_url,
@@ -1101,6 +1103,7 @@ window.loadCorsistiTable = async function() {
                 luogo_data_nascita,
                 mansione_storica,
                 azienda_id,
+                azienda_data_inizio,
                 ruolo_aziendale,
                 archived_at,
                 archived_reason,
@@ -1219,6 +1222,7 @@ window.salvaCorsistaDB = async function() {
         luogo_data_nascita: document.getElementById('cor-nascita').value.trim(),
         mansione_storica: document.getElementById('cor-mansione') ? document.getElementById('cor-mansione').value.trim() : "",
         azienda_id: document.getElementById('cor-azienda').value || null,
+        azienda_data_inizio: document.getElementById('cor-azienda-data-inizio')?.value || null,
         documento_identita_url: document.getElementById('cor-doc-identita-url') ? document.getElementById('cor-doc-identita-url').value.trim() : '',
         codice_fiscale_url: document.getElementById('cor-doc-cf-url') ? document.getElementById('cor-doc-cf-url').value.trim() : '',
         ...(typeof window.collectLinguaTestCorsistaRecord === 'function' ? window.collectLinguaTestCorsistaRecord() : {})
@@ -1251,6 +1255,7 @@ window.modificaCorsista = function(id) {
         document.getElementById('cor-mansione').value = cor.mansione_storica || "";
     }
     document.getElementById('cor-azienda').value = cor.azienda_id || "";
+    if(document.getElementById('cor-azienda-data-inizio')) document.getElementById('cor-azienda-data-inizio').value = cor.azienda_data_inizio || "";
     if(document.getElementById('cor-doc-identita-url')) document.getElementById('cor-doc-identita-url').value = cor.documento_identita_url || "";
     if(document.getElementById('cor-doc-cf-url')) document.getElementById('cor-doc-cf-url').value = cor.codice_fiscale_url || "";
     if (typeof window.populateLinguaTestCorsistaForm === 'function') window.populateLinguaTestCorsistaForm(cor);
