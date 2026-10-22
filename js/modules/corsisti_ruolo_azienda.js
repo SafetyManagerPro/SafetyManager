@@ -66,6 +66,11 @@
       <div id="cor-company-change-warning" class="hidden rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-[9px] font-bold text-amber-900">
         Stai cambiando l’azienda corrente. Al salvataggio il rapporto precedente verrà chiuso e ne verrà aperto uno nuovo; lo storico formativo non verrà modificato.
       </div>
+      <div class="rounded-lg border border-violet-200 bg-white p-2">
+        <label for="cor-azienda-data-inizio" class="text-[9px] font-black uppercase text-violet-800 block mb-1">Decorrenza azienda attuale</label>
+        <input type="date" id="cor-azienda-data-inizio" max="2026-10-22" class="w-full px-3 py-2 bg-white border border-violet-200 rounded text-xs font-bold text-slate-700">
+        <p class="text-[8px] text-slate-500 mt-1">Nel cambio azienda indica la data effettiva di ingresso. Se non la modifichi, SafetyManager propone oggi.</p>
+      </div>
       <details id="cor-company-history-details" class="rounded-lg border border-violet-200 bg-white">
         <summary class="cursor-pointer px-3 py-2 text-[9px] font-black uppercase text-violet-800">Mostra storico aziende</summary>
         <div id="cor-company-history-list" class="border-t border-violet-100 p-2 text-[9px] text-slate-600">
@@ -76,9 +81,17 @@
 
     company.addEventListener('change',()=>{
       const warning=document.getElementById('cor-company-change-warning');
+      const dateInput=document.getElementById('cor-azienda-data-inizio');
       const original=company.dataset.originalCompanyId ?? '';
       const current=company.value || '';
-      if(warning) warning.classList.toggle('hidden',!document.getElementById('cor-id')?.value || original===current);
+      const isExisting=!!document.getElementById('cor-id')?.value;
+      const isChanged=isExisting && original!==current;
+      if(warning) warning.classList.toggle('hidden',!isChanged);
+      if(dateInput && current){
+        if(isChanged || !dateInput.value) dateInput.value=new Date().toISOString().slice(0,10);
+      } else if(dateInput && !current) {
+        dateInput.value='';
+      }
     });
     if(window.lucide) window.lucide.createIcons({attrs:{'aria-hidden':'true'}});
   }
@@ -195,6 +208,7 @@
         luogo_data_nascita: document.getElementById('cor-nascita')?.value.trim() || '',
         mansione_storica: document.getElementById('cor-mansione')?.value.trim() || '',
         azienda_id: document.getElementById('cor-azienda')?.value || null,
+        azienda_data_inizio: document.getElementById('cor-azienda-data-inizio')?.value || null,
         ruolo_aziendale: normalizeRole(document.getElementById('cor-ruolo-aziendale')?.value),
         documento_identita_url: document.getElementById('cor-doc-identita-url')?.value.trim() || '',
         codice_fiscale_url: document.getElementById('cor-doc-cf-url')?.value.trim() || '',
@@ -209,8 +223,10 @@
         const oldName = previous?.aziende?.ragione_sociale || (oldCompany ? 'azienda precedente' : 'nessuna azienda');
         const newObj = (window.aziendeList || []).find(a => String(a.id) === newCompany);
         const newName = newObj?.ragione_sociale || (newCompany ? 'nuova azienda' : 'nessuna azienda');
+        const effectiveDate = record.azienda_data_inizio || new Date().toISOString().slice(0,10);
+        const effectiveLabel = formatDate(effectiveDate);
         const ok = confirm(
-          `Cambio azienda: ${oldName} → ${newName}.\n\n` +
+          `Cambio azienda: ${oldName} → ${newName}.\nDecorrenza: ${effectiveLabel}.\n\n` +
           'Il rapporto precedente verrà conservato nello storico. I corsi e gli attestati già svolti NON verranno modificati. Procedere?'
         );
         if(!ok) return false;
@@ -305,6 +321,8 @@
       if(company){
         const current=(window.corsistiList || []).find(c=>String(c.id)===String(id));
         company.dataset.originalCompanyId=String(current?.azienda_id || '');
+        const dateInput=document.getElementById('cor-azienda-data-inizio');
+        if(dateInput) dateInput.value=current?.azienda_data_inizio || '';
       }
       const warning=document.getElementById('cor-company-change-warning');
       if(warning) warning.classList.add('hidden');
@@ -324,6 +342,8 @@
       if(select) select.value = 'lavoratore';
       const company=document.getElementById('cor-azienda');
       if(company) delete company.dataset.originalCompanyId;
+      const dateInput=document.getElementById('cor-azienda-data-inizio');
+      if(dateInput) dateInput.value='';
       const warning=document.getElementById('cor-company-change-warning');
       if(warning) warning.classList.add('hidden');
       loadCompanyHistory('');
