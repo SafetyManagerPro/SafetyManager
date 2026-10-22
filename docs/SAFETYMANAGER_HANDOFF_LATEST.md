@@ -226,8 +226,52 @@ Migration applicata e registrata in Supabase:
 - versione `20261022194726`;
 - nome `corsisti_identity_snapshot_and_archive_guard`.
 
-Nota tecnica: il connettore GitHub ha rifiutato la materializzazione del file SQL completo di questa migration nel repository durante questo intervento. Il database è già migrato e verificato; mantenere questo punto come housekeeping tecnico da riallineare appena il connettore consente il commit del file SQL sorgente.
+Housekeeping risolto: il file SQL completo della migration è ora versionato nel repository con il timestamp Supabase effettivo.
 
 Le due migration precedenti sullo storico azienda sono state riallineate nel repository ai timestamp Supabase effettivi:
 - `20261021092912_corsisti_company_history_and_enrollment_snapshot.sql`;
 - `20261021093024_sync_corsisti_company_history_trigger.sql`.
+
+
+## SafetyManager — collaudo A→B, decorrenza e migration allineate (22/10/2026)
+
+### Decorrenza cambio azienda
+Aggiunto `corsisti.azienda_data_inizio` e campo **Decorrenza azienda attuale** nella scheda Corsista.
+- cambio azienda: la data proposta è oggi, ma l'admin può indicare la decorrenza effettiva;
+- date future bloccate dal database;
+- il rapporto precedente viene chiuso coerentemente rispetto alla decorrenza;
+- il nuovo rapporto storico usa la data indicata;
+- modifica di mansione/ruolo/decorrenza aggiorna solo il rapporto corrente e non le vecchie iscrizioni.
+
+Migration Supabase:
+- `20261022200704_corsisti_company_effective_date.sql`.
+
+Commit frontend:
+- `b80b7346b4d20fb3184e2fc4ce7d4f1a63f3ef58` — campo e conferma decorrenza;
+- `598f9a2eba81307cbfb39694ce59755ed78436d3` — propagazione decorrenza nei dati anagrafici.
+
+### Collaudo end-to-end A → B
+Test eseguito in transazione con rollback, quindi senza lasciare dati di prova:
+1. corsista con corso storico Azienda A;
+2. cambio azienda ad Azienda B con decorrenza;
+3. verificato un solo rapporto corrente B con la data scelta;
+4. verificato che nome/CF/nascita/azienda snapshot del vecchio corso A restino invariati;
+5. simulata nuova iscrizione in progetto B con snapshot anagrafico e aziendale B;
+6. archiviazione del corsista senza perdita di iscrizioni;
+7. ripristino del corsista;
+8. rollback completo.
+
+Esito: **OK**.
+
+### Housekeeping migration completato
+Database e repository sono ora riallineati sui timestamp Supabase reali:
+- `20261021092912_corsisti_company_history_and_enrollment_snapshot.sql`;
+- `20261021093024_sync_corsisti_company_history_trigger.sql`;
+- `20261022194726_corsisti_identity_snapshot_and_archive_guard.sql`;
+- `20261022200704_corsisti_company_effective_date.sql`.
+
+Commit di materializzazione mancanti:
+- `d0817788b114ed984494cb4203376e88c4764adf` — snapshot/archiviazione;
+- `72a6dd9e45d431bcfdb0fb52d31c917b9aaed916` — decorrenza azienda.
+
+Le vecchie copie migration con timestamp non corrispondenti sono state rimosse.
