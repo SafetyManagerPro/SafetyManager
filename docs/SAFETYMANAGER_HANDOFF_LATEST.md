@@ -1,6 +1,6 @@
 # SafetyManager — Ultimo blocco
 
-Aggiornato: 2026-10-21
+Aggiornato: 2026-10-22
 Stato: bridge SafetyTraining v1.2 LIVE e invariato; SafetyTraining v21_024/admin UX v21.4 ora espone l'anagrafica corsista con un unico campo `Cognome/Nome`, coerente con `full_name` esportato da SafetyManager.
 
 ## Bridge SafetyManager — payload invariato
@@ -154,3 +154,80 @@ RLS attiva sulla nuova tabella `corsisti_rapporti_azienda`, con la stessa policy
 - `65bbfa4a8f26b4a96cc486506e58497aaaead00d` — migration trigger versionata.
 
 Nota advisor Supabase: nessuna nuova vulnerabilità introdotta da questo intervento. Rimane un warning preesistente su Leaked Password Protection disattivata, non collegato allo storico corsisti.
+
+
+## SafetyManager — snapshot anagrafico e cancellazione protetta corsisti (22/10/2026)
+
+Intervento completato.
+
+### Snapshot anagrafico immutabile per iscrizione
+Ogni nuova `iscrizioni` salva anche:
+- `nome_cognome_storico`;
+- `cf_storico`;
+- `luogo_data_nascita_storico`;
+- la `mansione_storica` già presente;
+- lo snapshot azienda/ruolo introdotto nel blocco precedente.
+
+Le stampe del progetto/attestato privilegiano i dati snapshot dell'iscrizione per nome, CF e nascita, con fallback all'anagrafica corrente solo per compatibilità con record legacy.
+
+Backfill verificato:
+- iscrizioni totali al controllo: 147;
+- 147/147 con nome snapshot;
+- 147/147 con CF snapshot;
+- 147/147 con luogo/data nascita snapshot.
+
+### Archiviazione corsista
+Nuova regola operativa:
+- il pulsante normale non cancella più: **Archivia**;
+- un corsista archiviato resta consultabile con tutto lo storico;
+- gli archiviati non sono selezionabili per nuovi corsi/progetti;
+- filtro Anagrafica Corsisti: `Solo attivi`, `Solo archiviati`, `Attivi + archiviati`;
+- azione **Ripristina** riporta il corsista tra gli attivi;
+- archiviazione conserva iscrizioni, attestati, crediti e storico aziendale.
+
+Colonne:
+- `corsisti.archived_at`;
+- `corsisti.archived_reason`.
+
+### Protezione database dalla cancellazione accidentale
+La FK `iscrizioni_corsista_id_fkey` è stata cambiata da `ON DELETE CASCADE` a `ON DELETE RESTRICT`.
+Risultato: una DELETE diretta del corsista con iscrizioni non può più trascinare via automaticamente corsi/attestati.
+
+La vecchia API frontend `deleteCorsistaData` è bloccata intenzionalmente e non esegue più cancellazioni.
+
+### Eliminazione definitiva admin
+Rimane possibile, ma è separata dall'archiviazione:
+1. il corsista deve essere prima archiviato;
+2. SafetyManager calcola e mostra l'impatto (iscrizioni, crediti, verifiche efficacia, rapporti azienda);
+3. seconda conferma;
+4. l'admin deve digitare esattamente `ELIMINA <CODICE_FISCALE>`;
+5. la procedura database elimina in ordine controllato i dati collegati e infine il corsista.
+
+Funzione DB: `public.safety_hard_delete_corsista(uuid,text)`, eseguibile solo dall'utente amministratore già autorizzato. È `SECURITY INVOKER`, non `SECURITY DEFINER`.
+
+### Verifiche effettuate
+- test transazionale con rollback: DELETE diretta di corsista con iscrizioni => bloccata da FK;
+- test transazionale con rollback: archiviazione => numero iscrizioni invariato;
+- test transazionale con rollback: eliminazione definitiva protetta => completata correttamente, poi rollback;
+- Supabase advisors: nessuna nuova vulnerabilità introdotta;
+- resta il warning preesistente `Leaked Password Protection Disabled`;
+- produzione: marker archiviazione, hard delete, snapshot e filtro stato presenti;
+- Vercel runtime errors nel controllo: 0;
+- `js/supabase_config.js` e `js/utils.js`: `node --check OK`.
+
+### Commit frontend
+- `9bc02c0f7d5d9bf5099f34fed583ce8abb195c7d` — API archiviazione/ripristino/cancellazione protetta;
+- `284f37a8db4b72d03bcbd2f494875213efce4f03` — snapshot anagrafico + UI archiviazione;
+- `9913624b88c5177df15c62f18fda4fcb1b605cf9` — filtro stato corsisti;
+- `e86d2c2f032eca4d43990637fcbf5da90441458d` — esclusione archiviati dalle preiscrizioni.
+
+### Migration Supabase
+Migration applicata e registrata in Supabase:
+- versione `20261022194726`;
+- nome `corsisti_identity_snapshot_and_archive_guard`.
+
+Nota tecnica: il connettore GitHub ha rifiutato la materializzazione del file SQL completo di questa migration nel repository durante questo intervento. Il database è già migrato e verificato; mantenere questo punto come housekeeping tecnico da riallineare appena il connettore consente il commit del file SQL sorgente.
+
+Le due migration precedenti sullo storico azienda sono state riallineate nel repository ai timestamp Supabase effettivi:
+- `20261021092912_corsisti_company_history_and_enrollment_snapshot.sql`;
+- `20261021093024_sync_corsisti_company_history_trigger.sql`.
