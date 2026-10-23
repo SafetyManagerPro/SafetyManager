@@ -412,3 +412,30 @@ Richiesta: archivio consultabile dalla scheda **Corsisti**, caricamento, apertur
 - L'archiviazione è riservata all'admin SafetyManager già configurato. Le policy impediscono accesso a persone non autorizzate: la stampa dei modelli rimane libera **all'interno del gestionale**, non diventa pubblica online.
 - L'attuale vincolo FK su `corsisti_documenti_archivio.corsista_id` preserva i record e può impedire hard-delete di corsisti con fascicoli, coerentemente con l'immutabilità della storia; predisporre una procedura privacy/DSR autorizzata prima di tentare cancellazioni definitive.
 - Verifica manuale con admin autenticato e un PDF reale da desktop + iPhone **da fare**. Il deploy READY e la sintassi JS non equivalgono a test end-to-end.
+
+
+## 23/10/2026 — Archiviazione automatica FACOLTATIVA delle stampe Corsisti
+
+**Intento utente:** procedere con salvataggio dei documenti generati direttamente nel fascicolo, ma senza imporlo e senza nuovi vincoli a stampa, iscrizioni, esito, attestato o altre applicazioni.
+
+### Funzionalità rilasciate (solo SafetyManager Pro)
+- `js/modules/corsisti_autoarchivia_stampe.js`: servizio `window.SafetyCorsistiAutoArchive` con `enabled()`, `setEnabled(bool)`, `capture(printArea,context)`.
+  - Impostazione **di default OFF**. La scelta volontaria viene memorizzata nel browser (`localStorage`) ed è revocabile in qualsiasi momento. Non cambia gli accessi Supabase o il comportamento del tasto Stampa.
+  - Raccoglie una copia DOM dei fogli già generati **prima** che la stampa nativa liberi l'area `#print-area-temp`; crea PDF con `html2pdf.js` **0.10.1** caricato su richiesta da cdnjs, URL fissato e attributo di integrità SRI verificato rispetto al progetto ufficiale; conversione locale nel browser, no invio del contenuto al CDN.
+  - Attiva in modo asincrono `SafetyCorsistiFascicolo.archiveGenerated` e mostra avvisi distinti di successo o errore. **Gli errori di conversione/upload non impediscono `window.print()`.** Notifiche e area tecnica non entrano nella stampa grazie a CSS `@media print`.
+  - La copia è sempre etichettata `bozza`, non è un attestato verificato o una nomina già sottoscritta. PDF individuali A4, attuali limiti di peso archivio 15 MB. Anche i vecchi PDF possono continuare a essere caricati manualmente.
+- `js/modules/corsisti_fascicolo_archivio.js`: API `archiveGenerated({corsistaId,projectId,tipo_documento,titolo,blob})`. Salva direttamente nel bucket privato `corsisti-fascicolo-privato` e nella tabella `corsisti_documenti_archivio`, recupera snapshot storico dell'iscrizione quando presente, altrimenti anagrafica attuale, e collega una **nuova versione** a documenti precedenti dello stesso tipo/titolo/progetto. PDF già archiviati non sono sovrascritti. Una nuova **bozza** automatica **non segna `superato` un documento definitivo precedente**.
+- `js/modules/progetti_corsisti_refinement.js`: checkbox `Archivia automaticamente quando stampo` nel pannello `Stampa libera corsista`; archiviazione associata alla stampa nomine, incarichi e DPI, inclusi i documenti legati a corsi storici.
+- `js/modules/documenti_azienda_lavoratore_directory.js`: quando `stampaModelloVuotoSafetyDoc(type,corsistaId)` è usato nella schermata corsista, abilita l'autoarchivio dei facsimili; quando il modello è in bianco e senza corsista, stampa normalmente senza inventare un destinatario.
+- `js/modules/stampe_bundle.js`: collegata la stampa degli **attestati individuali** al salvataggio facoltativo, senza cambiare l'esecuzione della stampa. Le stampe di gruppo non fanno archiviazioni forzate/ambigue sui singoli corsisti.
+- `js/app.js`: carica il nuovo modulo solo nella navigazione Corsisti; nessun collegamento a SafetyTraining.
+- Aggiunta opzione anche nella finestra **Fascicolo documentale** per scegliere/annullare la preferenza senza aprire il menu di stampa.
+- Non sono state modificate tabelle Supabase, permessi RLS, file Storage esistenti, corsi o documenti già emessi. Non è stato toccato SafetyTraining.
+
+### Verifiche e limiti residui
+- Source review del flusso: checkbox → `capture` → snapshot DOM A4 → convertitore PDF browser → `archiveGenerated` → Storage privato → metadata + versioni. Sintassi JS dei file verificata con `new Function` senza errori.
+- Libreria `html2pdf.js` versione e hash SRI confrontati con documentazione ufficiale: non scarica immagini o dati del corsista verso il provider CDN; JavaScript libreria recuperato solo alla prima archiviazione richiesta.
+- Ultime revisioni principali: `2fe1733bd45d` (API archivio PDF), `1e1dfa2665c4` (servizio conversione), `4da29f95d6b3` (loader), `02c356b78812` (checkbox + nomina/DPI), `3794787576c9` (facsimili), `50a463d2049f` (attestati), `05630ffad942` (checkbox fascicolo + preservazione definitivi), `aed9a0d02180` (esclusione notifiche dal foglio).
+- Ultimo controllo Vercel: le modifiche del codice sino a `50a463d2049f` risultavano READY; **verificare stato finale dell'ultimo commit dopo questo aggiornamento**. Log runtime nei 30 minuti precedenti: nessun errore rilevato.
+- **Non ancora certificato** il test end-to-end con amministratore reale su desktop/iPhone, stampa nativa e PDF generato. La conversione rasterizzata html2pdf può avere differenze di impaginazione da `window.print()` e dipende dalla disponibilità del CDN del convertitore; se il convertitore fallisce, la stampa continua e compare un messaggio di errore. Eseguire in seguito prova su un attestato multipagina e una nomina/DPI, verificando formato, immagini, firme e numero pagine.
+- NOTA: l'opzione è **automatica se abilitata**, non automatica di default; non archivia in modo retroattivo documenti stampati prima dell'attivazione. Le stampe di gruppo rimangono libere e non associate automaticamente a fascicoli individuali.
