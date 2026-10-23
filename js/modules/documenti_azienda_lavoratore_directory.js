@@ -106,8 +106,8 @@
 
   function historiesFor(personId){return D.directoryCache?.histories?.get(String(personId||''))||[];}
   function completedHistoriesFor(personId){return historiesFor(personId).filter(h=>h.completed===true);}
-  function appointmentHistoriesFor(personId){return completedHistoriesFor(personId).filter(h=>APPOINTMENT_ROLES.has(h.role));}
-  function relevantEmployerHistories(personId){return completedHistoriesFor(personId).filter(h=>EMPLOYER_ROLES.has(h.role));}
+  function appointmentHistoriesFor(personId){return historiesFor(personId);}
+  function relevantEmployerHistories(personId){return historiesFor(personId);}
   function peopleForCompany(companyId){return (D.directoryCache?.people||[]).filter(p=>String(p.azienda_id)===String(companyId||''));}
   function companyById(id){const a=(D.directoryCache?.companies||[]).find(x=>String(x.id)===String(id));return a?D.companyFromRow(a):null;}
   function latestProjectCompany(){
@@ -117,26 +117,14 @@
   }
 
   function hasEmployerTraining(personId){return relevantEmployerHistories(personId).length>0;}
+  // Tutti i modelli sono liberamente stampabili. Il completamento formativo
+  // rimane un'informazione separata, non una condizione per la stampa.
   function compatibility(type,companyId,personId){
+    if(!companyId) return {ok:false,why:'Seleziona un’azienda per precompilare il documento'};
     const persons=peopleForCompany(companyId);
-    if(!companyId) return {ok:false,why:'Seleziona una azienda'};
-    if(type==='registro_consegna_dpi') return persons.length?{ok:true,why:`${persons.length} persone disponibili`}:{ok:false,why:'Nessuna persona collegata a questa azienda'};
-    if(!personId || personId==='__all__') return {ok:false,why:'Seleziona una persona'};
-    const p=persons.find(x=>x.id===personId);
-    if(!p) return {ok:false,why:'Persona non disponibile'};
-    if(type==='verbale_consegna_dpi') return {ok:true,why:roleLabel(p)};
-    if(type==='lettera_incarico_sicurezza'){
-      const valid=appointmentHistoriesFor(personId);
-      return valid.length
-        ? {ok:true,why:`${valid.length} formazione/i completata/e pertinente/i`}
-        : {ok:false,why:'Nessun corso completato che abiliti una nomina/incarico'};
-    }
-    if(type==='dichiarazione_dl_diretta'){
-      if(roleOf(p)!=='datore_lavoro') return {ok:false,why:'Disponibile solo per persona classificata Datore di lavoro'};
-      if(!hasEmployerTraining(personId)) return {ok:false,why:'Nessun corso completato pertinente nello storico del datore'};
-      return {ok:true,why:'Datore di lavoro con formazione completata pertinente'};
-    }
-    return {ok:true,why:''};
+    if(type==='registro_consegna_dpi') return {ok:true,why:persons.length+' anagrafiche; possibile anche il modello vuoto'};
+    if(!personId || personId==='__all__') return {ok:false,why:'Seleziona un destinatario per il documento individuale'};
+    return persons.some(p=>p.id===personId) ? {ok:true,why:'Modello stampabile senza requisiti sul corso'} : {ok:false,why:'Persona non disponibile'};
   }
 
   function launcherHtml(){
@@ -254,7 +242,7 @@
       ${person?`<div class="md:col-span-2"><label>Persona</label><input value="${esc(person.nome)} · ${esc(person.cf||'CF non indicato')}" readonly></div><div><label>Ruolo aziendale</label><input value="${esc(roleLabel(person))}" readonly></div><div><label>Mansione</label><input value="${esc(person.mansione||'')}" readonly></div>`:''}
       <div class="md:col-span-2"><label>Sede</label><input value="${esc(company.sede||company.indirizzo)}" readonly></div><div><label>Datore / legale rappresentante</label><input id="scd-datore" value="${esc(datore)}"></div><div><label>Data documento</label><input id="scd-date" type="date" value="${esc(course.fine||D.today())}"></div>
       <div><label>Luogo</label><input id="scd-place" value="${esc(company.sede||company.indirizzo)}"></div>
-      <div class="md:col-span-3"><label>Formazione completata di riferimento</label><input id="scd-course" value="${esc(history?trainingLabel(history):'Nessuna formazione specifica')}" readonly></div>
+      <div class="md:col-span-3"><label>Formazione di riferimento (facoltativa)</label><input id="scd-course" value="${esc(history?trainingLabel(history):'Nessuna formazione indicata')}" readonly></div>
     </div>`;
   }
 
@@ -267,7 +255,7 @@
     s.course=courseFromHistory(h);
     s.project=h?.project||null;
     const cr=document.getElementById('scd-course');
-    if(cr) cr.value=h?trainingLabel(h):'Nessuna formazione specifica';
+    if(cr) cr.value=h?trainingLabel(h):'Nessuna formazione indicata';
     const role=document.getElementById('scd-role');
     if(role&&h){
       const desired=s.type==='dichiarazione_dl_diretta'?inferredEmployerRole(h):h.role;
@@ -288,9 +276,7 @@
     const person=persons.find(p=>p.id===personId)||null;
 
     let histories=[];
-    if(type==='dichiarazione_dl_diretta') histories=relevantEmployerHistories(personId);
-    else if(type==='lettera_incarico_sicurezza') histories=appointmentHistoriesFor(personId);
-    else if(person) histories=completedHistoriesFor(personId);
+    if(person) histories=historiesFor(personId);
 
     const selectedHistory=histories[0]||null;
     const state={type,company,person,workers:type==='registro_consegna_dpi'?persons:(person?[person]:[]),histories,selectedHistory,project:selectedHistory?.project||null,course:courseFromHistory(selectedHistory),multiCompany:false};
@@ -301,19 +287,19 @@
     modal.classList.add('flex');
     document.getElementById('safety-company-doc-title').textContent=DOC_TITLES[type]||'Documento';
 
-    const trainingOpts=(type==='verbale_consegna_dpi'?'<option value="">Nessuna formazione specifica</option>':'')+histories.map(h=>`<option value="${esc(String(h.project.id)+'::'+String(h.enrollment.id||h.enrollment.corsista_id||''))}">${esc(trainingLabel(h))}</option>`).join('');
-    const trainingBox=type==='registro_consegna_dpi'?'':`<div class="mb-4 rounded-xl border border-slate-200 bg-slate-50 p-3"><label>Formazione realmente completata della persona</label><select id="scd-training" onchange="window.scdDirectoryTrainingChanged()">${trainingOpts||'<option value="">Nessuna formazione completata disponibile</option>'}</select><p class="text-[10px] text-slate-500 mt-1">Sono mostrati solo corsi già conclusi con esito positivo. La formazione resta distinta dalla successiva nomina/autorizzazione aziendale.</p></div>`;
+    const trainingOpts='<option value="">Nessuna formazione specifica</option>'+histories.map(h=>`<option value="${esc(String(h.project.id)+'::'+String(h.enrollment.id||h.enrollment.corsista_id||''))}">${esc(trainingLabel(h))}</option>`).join('');
+    const trainingBox=type==='registro_consegna_dpi'?'':`<div class="mb-4 rounded-xl border border-slate-200 bg-slate-50 p-3"><label>Corso di riferimento (facoltativo)</label><select id="scd-training" onchange="window.scdDirectoryTrainingChanged()">${trainingOpts||'<option value="">Nessuna formazione completata disponibile</option>'}</select><p class="text-[10px] text-slate-500 mt-1">Puoi stampare anche prima del corso o senza attestato. Il documento è un facsimile da verificare, compilare e sottoscrivere prima dell'uso.</p></div>`;
 
     let extra='';
     if(type==='verbale_consegna_dpi') extra=`<div><label>Note consegna</label><input id="scd-note" placeholder="Prima consegna / sostituzione / integrazione"></div><div class="mt-4"><label>DPI consegnati — una riga per DPI</label><textarea id="scd-dpi" rows="7" placeholder="Elmetto | marca/modello/taglia | 1 | urti/caduta oggetti&#10;Guanti | modello/taglia | 1 paio | rischio meccanico"></textarea><p class="text-[10px] text-slate-500 mt-1">Formato: DPI | marca/modello/taglia | quantità | rischio/utilizzo</p></div><div class="mt-3 flex flex-wrap gap-4 text-xs"><label class="!normal-case flex items-center gap-2"><input id="scd-info" type="checkbox" checked style="width:auto"> Istruzioni/informazione consegnate</label><label class="!normal-case flex items-center gap-2"><input id="scd-training-dpi" type="checkbox" style="width:auto"> Addestramento pratico ove richiesto</label></div>`;
     if(type==='registro_consegna_dpi') extra=`<div><label>DPI / dotazione comune (facoltativa)</label><input id="scd-common-dpi" placeholder="Es. elmetto + guanti + calzature S3"></div><div class="mt-3 rounded-xl bg-blue-50 border border-blue-200 p-4 text-xs text-blue-900">Saranno incluse ${persons.length} persone appartenenti a ${esc(company.nome)}, indipendentemente dal progetto formativo selezionato nel Centro Stampe.</div>`;
     if(type==='lettera_incarico_sicurezza'){
-      const roles=appointmentRoles(histories);
-      extra=`<div class="grid grid-cols-1 md:grid-cols-2 gap-3"><div><label>Ruolo / incarico</label><select id="scd-role">${roles.map(([k,l])=>`<option value="${k}">${esc(l)}</option>`).join('')}</select></div><div><label>Decorrenza</label><input id="scd-effective" type="date" value="${esc(state.course.fine||D.today())}"></div><div><label>Durata</label><input id="scd-duration" value="Fino a revoca, modifica organizzativa o perdita dei requisiti"></div><div class="md:col-span-2"><label>Ambito / attività / attrezzatura specifica</label><textarea id="scd-specific" rows="3"></textarea></div></div><div class="mt-3 rounded-xl bg-amber-50 border border-amber-200 p-4 text-xs text-amber-900">La stampa è stata attivata perché risulta almeno un corso pertinente realmente concluso con esito positivo. La formazione non equivale automaticamente a nomina o autorizzazione: il documento formalizza l'incarico aziendale.</div>`;
+      const roles=[['preposto','Preposto alla sicurezza'],['primo_soccorso','Addetto primo soccorso'],['antincendio','Addetto antincendio / evacuazione'],['attrezzatura','Operatore autorizzato attrezzatura'],['quota','Lavori in quota / DPI III categoria'],['confinati','Ambienti confinati'],['incarico_generico','Lettera di incarico generica']];
+      extra=`<div class="grid grid-cols-1 md:grid-cols-2 gap-3"><div><label>Ruolo / incarico</label><select id="scd-role">${roles.map(([k,l])=>`<option value="${k}">${esc(l)}</option>`).join('')}</select></div><div><label>Decorrenza</label><input id="scd-effective" type="date" value="${esc(state.course.fine||D.today())}"></div><div><label>Durata</label><input id="scd-duration" value="Fino a revoca, modifica organizzativa o perdita dei requisiti"></div><div class="md:col-span-2"><label>Ambito / attività / attrezzatura specifica</label><textarea id="scd-specific" rows="3"></textarea></div></div><div class="mt-3 rounded-xl bg-amber-50 border border-amber-200 p-4 text-xs text-amber-900">Facsimile stampabile in qualsiasi fase. La formazione non conferisce automaticamente una nomina o autorizzazione: completare i dati, controllare le condizioni e sottoscrivere.</div>`;
     }
     if(type==='dichiarazione_dl_diretta'){
-      const roles=employerRoles(histories);
-      extra=`<div class="grid grid-cols-1 md:grid-cols-2 gap-3"><div><label>Attività svolta direttamente</label><select id="scd-role">${roles.map(([k,l])=>`<option value="${k}">${esc(l)}</option>`).join('')}</select></div><div><label>Decorrenza</label><input id="scd-effective" type="date" value="${esc(state.course.fine||D.today())}"></div><div class="md:col-span-2"><label>RLS / RLST informato (facoltativo)</label><input id="scd-rls" placeholder="Nome oppure 'non ancora designato'"></div><div class="md:col-span-2"><label>Note / verifica condizioni</label><textarea id="scd-specific" rows="3"></textarea></div></div><div class="mt-3 rounded-xl bg-red-50 border border-red-200 p-4 text-xs font-bold text-red-900">Disponibile perché la persona è classificata come Datore di lavoro e possiede una formazione pertinente realmente completata. Verificare comunque le condizioni di legge del caso concreto.</div>`;
+      const roles=[['dl_rspp','Compiti SPP / RSPP'],['dl_primo_soccorso','Primo soccorso'],['dl_antincendio','Antincendio / evacuazione']];
+      extra=`<div class="grid grid-cols-1 md:grid-cols-2 gap-3"><div><label>Attività svolta direttamente</label><select id="scd-role">${roles.map(([k,l])=>`<option value="${k}">${esc(l)}</option>`).join('')}</select></div><div><label>Decorrenza</label><input id="scd-effective" type="date" value="${esc(state.course.fine||D.today())}"></div><div class="md:col-span-2"><label>RLS / RLST informato (facoltativo)</label><input id="scd-rls" placeholder="Nome oppure 'non ancora designato'"></div><div class="md:col-span-2"><label>Note / verifica condizioni</label><textarea id="scd-specific" rows="3"></textarea></div></div><div class="mt-3 rounded-xl bg-red-50 border border-red-200 p-4 text-xs font-bold text-red-900">Facsimile stampabile senza prerequisiti didattici. Verificare il ruolo del firmatario e le condizioni di legge prima di sottoscrivere.</div>`;
     }
 
     document.getElementById('safety-company-doc-body').innerHTML=commonDirectoryFields(company,person,selectedHistory,type)+trainingBox+extra;
@@ -339,32 +325,33 @@
       html=D.dpiPage(base,w,D.parseDpi());
     } else if(s.type==='registro_consegna_dpi'){
       const workers=s.workers||[];
-      if(!workers.length) return alert('Nessuna persona collegata alla azienda.');
+      if(!workers.length) workers.push({nome:'________________',cf:'',mansione:''});
       const pages=[];
       for(let i=0;i<workers.length;i+=14) pages.push(D.registerPage(base,workers.slice(i,i+14)));
       html=pages.join('<div style="height:12px;background:#cbd5e1"></div>');
     } else if(s.type==='lettera_incarico_sicurezza'){
       const w=s.person;
-      if(!w || !s.selectedHistory?.completed) return alert('La nomina richiede un corso pertinente realmente completato.');
-      const role=document.getElementById('scd-role')?.value||s.selectedHistory.role;
-      if(!APPOINTMENT_ROLES.has(role)) return alert('La formazione selezionata non abilita questa stampa di incarico.');
+      if(!w) return alert('Seleziona la persona a cui intestare il modello.');
+      const role=document.getElementById('scd-role')?.value||s.selectedHistory?.role||'incarico_generico';
       html=D.appointmentPage(base,w,role);
     } else if(s.type==='dichiarazione_dl_diretta'){
       const w=s.person;
-      if(!w||roleOf(w)!=='datore_lavoro') return alert('La persona selezionata non è classificata come Datore di lavoro.');
-      if(!s.selectedHistory?.completed) return alert('La dichiarazione richiede una formazione pertinente realmente completata.');
+      if(!w) return alert('Seleziona una persona per compilare il modello.');
       base.datore=w.nome;
       const role=document.getElementById('scd-role')?.value||'dl_rspp';
       html=D.employerPage(base,role);
     }
 
+    // I facsimili non devono sembrare incarichi già firmati o attestati rilasciati.
+    const modelNotice='<div style="padding:8px 12px;border:2px solid #991b1b;color:#991b1b;font-weight:800;text-align:center;margin-bottom:10px">FACSIMILE STAMPABILE — DA COMPILARE E SOTTOSCRIVERE. NON COSTITUISCE UN DOCUMENTO GIÀ EMESSO.</div>';
+    if(html) html=html.replace(/(<section[^>]*class="[^"]*safety-company-doc-page[^"]*"[^>]*>)/g,'$1'+modelNotice);
     window.currentPrintModule=s.type;
     container.innerHTML=html;
     container.style.width='210mm';
     container.style.maxWidth='210mm';
     container.style.display='block';
     window.closeSafetyCompanyDoc();
-    if(typeof window.showSafetyToast==='function') window.showSafetyToast('Anteprima pronta con dati della persona, azienda e formazione completata.',{title:'Documento generato',type:'ok',icon:'file-check-2'});
+    if(typeof window.showSafetyToast==='function') window.showSafetyToast('Modello stampabile pronto: verifica e completa i dati prima di firmare.',{title:'Documento generato',type:'ok',icon:'file-check-2'});
   };
 
   async function upgrade(){
