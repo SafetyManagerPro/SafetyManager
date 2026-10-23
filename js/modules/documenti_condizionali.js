@@ -112,7 +112,8 @@ window.applyTeacherDeclarationData = function(page, teacher, index = 0, total = 
 
 window.expandTeacherDeclarationPages = function(basePages = []) {
     const teachers = window.getAssignedProjectTeachers();
-    if (!teachers.length || !basePages.length) return [];
+    if (!basePages.length) return [];
+    if (!teachers.length) return basePages; // Facsimile dichiarazione docenza sempre stampabile.
 
     const expanded = [];
     teachers.forEach((teacher, index) => {
@@ -140,30 +141,18 @@ window.getConditionalPrintMessage = function(moduleId) {
 };
 
 window.updateConditionalPrintButtons = function() {
-    const association = window.isAssociationTrainingProvider();
-    const tutorExpected = window.isTutorExpectedForProject();
-    const teachers = window.getAssignedProjectTeachers();
-    const configure = (id, enabled, title) => {
-        const button = document.getElementById(id);
-        if (!button) return;
-        button.disabled = !enabled;
-        button.title = enabled ? '' : title;
-        button.classList.toggle('opacity-40', !enabled);
-        button.classList.toggle('cursor-not-allowed', !enabled);
+    // Tutti i modelli rimangono selezionabili: queste sono informazioni,
+    // non regole che bloccano l'anteprima o la stampa.
+    const titles={
+      'btn-print-autocert-ente':'Facsimile stampabile; verificare ente erogatore prima dell’uso.',
+      'btn-print-relazione-tutor':'Facsimile stampabile anche senza tutor assegnato.',
+      'btn-print-dichiarazioni-docenti':'Facsimile stampabile; completare il nominativo del docente.'
     };
-    configure(
-        'btn-print-autocert-ente',
-        association,
-        'Disponibile solo quando associazione/ente è il soggetto formatore.'
-    );
-    configure(
-        'btn-print-relazione-tutor',
-        tutorExpected,
-        'Tutor non previsto nel progetto.'
-    );
-    configure(
-        'btn-print-dichiarazioni-docenti',
-        teachers.length > 0,
-        'Assegna almeno un docente alle unità didattiche.'
-    );
+    Object.entries(titles).forEach(([id,title])=>{
+      const button=document.getElementById(id);
+      if(!button)return;
+      button.disabled=false;
+      button.title=title;
+      button.classList.remove('opacity-40','cursor-not-allowed');
+    });
 };
