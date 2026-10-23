@@ -129,21 +129,39 @@
 
   // Libreria di modelli liberamente stampabili, anche senza progetto, anagrafica,
   // attestato, corso o esito. Nessun modello contiene firme o esiti presunti.
-  window.stampaModelloVuotoSafetyDoc = async function(type) {
+  window.stampaModelloVuotoSafetyDoc = async function(type, corsistaId='') {
     const area=document.getElementById('print-area-temp');
     if(!area)return alert('Area stampa non disponibile. Apri il Centro Stampe.');
-    const company={nome:'________________',piva:'',indirizzo:'________________',sede:'',datore:'',ateco:''};
-    const person={nome:'________________',cf:'',mansione:''};
-    const ctx={company,course:{id:'',titolo:'________________',codice:'',inizio:'',fine:''},
-      date:'',place:'',datore:'',effective:'',courseRef:'________________',duration:'________________',
-      specific:'',note:'',commonDpi:'',info:false,training:false};
+    // I modelli possono essere stampati senza corsista o corso; se è stata scelta
+    // una persona, ne precompiliamo i dati senza richiedere un'iscrizione.
+    let company={nome:'________________',piva:'',indirizzo:'________________',sede:'',datore:'',ateco:''};
+    let person={nome:'________________',cf:'',mansione:''};
     try {
+      if(corsistaId){
+        let raw=(window.corsistiList||[]).find(c=>String(c.id)===String(corsistaId));
+        if(!raw&&typeof window.getCorsisti==='function'){
+          const people=await window.getCorsisti();
+          raw=(people||[]).find(c=>String(c.id)===String(corsistaId));
+        }
+        if(raw){
+          person={nome:raw.nome_cognome||'________________',cf:raw.cf||'',mansione:raw.mansione_storica||''};
+          let allCompanies=window.aziendeList||[];
+          if(raw.azienda_id&&!allCompanies.some(a=>String(a.id)===String(raw.azienda_id))&&typeof window.getAziende==='function')
+            allCompanies=await window.getAziende();
+          const selected=(allCompanies||[]).find(a=>String(a.id)===String(raw.azienda_id));
+          if(selected)company=D.companyFromRow(selected);
+        }
+      }
+      const ctx={company,course:{id:'',titolo:'________________',codice:'',inizio:'',fine:''},
+        date:'',place:'',datore:company.datore||'',effective:'',courseRef:'________________',duration:'________________',
+        specific:'',note:'',commonDpi:'',info:false,training:false};
       let html='';
       if(type==='attestato') {
         html=`<section class="doc-page safety-company-doc-page">${D.header(company)}
           <h1>SCHEMA ATTESTATO DI FORMAZIONE — BOZZA NON CERTIFICANTE</h1>
           <p><b>Ente / soggetto formatore:</b> __________________________</p>
-          <p><b>Partecipante:</b> __________________________</p>
+          <p><b>Partecipante:</b> ${D.esc(person.nome)}</p>
+          <p><b>Codice fiscale:</b> ${D.esc(person.cf||'________________')}</p>
           <p><b>Corso / normativa:</b> ________________________________</p>
           <p><b>Durata, periodo, sede, programma:</b> ________________________________</p>
           <p><b>Frequenza, verifica finale e relativo esito (solo dopo verifica):</b> __________________</p>
@@ -158,7 +176,7 @@
       D.injectStyle?.();
       area.innerHTML=html;
       const notice=document.createElement('div');
-      notice.textContent='FACSIMILE IN BIANCO — STAMPA LIBERA. NON ATTESTA FORMAZIONE, INCARICO O CONSEGNA GIÀ EFFETTUATI.';
+      notice.textContent='FACSIMILE STAMPABILE — ANCHE SE PRECOMPILATO NON ATTESTA FORMAZIONE, INCARICO O CONSEGNA GIÀ EFFETTUATI.';
       notice.style.cssText='border:2px solid #991b1b;color:#991b1b;font:bold 11px Arial,sans-serif;padding:7px;text-align:center;margin-bottom:10px';
       area.querySelectorAll('.safety-company-doc-page').forEach(page=>{
         page.classList.add('print-show','temp-page');
