@@ -285,6 +285,7 @@
       <label class="block text-xs font-bold text-slate-700">Modello da stampare
         <select data-corsista-print-type class="mt-1 w-full rounded-lg border border-slate-300 bg-white text-slate-900 px-3 py-2">${options.map(([value,label])=>`<option value="${esc(value)}">${esc(label)}</option>`).join('')}</select>
       </label>
+      <label class="block rounded-xl border border-blue-200 bg-blue-50 p-3 text-xs font-bold text-slate-900"><span class="flex gap-3 items-center"><input type="checkbox" data-safety-autoarchive-checkbox class="h-4 w-4 shrink-0 accent-indigo-700" ${window.SafetyCorsistiAutoArchive?.enabled()?'checked':''}> Archivia automaticamente una copia PDF quando stampo</span><span class="block mt-1 pl-7 text-[11px] font-normal text-slate-700">Facoltativo e disattivabile. Mantiene le versioni precedenti, senza bloccare la stampa. Il PDF archiviato è inizialmente una bozza.</span></label>
       <button type="button" data-corsista-print-go class="w-full rounded-lg bg-indigo-700 text-white px-4 py-3 font-black text-xs uppercase">Stampa facsimile precompilato</button>
       <button type="button" data-corsista-open-fascicolo class="w-full rounded-lg border border-violet-300 bg-violet-50 text-violet-900 px-4 py-2 font-black text-xs">Apri fascicolo PDF e archivio storico</button>
       ${courseOptions.length?`<div class="border-t border-slate-200 pt-3 space-y-2"><label class="block text-xs font-bold text-slate-700">Attestato del corso associato
@@ -293,6 +294,9 @@
       <p class="text-[11px] text-slate-500">La stampa non emette automaticamente un attestato ufficiale e non conferisce nomine o abilitazioni.</p>
     </div>`;
     const close=()=>{if(overlay.isConnected)overlay.remove();};
+    overlay.querySelector('[data-safety-autoarchive-checkbox]').onchange=e=>{
+      window.SafetyCorsistiAutoArchive?.setEnabled?.(e.target.checked);
+    };
     overlay.querySelector('[data-corsista-open-fascicolo]').onclick=()=>{
       close();
       if(typeof window.apriFascicoloCorsista==='function') window.apriFascicoloCorsista(corsistaId);
@@ -352,7 +356,7 @@
     banner.textContent = 'FACSIMILE DA COMPILARE E SOTTOSCRIVERE — NON È UN INCARICO/VERBALE GIÀ EMESSO · ' + label;
     printArea.querySelector('.safety-company-doc-page')?.prepend(banner);
   };
-  const printPreparedCompanyDoc = (printArea) => {
+  const printPreparedCompanyDoc = (printArea, context={}) => {
     printArea.querySelectorAll('.safety-company-doc-page').forEach(page => {
       page.classList.add('print-show','temp-page');
       page.style.transform='none';page.style.margin='0';
@@ -361,6 +365,7 @@
     setTimeout(async () => {
       try {
         if (typeof window.waitForPrintImages === 'function') await window.waitForPrintImages(printArea);
+        window.SafetyCorsistiAutoArchive?.capture?.(printArea,context);
         window.print();
       } finally {
         document.body.classList.remove('is-printing-temp');
@@ -400,7 +405,11 @@
       D.injectStyle?.();
       printArea.innerHTML = D.appointmentPage(ctx, historical.person, history.role);
       printTemplateNotice(printArea, ROLE_LABELS[history.role] || 'Nomina/incarico');
-      printPreparedCompanyDoc(printArea);
+      printPreparedCompanyDoc(printArea,{
+        corsistaId,projectId,
+        type:history.role==='preposto'?'preposto':history.role,
+        title:(ROLE_LABELS[history.role]||'Incarico')+' · '+(history.course?.titolo||history.project?.corso_id||'Corso')
+      });
     } catch (error) {
       console.error('Stampa nomina corsista:', error);
       document.body.classList.remove('is-printing-temp');
@@ -424,7 +433,10 @@
       D.injectStyle?.();
       area.innerHTML=D.dpiPage(ctx,historical.person,[]);
       printTemplateNotice(area,'Verbale consegna DPI');
-      printPreparedCompanyDoc(area);
+      printPreparedCompanyDoc(area,{
+        corsistaId,projectId,type:'verbale_consegna_dpi',
+        title:'Verbale consegna DPI · '+(history.course?.titolo||history.project?.corso_id||'Corso')
+      });
     }catch(e){
       document.body.classList.remove('is-printing-temp');area.innerHTML='';
       alert('Modello consegna DPI non disponibile: '+(e.message||e));
