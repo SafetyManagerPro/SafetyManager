@@ -286,12 +286,18 @@
         <select data-corsista-print-type class="mt-1 w-full rounded-lg border border-slate-300 bg-white text-slate-900 px-3 py-2">${options.map(([value,label])=>`<option value="${esc(value)}">${esc(label)}</option>`).join('')}</select>
       </label>
       <button type="button" data-corsista-print-go class="w-full rounded-lg bg-indigo-700 text-white px-4 py-3 font-black text-xs uppercase">Stampa facsimile precompilato</button>
+      <button type="button" data-corsista-open-fascicolo class="w-full rounded-lg border border-violet-300 bg-violet-50 text-violet-900 px-4 py-2 font-black text-xs">Apri fascicolo PDF e archivio storico</button>
       ${courseOptions.length?`<div class="border-t border-slate-200 pt-3 space-y-2"><label class="block text-xs font-bold text-slate-700">Attestato del corso associato
         <select data-corsista-print-course class="mt-1 w-full rounded-lg border border-slate-300 bg-white text-slate-900 px-3 py-2">${courseOptions.map(c=>`<option value="${esc(c.id)}">${esc(c.label)}</option>`).join('')}</select></label>
         <button type="button" data-corsista-print-course-go class="w-full rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-900 px-4 py-2 font-black text-xs">Stampa attestato del corso selezionato</button></div>`:''}
       <p class="text-[11px] text-slate-500">La stampa non emette automaticamente un attestato ufficiale e non conferisce nomine o abilitazioni.</p>
     </div>`;
     const close=()=>{if(overlay.isConnected)overlay.remove();};
+    overlay.querySelector('[data-corsista-open-fascicolo]').onclick=()=>{
+      close();
+      if(typeof window.apriFascicoloCorsista==='function') window.apriFascicoloCorsista(corsistaId);
+      else alert('Fascicolo corsista non ancora caricato: riapri la sezione Corsisti.');
+    };
     overlay.querySelector('[data-corsista-print-close]').onclick=close;
     overlay.addEventListener('click',e=>{if(e.target===overlay)close();});
     overlay.addEventListener('keydown',e=>{if(e.key==='Escape')close();});
