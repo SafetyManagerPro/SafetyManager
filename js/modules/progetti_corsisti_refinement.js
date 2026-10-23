@@ -304,15 +304,10 @@
       const history = historyFor(D, projectId, corsistaId);
       const person = (D.directoryCache?.people || []).find(p => String(p.id) === String(corsistaId));
       if (!history || !person) return alert('Formazione o corsista non disponibili nello storico.');
-      if (history.completed !== true || !D.isTrainingCompleted?.(history)) {
-        return alert('La nomina non è disponibile: il corso non risulta ancora effettivamente completato con esito positivo.');
-      }
-      if (!history.enrollment?.id_certificato) return alert('Prima di predisporre il modello è necessario un attestato disponibile nello storico del corso.');
-       if (!APPOINTMENT_ROLES.has(history.role)) {
-        return alert('Questo corso non genera una lettera di nomina/incarico automatica.');
-      }
+      // Modello liberamente stampabile anche in fase di preparazione del corso.
+      // L'eventuale nomina resta una bozza da verificare e sottoscrivere.
       const historical = historicPrintData(D, history, person);
-      if (!historical.company?.nome) return alert('Azienda storica del corso non disponibile: verifica il progetto prima di generare il modello.');
+      if (!historical.company?.nome) historical.company.nome='________________ (azienda da inserire)';
 
       const courseRef = `${history.course?.titolo || history.project?.corso_id || 'Corso'}${history.project?.codice ? ' · ' + history.project.codice : ''}${history.project?.data_esame ? ' · ' + (window.formatDataToItalian ? window.formatDataToItalian(history.project.data_esame) : history.project.data_esame) : ''}`;
       const ctx = {
@@ -346,10 +341,9 @@
       const D=await ensureCompanyDocEngine();
       const history=historyFor(D,projectId,corsistaId);
       const person=(D.directoryCache?.people||[]).find(p=>String(p.id)===String(corsistaId));
-      if(!history||!person||history.completed!==true||!D.isTrainingCompleted?.(history)||!history.enrollment?.id_certificato)
-        return alert('Modello disponibile solo quando il corso è completato con attestato.');
+      if(!history||!person) return alert('Iscrizione o corsista non disponibili.');
       const historical=historicPrintData(D,history,person);
-      if(!historical.company.nome)return alert('Azienda storica non disponibile.');
+      if(!historical.company.nome)historical.company.nome='________________ (azienda da inserire)';
       const ctx={company:historical.company,datore:historical.company.datore||'',date:history.project?.data_esame||D.today(),
         place:history.project?.sede||historical.company.sede||'',note:'',info:false,training:false};
       D.injectStyle?.();
@@ -377,8 +371,8 @@
       const projectId = match[1];
       const corsistaId = match[2];
       const history = historyFor(D, projectId, corsistaId);
-      if (!history || history.completed !== true || !D.isTrainingCompleted?.(history) || !history.enrollment?.id_certificato) return;
-      const hasNomina=APPOINTMENT_ROLES.has(history.role);
+      if (!history) return;
+      const hasNomina=true; // Anche gli incarichi generici hanno un facsimile stampabile.
       const hasDpi=history.role==='quota' || /(?:^|_)dpi(?:_|$)/i.test(history.course?.id||'');
       if (!hasNomina && !hasDpi) return;
       if (hasNomina) {
@@ -386,7 +380,7 @@
         nomina.type = 'button';
         nomina.dataset.safetyNominaCourse = '1';
         nomina.className = 'shrink-0 bg-violet-700 hover:bg-violet-600 text-white rounded px-2 py-1 text-[8px] font-black uppercase';
-        nomina.title = `Stampa facsimile ${ROLE_LABELS[history.role] || 'nomina/incarico'}: richiede verifica e firma`;
+        nomina.title = `Stampa facsimile ${ROLE_LABELS[history.role] || 'nomina/incarico'} (nessun vincolo sul corso): da verificare e firmare`;
         nomina.textContent = history.role === 'attrezzatura' ? 'Autorizzazione' : (['quota','confinati'].includes(history.role) ? 'Incarico' : 'Nomina');
         nomina.addEventListener('click', () => window.stampaNominaCorsistaDaCorso(projectId, corsistaId));
         host.appendChild(nomina);
