@@ -130,7 +130,7 @@ function capture(area,ctx={}){
    if(!archive?.archiveGenerated)throw Error('Fascicolo non disponibile: ricarica la pagina Corsisti.');
    const record=await archive.archiveGenerated({
      corsistaId:ctx.corsistaId,projectId:ctx.projectId||null,
-     tipo_documento:types[ctx.type]||ctx.type||'altro',
+     tipo_documento:types[ctx.type]||'altro',
      titolo:cleanTitle(ctx.title),
      blob:pdf,
      notes:'Archiviazione automatica facoltativa da stampa SafetyManager Pro. PDF generato nel browser, da verificare prima di considerarlo documento definitivo.'
