@@ -344,3 +344,10 @@ SafetyTraining v44.1 integra stampe PDF e facsimili per ogni iscrizione, di qual
 
 **Controlli**
 Sintassi JavaScript superata, Vercel produzione `safety-manager-ultimate` commit `0745d1433c` READY. L'effettivo collaudo browser di ogni stampa, la verifica del layout A4 e la prova con un corsista reale rimangono pendenti. Documentazione SafetyTraining aggiornata in `SAFETYTRAINING_HANDOFF_LATEST.md` e `SAFETYTRAINING_HANDOFF.md`.
+
+
+### Ulteriori rifiniture e stato finale della stampa libera (23/10/2026)
+- **SafetyManager:** `js/modules/documenti_condizionali.js` (`7760c4bb65`) non disabilita più pulsanti autocertificazione, tutor e dichiarazioni docenti per ente/tutor/docente mancante; senza docenti il renderer restituisce il facsimile vuoto anziché zero pagine.
+- `js/utils.js` (`6ca8e2b34e`) etichetta come `FACSIMILE` anche le dichiarazioni docente senza docenti assegnati; rimane disponibile l'apertura della stampa.
+- **SafetyTraining:** `apps/training/learner-course-documents-v44.js` (`e4837d4062`) aggiunge la stampa in bianco nella schermata admin **anche senza alcuna iscrizione selezionata**; accesso riservato all'amministratore, nessun controllo di esito/firma per stampare.
+- I controlli di destinatario e riservatezza dei file pubblicati restano attivi; nessun modello in bianco vale come atto emesso.
