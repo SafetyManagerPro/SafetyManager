@@ -30,6 +30,7 @@ const setEnabled=value=>{
  return !!value;
 };
 function toast(label,isError=false){
+ ensurePrintIsolation();
  let node=document.getElementById('safety-autoarchive-notice');
  if(!node){
    node=document.createElement('div');node.id='safety-autoarchive-notice';node.setAttribute('role','status');
@@ -59,7 +60,7 @@ function library(){
 function ensurePrintIsolation(){
  if(document.getElementById('safety-autoarchive-isolation'))return;
  const style=document.createElement('style');style.id='safety-autoarchive-isolation';
- style.textContent='@media print{#safety-autoarchive-staging{display:none!important}}'+
+ style.textContent='@media print{#safety-autoarchive-staging,#safety-autoarchive-notice{display:none!important}}'+
    '#safety-autoarchive-staging{position:fixed;left:0;top:0;z-index:-99999;width:210mm;background:#fff;pointer-events:none;}'+
    '#safety-autoarchive-staging .doc-page,#safety-autoarchive-staging .safety-company-doc-page{box-shadow:none!important;transform:none!important;margin:0!important;display:block!important;background:#fff!important;}';
  document.head.appendChild(style);
