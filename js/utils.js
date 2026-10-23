@@ -4308,7 +4308,7 @@ window.caricaDatiStampa = async function(projectId = null, options = {}) {
             voto_test: isc.voto_test,
             esito_pratica: isc.esito_pratica,
             note_verifica: isc.note_verifica,
-            esito: isc.esito || "Idoneo",
+            esito: isc.esito || "Da verificare",
             lingua_test_stato: c.lingua_test_stato || 'non_richiesto',
             cittadinanza: c.cittadinanza || '',
             studi_scolastici_italia: c.studi_scolastici_italia,
@@ -4512,16 +4512,14 @@ window.renderManualTestsForCurrentPrintProject = function(options = {}) {
 
 window.renderPrintModulePages = async function(moduleId, singleCorsista = null, options = {}) {
     const preview = !!options.preview;
-    if (moduleId === 'autocert' &&
+    // Le condizioni dei documenti sono informative: non impediscono più la
+    // generazione e la stampa di modelli vuoti o ancora da completare.
+    const wasRestrictedModel = (moduleId === 'autocert' &&
         typeof window.isAssociationTrainingProvider === 'function' &&
-        !window.isAssociationTrainingProvider()) {
-        return [];
-    }
-    if (moduleId === 'relazione_tutor' &&
+        !window.isAssociationTrainingProvider()) ||
+      (moduleId === 'relazione_tutor' &&
         typeof window.isTutorExpectedForProject === 'function' &&
-        !window.isTutorExpectedForProject()) {
-        return [];
-    }
+        !window.isTutorExpectedForProject());
     if (moduleId === 'test_lingua_italiana' && typeof window.renderTestLinguaItalianaPages === 'function') {
         return await window.renderTestLinguaItalianaPages({
             preview,
@@ -4553,9 +4551,24 @@ window.renderPrintModulePages = async function(moduleId, singleCorsista = null, 
 
     if (typeof window.updateAll === 'function') window.updateAll();
 
+    const printEnd = String(window.AppState?.['cfg-data-esame'] || '').slice(0,10);
+    const now = new Date();
+    const today = new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,10);
+    const outcome = String(singleCorsista?.esito || '').trim().toLowerCase();
+    const positive = /^(idone[oa]|superat[oa]|positiv[oa]|abilitat[oa])$/.test(outcome);
+    const attestatoDraft = moduleId === 'attestato' &&
+      (!singleCorsista?.id_certificato || !positive || !printEnd || printEnd > today);
     const pages = Array.from(holder.querySelectorAll('.doc-page')).map(page => {
         const clone = page.cloneNode(true);
         clone.id = '';
+        if (attestatoDraft || wasRestrictedModel) {
+            const notice = document.createElement('div');
+            notice.style.cssText = 'border:2px solid #991b1b;color:#991b1b;font:800 11px Arial,sans-serif;text-align:center;padding:7px;margin-bottom:9px;';
+            notice.textContent = attestatoDraft
+              ? 'BOZZA ATTESTATO — STAMPA DI PREPARAZIONE, NON ATTESTA COMPLETAMENTO O IDONEITÀ'
+              : 'FACSIMILE DOCUMENTO — DA VERIFICARE, COMPILARE E SOTTOSCRIVERE';
+            clone.prepend(notice);
+        }
         clone.classList.remove('scale-[0.8]', 'origin-top');
         clone.style.margin = preview ? '0 auto 16px auto' : '0 auto';
         if (preview) {
