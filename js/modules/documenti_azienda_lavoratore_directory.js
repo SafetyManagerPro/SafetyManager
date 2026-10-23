@@ -127,6 +127,60 @@
     return persons.some(p=>p.id===personId) ? {ok:true,why:'Modello stampabile senza requisiti sul corso'} : {ok:false,why:'Persona non disponibile'};
   }
 
+  // Libreria di modelli liberamente stampabili, anche senza progetto, anagrafica,
+  // attestato, corso o esito. Nessun modello contiene firme o esiti presunti.
+  window.stampaModelloVuotoSafetyDoc = async function(type) {
+    const area=document.getElementById('print-area-temp');
+    if(!area)return alert('Area stampa non disponibile. Apri il Centro Stampe.');
+    const company={nome:'________________',piva:'',indirizzo:'________________',sede:'',datore:'',ateco:''};
+    const person={nome:'________________',cf:'',mansione:''};
+    const ctx={company,course:{id:'',titolo:'________________',codice:'',inizio:'',fine:''},
+      date:'',place:'',datore:'',effective:'',courseRef:'________________',duration:'________________',
+      specific:'',note:'',commonDpi:'',info:false,training:false};
+    try {
+      let html='';
+      if(type==='attestato') {
+        html=`<section class="doc-page safety-company-doc-page">${D.header(company)}
+          <h1>SCHEMA ATTESTATO DI FORMAZIONE — BOZZA NON CERTIFICANTE</h1>
+          <p><b>Ente / soggetto formatore:</b> __________________________</p>
+          <p><b>Partecipante:</b> __________________________</p>
+          <p><b>Corso / normativa:</b> ________________________________</p>
+          <p><b>Durata, periodo, sede, programma:</b> ________________________________</p>
+          <p><b>Frequenza, verifica finale e relativo esito (solo dopo verifica):</b> __________________</p>
+          <p><b>Protocollo / numero attestato (solo dopo emissione):</b> __________________</p>
+          ${D.signatures('Responsabile dell’emissione','','Soggetto autorizzato','')}
+          ${D.footer('Modello organizzativo in bianco: non costituisce prova di frequenza, idoneità o attestazione rilasciata')}
+          </section>`;
+      } else if(type==='verbale_consegna_dpi')html=D.dpiPage(ctx,person,[]);
+      else if(type==='registro_consegna_dpi')html=D.registerPage(ctx,[person]);
+      else if(type==='dichiarazione_dl_diretta')html=D.employerPage(ctx,'dl_rspp');
+      else html=D.appointmentPage(ctx,person,type||'incarico_generico');
+      D.injectStyle?.();
+      area.innerHTML=html;
+      const notice=document.createElement('div');
+      notice.textContent='FACSIMILE IN BIANCO — STAMPA LIBERA. NON ATTESTA FORMAZIONE, INCARICO O CONSEGNA GIÀ EFFETTUATI.';
+      notice.style.cssText='border:2px solid #991b1b;color:#991b1b;font:bold 11px Arial,sans-serif;padding:7px;text-align:center;margin-bottom:10px';
+      area.querySelectorAll('.safety-company-doc-page').forEach(page=>{
+        page.classList.add('print-show','temp-page');
+        page.prepend(notice.cloneNode(true));
+        page.style.transform='none';
+      });
+      document.body.classList.add('is-printing-temp');
+      setTimeout(async()=>{
+        try {
+          if(typeof window.waitForPrintImages==='function')await window.waitForPrintImages(area);
+          window.print();
+        }finally{
+          document.body.classList.remove('is-printing-temp');
+          area.innerHTML='';
+        }
+      },400);
+    }catch(e){
+      document.body.classList.remove('is-printing-temp');area.innerHTML='';
+      alert('Impossibile stampare il modello: '+(e.message||e));
+    }
+  };
+
   function launcherHtml(){
     return `<p class="text-[10px] font-black text-blue-700 uppercase tracking-widest mb-2">Documenti azienda / persona</p>
       <div class="rounded-xl border border-blue-200 bg-blue-50 p-3 space-y-2 mb-3">
@@ -139,7 +193,24 @@
       <button id="scd-btn-dpi" type="button" onclick="window.openSafetyCompanyDoc('verbale_consegna_dpi')" class="w-full text-left px-4 py-2.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg text-xs font-bold text-blue-900 disabled:opacity-40 disabled:cursor-not-allowed">Verbale consegna DPI</button>
       <button id="scd-btn-register" type="button" onclick="window.openSafetyCompanyDoc('registro_consegna_dpi')" class="w-full text-left px-4 py-2.5 bg-cyan-50 hover:bg-cyan-100 border border-cyan-200 rounded-lg text-xs font-bold text-cyan-900 disabled:opacity-40 disabled:cursor-not-allowed">Registro consegna DPI</button>
       <button id="scd-btn-letter" type="button" onclick="window.openSafetyCompanyDoc('lettera_incarico_sicurezza')" class="w-full text-left px-4 py-2.5 bg-violet-50 hover:bg-violet-100 border border-violet-200 rounded-lg text-xs font-bold text-violet-900 disabled:opacity-40 disabled:cursor-not-allowed">Lettera nomina / incarico</button>
-      <button id="scd-btn-employer" type="button" onclick="window.openSafetyCompanyDoc('dichiarazione_dl_diretta')" class="w-full text-left px-4 py-2.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg text-xs font-bold text-amber-950 disabled:opacity-40 disabled:cursor-not-allowed">Dichiarazione Datore di Lavoro</button>`;
+      <button id="scd-btn-employer" type="button" onclick="window.openSafetyCompanyDoc('dichiarazione_dl_diretta')" class="w-full text-left px-4 py-2.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg text-xs font-bold text-amber-950 disabled:opacity-40 disabled:cursor-not-allowed">Dichiarazione Datore di Lavoro</button>
+      <div class="mt-4 p-3 border-2 border-indigo-200 rounded-xl bg-indigo-50 space-y-2">
+        <p class="text-[10px] font-black uppercase text-indigo-900">Stampa libera di qualsiasi modello — nessun requisito preventivo</p>
+        <select id="scd-free-type" class="w-full p-2 bg-white rounded-lg border border-indigo-200 text-xs text-slate-900">
+          <option value="attestato">Bozza attestato (non certificante)</option>
+          <option value="preposto">Nomina / individuazione preposto</option>
+          <option value="primo_soccorso">Designazione primo soccorso</option>
+          <option value="antincendio">Designazione antincendio</option>
+          <option value="attrezzatura">Autorizzazione attrezzatura</option>
+          <option value="quota">Incarico lavori in quota / DPI III cat.</option>
+          <option value="confinati">Incarico ambienti confinati</option>
+          <option value="incarico_generico">Lettera incarico generico</option>
+          <option value="verbale_consegna_dpi">Verbale consegna DPI</option>
+          <option value="registro_consegna_dpi">Registro consegna DPI</option>
+          <option value="dichiarazione_dl_diretta">Dichiarazione DL</option>
+        </select>
+        <button type="button" onclick="window.stampaModelloVuotoSafetyDoc(document.getElementById('scd-free-type')?.value)" class="w-full rounded-lg bg-indigo-700 hover:bg-indigo-600 text-white font-black px-3 py-2 text-[10px] uppercase">Stampa modello in bianco</button>
+      </div>`;
   }
 
   function populatePersons(preferred=''){
