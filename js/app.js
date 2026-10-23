@@ -331,8 +331,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     await window.loadOptionalSafetyScript('js/pwa.js');
     // Il catalogo emergenze integra DB_CORSI prima che vengano aperti i moduli gestionali.
     await window.loadOptionalSafetyScript('js/modules/emergency_courses_catalog.js');
-    // Bridge operativo SafetyManager -> SafetyTraining: caricato direttamente, senza dipendere dalla suite grafica opzionale.
-    await window.loadOptionalSafetyScript('js/modules/safetytraining_bridge.js');
+    // Ponte d'esportazione FACOLTATIVO: il suo caricamento non ritarda né condiziona l'avvio del gestionale.
+    void window.loadOptionalSafetyScript('js/modules/safetytraining_bridge.js');
     await window.loadOptionalSafetyScript('js/modules/firme_unificate.js');
     await window.loadOptionalSafetyScript('js/modules/corsisti_ruolo_azienda.js');
     await window.loadOptionalSafetyScript('js/modules/ai_assistant.js');
