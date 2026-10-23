@@ -275,3 +275,32 @@ Commit di materializzazione mancanti:
 - `72a6dd9e45d431bcfdb0fb52d31c917b9aaed916` — decorrenza azienda.
 
 Le vecchie copie migration con timestamp non corrispondenti sono state rimosse.
+
+## SafetyManager — inizializzazione Dashboard deterministica (23/10/2026)
+
+### Contesto e perimetro
+Verificato il repository corretto `SafetyManagerPro/SafetyManager` e il progetto Vercel `safety-manager-ultimate`. Nessun intervento al repository separato `SafetyTraining`.
+
+Le etichette "Panoramica" e "Controllo e Report" non sono moduli autonomi in questo repository. Funzioni operative già esistenti:
+- `modules/admin.html` + `js/modules/dashboard_pro.js`: dashboard con KPI, attività, stato corsi, verifica fascicoli e salute sistema;
+- `modules/collaudo.html` + `js/modules/collaudo.js`: collaudo tecnico e scarico report.
+Non duplicare indiscriminatamente la UI di SafetyTraining.
+
+### Correzione applicata
+Problema tecnico individuato dal sorgente: `modules/admin.html` caricava una catena di script via `onload` di una GIF trasparente, mentre `js/app.js` poteva già avviare `loadDashboardStats`, causando inizializzazioni concorrenti e letture duplicate.
+
+- `js/app.js`: la funzione `loadOptionalSafetyScript` ora condivide la stessa Promise tra richieste concorrenti dello stesso script; in caso di errore elimina la Promise fallita e permette un successivo tentativo.
+- `js/app.js`: all'apertura di `admin` carica in ordine dashboard, checklist, prepara corso, rifiniture UI, suite professionale e soltanto dopo esegue/attende `loadDashboardStats`.
+- `modules/admin.html`: rimosso il trigger tramite GIF nascosta.
+- `sw.js`: verificato, lascia i file JS/HTML in strategia network-first; nessun incremento cache necessario per questo rilascio.
+
+### Commits e verifica
+- `09fec2636037f6e672f58041bbfe03fb1ed00acb`: loader e deduplicazione;
+- `a0630e32cbc17c1275afb05240e2ab4ac07fc0b5`: rimozione immagine invisibile.
+- Vercel produzione del commit `a0630e32`: deployment `dpl_ArrTaB6UHniyaKgi98q6pYCkG7FH`, stato READY.
+- Monitoraggio Vercel: nessun cluster di errori runtime nell'ultima ora e nessun log error/fatal nella finestra recente di 20 minuti.
+
+### Limitazioni del collaudo e prossimi passi
+- Non è stato effettuato il collaudo visivo con una sessione admin reale né la misurazione browser delle chiamate database. "READY" non equivale a test end-to-end.
+- In sessione admin verificare: accesso, primo caricamento Dashboard, numeri progetti/aziende/corsisti/docenti, pulsanti Checklist/Prepara corso, ritorno alla Dashboard da altre sezioni, layout mobile/tablet e assenza di errori console.
+- Salvaguardie: nessuna modifica a dati Supabase, migrazioni, ruoli, certificati, snapshot o sistema di stampa in questo intervento.
