@@ -303,7 +303,12 @@ window.loadModule = async function(moduleId) {
         }
         if (moduleId === 'aziende' && typeof window.loadAziendeTable === 'function') window.loadAziendeTable();
         if (moduleId === 'docenti' && typeof window.loadDocentiTable === 'function') await window.loadDocentiTable();
-        if (moduleId === 'corsisti' && typeof window.loadCorsistiTable === 'function') window.loadCorsistiTable();
+        if (moduleId === 'corsisti') {
+            // I documenti del corsista non dipendono dalla Dashboard o dalla suite professionale.
+            // Carica prima i comandi di stampa e poi la tabella, senza requisiti sui corsi.
+            await window.loadOptionalSafetyScript('js/modules/progetti_corsisti_refinement.js');
+            if (typeof window.loadCorsistiTable === 'function') await window.loadCorsistiTable();
+        }
         if (moduleId === 'progetti' && typeof window.loadProgettiTable === 'function') await window.loadProgettiTable();
         if (moduleId === 'scadenze' && typeof window.loadScadenzeTable === 'function') window.loadScadenzeTable();
         if (moduleId === 'ente' && typeof window.loadEnteData === 'function') window.loadEnteData();
