@@ -427,7 +427,9 @@
 
   async function decorateCorsistiNomine() {
     const tbody = document.getElementById('tabella-corsisti');
-    if (!tbody) return;
+    // La stampa libera su ciascuna anagrafica è già disponibile senza iscrizioni:
+    // caricare lo storico completo soltanto se vi sono corsi da decorare.
+    if (!tbody || !tbody.querySelector('button[onclick*="stampaAttestatoCorsista"]')) return;
     let D;
     try { D = await ensureCompanyDocEngine(); } catch (_) { return; }
 
