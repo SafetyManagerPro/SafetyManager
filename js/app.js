@@ -308,6 +308,7 @@ window.loadModule = async function(moduleId) {
             // Carica prima i comandi di stampa e poi la tabella, senza requisiti sui corsi.
             await window.loadOptionalSafetyScript('js/modules/progetti_corsisti_refinement.js');
             await window.loadOptionalSafetyScript('js/modules/corsisti_fascicolo_archivio.js');
+            await window.loadOptionalSafetyScript('js/modules/corsisti_autoarchivia_stampe.js');
             if (typeof window.loadCorsistiTable === 'function') await window.loadCorsistiTable();
         }
         if (moduleId === 'progetti' && typeof window.loadProgettiTable === 'function') await window.loadProgettiTable();
