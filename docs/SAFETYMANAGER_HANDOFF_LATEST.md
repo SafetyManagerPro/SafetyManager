@@ -327,3 +327,20 @@ Implementato separatamente su SafetyTraining v44: nuova area `Attestato e docume
 - Verificare una scheda con attestato reale e relativo storico in SafetyManager: mostra nomina/autorizzazione o modello DPI a seconda del corso; nomine prive di attestato non devono apparire.
 - Verificare su iPhone e desktop la stampa dei facsimili e l'uso delle anagrafiche snapshot.
 - Verificare portale LMS con iscrizione realmente `passed/completed`: oggi non ne risultano, quindi E2E non eseguito.
+
+
+## SafetyManager — stampa senza vincoli di corso o attestato (23/10/2026, aggiornamento)
+
+Richiesta: nessun blocco alla stampa di attestati, nomine, incarichi o altri modelli, neppure quando corso/esito/attestato non sono presenti o completi.
+
+**Modifiche realizzate**
+- `js/modules/documenti_azienda_lavoratore_directory.js` (`8bb9250099`, `0745d1433c`): rimosse restrizioni su esito, attestato e formazione completata dai modelli documentali. Nel Centro Stampe inserita sezione `Stampa libera di qualsiasi modello`, operativa anche con anagrafiche vuote; facsimili per attestati non certificanti, nomine/designazioni, incarichi, autorizzazioni, DPI, registro, dichiarazione DL.
+- `js/modules/progetti_corsisti_refinement.js` (`1b573f718f`): pulsanti e generazione nomine/DPI non dipendono più da corso superato o codice certificato. Disponibile incarico generico.
+- `js/utils.js` (`e352e869ed`): `renderPrintModulePages` non omette più `autocert` e `relazione_tutor`; esito mancante da ora `Da verificare`, non `Idoneo`; attestati ancora privi di conferma marcati `BOZZA ATTESTATO` pur rimanendo stampabili.
+- Firme, incarichi e attestati **non vengono falsamente dichiarati validi** a causa di una semplice stampa. I modelli riportano una dicitura di facsimile/bozza, completamento e sottoscrizione a cura dei responsabili.
+
+**Portale corsista**
+SafetyTraining v44.1 integra stampe PDF e facsimili per ogni iscrizione, di qualsiasi stato. Rimossi anche lato Supabase i vincoli sul completamento e sulla sequenza attestato→allegati tramite migration `v44_003`. Restano protezioni di accesso ai documenti altrui, Storage privato e identità del destinatario.
+
+**Controlli**
+Sintassi JavaScript superata, Vercel produzione `safety-manager-ultimate` commit `0745d1433c` READY. L'effettivo collaudo browser di ogni stampa, la verifica del layout A4 e la prova con un corsista reale rimangono pendenti. Documentazione SafetyTraining aggiornata in `SAFETYTRAINING_HANDOFF_LATEST.md` e `SAFETYTRAINING_HANDOFF.md`.
