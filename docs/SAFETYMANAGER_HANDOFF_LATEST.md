@@ -304,3 +304,26 @@ Problema tecnico individuato dal sorgente: `modules/admin.html` caricava una cat
 - Non è stato effettuato il collaudo visivo con una sessione admin reale né la misurazione browser delle chiamate database. "READY" non equivale a test end-to-end.
 - In sessione admin verificare: accesso, primo caricamento Dashboard, numeri progetti/aziende/corsisti/docenti, pulsanti Checklist/Prepara corso, ritorno alla Dashboard da altre sezioni, layout mobile/tablet e assenza di errori console.
 - Salvaguardie: nessuna modifica a dati Supabase, migrazioni, ruoli, certificati, snapshot o sistema di stampa in questo intervento.
+
+
+## SafetyManager — documenti e facsimili accanto agli attestati (23/10/2026)
+
+Richiesta: quando il corsista dispone di attestato, rendere visibili i modelli di nomina/incarico e la documentazione necessaria per la gestione aziendale, stampabili.
+
+### Intervento gestionale
+- File: `js/modules/progetti_corsisti_refinement.js`.
+- I pulsanti di nomina/incarico/autorizzazione sono offerti nello storico corsista solo se esiste un certificato collegato (`iscrizioni.id_certificato`) e la formazione è completata con i controlli di frequenza/esito/pratica già implementati.
+- Dove pertinente ai DPI è disponibile `Modello DPI`: stampa un verbale di consegna da completare e sottoscrivere; non attesta automaticamente la consegna dei dispositivi.
+- I modelli stampa ora riportano un banner **FACSIMILE DA COMPILARE E SOTTOSCRIVERE**: l'attestato non equivale a nomina, incarico o autorizzazione già perfezionata.
+- Correzione fondamentale: dati lavoratore e azienda dai campi snapshot dell'iscrizione storica, evitando che successivi cambi azienda/anagrafica riscrivano contenuti dei facsimili legati ai corsi precedenti.
+- Nessuna modifica al database SafetyManager, agli attestati già emessi o ai corsi congelati.
+
+Commit: `a4651f2e228bb279e56296cec101a68c3f557653` e `e57aa2200bad75027a5679c9829b82344603e96b`.
+
+### Disponibilità al corsista (portale LMS)
+Implementato separatamente su SafetyTraining v44: nuova area `Attestato e documenti collegati`, con PDF pubblicati, visualizzazione/stampa del corsista e facsimili correlati per ruolo. L'upload del PDF definitivo e l'approvazione spettano al `platform_admin` in SafetyTraining, tramite repository/database distinti. Nessuna sincronizzazione automatica degli attestati da SafetyManager è stata implementata: non promettere disponibilità remota prima del caricamento del PDF effettivo.
+
+### Da collaudare
+- Verificare una scheda con attestato reale e relativo storico in SafetyManager: mostra nomina/autorizzazione o modello DPI a seconda del corso; nomine prive di attestato non devono apparire.
+- Verificare su iPhone e desktop la stampa dei facsimili e l'uso delle anagrafiche snapshot.
+- Verificare portale LMS con iscrizione realmente `passed/completed`: oggi non ne risultano, quindi E2E non eseguito.
