@@ -187,6 +187,20 @@
       setTimeout(async()=>{
         try {
           if(typeof window.waitForPrintImages==='function')await window.waitForPrintImages(area);
+          // Il salvataggio è opzionale; prepara una copia prima che la stampa liberi l'area.
+          if(corsistaId){
+            const labels={
+              attestato:'Schema attestato',preposto:'Nomina preposto',
+              primo_soccorso:'Designazione primo soccorso',antincendio:'Designazione antincendio',
+              attrezzatura:'Autorizzazione attrezzatura',quota:'Incarico quota e DPI',
+              confinati:'Incarico ambienti confinati',incarico_generico:'Lettera incarico',
+              verbale_consegna_dpi:'Verbale consegna DPI',registro_consegna_dpi:'Registro consegna DPI',
+              dichiarazione_dl_diretta:'Dichiarazione DL'
+            };
+            window.SafetyCorsistiAutoArchive?.capture?.(area,{
+              corsistaId,type,title:(labels[type]||'Documento')+' · '+(person.nome||'Corsista')
+            });
+          }
           window.print();
         }finally{
           document.body.classList.remove('is-printing-temp');
