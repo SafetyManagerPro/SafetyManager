@@ -308,6 +308,11 @@ window.stampaAttestatoCorsista = async function(projectId, corsistaId) {
         document.body.classList.add('is-printing-temp');
         setTimeout(async () => {
             if (typeof window.waitForPrintImages === 'function') await window.waitForPrintImages(printArea);
+            const project=(window.progettiList||[]).find(p=>String(p.id)===String(projectId));
+            const name=window.DB_CORSI?.[project?.corso_id]?.t||project?.corso_id||'Formazione';
+            window.SafetyCorsistiAutoArchive?.capture?.(printArea,{
+                corsistaId,projectId,type:'attestato',title:'Attestato · '+name
+            });
             window.print();
             document.body.classList.remove('is-printing-temp');
             printArea.innerHTML = '';
