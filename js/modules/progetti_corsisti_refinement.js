@@ -377,17 +377,21 @@
       const projectId = match[1];
       const corsistaId = match[2];
       const history = historyFor(D, projectId, corsistaId);
-      if (!history || history.completed !== true || !D.isTrainingCompleted?.(history) || !history.enrollment?.id_certificato || !APPOINTMENT_ROLES.has(history.role)) return;
-
-      const nomina = document.createElement('button');
-      nomina.type = 'button';
-      nomina.dataset.safetyNominaCourse = '1';
-      nomina.className = 'shrink-0 bg-violet-700 hover:bg-violet-600 text-white rounded px-2 py-1 text-[8px] font-black uppercase';
-      nomina.title = `Stampa ${ROLE_LABELS[history.role] || 'nomina/incarico'} collegata al corso completato`;
-      nomina.textContent = history.role === 'attrezzatura' ? 'Autorizzazione' : (['quota','confinati'].includes(history.role) ? 'Incarico' : 'Nomina');
-      nomina.addEventListener('click', () => window.stampaNominaCorsistaDaCorso(projectId, corsistaId));
-      host.appendChild(nomina);
-      if (history.role==='quota' || /(?:^|_)dpi(?:_|$)/i.test(history.course?.id||'')) {
+      if (!history || history.completed !== true || !D.isTrainingCompleted?.(history) || !history.enrollment?.id_certificato) return;
+      const hasNomina=APPOINTMENT_ROLES.has(history.role);
+      const hasDpi=history.role==='quota' || /(?:^|_)dpi(?:_|$)/i.test(history.course?.id||'');
+      if (!hasNomina && !hasDpi) return;
+      if (hasNomina) {
+        const nomina = document.createElement('button');
+        nomina.type = 'button';
+        nomina.dataset.safetyNominaCourse = '1';
+        nomina.className = 'shrink-0 bg-violet-700 hover:bg-violet-600 text-white rounded px-2 py-1 text-[8px] font-black uppercase';
+        nomina.title = `Stampa facsimile ${ROLE_LABELS[history.role] || 'nomina/incarico'}: richiede verifica e firma`;
+        nomina.textContent = history.role === 'attrezzatura' ? 'Autorizzazione' : (['quota','confinati'].includes(history.role) ? 'Incarico' : 'Nomina');
+        nomina.addEventListener('click', () => window.stampaNominaCorsistaDaCorso(projectId, corsistaId));
+        host.appendChild(nomina);
+      }
+      if (hasDpi) {
         const dpi = document.createElement('button');
         dpi.type='button';
         dpi.dataset.safetyNominaCourse='dpi';
