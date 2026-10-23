@@ -232,6 +232,86 @@ async function upload(){
   msg('Archiviazione non riuscita: '+(err?.message||err),true);
  }finally{state.busy=false;if(submit)submit.disabled=false;}
 }
+// Interfaccia unica anche per documenti generati dal motore di stampa.
+// Mantiene lo stesso archivio privato e le stesse regole delle versioni manuali.
+window.SafetyCorsistiFascicolo={
+ async archiveGenerated({corsistaId,projectId=null,tipo_documento='altro',titolo='Documento',blob,notes='PDF generato da SafetyManager Pro'}){
+   if(!corsistaId||!blob)throw Error('Corsista o PDF mancante per archiviazione.');
+   if(!TYPES[tipo_documento])throw Error('Tipo documento non riconosciuto.');
+   if(blob.size<5||blob.size>MAX)throw Error('PDF non archiviabile: dimensioni fuori dal limite di 15 MB.');
+   if(new TextDecoder().decode(await blob.slice(0,5).arrayBuffer())!=='%PDF-')
+     throw Error('La conversione non ha prodotto un PDF valido.');
+   const person=(window.corsistiList||[]).find(p=>String(p.id)===String(corsistaId))
+     || (typeof window.getCorsisti==='function'?(await window.getCorsisti()).find(p=>String(p.id)===String(corsistaId)):null);
+   if(!person)throw Error('Corsista non presente nella anagrafica.');
+   const cid=String(corsistaId),pid=projectId?String(projectId):null;
+   let query=db().from('iscrizioni').select(
+      'id,progetto_id,nome_cognome_storico,cf_storico,mansione_storica,azienda_storica_nome,azienda_storica_id'
+   ).eq('corsista_id',cid).limit(1);
+   query=pid?query.eq('progetto_id',pid):query.is('progetto_id',null);
+   const {data:matches,error:enrollmentError}=await query;
+   if(enrollmentError)throw enrollmentError;
+   const enrollment=(matches||[])[0]||null;
+   // Senza iscrizione collegata i modelli rimangono indipendenti dal corso.
+   const actualPid=enrollment?.progetto_id||null;
+   const title=String(titolo||'Documento').trim().slice(0,200);
+   if(title.length<3)throw Error('Titolo troppo breve.');
+   let base=db().from(TABLE).select('id,gruppo_versioni,versione')
+     .eq('corsista_id',cid).eq('tipo_documento',tipo_documento).eq('titolo',title)
+     .order('creato_il',{ascending:false}).limit(1);
+   base=actualPid?base.eq('progetto_id',actualPid):base.is('progetto_id',null);
+   const {data:similar,error:similarError}=await base;
+   if(similarError)throw similarError;
+   let previous=(similar||[])[0]||null;
+   if(previous){
+     const {data:latest,error:latestError}=await db().from(TABLE)
+       .select('id,versione').eq('gruppo_versioni',previous.gruppo_versioni)
+       .order('versione',{ascending:false}).limit(1);
+     if(latestError)throw latestError;
+     if(latest?.length)previous={...previous,...latest[0]};
+   }
+   const id=crypto.randomUUID(),storagePath=cid+'/'+id+'/documento.pdf';
+   const date=new Date(),today=new Date(date.getTime()-date.getTimezoneOffset()*60000).toISOString().slice(0,10);
+   let companyName=enrollment?.azienda_storica_nome||person.aziende?.ragione_sociale||'';
+   let companyId=enrollment?.azienda_storica_id||person.azienda_id||null;
+   if(!companyName&&companyId){
+     const co=(window.aziendeList||[]).find(a=>String(a.id)===String(companyId));
+     companyName=co?.ragione_sociale||'';
+   }
+   const payload={
+     id,corsista_id:cid,iscrizione_id:enrollment?.id||null,progetto_id:actualPid,
+     gruppo_versioni:previous?.gruppo_versioni||id,versione:previous?previous.versione+1:1,
+     precedente_id:previous?.id||null,tipo_documento,titolo:title,stato:'bozza',
+     data_documento:today,azienda_storica_nome:companyName||null,azienda_storica_id:companyId,
+     nome_cognome_storico:enrollment?.nome_cognome_storico||person.nome_cognome||'Corsista',
+     cf_storico:enrollment?.cf_storico||person.cf||null,
+     mansione_storica:enrollment?.mansione_storica||person.mansione_storica||null,
+     nome_file:tipo_documento+'-'+today+'.pdf',storage_path:storagePath,
+     mime_type:'application/pdf',dimensione_byte:blob.size,
+     note:String(notes||'Generato automaticamente dalla stampa').slice(0,2500)
+   };
+   const uploaded=await db().storage.from(BUCKET).upload(storagePath,blob,{
+     cacheControl:'0',upsert:false,contentType:'application/pdf'
+   });
+   if(uploaded.error)throw uploaded.error;
+   const inserted=await db().from(TABLE).insert(payload);
+   if(inserted.error){
+     const cleanup=await db().storage.from(BUCKET).remove([storagePath]);
+     if(cleanup.error)console.warn('[Fascicolo auto] PDF orfano:',cleanup.error.message);
+     throw inserted.error;
+   }
+   if(previous){
+     const result=await db().from(TABLE).update({stato:'superato'}).eq('id',previous.id).eq('corsista_id',cid);
+     if(result.error)console.warn('[Fascicolo auto] Stato versione precedente:',result.error.message);
+   }
+   // Aggiorna la finestra solo se è ancora riferita allo stesso corsista.
+   if(state.id===cid&&el('cfasc-modal')){
+     try{await refresh();}catch(e){console.warn('[Fascicolo auto] Refresh:',e);}
+   }
+   return {id,versione:payload.versione,titolo:payload.titolo};
+ }
+};
+
 window.apriFascicoloCorsista=async function(corsistaId){
  const person=(window.corsistiList||[]).find(c=>String(c.id)===String(corsistaId));
  if(!person){alert('Corsista non disponibile nella tabella. Ricarica la pagina.');return;}
