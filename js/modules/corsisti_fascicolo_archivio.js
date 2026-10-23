@@ -32,6 +32,7 @@ function view(){
  '<button type="button" id="cfasc-close" class="rounded-lg px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold">Chiudi ×</button></header>'+
  '<div class="p-4 sm:p-6 space-y-5">'+
  '<p class="text-xs text-slate-600">Archivio permanente dei PDF caricati: riapertura, stampa e versioni storiche. Non è richiesto un corso, un attestato o un esito. La stampa dei modelli resta libera anche senza salvataggio.</p>'+
+ '<label class="flex flex-wrap items-center gap-3 rounded-xl border border-indigo-200 bg-indigo-50 p-3 text-xs font-bold text-indigo-950"><input type="checkbox" id="cfasc-autoarchive" data-safety-autoarchive-checkbox class="accent-indigo-700 h-4 w-4" '+(window.SafetyCorsistiAutoArchive?.enabled()?'checked':'')+'> Archivia automaticamente quando stampo <span class="font-normal text-[11px] text-indigo-800">Opzionale: salvataggio in bozza e versione successiva. Disattivabile in qualsiasi momento.</span></label>'+
  '<div class="flex flex-wrap justify-between gap-3 items-center"><h3 class="text-sm font-black uppercase">Documenti archiviati</h3>'+
  '<div class="flex flex-wrap gap-2"><select id="cfasc-filter" class="border border-slate-300 bg-white rounded-lg p-2 text-xs"><option value="all">Tutti gli stati</option><option value="bozza">Bozze</option><option value="definitivo">Definitivi</option><option value="superato">Superati</option></select>'+
  '<button type="button" id="cfasc-refresh" class="text-xs font-bold px-3 py-2 rounded-lg border border-slate-300 hover:bg-slate-100">Aggiorna</button></div></div>'+
@@ -51,6 +52,7 @@ function view(){
  '<span id="cfasc-feedback" role="status" aria-live="polite" class="text-xs font-bold text-blue-800"></span></div>'+
  '</form><p class="text-[11px] text-slate-500 mt-3">Le versioni precedenti restano archiviate senza sovrascritture. “Definitivo” è una classificazione gestionale: non sostituisce le firme o le verifiche richieste per legge. Usa “Salva come PDF” nella finestra di stampa e carica qui il file ottenuto, se vuoi conservarne una copia immutabile.</p></div></div></section>';
  document.body.appendChild(root);
+ root.querySelector('#cfasc-autoarchive').onchange=e=>window.SafetyCorsistiAutoArchive?.setEnabled?.(e.target.checked);
  root.querySelector('#cfasc-close').onclick=close;
  root.querySelector('#cfasc-refresh').onclick=()=>void refresh();
  root.querySelector('#cfasc-filter').onchange=e=>{state.filter=e.target.value;render();};
@@ -300,10 +302,8 @@ window.SafetyCorsistiFascicolo={
      if(cleanup.error)console.warn('[Fascicolo auto] PDF orfano:',cleanup.error.message);
      throw inserted.error;
    }
-   if(previous){
-     const result=await db().from(TABLE).update({stato:'superato'}).eq('id',previous.id).eq('corsista_id',cid);
-     if(result.error)console.warn('[Fascicolo auto] Stato versione precedente:',result.error.message);
-   }
+   // Una nuova copia AUTOARCHIVIATA è sempre una bozza: non dichiarare
+   // "superato" un documento precedente (anche definitivo) senza scelta admin.
    // Aggiorna la finestra solo se è ancora riferita allo stesso corsista.
    if(state.id===cid&&el('cfasc-modal')){
      try{await refresh();}catch(e){console.warn('[Fascicolo auto] Refresh:',e);}
