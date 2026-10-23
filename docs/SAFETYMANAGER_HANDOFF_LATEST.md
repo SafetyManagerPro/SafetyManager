@@ -375,3 +375,40 @@ Richiesta: controllare che le stampe da **Corsisti** siano disponibili a prescin
 - Non è stato eseguito un test funzionale autenticato su un corsista reale (percorso click→dialogo stampa su desktop e mobile); pertanto non presentarlo come collaudato end-to-end.
 - Stampa attestati ufficiali continua a richiedere dati attendibili per essere considerata emissione; il comando stampa NON è vincolato da tali dati e in caso incompleto produce una BOZZA.
 - Se in futuro si rielabora la scheda Corsisti, conservare il pulsante in ogni riga e l'aggancio in `loadModule('corsisti')` per evitare il ripetersi del bug.
+
+
+## 23/10/2026 — Fascicolo documentale PDF individuale, v1
+
+Richiesta: archivio consultabile dalla scheda **Corsisti**, caricamento, apertura/stampa di PDF già salvati, stati bozza/definitivo/superato e versioni immutabili; nessun vincolo tra stampa e archivio o esito formativo. Non toccare SafetyTraining.
+
+### Modifiche applicate (solo SafetyManager Pro)
+- SQL live migrations Supabase progetto `gblcedkfnasqlnrxupzx`:
+  - `20261023203914_corsisti_fascicolo_individuale_privato.sql` crea `corsisti_documenti_archivio` con RLS admin-only e snapshot di nome, CF, mansione, azienda e iscrizione; `gruppo_versioni`, `versione`, `precedente_id` e trigger di controllo impediscono sovrascrittura dei metadati storici. I documenti rimangono in archivio anche cambiando azienda o ruolo. Nessun vincolo di completamento/attestato/esito.
+  - Bucket **privato** `corsisti-fascicolo-privato`, PDF max 15 MB, accessibile solo da admin con link temporaneo da `createSignedUrl`. Non usare il preesistente bucket pubblico `documenti-corsisti` per i nuovi file; non alterare i file già collegati.
+  - `20261023204222_corsisti_fascicolo_protect_registered_pdfs.sql` limita Storage DELETE alla pulizia dei file non registrati, proteggendo le versioni PDF già associate a record storici.
+  - Tabella senza policy DELETE e con UPDATE limitato dal trigger ai soli campi `stato`/`modificato_il`; caricare un nuovo PDF crea sempre una nuova riga/versione e un nuovo oggetto privato.
+- `js/modules/corsisti_fascicolo_archivio.js` — nuovo modulo con:
+  - `apriFascicoloCorsista(id)` per ogni anagrafica, anche senza iscrizioni;
+  - elenco PDF storici con titolo, tipo, versione, stato, data, azienda storica, riferimento corso facoltativo e note;
+  - carica PDF con controlli estensione, mime, intestazione %PDF- e max 15 MB, percorso unico per upload, cleanup se inserimento metadati fallisce;
+  - apertura/rstampa via URL privato a scadenza, con popup aperto direttamente dal click per compatibilità Safari;
+  - `Nuova versione` mantiene le precedenti, propone tipo/titolo/corso, conserva snapshot e può segnare superata la versione precedente;
+  - `Segna definitivo` e `Segna superato` gestionali, senza dichiarare il documento legalmente emesso per sola classificazione.
+- `js/app.js`: carica il fascicolo autonomamente nella navigazione `Corsisti`, dopo il modulo di stampa libera, prima della tabella.
+- `js/utils.js`: aggiunge pulsante cartella/archivio nella colonna Azioni di **tutte** le anagrafiche, anche senza corsi.
+- `js/modules/progetti_corsisti_refinement.js`: il pannello di stampa libera apre anche il fascicolo; nessuna interferenza con la stampa esistente.
+- Sorgenti migration commit `036b23e3f49d` e `b3a645559d74`; modulo `d86e78217d55`; agganci UI `4f08a3562b97`, `e01e9d9a1c7c`, `d94e4d615e41`.
+
+### Collaudi eseguiti
+- `execute_sql`: tabella creata, RLS attiva, bucket privato con limite 15 MB, policy separate e archivio inizialmente vuoto.
+- Test SQL **in transazione con rollback**: inserimento documento prima versione + seconda versione, cambio di stato e rifiuto della modifica retroattiva dei metadati. Nessun record di test conservato. Verificato dopo ROLLBACK: count 0, bucket privato, policy delete limitata agli orfani.
+- GitHub lettura e controllo della **sintassi JavaScript** dei file modificati: superato.
+- Vercel produzione READY per commit `b3a645559d74`; log runtime ultimi 30 minuti: nessun errore rilevato.
+- Security Advisor Supabase: nessun nuovo warning riconducibile alla tabella o al bucket, rimane una notifica preesistente relativa alla protezione password.
+
+### Limiti e mantenimento
+- Per registrare il PDF **generato dalla funzione Stampa** oggi usare il comando browser `Stampa → Salva come PDF`, poi `Fascicolo → Archivia PDF`. La cattura/salvataggio PDF automatico dal motore HTML di stampa non è ancora implementata. Non presentare questa fase come automatica.
+- I file documentali **precedenti**, collegati dai campi URL delle anagrafiche (in alcuni bucket Storage pubblici), non vengono migrati automaticamente e restano nei percorsi storici. Non cambiare i permessi dei bucket legacy senza analisi del relativo impatto.
+- L'archiviazione è riservata all'admin SafetyManager già configurato. Le policy impediscono accesso a persone non autorizzate: la stampa dei modelli rimane libera **all'interno del gestionale**, non diventa pubblica online.
+- L'attuale vincolo FK su `corsisti_documenti_archivio.corsista_id` preserva i record e può impedire hard-delete di corsisti con fascicoli, coerentemente con l'immutabilità della storia; predisporre una procedura privacy/DSR autorizzata prima di tentare cancellazioni definitive.
+- Verifica manuale con admin autenticato e un PDF reale da desktop + iPhone **da fare**. Il deploy READY e la sintassi JS non equivalgono a test end-to-end.
