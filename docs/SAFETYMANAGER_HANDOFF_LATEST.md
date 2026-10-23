@@ -351,3 +351,27 @@ Sintassi JavaScript superata, Vercel produzione `safety-manager-ultimate` commit
 - `js/utils.js` (`6ca8e2b34e`) etichetta come `FACSIMILE` anche le dichiarazioni docente senza docenti assegnati; rimane disponibile l'apertura della stampa.
 - **SafetyTraining:** `apps/training/learner-course-documents-v44.js` (`e4837d4062`) aggiunge la stampa in bianco nella schermata admin **anche senza alcuna iscrizione selezionata**; accesso riservato all'amministratore, nessun controllo di esito/firma per stampare.
 - I controlli di destinatario e riservatezza dei file pubblicati restano attivi; nessun modello in bianco vale come atto emesso.
+
+## Verifica stampe sezione Corsisti — 23 ottobre 2026
+
+Richiesta: controllare che le stampe da **Corsisti** siano disponibili a prescindere da corso frequentato, esito positivo, percentuale di frequenza, data fine, certificato emesso e disponibilità di SafetyTraining.
+
+### Risultato controllo iniziale
+- Attestato per un corso già collegato al corsista: pulsante presente in `js/utils.js`; `stampaAttestatoCorsista` in `js/modules/stampe_bundle.js` non impone esito o codice attestato; i documenti incompleti sono marcati come BOZZA dal renderer.
+- Modelli nomine, incarichi e DPI per i corsi del corsista: funzioni esistevano in `js/modules/progetti_corsisti_refinement.js`, ma il modulo non veniva caricato dalla normale navigazione. I pulsanti non potevano quindi considerarsi sempre attivi.
+- Per i corsisti senza corsi registrati mancava un pulsante per accedere ai modelli dalla propria anagrafica (esisteva soltanto la stampa in bianco del Centro Stampe).
+
+### Correzioni effettivamente apportate
+- `js/app.js` commit `21ea750007`: all'apertura di `Corsisti` viene caricato esplicitamente `js/modules/progetti_corsisti_refinement.js` **prima** di caricare la tabella; non dipende più dall'apertura della Dashboard o da altri componenti.
+- `js/utils.js` commit `7e9a24e6c1`: nuovo pulsante con icona stampante per **ogni corsista**, anche senza iscrizioni, in attivo o archiviato. La vista mobile replica le azioni della tabella.
+- `js/modules/progetti_corsisti_refinement.js` commit `7609918310`: `apriStampeLibereCorsista(corsistaId)` apre una selezione di modelli A4 (attestato bozza, preposto, primo soccorso, antincendio, attrezzature, quota, confinati, incarico generico, verbale/registro DPI e dichiarazione DL). Se esistono corsi, un pulsante separato stampa l'attestato dell'iscrizione scelta. Nessun corso richiesto per stampare facsimili.
+- `js/modules/documenti_azienda_lavoratore_directory.js` commit `fadc024224`: `stampaModelloVuotoSafetyDoc(type, corsistaId)` accetta facoltativamente un corsista e precompila nome/CF/mansione/azienda senza richiedere che esista alcuna iscrizione; il testo di bozza resta ben visibile.
+- `js/modules/progetti_corsisti_refinement.js` commit `4fb8b2a3aa`: le anagrafiche senza corsi non attivano il caricamento di tutto lo storico; i modelli liberi rimangono funzionanti tramite caricamento leggero `ensureCompanyDocEngine(false)`.
+- Non è stato modificato SafetyTraining né alcuno schema/database. Accesso amministrativo gestionale già esistente mantenuto.
+
+### Verifica e limiti
+- Lettura codice sorgente con controllo specifico dell'intero percorso UI→comando→motore e sintassi JavaScript `new Function` per i quattro file aggiornati: superata.
+- Deploy Vercel codice `7609918310` risultato READY; verificare anche la versione definitiva dopo questo promemoria.
+- Non è stato eseguito un test funzionale autenticato su un corsista reale (percorso click→dialogo stampa su desktop e mobile); pertanto non presentarlo come collaudato end-to-end.
+- Stampa attestati ufficiali continua a richiedere dati attendibili per essere considerata emissione; il comando stampa NON è vincolato da tali dati e in caso incompleto produce una BOZZA.
+- Se in futuro si rielabora la scheda Corsisti, conservare il pulsante in ogni riga e l'aggancio in `loadModule('corsisti')` per evitare il ripetersi del bug.
