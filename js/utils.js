@@ -4519,7 +4519,10 @@ window.renderPrintModulePages = async function(moduleId, singleCorsista = null, 
         !window.isAssociationTrainingProvider()) ||
       (moduleId === 'relazione_tutor' &&
         typeof window.isTutorExpectedForProject === 'function' &&
-        !window.isTutorExpectedForProject());
+        !window.isTutorExpectedForProject()) ||
+      (moduleId === 'dichiarazione_docenza' &&
+        typeof window.getAssignedProjectTeachers === 'function' &&
+        !window.getAssignedProjectTeachers().length);
     if (moduleId === 'test_lingua_italiana' && typeof window.renderTestLinguaItalianaPages === 'function') {
         return await window.renderTestLinguaItalianaPages({
             preview,
