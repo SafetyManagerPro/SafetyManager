@@ -1200,6 +1200,7 @@ window.loadCorsistiTable = async function() {
                     ${linguaDoc}
                 </td>
                 <td class="p-3 border-b text-center whitespace-nowrap">
+                    <button type="button" onclick="window.apriFascicoloCorsista('${cor.id}')" class="text-violet-800 hover:bg-violet-200 bg-violet-100 p-1.5 rounded transition shadow-sm mr-1" title="Fascicolo documentale: PDF archiviati, versioni e ristampa"><i data-lucide="folder-archive" class="w-3.5 h-3.5"></i></button>
                     <button type="button" onclick="window.apriStampeLibereCorsista('${cor.id}')" class="text-indigo-800 hover:bg-indigo-200 bg-indigo-100 p-1.5 rounded transition shadow-sm mr-1" title="Stampa libera attestati, nomine, incarichi, DPI e altri modelli"><i data-lucide="printer" class="w-3.5 h-3.5"></i></button>
                     <button onclick="window.modificaCorsista('${cor.id}')" class="text-blue-600 hover:bg-blue-200 bg-blue-100 p-1.5 rounded transition shadow-sm" title="Modifica corsista"><i data-lucide="edit" class="w-3.5 h-3.5"></i></button>
                     <button onclick="window.apriFormazionePregressa && window.apriFormazionePregressa('${cor.id}')" class="text-violet-700 hover:bg-violet-200 bg-violet-100 p-1.5 rounded transition shadow-sm ml-1" title="Formazione pregressa / crediti"><i data-lucide="history" class="w-3.5 h-3.5"></i></button>
