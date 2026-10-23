@@ -30,9 +30,17 @@ window.addEventListener('resize', () => {
     window.__navOffsetTimer = setTimeout(window.updateNavOffset, 100);
 });
 
-window.loadOptionalSafetyScript = async function(src) {
-    if (!src || document.querySelector(`script[data-safety-dynamic="${src}"]`)) return true;
-    return await new Promise(resolve => {
+window.__safetyDynamicScriptPromises = window.__safetyDynamicScriptPromises || new Map();
+window.loadOptionalSafetyScript = function(src) {
+    if (!src) return Promise.resolve(false);
+    // Una sola Promise per ogni file: chiamate concorrenti attendono lo stesso caricamento.
+    const pending = window.__safetyDynamicScriptPromises.get(src);
+    if (pending) return pending;
+    const alreadyPresent = Array.from(document.querySelectorAll('script[data-safety-dynamic]'))
+        .some(script => script.dataset.safetyDynamic === src);
+    if (alreadyPresent) return Promise.resolve(true);
+
+    const loading = new Promise(resolve => {
         const script = document.createElement('script');
         script.src = src;
         script.async = false;
@@ -40,10 +48,14 @@ window.loadOptionalSafetyScript = async function(src) {
         script.onload = () => resolve(true);
         script.onerror = () => {
             console.warn('SafetyManager: script opzionale non caricato:', src);
+            script.remove();
+            window.__safetyDynamicScriptPromises.delete(src);
             resolve(false);
         };
         document.head.appendChild(script);
     });
+    window.__safetyDynamicScriptPromises.set(src, loading);
+    return loading;
 };
 
 window.isSafetyAdminEmail = function(email) {
@@ -272,7 +284,23 @@ window.loadModule = async function(moduleId) {
         
         if (typeof lucide !== 'undefined') lucide.createIcons();
         
-        if (moduleId === 'admin' && typeof window.loadDashboardStats === 'function') window.loadDashboardStats();
+        // Carica la suite Dashboard in ordine certo, non tramite eventi di un'immagine nascosta.
+        // Evita inizializzazioni e letture Supabase duplicate al primo accesso.
+        if (moduleId === 'admin') {
+            const dashboardScripts = [
+                'js/modules/dashboard_pro.js',
+                'js/modules/checklist_corso.js',
+                'js/modules/prepara_corso.js',
+                'js/modules/ui_refinements.js',
+                'js/modules/professional_suite.js'
+            ];
+            for (const src of dashboardScripts) {
+                await window.loadOptionalSafetyScript(src);
+            }
+            if (typeof window.loadDashboardStats === 'function') {
+                await window.loadDashboardStats();
+            }
+        }
         if (moduleId === 'aziende' && typeof window.loadAziendeTable === 'function') window.loadAziendeTable();
         if (moduleId === 'docenti' && typeof window.loadDocentiTable === 'function') await window.loadDocentiTable();
         if (moduleId === 'corsisti' && typeof window.loadCorsistiTable === 'function') window.loadCorsistiTable();
