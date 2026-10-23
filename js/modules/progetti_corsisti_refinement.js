@@ -252,6 +252,48 @@
     return histories.find(h => String(h.project?.id || '') === String(projectId || '')) || null;
   }
 
+  // Per le stampe collegate a un attestato non usare l'azienda o i dati correnti:
+  // un corso del 2024 deve riportare l'identità e l'azienda salvate nell'iscrizione storica.
+  const historicPrintData = (D, history, person) => {
+    const snapshot = history.enrollment || {};
+    const company = D.companyFrom(history.project);
+    company.nome = snapshot.azienda_storica_nome || company.nome;
+    company.piva = snapshot.azienda_storica_piva_cf || company.piva;
+    return {
+      company,
+      person: {
+        ...person,
+        nome: snapshot.nome_cognome_storico || person.nome,
+        cf: snapshot.cf_storico || person.cf,
+        mansione: snapshot.mansione_storica || person.mansione,
+        company
+      }
+    };
+  };
+  const printTemplateNotice = (printArea, label) => {
+    const banner = document.createElement('div');
+    banner.className = 'safety-company-document-draft-banner';
+    banner.style.cssText = 'padding:5px 12px;border:2px solid #991b1b;color:#991b1b;text-align:center;font:bold 11px Arial,sans-serif;margin-bottom:8px;';
+    banner.textContent = 'FACSIMILE DA COMPILARE E SOTTOSCRIVERE — NON È UN INCARICO/VERBALE GIÀ EMESSO · ' + label;
+    printArea.querySelector('.safety-company-doc-page')?.prepend(banner);
+  };
+  const printPreparedCompanyDoc = (printArea) => {
+    printArea.querySelectorAll('.safety-company-doc-page').forEach(page => {
+      page.classList.add('print-show','temp-page');
+      page.style.transform='none';page.style.margin='0';
+    });
+    document.body.classList.add('is-printing-temp');
+    setTimeout(async () => {
+      try {
+        if (typeof window.waitForPrintImages === 'function') await window.waitForPrintImages(printArea);
+        window.print();
+      } finally {
+        document.body.classList.remove('is-printing-temp');
+        printArea.innerHTML = '';
+      }
+    },700);
+  };
+
   window.stampaNominaCorsistaDaCorso = async function(projectId, corsistaId) {
     if (!projectId || !corsistaId) return alert('Progetto o corsista non selezionato.');
     const printArea = document.getElementById('print-area-temp');
@@ -265,18 +307,20 @@
       if (history.completed !== true || !D.isTrainingCompleted?.(history)) {
         return alert('La nomina non è disponibile: il corso non risulta ancora effettivamente completato con esito positivo.');
       }
-      if (!APPOINTMENT_ROLES.has(history.role)) {
+      if (!history.enrollment?.id_certificato) return alert('Prima di predisporre il modello è necessario un attestato disponibile nello storico del corso.');
+       if (!APPOINTMENT_ROLES.has(history.role)) {
         return alert('Questo corso non genera una lettera di nomina/incarico automatica.');
       }
-      if (!person.company?.nome) return alert('Il corsista deve essere collegato a una azienda prima di generare la nomina.');
+      const historical = historicPrintData(D, history, person);
+      if (!historical.company?.nome) return alert('Azienda storica del corso non disponibile: verifica il progetto prima di generare il modello.');
 
       const courseRef = `${history.course?.titolo || history.project?.corso_id || 'Corso'}${history.project?.codice ? ' · ' + history.project.codice : ''}${history.project?.data_esame ? ' · ' + (window.formatDataToItalian ? window.formatDataToItalian(history.project.data_esame) : history.project.data_esame) : ''}`;
       const ctx = {
-        company: person.company,
+        company: historical.company,
         course: history.course,
-        datore: person.company.datore || '',
+        datore: historical.company.datore || '',
         date: history.project?.data_esame || D.today(),
-        place: person.company.sede || person.company.indirizzo || '',
+        place: historical.company.sede || historical.company.indirizzo || '',
         courseRef,
         effective: history.project?.data_esame || D.today(),
         duration: 'Fino a revoca, modifica organizzativa o perdita dei requisiti',
@@ -284,28 +328,37 @@
       };
 
       D.injectStyle?.();
-      printArea.innerHTML = D.appointmentPage(ctx, person, history.role);
-      printArea.querySelectorAll('.safety-company-doc-page').forEach(page => {
-        page.classList.add('print-show','temp-page');
-        page.style.transform = 'none';
-        page.style.margin = '0';
-      });
-      alert(`Ora si aprirà la stampa della ${ROLE_LABELS[history.role] || 'nomina/incarico'} per ${person.nome || 'il corsista'}.`);
-      document.body.classList.add('is-printing-temp');
-      setTimeout(async () => {
-        try {
-          if (typeof window.waitForPrintImages === 'function') await window.waitForPrintImages(printArea);
-          window.print();
-        } finally {
-          document.body.classList.remove('is-printing-temp');
-          printArea.innerHTML = '';
-        }
-      }, 700);
+      printArea.innerHTML = D.appointmentPage(ctx, historical.person, history.role);
+      printTemplateNotice(printArea, ROLE_LABELS[history.role] || 'Nomina/incarico');
+      printPreparedCompanyDoc(printArea);
     } catch (error) {
       console.error('Stampa nomina corsista:', error);
       document.body.classList.remove('is-printing-temp');
       printArea.innerHTML = '';
       alert('Errore nella preparazione della nomina: ' + (error?.message || error));
+    }
+  };
+
+  window.stampaModelloConsegnaDpiDaCorso = async function(projectId,corsistaId) {
+    const area=document.getElementById('print-area-temp');
+    if(!area)return alert('Area stampa non disponibile.');
+    try {
+      const D=await ensureCompanyDocEngine();
+      const history=historyFor(D,projectId,corsistaId);
+      const person=(D.directoryCache?.people||[]).find(p=>String(p.id)===String(corsistaId));
+      if(!history||!person||history.completed!==true||!D.isTrainingCompleted?.(history)||!history.enrollment?.id_certificato)
+        return alert('Modello disponibile solo quando il corso è completato con attestato.');
+      const historical=historicPrintData(D,history,person);
+      if(!historical.company.nome)return alert('Azienda storica non disponibile.');
+      const ctx={company:historical.company,datore:historical.company.datore||'',date:history.project?.data_esame||D.today(),
+        place:history.project?.sede||historical.company.sede||'',note:'',info:false,training:false};
+      D.injectStyle?.();
+      area.innerHTML=D.dpiPage(ctx,historical.person,[]);
+      printTemplateNotice(area,'Verbale consegna DPI');
+      printPreparedCompanyDoc(area);
+    }catch(e){
+      document.body.classList.remove('is-printing-temp');area.innerHTML='';
+      alert('Modello consegna DPI non disponibile: '+(e.message||e));
     }
   };
 
@@ -324,7 +377,7 @@
       const projectId = match[1];
       const corsistaId = match[2];
       const history = historyFor(D, projectId, corsistaId);
-      if (!history || history.completed !== true || !APPOINTMENT_ROLES.has(history.role)) return;
+      if (!history || history.completed !== true || !D.isTrainingCompleted?.(history) || !history.enrollment?.id_certificato || !APPOINTMENT_ROLES.has(history.role)) return;
 
       const nomina = document.createElement('button');
       nomina.type = 'button';
@@ -334,6 +387,16 @@
       nomina.textContent = history.role === 'attrezzatura' ? 'Autorizzazione' : (['quota','confinati'].includes(history.role) ? 'Incarico' : 'Nomina');
       nomina.addEventListener('click', () => window.stampaNominaCorsistaDaCorso(projectId, corsistaId));
       host.appendChild(nomina);
+      if (history.role==='quota' || /(?:^|_)dpi(?:_|$)/i.test(history.course?.id||'')) {
+        const dpi = document.createElement('button');
+        dpi.type='button';
+        dpi.dataset.safetyNominaCourse='dpi';
+        dpi.className='shrink-0 bg-slate-700 hover:bg-slate-600 text-white rounded px-2 py-1 text-[8px] font-black uppercase';
+        dpi.title='Stampa facsimile verbale consegna DPI: richiede compilazione, consegna reale e firme';
+        dpi.textContent='Modello DPI';
+        dpi.addEventListener('click',()=>window.stampaModelloConsegnaDpiDaCorso(projectId,corsistaId));
+        host.appendChild(dpi);
+      }
     });
     if (typeof lucide !== 'undefined') lucide.createIcons();
   }
