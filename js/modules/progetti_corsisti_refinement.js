@@ -231,7 +231,7 @@
     }
   }
 
-  async function ensureCompanyDocEngine() {
+  async function ensureCompanyDocEngine(needHistory = true) {
     const loader = window.loadOptionalSafetyScript;
     if (typeof loader !== 'function') throw new Error('Loader moduli non disponibile.');
     const scripts = [
@@ -242,10 +242,79 @@
     ];
     for (const src of scripts) await loader(src);
     const D = window.SafetyCompanyDocs;
-    if (!D?.loadDirectory || !D?.appointmentPage) throw new Error('Motore documenti azienda/lavoratore non disponibile.');
-    await D.loadDirectory(false);
+    if (!D?.loadDirectory || !D?.appointmentPage || !window.stampaModelloVuotoSafetyDoc) throw new Error('Motore documenti azienda/lavoratore non disponibile.');
+    // La stampa libera non deve dipendere da caricamento corsi, presenze o progetti.
+    if (needHistory) await D.loadDirectory(false);
     return D;
   }
+
+  window.apriStampeLibereCorsista = async function(corsistaId) {
+    const row=(window.corsistiList||[]).find(c=>String(c.id)===String(corsistaId));
+    if(!row) return alert('Corsista non trovato. Aggiorna la tabella e riprova.');
+    document.getElementById('safety-corsista-free-print-modal')?.remove();
+    const overlay=document.createElement('div');
+    overlay.id='safety-corsista-free-print-modal';
+    overlay.setAttribute('role','dialog');
+    overlay.setAttribute('aria-modal','true');
+    overlay.setAttribute('aria-label','Stampa libera documenti corsista');
+    overlay.className='fixed inset-0 z-[120000] bg-slate-950/70 p-4 flex items-center justify-center';
+    const options=[
+      ['attestato','Attestato — facsimile non certificante'],
+      ['preposto','Nomina / individuazione preposto'],
+      ['primo_soccorso','Designazione primo soccorso'],
+      ['antincendio','Designazione antincendio / evacuazione'],
+      ['attrezzatura','Autorizzazione uso attrezzature'],
+      ['quota','Incarico lavori in quota / DPI III categoria'],
+      ['confinati','Incarico ambienti confinati'],
+      ['incarico_generico','Lettera di incarico generica'],
+      ['verbale_consegna_dpi','Verbale consegna DPI'],
+      ['registro_consegna_dpi','Registro consegna DPI'],
+      ['dichiarazione_dl_diretta','Dichiarazione datore di lavoro']
+    ];
+    const courses=(row.iscrizioni||[]).filter(isc=>isc.progetti?.id).map(isc=>{
+      const id=String(isc.progetti.id);
+      const corso=window.DB_CORSI?.[isc.progetti.corso_id];
+      return {id,label:[corso?.t||isc.progetti.corso_id||'Corso',isc.progetti.codice||''].filter(Boolean).join(' · ')};
+    });
+    const courseOptions=[...new Map(courses.map(c=>[c.id,c])).values()];
+    overlay.innerHTML=`<div class="w-full max-w-xl rounded-2xl shadow-2xl bg-white border border-slate-200 p-5 space-y-4">
+      <div class="flex justify-between items-start gap-3"><div><h2 class="font-black text-lg text-slate-900">Stampa libera corsista</h2>
+        <p class="font-bold text-sm text-slate-600 mt-1">${esc(row.nome_cognome||'Corsista')} · ${esc(row.cf||'')}</p></div>
+        <button type="button" data-corsista-print-close class="font-black text-xl text-slate-500 px-2" aria-label="Chiudi">×</button></div>
+      <p class="text-xs text-slate-600">Stampa disponibile indipendentemente da frequenza, esito, attestato o iscrizione. I documenti non ancora formalizzati sono facsimili da verificare e firmare.</p>
+      <label class="block text-xs font-bold text-slate-700">Modello da stampare
+        <select data-corsista-print-type class="mt-1 w-full rounded-lg border border-slate-300 bg-white text-slate-900 px-3 py-2">${options.map(([value,label])=>`<option value="${esc(value)}">${esc(label)}</option>`).join('')}</select>
+      </label>
+      <button type="button" data-corsista-print-go class="w-full rounded-lg bg-indigo-700 text-white px-4 py-3 font-black text-xs uppercase">Stampa facsimile precompilato</button>
+      ${courseOptions.length?`<div class="border-t border-slate-200 pt-3 space-y-2"><label class="block text-xs font-bold text-slate-700">Attestato del corso associato
+        <select data-corsista-print-course class="mt-1 w-full rounded-lg border border-slate-300 bg-white text-slate-900 px-3 py-2">${courseOptions.map(c=>`<option value="${esc(c.id)}">${esc(c.label)}</option>`).join('')}</select></label>
+        <button type="button" data-corsista-print-course-go class="w-full rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-900 px-4 py-2 font-black text-xs">Stampa attestato del corso selezionato</button></div>`:''}
+      <p class="text-[11px] text-slate-500">La stampa non emette automaticamente un attestato ufficiale e non conferisce nomine o abilitazioni.</p>
+    </div>`;
+    const close=()=>{if(overlay.isConnected)overlay.remove();};
+    overlay.querySelector('[data-corsista-print-close]').onclick=close;
+    overlay.addEventListener('click',e=>{if(e.target===overlay)close();});
+    overlay.addEventListener('keydown',e=>{if(e.key==='Escape')close();});
+    overlay.querySelector('[data-corsista-print-go]').onclick=async e=>{
+      const btn=e.currentTarget;
+      btn.disabled=true;
+      try{
+        await ensureCompanyDocEngine(false);
+        const type=overlay.querySelector('[data-corsista-print-type]')?.value||'incarico_generico';
+        close();
+        await window.stampaModelloVuotoSafetyDoc(type,corsistaId);
+      }catch(err){alert('Stampa documento non disponibile: '+(err?.message||err));btn.disabled=false;}
+    };
+    const courseButton=overlay.querySelector('[data-corsista-print-course-go]');
+    if(courseButton)courseButton.onclick=async e=>{
+      const courseId=overlay.querySelector('[data-corsista-print-course]')?.value;
+      if(!courseId)return;
+      close();
+      await window.stampaAttestatoCorsista(courseId,corsistaId);
+    };
+    document.body.appendChild(overlay);
+    overlay.querySelector('[data-corsista-print-type]')?.focus();
+  };
 
   function historyFor(D, projectId, corsistaId) {
     const histories = D.directoryCache?.histories?.get(String(corsistaId)) || [];
