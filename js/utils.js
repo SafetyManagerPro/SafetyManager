@@ -1241,7 +1241,7 @@ window.salvaCorsistaDB = async function() {
         window.resetFormCorsista();
         await window.reloadLinkedViewsAfterMutation('corsista', { corsistaId });
     } else {
-        alert("Errore nel salvataggio. Assicurati che il Codice Fiscale non sia già registrato.");
+        alert(window.getCorsistaSaveErrorMessage?.() || "Salvataggio corsista non riuscito.");
     }
 };
 
@@ -1476,7 +1476,7 @@ window.salvaQACorsista = async function() {
     if (id) record.id = id;
 
     const saved = await window.saveCorsistaData(record);
-    if (!saved) return alert("Errore nel salvataggio. Assicurati che il Codice Fiscale non sia già registrato.");
+    if (!saved) return alert(window.getCorsistaSaveErrorMessage?.() || "Salvataggio corsista non riuscito.");
 
     const savedId = Array.isArray(saved) && saved[0] ? saved[0].id : (saved.id || id);
     window.corsistiList = await window.getCorsisti();
