@@ -472,3 +472,20 @@ Richiesta: archivio consultabile dalla scheda **Corsisti**, caricamento, apertur
 
 **Rimane da collaudare manualmente l'inserimento dal modulo effettivo con login admin**, confermando che la nuova anagrafica appare in elenco e che il relativo storico azienda è corretto. Non ho modificato SafetyTraining. Conservare unicità fiscale reale, mai disabilitare trigger anticollisione per «risolvere» falsi avvisi.
 
+
+## 2026-10-26 — UI Corsisti: barra scorrimento, Progetti attivi: zebra/hover per progetto
+
+**Richiesta:** in `Corsisti → Gestione Corsista`, aggiungere scorrimento verticale nel modulo lungo; in `Progetti → Progetti Attivi`, evidenziare al passaggio del mouse l'intero progetto e differenziare con colori alternati tenui dove ogni progetto inizia/finisce.
+
+### Modifiche effettive
+- `modules/corsisti.html`: identificatore stabile `id="corsista-form-card"` nel modulo laterale Gestione Corsista; il modulo e tutti i suoi campi restano immutati.
+- `index.html`: su desktop (`min-width:1024px`) il card Corsista sticky dispone di `max-height:calc(100dvh - var(--nav-offset) - 1.25rem)`, `overflow-y:auto`, scrollbar sottile visibile quando necessaria, `scrollbar-gutter:stable`, overscroll contain. Sotto 1024px disabilita sticky e overflow interno, conservando scorrimento naturale di pagina e leggibilità dei campi.
+- `js/utils.js`: `window.decorateProjectVisualGroups()` raggruppa le tre righe dei progetti (`data-project-id`: separatore, corso/azienda, partecipanti) e applica `data-project-band="odd/even"` al **gruppo intero** invece di usare `:nth-child(tr)`. Collega `pointerover/pointerleave` al tbody una sola volta: su hover applica `data-project-hover="true"` a tutte le tre righe dello stesso progetto. I filtri `filtraProgetti` richiamano il decoratore, ricalcolando zebra dei soli progetti rimasti visibili. Le card mobile usano anch'esse lo stesso alternarsi di toni.
+- `index.html`: CSS dedicato ai progetti con sfondi blu-ardesia morbidi (#192c3e / #284053), hover #3a5d72 e confini attenuati; i separatori gialli pesanti (bordo 4/8px, banner saturo) sono stati visivamente ridotti con CSS specifico a bordi grigio-azzurri e sottili. I badge colorati di stato, pulsanti e pannelli di contenuto rimangono distinti e leggibili. Supporto `prefers-reduced-motion`.
+
+### Test e limitazioni
+- Lettura del DOM sorgente dei due moduli e del renderer di Progetti attivi: ogni progetto genera 3 `<tr>`, più una card mobile; quindi alternanza per tr sarebbe stata scorretta.
+- `new Function` sintassi `js/utils.js` e altri moduli associati: PASS.
+- Test simulato dell'algoritmo con tre gruppi da tre righe: zebra `odd/even/odd` applicata coerentemente al gruppo, `pointerover` evidenzia esattamente 3 righe, `pointerleave` ripristina; i filtri ricalcolano l'alternanza dei progetti visibili e delle card mobile: PASS.
+- CSS isolato a `#corsista-form-card`, `#tabella-progetti` e `#progetti-mobile-cards`; non sono stati modificati Supabase, anagrafiche, progetti o dati documentali. **SafetyTraining non toccato.**
+- Non eseguito collaudo autenticato visuale desktop/tablet/mobile nel browser reale: verificare in seguito scrollbar con sezione lingua espansa, focus tastiera, hover intero progetto, colori dopo filtraggio e confronto con la modalità mobile.
