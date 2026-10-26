@@ -544,3 +544,32 @@ Richiesta: archivio consultabile dalla scheda **Corsisti**, caricamento, apertur
 ### Vincoli invariati
 - Pagine reali da 20 e ricerca/filtri di tutte le anagrafiche, privacy/RLS, upload documenti, stampe libere, nomine e fascicolo PDF conservati.
 - **Nessuna modifica Supabase o ai dati corsisti**. **SafetyTraining non è stato toccato**.
+
+
+## 2026-10-26 — Rubrica alfabetica A–Z + ricerca globale Corsisti e Aziende
+
+**Richiesta:** valutare sostituzione numerazione pagine 1,2,3,4 con indice alfabetico, mantenendo ricerca in **tutto il database**, non soltanto nei 20 record visibili; implementare anche in `Anagrafica Aziende`.
+
+### Architettura scelta
+- **Combinazione rubrica A–Z e pagine da 20**: l'utente sceglie una lettera iniziale tramite `Tutti / A–Z`; se quella lettera contiene >20 record compaiono pagine successive. `Tutti` consente anche nomi iniziali con numeri e caratteri diversi da A–Z.
+- **Ricerca sempre globale**: digitando nella casella, il filtro alfabetico torna a `Tutti`, la pagina torna a 1, e la query cerca direttamente in Supabase l'intero archivio autorizzato, non le righe HTML presenti nella pagina. Anche i filtri corso/azienda/stato Corsisti continuano ad essere applicati lato server.
+- Le lettere filtrano l'inizio del campo `corsisti.nome_cognome` e `aziende.ragione_sociale`, non il cognome estratto arbitrariamente dall'anagrafica. Varianti accentate iniziali A/E/I/O/U, Ç e Ñ vengono incluse nei filtri corrispondenti.
+- Nessun nuovo limite di stampa, nessun vincolo tra applicazioni.
+
+### File modificati
+- `modules/corsisti.html`: rubrica `#corsisti-rubrica` sopra la tabella e descrizione della ricerca globale; il footer di paginazione esistente resta.
+- `modules/aziende.html`: rubrica `#aziende-rubrica`, footer di paginazione `#aziende-pagination`, campo ricerca globale.
+- `js/utils.js`: helper condivisi `safetyDirectorySafeSearch`, `safetyDirectoryApplyLetter`, `renderSafetyDirectoryAlphabet` (funzioni globali, non dentro l'invalidazione cache).
+  - `selezionaLetteraCorsisti`: reset ricerca e pagina, aggiorna la query `loadCorsistiTable` con `nome_cognome.ilike('A%')` o OR delle varianti; mantiene pagina 20 e tutte le iscrizioni dei soli record visualizzati.
+  - `filtraCorsisti`: ricerca su tutto l'archivio come già previsto, con `letter='ALL'` al nuovo testo, sanitizzazione unificata con supporto Unicode, debounce 300 ms.
+  - `loadAziendeTable`: **non legge più tutte le aziende e filtra solo sul DOM**. Query REST con `count:'exact'`, `order('ragione_sociale').order('id')` e `range()`; A–Z filtra via `ilike`, ricerca globale via `or(ragione_sociale,piva_cf,ateco,referente,indirizzo,sede_operativa)`; pagine da 20, controlli Precedente/Successiva e numerazione soltanto all'interno dell'insieme corrente; messaggi di errore e ritenta.
+  - `window.aziendePageRows` memorizza solo i record visualizzati; `modificaAzienda` consulta prima questo subset per consentire la modifica dalla nuova vista paginata; le API `getAziende()` full-list di altre funzionalità non sono state alterate. Rimosso l'inutile invocazione di `filtraCorsisti()` alla fine del caricamento aziende.
+  - `filtraAziende`: ricerca globale DB, riparte da pagina 1, cancella il filtro alfabetico, debounce 300 ms.
+- Soltanto repository **SafetyManagerPro/SafetyManager**. Nessuna modifica ai database Supabase, RLS o file, e **nessun intervento su SafetyTraining**.
+
+### Verifiche
+- `new Function` sull'intero `js/utils.js` e blocchi isolati helper/Corsisti/Aziende: **PASS**.
+- Test client simulato aziende: 46 aziende, all=20, pag.2=20, lettera Z=1, iniziale accentata È sotto E=1, ricerca su partita IVA di azienda fuori dalla lettera corrente=1, bottoni A–Z/Tutti=27: **PASS**.
+- Test client simulato corsisti: 35 record, lettera A=26 (20+6), lettera Z e iniziale É in E correttamente selezionate, ricerca per CF di un corsista fuori dalla lettera e fuori dalla pagina precedente trova il record e reimposta il filtro alfabetico: **PASS**.
+- Lettura aggregata DB SafetyManager: **45 aziende**, **115 corsisti** (alla verifica), quindi lista aziende 3 pagine e lista corsisti circa 6 pagine non filtrate. Nessun dato modificato.
+- Limite: manca ancora test end-to-end browser con sessione admin su iPhone/desktop; le navigazioni reali e i filtri combinati vanno collaudati nella UI. I risultati simulati sono test di logica, non verifica di produzione autenticata. Monitorare eventuali vincoli PostgREST sulle ricerche libere; usare sempre dati autorizzati.
