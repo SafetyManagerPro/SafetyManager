@@ -440,3 +440,35 @@ Richiesta: archivio consultabile dalla scheda **Corsisti**, caricamento, apertur
 - **Non ancora certificato** il test end-to-end con amministratore reale su desktop/iPhone, stampa nativa e PDF generato. La conversione rasterizzata html2pdf può avere differenze di impaginazione da `window.print()` e dipende dalla disponibilità del CDN del convertitore; se il convertitore fallisce, la stampa continua e compare un messaggio di errore. Eseguire in seguito prova su un attestato multipagina e una nomina/DPI, verificando formato, immagini, firme e numero pagine.
 - NOTA: l'opzione è **automatica se abilitata**, non automatica di default; non archivia in modo retroattivo documenti stampati prima dell'attivazione. Le stampe di gruppo rimangono libere e non associate automaticamente a fascicoli individuali.
 - Rifinitura successiva `4ced37b7d717`: i ruoli/tipi di stampa non presenti nel dizionario di associazione vengono archiviati come `altro` invece di generare errori che impedivano il solo salvataggio PDF; l'originale resta comunque stampabile.
+
+
+## 2026-10-26 — BLOCCO SALVATAGGIO CORSISTA: falso errore «Codice fiscale già presente» — RISOLTO
+
+**Segnalazione:** l'admin tenta di creare un corsista, il gestionale mostra «Codice fiscale già presente», sebbene il CF cercato non compaia nelle anagrafiche.
+
+### Diagnosi verificata direttamente sul database SafetyManager
+- Prima della correzione **ogni nuovo INSERT su `public.corsisti` falliva con PostgreSQL `23503`**: il trigger `trg_sync_corsista_company_history` era `BEFORE INSERT` e chiamava `sync_corsista_company_history()`, tentando di scrivere `corsisti_rapporti_azienda` mentre il record padre non esisteva ancora. FK `corsisti_rapporti_azienda_corsista_id_fkey` violata.
+- Il client `window.saveCorsistaData` catturava qualsiasi errore e restituiva `false`; **quattro form di inserimento** mostravano genericamente il CF duplicato anche per `23503` o altri errori di rete, autorizzazione, schema, etc.
+- Controllo base dati: **114 corsisti reali, 0 archiviati**, esattamente **1 coppia storica di righe con stesso nome/CF normalizzato** e due iscrizioni collegate; non fonderle né cancellarle automaticamente, la coppia non era la causa del blocco globale ai nuovi inserimenti. Tutte le righe hanno `ente_id` nullo. Dato aggregato, NON esporre nomi/CF in chiaro nei report tecnici.
+- Test iniziale, dentro transazione con `ROLLBACK`: creazione anagrafica sintetica falliva con `23503` (FK history), come previsto dalla diagnosi.
+
+### Fix applicato
+- Supabase schema migration live `20261026090326_fix_corsisti_company_history_insert_fk_order` e file di migrazione versionato `supabase/migrations/20261026090326_fix_corsisti_company_history_insert_fk_order.sql`, commit `b30cea84ccb3`:
+  - aggiunge `trg_prepare_corsista_company_insert` **BEFORE INSERT** che imposta la decorrenza dell'azienda e blocca quelle future;
+  - sposta `sync_corsista_company_history()` per INSERT nel trigger **AFTER INSERT**, quando il padre esiste e la FK è soddisfatta;
+  - conserva su **BEFORE UPDATE** la logica di cambio azienda / mansione e storico precedente; nessun dato preesistente modificato.
+- `js/supabase_config.js` commit `65266bade6f1`: `checkCorsistaCfDuplicato` non nasconde più problemi di lettura; `saveCorsistaData` resetta `lastCorsistaSaveError` e classifica gli errori reali (CF `23505`, FK `23503`, RLS `42501`, altri) per presentare messaggi pertinenti. Eliminato l'alert duplicato interno e il doppio avviso. L'anticollisione CF **rimane attivo**.
+- `js/utils.js` commit `b341886d9f50` e `js/modules/corsisti_ruolo_azienda.js` commit `2f3588ed0fe5`: quattro percorsi di inserimento/modifica (scheda Corsisti, inserimento rapido, ruoli aziendali) ora mostrano `getCorsistaSaveErrorMessage()` al posto del messaggio generico sul CF.
+
+### Test condotti (tutti con ROLLBACK, nessun dato sintetico persistente)
+1. Nuovo corsista senza azienda: `OK`, una riga coerente nello storico.
+2. Nuovo corsista con azienda: `OK`, azienda e decorrenza odierna salvate, una riga nello storico.
+3. CF già usato: errore univoco `23505` come atteso (vincolo duplicati **mantenuto**).
+4. Decorrenza aziendale futura: blocco specifico come atteso (controllo **mantenuto**).
+5. Simulazione del ruolo PostgreSQL `authenticated` con identità admin configurata e RLS attiva: `OK`, inserimento e storico accessibili.
+6. Conteggio finale invariato: **114** corsisti reali.
+7. Syntax-check `new Function` di 3 JS aggiornati: `OK`.
+8. Produzione Vercel `safety-manager-ultimate` commit `b30cea84ccb3` READY; runtime errors ultimi 30 minuti assenti (non sostituisce il test browser).
+
+**Rimane da collaudare manualmente l'inserimento dal modulo effettivo con login admin**, confermando che la nuova anagrafica appare in elenco e che il relativo storico azienda è corretto. Non ho modificato SafetyTraining. Conservare unicità fiscale reale, mai disabilitare trigger anticollisione per «risolvere» falsi avvisi.
+
