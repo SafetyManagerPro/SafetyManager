@@ -972,14 +972,85 @@ window.filtraDocenti = function() {
 // ==========================================
 window.corsistiList = [];
 
+window.corsistiPageState = window.corsistiPageState || {
+    page: 1, pageSize: 20, total: 0, requestId: 0, searchTimer: null
+};
+
+window.renderCorsistiPagination = function() {
+    const root = document.getElementById('corsisti-pagination');
+    if (!root) return;
+    const state = window.corsistiPageState;
+    const totalPages = Math.max(1, Math.ceil(state.total / state.pageSize));
+    const page = Math.min(Math.max(1, state.page), totalPages);
+    const first = state.total ? (page - 1) * state.pageSize + 1 : 0;
+    const last = Math.min(state.total, page * state.pageSize);
+    const escape = window.dashEscape || (v => String(v));
+    const startPage = Math.max(1, Math.min(page - 2, totalPages - 4));
+    const endPage = Math.min(totalPages, startPage + 4);
+    const makeBtn = (n, text, active) =>
+        '<button type="button" onclick="window.vaiPaginaCorsisti(' + n + ')" ' +
+        (active ? 'aria-current="page" ' : '') +
+        'class="min-w-[36px] px-2.5 py-2 rounded-lg border text-xs font-bold ' +
+        (active ? 'border-blue-700 bg-blue-700 text-white' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-200') +
+        '">' + escape(text) + '</button>';
+    const numbers = [];
+    for (let i = startPage; i <= endPage; i++) numbers.push(makeBtn(i, i, i === page));
+    root.innerHTML =
+        '<div class="text-xs font-bold text-slate-600">Corsisti ' + first + '–' + last + ' di ' + state.total +
+        ' · 20 per pagina</div>' +
+        '<div class="flex flex-wrap items-center gap-1.5">' +
+        (page > 1 ? makeBtn(page - 1, '← Precedente', false) : '') +
+        (startPage > 1 ? makeBtn(1, '1', false) + '<span class="px-1 text-slate-500">…</span>' : '') +
+        numbers.join('') +
+        (endPage < totalPages ? '<span class="px-1 text-slate-500">…</span>' + makeBtn(totalPages, totalPages, false) : '') +
+        (page < totalPages ? makeBtn(page + 1, 'Successiva →', false) : '') +
+        '</div>';
+};
+
+window.vaiPaginaCorsisti = function(page) {
+    const state = window.corsistiPageState;
+    const last = Math.max(1, Math.ceil(state.total / state.pageSize));
+    if (!Number.isInteger(Number(page)) || page < 1 || page > last || page === state.page) return;
+    state.page = Number(page);
+    window.loadCorsistiTable();
+    document.getElementById('search-corsisti')?.scrollIntoView({behavior:'smooth',block:'start'});
+};
+
+// Recupera soltanto gli ID di partecipanti dei corsi filtrati.
+// È una query leggera separata: la pagina successiva carica tutte le iscrizioni
+// storiche dei 20 corsisti visualizzati, non perde gli altri corsi.
+window.getCorsistiIdsPerCorso = async function(corsoId) {
+    const {data:projects,error:projectError} = await supabaseClient
+        .from('progetti').select('id').eq('corso_id',corsoId).limit(1000);
+    if (projectError) throw projectError;
+    if (!projects?.length) return [];
+    const ids = new Set();
+    for (let index = 0; index < projects.length; index += 80) {
+        const slice = projects.slice(index,index + 80).map(x=>x.id);
+        const {data,error} = await supabaseClient.from('iscrizioni')
+            .select('corsista_id').in('progetto_id',slice).limit(10000);
+        if (error) throw error;
+        (data||[]).forEach(isc=>{if(isc.corsista_id)ids.add(isc.corsista_id);});
+    }
+    return [...ids];
+};
+
 window.loadCorsistiTable = async function() {
     const tbody = document.getElementById('tabella-corsisti');
     if(!tbody) return;
+    const paging = window.corsistiPageState;
+    const requestId = ++paging.requestId;
+    const pageNum = Math.max(1,paging.page);
+    const pageSize = paging.pageSize;
+    const queryText = (document.getElementById('search-corsisti')?.value || '').trim();
+    const companyFilter = document.getElementById('filter-corsisti-azienda')?.value || '';
+    const courseFilter = document.getElementById('filter-corsisti-corso')?.value || '';
+    const statusFilter = document.getElementById('filter-corsisti-stato')?.value || 'attivo';
     
     tbody.innerHTML = '<tr><td colspan="7" class="p-6 text-center text-slate-400 italic"><i data-lucide="loader-2" class="w-5 h-5 animate-spin mx-auto mb-2"></i> Caricamento...</td></tr>';
     if(typeof lucide !== 'undefined') lucide.createIcons();
     
-    window.aziendeList = await window.getAziende(); 
+    window.aziendeList = (Array.isArray(window.aziendeList) && window.aziendeList.length) ? window.aziendeList : await window.getAziende();
 
     const selectAzienda = document.getElementById('cor-azienda');
     if (selectAzienda) {
@@ -1013,10 +1084,68 @@ window.loadCorsistiTable = async function() {
         if (prevCourse) filtroCorso.value = prevCourse;
     }
 
-    let { data, error } = await supabaseClient
-        .from('corsisti')
-        .select(`
-            id,
+    let matchedCourseIds = null;
+    let matchedProjectSearchIds = [];
+    try {
+        if (courseFilter) {
+            matchedCourseIds = await window.getCorsistiIdsPerCorso(courseFilter);
+        }
+        // Conserva ricerca per azienda e progetto: risolvi i loro ID prima
+        // della query paginata. Le altre ricerche usano i filtri PostgreSQL.
+        const normalizedSearch = queryText.replace(/[%,()."'\\]/g,'').trim().slice(0,80);
+        if (normalizedSearch.length >= 2) {
+            const courseKeys = Object.entries(window.DB_CORSI || {})
+                .filter(([id,course])=>(id+' '+(course?.code||'')+' '+(course?.t||'')).toLowerCase().includes(normalizedSearch.toLowerCase()))
+                .map(([id])=>id).slice(0,100);
+            let projectQuery=supabaseClient.from('progetti').select('id');
+            if (courseKeys.length) projectQuery=projectQuery.or(
+                'codice.ilike.%'+normalizedSearch+'%,corso_id.in.('+courseKeys.join(',')+')'
+            );
+            else projectQuery=projectQuery.ilike('codice','%'+normalizedSearch+'%');
+            const {data:projects,error:projectError}=await projectQuery.limit(150);
+            if(projectError) throw projectError;
+            const foundProjects=(projects||[]).map(p=>p.id);
+            if(foundProjects.length) {
+                const {data:matches,error:matchError}=await supabaseClient
+                    .from('iscrizioni').select('corsista_id').in('progetto_id',foundProjects).limit(10000);
+                if(matchError)throw matchError;
+                matchedProjectSearchIds=[...new Set((matches||[]).map(x=>x.corsista_id).filter(Boolean))];
+            }
+        }
+    } catch (filterError) {
+        if(requestId!==paging.requestId)return;
+        console.error('Filtro corsisti:',filterError);
+        tbody.innerHTML='<tr><td colspan="7" class="p-5 text-red-700 font-bold">Ricerca non riuscita. Riprova o modifica i filtri.</td></tr>';
+        return;
+    }
+    if(requestId!==paging.requestId)return;
+    const safeSearch=queryText.replace(/[%,()."'\\]/g,'').trim().slice(0,80);
+    const matchingCompanyIds = safeSearch.length >= 2
+        ? window.aziendeList.filter(a=>(a.ragione_sociale||'').toLowerCase().includes(safeSearch.toLowerCase())).map(a=>a.id)
+        : [];
+    const buildPageQuery = (columns,page) => {
+        let q=supabaseClient.from('corsisti').select(columns,{count:'exact'});
+        if(statusFilter==='attivo')q=q.is('archived_at',null);
+        if(statusFilter==='archiviato')q=q.not('archived_at','is',null);
+        if(companyFilter)q=q.eq('azienda_id',companyFilter);
+        if(matchedCourseIds)q=q.in('id',matchedCourseIds.length ? matchedCourseIds : ['00000000-0000-0000-0000-000000000000']);
+        if(safeSearch) {
+            const conditions=[
+                'nome_cognome.ilike.%'+safeSearch+'%',
+                'cf.ilike.%'+safeSearch+'%',
+                'mansione_storica.ilike.%'+safeSearch+'%',
+                'luogo_data_nascita.ilike.%'+safeSearch+'%'
+            ];
+            if(matchingCompanyIds.length)conditions.push('azienda_id.in.('+matchingCompanyIds.join(',')+')');
+            if(matchedProjectSearchIds.length)conditions.push('id.in.('+matchedProjectSearchIds.join(',')+')');
+            q=q.or(conditions.join(','));
+        }
+        return q.order('nome_cognome',{ascending:true}).order('id',{ascending:true})
+            .range((page-1)*pageSize,page*pageSize-1);
+    };
+
+    let {data,error,count} = await buildPageQuery(`
+id,
             cf,
             nome_cognome,
             luogo_data_nascita,
@@ -1051,8 +1180,7 @@ window.loadCorsistiTable = async function() {
                     azienda_id
                 )
             )
-        `)
-        .order('nome_cognome', { ascending: true });
+    `,pageNum);
 
     if (error && (
         String(error.message || '').includes('lingua_test_') ||
@@ -1060,9 +1188,7 @@ window.loadCorsistiTable = async function() {
         String(error.message || '').includes('studi_scolastici_italia')
     )) {
         console.warn('Campi verifica lingua italiana non ancora presenti: applica la migration Step 63. Riprovo senza colonne lingua.');
-        const retry = await supabaseClient
-            .from('corsisti')
-            .select(`
+        const retry = await buildPageQuery(`
                 id,
                 cf,
                 nome_cognome,
@@ -1086,17 +1212,15 @@ window.loadCorsistiTable = async function() {
                         azienda_id
                     )
                 )
-            `)
-            .order('nome_cognome', { ascending: true });
+            `,pageNum);
         data = retry.data;
         error = retry.error;
+        count = retry.count;
     }
 
     if (error && (String(error.message || '').includes('documento_identita_url') || String(error.message || '').includes('codice_fiscale_url') || String(error.message || '').includes('schema cache'))) {
         console.warn('Campi documentali corsisti non ancora presenti: applica la migration Step 47. Riprovo senza colonne documentali.');
-        const retry = await supabaseClient
-            .from('corsisti')
-            .select(`
+        const retry = await buildPageQuery(`
                 id,
                 cf,
                 nome_cognome,
@@ -1119,19 +1243,28 @@ window.loadCorsistiTable = async function() {
                         azienda_id
                     )
                 )
-            `)
-            .order('nome_cognome', { ascending: true });
+            `,pageNum);
         data = retry.data;
         error = retry.error;
+        count = retry.count;
     }
 
+    if(requestId!==paging.requestId)return;
     if (error) {
-        console.error("Errore relazionale corsisti:", error);
-        tbody.innerHTML = '<tr><td colspan="7" class="p-6 text-center text-red-500 italic">Impossibile connettersi agli archivi.</td></tr>';
+        console.error("Errore caricamento pagina corsisti:", error);
+        tbody.innerHTML = '<tr><td colspan="7" class="p-6 text-center text-red-700 font-bold">Impossibile caricare i corsisti. ' + window.dashEscape(error.message||'Verifica la connessione') + '</td></tr>';
+        const pager=document.getElementById('corsisti-pagination');
+        if(pager)pager.innerHTML='<button type="button" onclick="window.loadCorsistiTable()" class="rounded bg-blue-700 px-3 py-2 text-white text-xs font-bold">Riprova caricamento</button>';
         return;
     }
-
+    paging.total = Number(count)||0;
+    const totalPages=Math.max(1,Math.ceil(paging.total / pageSize));
+    if(pageNum>totalPages) {
+        paging.page=totalPages;
+        return window.loadCorsistiTable();
+    }
     window.corsistiList = data || [];
+    window.renderCorsistiPagination();
 
     if (window.corsistiList.length === 0) {
         tbody.innerHTML = '<tr><td colspan="7" class="p-6 text-center text-slate-500 italic">Nessun corsista registrato.</td></tr>';
@@ -1324,22 +1457,12 @@ window.resetFormCorsista = function() {
 
 
 window.filtraCorsisti = function() {
-    const textFilter = (document.getElementById('search-corsisti')?.value || '').toLowerCase();
-    const aziendaFilter = document.getElementById('filter-corsisti-azienda')?.value || '';
-    const corsoFilter = document.getElementById('filter-corsisti-corso')?.value || '';
-    const statoFilter = document.getElementById('filter-corsisti-stato')?.value || 'attivo';
-    const rows = document.getElementById('tabella-corsisti')?.getElementsByTagName('tr') || [];
-
-    for (let i = 0; i < rows.length; i++) {
-        if(rows[i].cells.length === 1) continue;
-        const textOk = !textFilter || rows[i].innerText.toLowerCase().includes(textFilter);
-        const azOk = !aziendaFilter || rows[i].getAttribute('data-corsista-azienda') === aziendaFilter;
-        const corsi = rows[i].getAttribute('data-corsista-corsi') || '';
-        const corsoOk = !corsoFilter || corsi.split('|').includes(corsoFilter);
-        const stato = rows[i].getAttribute('data-corsista-stato') || 'attivo';
-        const statoOk = statoFilter === 'tutti' || stato === statoFilter;
-        rows[i].style.display = (textOk && azOk && corsoOk && statoOk) ? "" : "none";
-    }
+    // La ricerca agisce su tutte le anagrafiche, non solo sulle 20 righe
+    // renderizzate: filtro server-side con debounce per non sovraccaricare l'API.
+    const state=window.corsistiPageState;
+    state.page=1;
+    clearTimeout(state.searchTimer);
+    state.searchTimer=setTimeout(()=>{void window.loadCorsistiTable();},300);
 };
 
 // ==========================================
