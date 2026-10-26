@@ -518,3 +518,29 @@ Richiesta: archivio consultabile dalla scheda **Corsisti**, caricamento, apertur
 - Query SQL sul progetto vero: pagina 1 e 2 da 20, 0 ID in comune; 115 corsisti attivi. Non sono stati creati né alterati corsisti.
 - Limite: ricerca testata come architettura e sintassi, non ancora in UI amministrativa autenticata; il filtro corso interroga `progetti` e `iscrizioni` separatamente e potrebbe richiedere ulteriore ottimizzazione con database molto più grande (>1000 elementi). Verificare anche navigazione mobile, salvataggio e stampa da pagina 2+, ordinamenti/filtri e latenza reale sul browser.
 - Nessun aumento permessi RLS; le chiamate usano il client Supabase già autorizzato.
+
+
+## 2026-10-26 — Corsisti: blocco browser/popup «Attendi» nonostante paginazione
+
+**Segnalazione:** Anagrafica Corsisti resta bloccata e browser mostra spesso il popup «Attendi», anche dopo paginazione database in gruppi da 20. Obiettivo: intervento conservativo senza ridisegnare il programma o modificare le anagrafiche.
+
+### Causa tecnica individuata nel frontend
+- `js/modules/corsisti_ruolo_azienda.js`: `decorateRows()` assegnava **incondizionatamente** `badge.textContent`, anche se già uguale. Ciò produceva mutazioni DOM, osservate da un `MutationObserver({childList:true,subtree:true})` su tutto `#app-content`; il callback lanciava `apply()` e quindi `decorateRows()` nuovamente, generando un possibile ciclo senza fine ogni 40 ms.
+- `js/modules/progetti_corsisti_refinement.js`: un secondo `MutationObserver({childList:true,subtree:true})` richiamava `apply()` a ogni mutazione dentro Corsisti, anche per pulsanti/iconografie e card responsive. La routine `decorateCorsistiNomine()` chiamava inoltre `lucide.createIcons()` anche se non era stato aggiunto alcun pulsante.
+- Questi carichi ripetuti **non sono risolti dalla paginazione**: la UI continua ad osservare e processare inutilmente variazioni interne, causando rallentamenti fino a segnalazioni del browser «Attendi». Non sono emerse segnalazioni Vercel runtime nel periodo controllato (un loop client-side può non produrre log lato server).
+
+### Correzione mirata applicata
+1. `js/modules/corsisti_ruolo_azienda.js`: aggiorna il testo del badge ruolo **solo se diverso**. Il suo MutationObserver osserva solo i figli **diretti** di `#app-content`: riceve i cambi modulo, non ogni modifica di riga/cella.
+2. `js/modules/progetti_corsisti_refinement.js`: stessa restrizione osservatore ai figli diretti di `#app-content`. `decorateCorsistiNomine()` crea icone Lucide **solo quando inserisce nuovi pulsanti**. Restano attive le funzioni di stampa, nomina, DPI, paginazione e modifica.
+3. La gestione degli aggiornamenti della tabella Corsisti continua tramite i wrapper di `loadCorsistiTable`, già previsti: il cambio pagina non necessita dei due observer profondi.
+
+### Verifiche
+- Commit `5bf7e20fdd7c7772bdbef858918bae686f596900` (ruoli), `b773e3a61552998f785d7e099897786a05d080c7` (refinement).
+- Lettura di ritorno codice GitHub e syntax-check `new Function`: **PASS** per entrambi i file e `js/utils.js` paginato.
+- Test unitario isolato di `decorateRows` con cella/badge simulati: due esecuzioni consecutive causano **un solo** aggiornamento del testo, non due: **PASS**.
+- Produzione Vercel codice `b773e3a` **READY**; `get_runtime_errors` ultimi 30 minuti: nessun errore server.
+- **Manca collaudo effettivo in browser autenticato** sul dispositivo con popup. Non affermare che l'interruzione browser sia stata osservata e verificata come risolta con test end-to-end; attendere feedback sulla schermata dopo ricarica. Se persiste, indagare i restanti observer globali e registrare performance del browser, senza cambiare DB.
+
+### Vincoli invariati
+- Pagine reali da 20 e ricerca/filtri di tutte le anagrafiche, privacy/RLS, upload documenti, stampe libere, nomine e fascicolo PDF conservati.
+- **Nessuna modifica Supabase o ai dati corsisti**. **SafetyTraining non è stato toccato**.
