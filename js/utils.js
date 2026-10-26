@@ -3400,6 +3400,55 @@ window.renderProjectMobileCard = function(p, iscritti, issues) {
     </article>`;
 };
 
+// Evidenzia i PROGETTI (non le singole righe): ogni progetto ha separatore,
+// riga riepilogo e riga partecipanti. L'alternanza e il mouseover seguono l'ID.
+window.decorateProjectVisualGroups = function() {
+    const tbody = document.getElementById('tabella-progetti');
+    const mobile = document.getElementById('progetti-mobile-cards');
+    if (tbody) {
+        const groups = new Map();
+        Array.from(tbody.children).forEach(row => {
+            const id = row.dataset.projectId;
+            if (!id) return;
+            if (!groups.has(id)) groups.set(id, []);
+            groups.get(id).push(row);
+        });
+        let visibleIndex = 0;
+        groups.forEach(rows => {
+            const visible = rows.some(row => row.style.display !== 'none' && !row.hidden);
+            if (!visible) return;
+            const band = visibleIndex++ % 2 === 0 ? 'odd' : 'even';
+            rows.forEach(row => { row.dataset.projectBand = band; });
+        });
+        if (!tbody.__safetyProjectHoverBound) {
+            tbody.__safetyProjectHoverBound = true;
+            tbody.addEventListener('pointerover', event => {
+                const row = event.target.closest('tr[data-project-id]');
+                const activeId = row && tbody.contains(row) ? row.dataset.projectId : '';
+                if (tbody.__hoveredProjectId === activeId) return;
+                tbody.__hoveredProjectId = activeId;
+                tbody.querySelectorAll('tr[data-project-hover]').forEach(r => delete r.dataset.projectHover);
+                if (activeId) {
+                    tbody.querySelectorAll('tr[data-project-id]').forEach(r => {
+                        if (r.dataset.projectId === activeId) r.dataset.projectHover = 'true';
+                    });
+                }
+            });
+            tbody.addEventListener('pointerleave', () => {
+                tbody.__hoveredProjectId = '';
+                tbody.querySelectorAll('tr[data-project-hover]').forEach(r => delete r.dataset.projectHover);
+            });
+        }
+    }
+    if (mobile) {
+        let visibleIndex = 0;
+        mobile.querySelectorAll('[data-mobile-project-id]').forEach(card => {
+            if (card.style.display === 'none' || card.hidden) return;
+            card.dataset.projectBand = visibleIndex++ % 2 === 0 ? 'odd' : 'even';
+        });
+    }
+};
+
 window.loadProgettiTable = async function() {
     const tbody = document.getElementById('tabella-progetti');
     const mobileBox = document.getElementById('progetti-mobile-cards');
@@ -3491,6 +3540,7 @@ window.loadProgettiTable = async function() {
     }
     if (tbody) tbody.innerHTML = tableHtml;
     if (mobileBox) mobileBox.innerHTML = mobileHtml;
+    window.decorateProjectVisualGroups();
     if (typeof window.initFabbisogniProjectForm === 'function') window.initFabbisogniProjectForm();
     if(typeof lucide !== 'undefined') lucide.createIcons();
 };
@@ -3529,6 +3579,8 @@ window.filtraProgetti = function() {
                      (aziendaFilter === '' || rowAziendaId === aziendaFilter);
         card.style.display = show ? '' : 'none';
     });
+    // Dopo i filtri la zebra riparte dai soli progetti visibili.
+    window.decorateProjectVisualGroups();
 };
 
 window.salvaProgettoDB = async function() {
