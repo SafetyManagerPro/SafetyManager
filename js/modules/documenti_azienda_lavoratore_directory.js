@@ -61,11 +61,19 @@
     D.directoryLoadPromise=(async()=>{
       const [companies,people,projects]=await Promise.all([
         (Array.isArray(window.aziendeList)&&window.aziendeList.length&&!force)?Promise.resolve(window.aziendeList):(typeof window.getAziende==='function'?window.getAziende():Promise.resolve([])),
-        (Array.isArray(window.corsistiList)&&window.corsistiList.length&&!force)?Promise.resolve(window.corsistiList):(typeof window.getCorsisti==='function'?window.getCorsisti():Promise.resolve([])),
+        // L'elenco Corsisti ora espone soltanto 20 anagrafiche per pagina:
+        // per stampare un incarico di una pagina successiva recupera il registro
+        // completo SOLO su richiesta, senza sovrascrivere la pagina visualizzata.
+        (window.corsistiPageState&&typeof window.getCorsisti==='function')
+          ? window.getCorsisti()
+          : ((Array.isArray(window.corsistiList)&&window.corsistiList.length&&!force)
+              ? Promise.resolve(window.corsistiList)
+              : (typeof window.getCorsisti==='function'?window.getCorsisti():Promise.resolve([]))),
         (Array.isArray(window.progettiList)&&window.progettiList.length&&!force)?Promise.resolve(window.progettiList):(typeof window.getProgetti==='function'?window.getProgetti():Promise.resolve([]))
       ]);
       window.aziendeList=companies||[];
-      window.corsistiList=people||[];
+      if(!window.corsistiPageState || !document.getElementById('tabella-corsisti'))
+        window.corsistiList=people||[];
       window.progettiList=projects||[];
 
       const companyMap=new Map((companies||[]).map(a=>[String(a.id),a]));
