@@ -489,3 +489,32 @@ Richiesta: archivio consultabile dalla scheda **Corsisti**, caricamento, apertur
 - Test simulato dell'algoritmo con tre gruppi da tre righe: zebra `odd/even/odd` applicata coerentemente al gruppo, `pointerover` evidenzia esattamente 3 righe, `pointerleave` ripristina; i filtri ricalcolano l'alternanza dei progetti visibili e delle card mobile: PASS.
 - CSS isolato a `#corsista-form-card`, `#tabella-progetti` e `#progetti-mobile-cards`; non sono stati modificati Supabase, anagrafiche, progetti o dati documentali. **SafetyTraining non toccato.**
 - Non eseguito collaudo autenticato visuale desktop/tablet/mobile nel browser reale: verificare in seguito scrollbar con sezione lingua espansa, focus tastiera, hover intero progetto, colori dopo filtraggio e confronto con la modalità mobile.
+
+
+## 2026-10-26 — Anagrafica Corsisti: caricamento a pagine reali da 20
+
+**Problema e richiesta:** la sezione Anagrafica Corsisti continua ad essere lenta/instabile al caricamento; richiesta di suddivisione in pagine da 15/20 oppure fetch frazionato.
+
+### Diagnosi
+- `js/utils.js → loadCorsistiTable()` interrogava in **un unico request** l'intera tabella `corsisti` con join `aziende`, `iscrizioni`, `progetti`, poi costruiva tutte le righe con documenti/storico e la vista mobile, anche quando l'utente ne visualizzava solo una frazione.
+- `js/modules/progetti_corsisti_refinement.js → decorateCorsistiNomine()` innescava anche `ensureCompanyDocEngine() / D.loadDirectory()`, che per decorare i pulsanti di nomina recuperava dataset più ampi di anagrafiche, progetti e iscrizioni. Costava anche senza aprire alcun modello di stampa.
+- Test aggregato SQL al momento del fix: **115 corsisti attivi**, 150 iscrizioni totali, 99 corsisti iscritti; pagine SQL da 20 su 115 risultano 20/20 senza ID condivisi. Nessun dato esistente modificato.
+
+### Soluzione implementata (solo repository SafetyManager)
+- `modules/corsisti.html`: footer accessibile `#corsisti-pagination` con navigazione.
+- `js/utils.js`: `window.corsistiPageState`, `renderCorsistiPagination`, `vaiPaginaCorsisti`. `loadCorsistiTable` ora utilizza **Supabase `range(offset,offset+19)` sul DB** ordinato stabilmente per `nome_cognome,id`, con `count:'exact'`: trasferisce solo i dettagli e tutte le iscrizioni dei 20 corsisti correnti, non il join di tutti gli utenti.
+  - Pulsanti precedente/successiva e fino a 5 numeri pagina; contatore 'Corsisti X–Y di N'; con 115 attivi le pagine sono 6 (20+20+20+20+20+15).
+  - Ricerca e filtri su DB **prima** della paginazione: stato attivo/archiviato/tutti, azienda, tipologia corso (risoluzione corsisti dalle iscrizioni/progetti), testo su nome/CF/mansione/nascita e ricerca per azienda o progetto/corso. Quando si cambia un filtro si ritorna a pagina 1, debounce 300ms; applicazione coerente a tutto il database e non solo alle 20 righe.
+  - Protezione da richieste concorrenti con `requestId`, gestione pagina fuori intervallo, pulsante Riprova ed errore DB effettivo, mantenimento selezione azienda del form mentre si cambia pagina.
+  - `window.corsistiList` nella schermata Corsisti contiene la pagina corrente: i pulsanti di modifica, archivio e stampa agiscono sempre sui record visibili.
+- `js/modules/progetti_corsisti_refinement.js`: `decorateCorsistiNomine` monta i comandi su ogni riga senza invocare lo storico completo in fase di caricamento; il motore di nomine/DPI recupera dati approfonditi soltanto quando l'utente effettivamente stampa.
+- `js/modules/documenti_azienda_lavoratore_directory.js`: in presenza della paginazione, il motore documentale recupera le anagrafiche complete **solo su richiesta di stampa** (non dal subset pagina) e non sovrascrive `window.corsistiList` della pagina visualizzata. Mantiene nomine e incarichi anche navigando su pagine successive.
+- `js/utils.js`: regex di pulizia termini ricerca (Unicode) e preservazione della scelta azienda nel modulo Gestione Corsista.
+- Migrazioni Supabase: **nessuna**; SafetyTraining **non modificato**. Resta la stampa libera e l'archiviazione PDF precedente.
+
+### Test e limiti
+- Controllo JavaScript sintassi `new Function`: PASS (`js/utils.js`, `progetti_corsisti_refinement.js` e directory documenti).
+- Test logico su loader originale isolato con database/DOM simulati (42 attivi, 20 archiviati): pagina 1=20, pagina 2=20, pagina 3=2, nessuna sovrapposizione; filtro 'archiviato' applicato prima di range; page counter corretto: PASS.
+- Query SQL sul progetto vero: pagina 1 e 2 da 20, 0 ID in comune; 115 corsisti attivi. Non sono stati creati né alterati corsisti.
+- Limite: ricerca testata come architettura e sintassi, non ancora in UI amministrativa autenticata; il filtro corso interroga `progetti` e `iscrizioni` separatamente e potrebbe richiedere ulteriore ottimizzazione con database molto più grande (>1000 elementi). Verificare anche navigazione mobile, salvataggio e stampa da pagina 2+, ordinamenti/filtri e latenza reale sul browser.
+- Nessun aumento permessi RLS; le chiamate usano il client Supabase già autorizzato.
