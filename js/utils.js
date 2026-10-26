@@ -1054,11 +1054,13 @@ window.loadCorsistiTable = async function() {
 
     const selectAzienda = document.getElementById('cor-azienda');
     if (selectAzienda) {
+        const currentSelection = selectAzienda.value;
         let optHtml = '<option value="">-- Nessuna Azienda / Privato --</option>';
         window.aziendeList.forEach(az => { 
-            optHtml += `<option value="${az.id}">${az.ragione_sociale}</option>`; 
+            optHtml += `<option value="${az.id}">${window.dashEscape(az.ragione_sociale||'')}</option>`; 
         });
         selectAzienda.innerHTML = optHtml;
+        if (currentSelection) selectAzienda.value = currentSelection;
     }
 
     const filtroAzienda = document.getElementById('filter-corsisti-azienda');
@@ -1092,7 +1094,7 @@ window.loadCorsistiTable = async function() {
         }
         // Conserva ricerca per azienda e progetto: risolvi i loro ID prima
         // della query paginata. Le altre ricerche usano i filtri PostgreSQL.
-        const normalizedSearch = queryText.replace(/[%,()."'\\]/g,'').trim().slice(0,80);
+        const normalizedSearch = queryText.replace(/[^\\p{L}\\p{N}\\s_-]/gu,'').trim().slice(0,80);
         if (normalizedSearch.length >= 2) {
             const courseKeys = Object.entries(window.DB_CORSI || {})
                 .filter(([id,course])=>(id+' '+(course?.code||'')+' '+(course?.t||'')).toLowerCase().includes(normalizedSearch.toLowerCase()))
@@ -1119,7 +1121,7 @@ window.loadCorsistiTable = async function() {
         return;
     }
     if(requestId!==paging.requestId)return;
-    const safeSearch=queryText.replace(/[%,()."'\\]/g,'').trim().slice(0,80);
+    const safeSearch=queryText.replace(/[^\\p{L}\\p{N}\\s_-]/gu,'').trim().slice(0,80);
     const matchingCompanyIds = safeSearch.length >= 2
         ? window.aziendeList.filter(a=>(a.ragione_sociale||'').toLowerCase().includes(safeSearch.toLowerCase())).map(a=>a.id)
         : [];
