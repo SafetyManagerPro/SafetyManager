@@ -443,49 +443,42 @@
     }
   };
 
-  async function decorateCorsistiNomine() {
-    const tbody = document.getElementById('tabella-corsisti');
-    // La stampa libera su ciascuna anagrafica è già disponibile senza iscrizioni:
-    // caricare lo storico completo soltanto se vi sono corsi da decorare.
-    if (!tbody || !tbody.querySelector('button[onclick*="stampaAttestatoCorsista"]')) return;
-    let D;
-    try { D = await ensureCompanyDocEngine(); } catch (_) { return; }
-
-    tbody.querySelectorAll('button[onclick*="stampaAttestatoCorsista"]').forEach(btn => {
-      const host = btn.parentElement;
-      if (!host || host.querySelector('[data-safety-nomina-course]')) return;
-      const raw = String(btn.getAttribute('onclick') || '');
-      const match = raw.match(/stampaAttestatoCorsista\('([^']+)'\s*,\s*'([^']+)'\)/);
-      if (!match) return;
-      const projectId = match[1];
-      const corsistaId = match[2];
-      const history = historyFor(D, projectId, corsistaId);
-      if (!history) return;
-      const hasNomina=true; // Anche gli incarichi generici hanno un facsimile stampabile.
-      const hasDpi=history.role==='quota' || /(?:^|_)dpi(?:_|$)/i.test(history.course?.id||'');
-      if (!hasNomina && !hasDpi) return;
-      if (hasNomina) {
-        const nomina = document.createElement('button');
-        nomina.type = 'button';
-        nomina.dataset.safetyNominaCourse = '1';
-        nomina.className = 'shrink-0 bg-violet-700 hover:bg-violet-600 text-white rounded px-2 py-1 text-[8px] font-black uppercase';
-        nomina.title = `Stampa facsimile ${ROLE_LABELS[history.role] || 'nomina/incarico'} (nessun vincolo sul corso): da verificare e firmare`;
-        nomina.textContent = history.role === 'attrezzatura' ? 'Autorizzazione' : (['quota','confinati'].includes(history.role) ? 'Incarico' : 'Nomina');
-        nomina.addEventListener('click', () => window.stampaNominaCorsistaDaCorso(projectId, corsistaId));
-        host.appendChild(nomina);
-      }
-      if (hasDpi) {
-        const dpi = document.createElement('button');
+  function decorateCorsistiNomine() {
+    const tbody=document.getElementById('tabella-corsisti');
+    if(!tbody)return;
+    // Non leggere tutto lo storico aziendale/corsi per montare 20 righe.
+    // La funzione di stampa recupera i dati approfonditi SOLO dopo il click.
+    tbody.querySelectorAll('button[onclick*="stampaAttestatoCorsista"]').forEach(btn=>{
+      const host=btn.parentElement;
+      if(!host||host.querySelector('[data-safety-nomina-course]'))return;
+      const match=String(btn.getAttribute('onclick')||'')
+        .match(/stampaAttestatoCorsista\('([^']+)'\s*,\s*'([^']+)'\)/);
+      if(!match)return;
+      const [,projectId,corsistaId]=match;
+      const person=(window.corsistiList||[]).find(c=>String(c.id)===String(corsistaId));
+      const courseId=(person?.iscrizioni||[]).find(isc=>String(isc.progetto_id||isc.progetti?.id)===String(projectId))?.progetti?.corso_id||'';
+      const normalized=String(courseId).toLowerCase();
+      const nomination=document.createElement('button');
+      nomination.type='button';
+      nomination.dataset.safetyNominaCourse='1';
+      nomination.className='shrink-0 bg-violet-700 hover:bg-violet-600 text-white rounded px-2 py-1 text-[8px] font-black uppercase';
+      nomination.title='Facsimile di nomina/incarico stampabile senza vincoli sul corso';
+      nomination.textContent=normalized.startsWith('attr_')||normalized.startsWith('agg_attr_')
+        ? 'Autorizzazione':normalized.includes('quota')||normalized.includes('confinat')?'Incarico':'Nomina/incarico';
+      nomination.onclick=()=>window.stampaNominaCorsistaDaCorso(projectId,corsistaId);
+      host.appendChild(nomination);
+      if(/(?:^|_)dpi(?:_|$)|quota/.test(normalized)){
+        const dpi=document.createElement('button');
         dpi.type='button';
         dpi.dataset.safetyNominaCourse='dpi';
         dpi.className='shrink-0 bg-slate-700 hover:bg-slate-600 text-white rounded px-2 py-1 text-[8px] font-black uppercase';
-        dpi.title='Stampa facsimile verbale consegna DPI: richiede compilazione, consegna reale e firme';
+        dpi.title='Facsimile consegna DPI da compilare e sottoscrivere';
         dpi.textContent='Modello DPI';
-        dpi.addEventListener('click',()=>window.stampaModelloConsegnaDpiDaCorso(projectId,corsistaId));
+        dpi.onclick=()=>window.stampaModelloConsegnaDpiDaCorso(projectId,corsistaId);
         host.appendChild(dpi);
       }
     });
-    if (typeof lucide !== 'undefined') lucide.createIcons();
+    if(typeof lucide!=='undefined')lucide.createIcons();
   }
 
   function installCorsistiWrapper() {
