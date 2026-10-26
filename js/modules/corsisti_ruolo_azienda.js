@@ -177,7 +177,9 @@
         badge.className = 'safety-role-badge inline-flex mt-1 rounded-full bg-slate-100 border border-slate-200 px-2 py-0.5 text-[8px] font-black uppercase text-slate-600';
         cell.appendChild(badge);
       }
-      badge.textContent = window.getSafetyPersonRoleLabel(roleForId(m[1]));
+      const label = window.getSafetyPersonRoleLabel(roleForId(m[1]));
+      // Evita un ciclo: textContent identico emette comunque nuove mutazioni DOM.
+      if (badge.textContent !== label) badge.textContent = label;
     });
   }
 
@@ -382,10 +384,13 @@
   setTimeout(apply,100);
   setTimeout(apply,500);
   const root = document.getElementById('app-content') || document.body;
+  // Il modulo viene sostituito come figlio diretto di #app-content.
+  // Non ascoltare tutte le mutazioni interne della tabella: il render di un badge
+  // non deve provocare nuovi render ininterrotti (e il popup «Attendi» del browser).
   new MutationObserver(() => {
     clearTimeout(window.__safetyRoleApplyTimer);
     window.__safetyRoleApplyTimer = setTimeout(apply,40);
-  }).observe(root,{childList:true,subtree:true});
+  }).observe(root,{childList:true});
 })();
 
 // Modulo sempre caricato da app.js: aggancia anche l'assistente redazionale senza
