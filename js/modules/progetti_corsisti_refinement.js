@@ -446,6 +446,7 @@
   function decorateCorsistiNomine() {
     const tbody=document.getElementById('tabella-corsisti');
     if(!tbody)return;
+    let newButtons = false;
     // Non leggere tutto lo storico aziendale/corsi per montare 20 righe.
     // La funzione di stampa recupera i dati approfonditi SOLO dopo il click.
     tbody.querySelectorAll('button[onclick*="stampaAttestatoCorsista"]').forEach(btn=>{
@@ -467,6 +468,7 @@
         ? 'Autorizzazione':normalized.includes('quota')||normalized.includes('confinat')?'Incarico':'Nomina/incarico';
       nomination.onclick=()=>window.stampaNominaCorsistaDaCorso(projectId,corsistaId);
       host.appendChild(nomination);
+      newButtons = true;
       if(/(?:^|_)dpi(?:_|$)|quota/.test(normalized)){
         const dpi=document.createElement('button');
         dpi.type='button';
@@ -478,7 +480,7 @@
         host.appendChild(dpi);
       }
     });
-    if(typeof lucide!=='undefined')lucide.createIcons();
+    if(newButtons && typeof lucide!=='undefined')lucide.createIcons();
   }
 
   function installCorsistiWrapper() {
@@ -504,8 +506,11 @@
   setTimeout(apply, 100);
   setTimeout(apply, 500);
   const root = document.getElementById('app-content') || document.body;
+  // I comandi Corsisti sono aggiunti dal wrapper dopo il caricamento della pagina.
+  // Riascoltare tutte le mutazioni interne (badge, icone, mobile cards) causava
+  // ricostruzioni ripetute e possibile blocco del browser.
   new MutationObserver(() => {
     clearTimeout(window.__safetyProjectCorsistiRefinementTimer);
     window.__safetyProjectCorsistiRefinementTimer = setTimeout(apply, 80);
-  }).observe(root, { childList:true, subtree:true });
+  }).observe(root, { childList:true });
 })();
