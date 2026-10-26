@@ -143,7 +143,7 @@
             <div class="w-full lg:w-[760px] lg:max-w-[65%] grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-2">
                 <div class="relative">
                     <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-slate-400"></i>
-                    <input type="text" id="search-corsisti" onkeyup="window.filtraCorsisti()" class="w-full pl-9 pr-3 py-2 bg-white border border-slate-300 rounded text-xs outline-none focus:border-blue-500 shadow-sm transition" placeholder="Cerca allievo, CF, azienda o corso...">
+                    <input type="text" id="search-corsisti" onkeyup="window.filtraCorsisti()" class="w-full pl-9 pr-3 py-2 bg-white border border-slate-300 rounded text-xs outline-none focus:border-blue-500 shadow-sm transition" placeholder="Cerca in TUTTI i corsisti: nome, CF, azienda, corso...">
                 </div>
                 <select id="filter-corsisti-azienda" onchange="window.filtraCorsisti()" class="w-full px-3 py-2 bg-white border border-slate-300 rounded text-xs outline-none focus:border-blue-500 shadow-sm font-bold text-slate-700">
                     <option value="">Tutte le aziende</option>
@@ -158,6 +158,8 @@
                 </select>
             </div>
         </div>
+
+        <nav id="corsisti-rubrica" class="mb-3 overflow-x-auto rounded-xl border border-slate-200 bg-white p-2" aria-label="Rubrica alfabetica corsisti"><span class="text-xs text-slate-500">Caricamento rubrica…</span></nav>
 
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
             <div class="hidden md:block overflow-x-auto">
