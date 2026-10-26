@@ -166,35 +166,6 @@ window.invalidateSafetyDataCaches = function(reason = '') {
     const collapsedGroups = window.archivioCorsiState?.collapsedGroups || {};
     window.aziendeList = [];
 
-/* Rubrica alfabetica: applicata alla query globale, mai soltanto alle righe renderizzate. */
-window.safetyDirectoryLetters=[...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'];
-window.safetyDirectorySafeSearch=function(raw){
-    return String(raw||'').replace(/[^\p{L}\p{N}\s_-]/gu,'').trim().slice(0,80);
-};
-window.safetyDirectoryApplyLetter=function(q,column,letter){
-    if(!/^[A-Z]$/.test(letter||''))return q;
-    const variants={A:'ÀÁÂÄÃÅ',E:'ÈÉÊË',I:'ÌÍÎÏ',O:'ÒÓÔÖÕ',U:'ÙÚÛÜ',C:'Ç',N:'Ñ'};
-    const initials=[letter,...(variants[letter]||'')];
-    return initials.length===1?q.ilike(column,letter+'%')
-        :q.or(initials.map(c=>column+'.ilike.'+c+'%').join(','));
-};
-window.renderSafetyDirectoryAlphabet=function(mountId,current,handler){
-    const root=document.getElementById(mountId);
-    if(!root)return;
-    const currentLetter=/^[A-Z]$/.test(current||'')?current:'ALL';
-    const letters=[['ALL','Tutti'],...window.safetyDirectoryLetters.map(x=>[x,x])];
-    root.innerHTML='<div role="group" aria-label="Lettera iniziale" class="flex items-center gap-1.5 w-max min-w-full">'+
-       letters.map(([value,label])=>{
-          const active=value===currentLetter;
-          return '<button type="button" data-rubrica-letter="'+value+'" '+
-            (active?'aria-current="true" ':'')+
-            'aria-label="'+(value==='ALL'?'Tutti i nominativi':'Nominativi che iniziano con '+value)+'" '+
-            "onclick=\"window."+handler+"('"+value+"')\" "+
-            'class="min-w-[31px] shrink-0 rounded-lg border px-2.5 py-1.5 text-[11px] font-black '+
-            (active?'border-blue-800 bg-blue-800 text-white':'border-slate-200 bg-white text-slate-700 hover:bg-blue-50 hover:border-blue-400')+
-            '">'+label+'</button>';
-       }).join('')+'</div>';
-};
 
     window.docentiList = [];
     window.corsistiList = [];
@@ -540,6 +511,36 @@ window.loadDashboardCompliance = async function() {
 
 
 // ==========================================
+/* Rubrica alfabetica: applicata alla query globale, mai soltanto alle righe renderizzate. */
+window.safetyDirectoryLetters=[...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'];
+window.safetyDirectorySafeSearch=function(raw){
+    return String(raw||'').replace(/[^\p{L}\p{N}\s_-]/gu,'').trim().slice(0,80);
+};
+window.safetyDirectoryApplyLetter=function(q,column,letter){
+    if(!/^[A-Z]$/.test(letter||''))return q;
+    const variants={A:'ÀÁÂÄÃÅ',E:'ÈÉÊË',I:'ÌÍÎÏ',O:'ÒÓÔÖÕ',U:'ÙÚÛÜ',C:'Ç',N:'Ñ'};
+    const initials=[letter,...(variants[letter]||'')];
+    return initials.length===1?q.ilike(column,letter+'%')
+        :q.or(initials.map(c=>column+'.ilike.'+c+'%').join(','));
+};
+window.renderSafetyDirectoryAlphabet=function(mountId,current,handler){
+    const root=document.getElementById(mountId);
+    if(!root)return;
+    const currentLetter=/^[A-Z]$/.test(current||'')?current:'ALL';
+    const letters=[['ALL','Tutti'],...window.safetyDirectoryLetters.map(x=>[x,x])];
+    root.innerHTML='<div role="group" aria-label="Lettera iniziale" class="flex items-center gap-1.5 w-max min-w-full">'+
+       letters.map(([value,label])=>{
+          const active=value===currentLetter;
+          return '<button type="button" data-rubrica-letter="'+value+'" '+
+            (active?'aria-current="true" ':'')+
+            'aria-label="'+(value==='ALL'?'Tutti i nominativi':'Nominativi che iniziano con '+value)+'" '+
+            "onclick=\"window."+handler+"('"+value+"')\" "+
+            'class="min-w-[31px] shrink-0 rounded-lg border px-2.5 py-1.5 text-[11px] font-black '+
+            (active?'border-blue-800 bg-blue-800 text-white':'border-slate-200 bg-white text-slate-700 hover:bg-blue-50 hover:border-blue-400')+
+            '">'+label+'</button>';
+       }).join('')+'</div>';
+};
+
 window.aziendeList = [];
 
 
