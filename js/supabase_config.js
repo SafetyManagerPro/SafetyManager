@@ -188,33 +188,45 @@ window.normalizzaCodiceFiscale = function(cf) {
     return String(cf || '').trim().toUpperCase().replace(/\s+/g, '');
 };
 
+// Ultimo errore reso leggibile da tutti i moduli (nuovo corsista, modifica e inserimento rapido).
+// Non interpretare un errore FK/permessi/schema come se fosse un CF già esistente.
+window.lastCorsistaSaveError = null;
+window.getCorsistaSaveErrorMessage = function() {
+    return window.lastCorsistaSaveError?.message || 'Impossibile salvare il corsista. Riprova e verifica il collegamento al database.';
+};
+
 window.checkCorsistaCfDuplicato = async function(cf, excludeId = null) {
     const cfNorm = window.normalizzaCodiceFiscale(cf);
     if (!cfNorm) return null;
-    try {
-        let q = supabaseClient
-            .from('corsisti')
-            .select('id,nome_cognome,cf')
-            .eq('cf', cfNorm)
-            .limit(1);
-        if (excludeId) q = q.neq('id', excludeId);
-        const { data, error } = await q;
-        if (error) throw error;
-        return data && data.length ? data[0] : null;
-    } catch (err) {
-        console.error('Errore controllo duplicato CF:', err);
-        return null;
+    let q = supabaseClient
+        .from('corsisti')
+        .select('id,nome_cognome,cf,archived_at')
+        .eq('cf', cfNorm)
+        .limit(1);
+    if (excludeId) q = q.neq('id', excludeId);
+    const { data, error } = await q;
+    // La verifica non deve fallire silenziosamente se c'è un problema di rete o permessi.
+    if (error) {
+        console.error('Errore verifica CF corsista:', error);
+        throw error;
     }
+    return data && data.length ? data[0] : null;
 };
 
 window.saveCorsistaData = async function(record) {
+    window.lastCorsistaSaveError = null;
+    let phase = 'verifica';
     try {
         record.cf = window.normalizzaCodiceFiscale(record.cf);
         const duplicato = await window.checkCorsistaCfDuplicato(record.cf, record.id || null);
         if (duplicato) {
-            alert(`Codice fiscale già presente: ${duplicato.nome_cognome || 'corsista esistente'} (${duplicato.cf}). Operazione annullata per evitare doppioni.`);
+            window.lastCorsistaSaveError = {
+                code: 'CF_DUPLICATO',
+                message: `Codice fiscale già presente per ${duplicato.nome_cognome || 'un altro corsista'}${duplicato.archived_at ? ' (anagrafica archiviata: puoi ripristinarla)' : ''}. Non è stata creata una seconda anagrafica.`
+            };
             return false;
         }
+        phase = 'salvataggio';
         const linguaFields = [
             'cittadinanza',
             'studi_scolastici_italia',
@@ -247,8 +259,30 @@ window.saveCorsistaData = async function(record) {
             const retry = await supabaseClient.from('corsisti').upsert(workingRecord).select();
             data = retry.data; error = retry.error;
         }
-        if (error) throw error; return data;
-    } catch (err) { console.error(err); return false; }
+        if (error) throw error;
+        window.lastCorsistaSaveError = null;
+        return data;
+    } catch (err) {
+        console.error('Errore salvataggio corsista:', err);
+        const code = String(err?.code || '');
+        const raw = String(err?.message || 'Errore sconosciuto');
+        const extra = String(err?.details || '');
+        let message;
+        if (phase === 'verifica') {
+            message = 'Non riesco a verificare il codice fiscale nel database. Nessun dato è stato salvato. ' + raw;
+        } else if (code === '23505' &&
+                   /codice fiscale corsista|corsisti_ente_id_cf_key|corsisti.*cf|trg_guard_corsisti_cf_duplicate/i.test(raw + ' ' + extra)) {
+            message = 'Codice fiscale realmente già associato a un corsista. Controlla anche eventuali anagrafiche archiviate. ' + raw;
+        } else if (code === '23503') {
+            message = 'Collegamento tra anagrafiche non valido (ad esempio azienda o storico): ' + raw;
+        } else if (code === '42501' || /permission denied|row.level.security/i.test(raw)) {
+            message = 'Permessi insufficienti per il salvataggio del corsista: ' + raw;
+        } else {
+            message = 'Salvataggio non riuscito (' + (code || 'errore database') + '): ' + raw;
+        }
+        window.lastCorsistaSaveError = { code: code || 'SAVE_FAILED', message };
+        return false;
+    }
 };
 
 window.archiveCorsistaData = async function(id, reason = '') {
