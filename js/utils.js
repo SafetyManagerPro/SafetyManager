@@ -542,22 +542,83 @@ window.loadDashboardCompliance = async function() {
 // ==========================================
 window.aziendeList = [];
 
-window.loadAziendeTable = async function() {
-    const tbody = document.getElementById('tabella-aziende');
-    if(!tbody) return;
-    
-    tbody.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-slate-400 italic"><i data-lucide="loader-2" class="w-5 h-5 animate-spin mx-auto mb-2"></i> Caricamento dati...</td></tr>';
-    if(typeof lucide !== 'undefined') lucide.createIcons();
 
-    window.aziendeList = await window.getAziende();
+window.aziendePageState=window.aziendePageState||{page:1,pageSize:20,total:0,letter:'ALL',requestId:0,timer:null};
+window.aziendePageRows=window.aziendePageRows||[];
 
-    if (window.aziendeList.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-slate-500 italic">Nessuna azienda registrata.</td></tr>';
+window.renderAziendePagination=function(){
+    const root=document.getElementById('aziende-pagination');if(!root)return;
+    const st=window.aziendePageState;
+    const pages=Math.max(1,Math.ceil(st.total/st.pageSize)),page=Math.max(1,Math.min(st.page,pages));
+    const first=st.total?(page-1)*st.pageSize+1:0,last=Math.min(st.total,page*st.pageSize);
+    const begin=Math.max(1,Math.min(page-2,pages-4)),end=Math.min(pages,begin+4);
+    const button=(n,label,current)=>'<button type="button" onclick="window.vaiPaginaAziende('+n+')" '+
+      (current?'aria-current="page" ':'')+
+      'class="rounded-lg border px-3 py-2 text-xs font-bold '+
+      (current?'border-blue-700 bg-blue-700 text-white':'border-slate-300 bg-white text-slate-700 hover:bg-blue-50')+
+      '">'+label+'</button>';
+    const nums=[];for(let n=begin;n<=end;n++)nums.push(button(n,n,n===page));
+    root.innerHTML='<span class="text-xs font-bold text-slate-600">Aziende '+first+'–'+last+' di '+st.total+' · 20 per pagina</span>'+
+      '<div class="flex flex-wrap items-center gap-1.5">'+
+      (page>1?button(page-1,'← Prec.',false):'')+
+      (begin>1?button(1,1,false)+'<span class="text-slate-500">…</span>':'')+
+      nums.join('')+
+      (end<pages?'<span class="text-slate-500">…</span>'+button(pages,pages,false):'')+
+      (page<pages?button(page+1,'Succ. →',false):'')+'</div>';
+};
+window.vaiPaginaAziende=function(n){
+    const st=window.aziendePageState,last=Math.max(1,Math.ceil(st.total/st.pageSize));
+    if(!Number.isInteger(n)||n<1||n>last||n===st.page)return;
+    st.page=n;void window.loadAziendeTable();
+    document.getElementById('search-aziende')?.scrollIntoView({block:'start',behavior:'smooth'});
+};
+window.selezionaLetteraAziende=function(letter){
+    if(letter!=='ALL'&&!/^[A-Z]$/.test(letter))return;
+    const st=window.aziendePageState;
+    st.letter=letter;st.page=1;clearTimeout(st.timer);
+    const input=document.getElementById('search-aziende');
+    if(input)input.value='';
+    void window.loadAziendeTable();
+};
+
+window.loadAziendeTable=async function(){
+    const tbody=document.getElementById('tabella-aziende');if(!tbody)return;
+    const st=window.aziendePageState,id=++st.requestId;
+    const search=window.safetyDirectorySafeSearch(document.getElementById('search-aziende')?.value);
+    const letter=search?'ALL':st.letter;
+    window.renderSafetyDirectoryAlphabet('aziende-rubrica',letter,'selezionaLetteraAziende');
+    tbody.innerHTML='<tr><td colspan="4" class="p-5 text-slate-500 font-bold text-center">Caricamento aziende…</td></tr>';
+    let data,error,count;
+    try{
+        let query=supabaseClient.from('aziende').select('*',{count:'exact'});
+        if(search) {
+            const cols=['ragione_sociale','piva_cf','ateco','referente','indirizzo','sede_operativa'];
+            query=query.or(cols.map(c=>c+'.ilike.%'+search+'%').join(','));
+        }else query=window.safetyDirectoryApplyLetter(query,'ragione_sociale',letter);
+        const res=await query.order('ragione_sociale',{ascending:true}).order('id',{ascending:true})
+          .range((st.page-1)*st.pageSize,st.page*st.pageSize-1);
+        ({data,error,count}=res);
+    }catch(err){error=err;}
+    if(id!==st.requestId||!document.getElementById('tabella-aziende'))return;
+    if(error){
+        console.error('Anagrafica Aziende:',error);
+        tbody.innerHTML='<tr><td colspan="4" class="p-5 text-center text-red-700 font-bold">Caricamento non riuscito: '+
+            window.dashEscape(error.message||'verifica connessione')+'</td></tr>';
+        const pager=document.getElementById('aziende-pagination');
+        if(pager)pager.innerHTML='<button type="button" onclick="window.loadAziendeTable()" class="rounded bg-blue-700 px-3 py-2 text-white text-xs font-bold">Riprova</button>';
         return;
     }
-
+    st.total=Number(count)||0;
+    const last=Math.max(1,Math.ceil(st.total/st.pageSize));
+    if(st.page>last){st.page=last;return window.loadAziendeTable();}
+    window.aziendePageRows=data||[];
+    window.renderAziendePagination();
+    if(!window.aziendePageRows.length){
+        tbody.innerHTML='<tr><td colspan="4" class="p-5 text-center text-slate-500 italic">Nessuna azienda trovata per questa ricerca o lettera.</td></tr>';
+        return;
+    }
     let html = '';
-    window.aziendeList.forEach(az => {
+    window.aziendePageRows.forEach(az => {
         html += `
             <tr class="hover:bg-blue-50 transition-colors">
                 <td class="p-3 border-b font-bold text-slate-800">
@@ -581,7 +642,6 @@ window.loadAziendeTable = async function() {
         `;
     });
     tbody.innerHTML = html;
-    if(typeof window.filtraCorsisti === 'function') window.filtraCorsisti();
     if(typeof lucide !== 'undefined') lucide.createIcons();
 };
 
@@ -606,7 +666,7 @@ window.salvaAziendaDB = async function() {
 };
 
 window.modificaAzienda = function(id) {
-    const az = window.aziendeList.find(a => a.id === id);
+    const az = (window.aziendePageRows||[]).find(a=>a.id===id) || (window.aziendeList||[]).find(a=>a.id===id);
     if(!az) return;
     document.getElementById('az-id').value = az.id;
     document.getElementById('az-ragione-sociale').value = az.ragione_sociale;
@@ -634,13 +694,11 @@ window.resetFormAzienda = function() {
     ['az-legale-doc-file'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
 };
 
-window.filtraAziende = function() {
-    const filter = document.getElementById('search-aziende').value.toLowerCase();
-    const rows = document.getElementById('tabella-aziende').getElementsByTagName('tr');
-    for (let i = 0; i < rows.length; i++) {
-        if(rows[i].cells.length === 1) continue; 
-        rows[i].style.display = rows[i].innerText.toLowerCase().includes(filter) ? "" : "none";
-    }
+window.filtraAziende=function(){
+    const st=window.aziendePageState;
+    st.page=1;st.letter='ALL';
+    clearTimeout(st.timer);
+    st.timer=setTimeout(()=>{void window.loadAziendeTable();},300);
 };
 
 
