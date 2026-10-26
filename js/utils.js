@@ -1062,8 +1062,21 @@ window.filtraDocenti = function() {
 window.corsistiList = [];
 
 window.corsistiPageState = window.corsistiPageState || {
-    page: 1, pageSize: 20, total: 0, requestId: 0, searchTimer: null
+    page: 1, pageSize: 20, total: 0, requestId: 0, searchTimer: null, letter: 'ALL'
 };
+window.corsistiPageState.letter ||= 'ALL';
+
+window.selezionaLetteraCorsisti = function(letter) {
+    if (letter!=='ALL' && !/^[A-Z]$/.test(letter)) return;
+    const st=window.corsistiPageState;
+    st.letter=letter;
+    st.page=1;
+    clearTimeout(st.searchTimer);
+    const input=document.getElementById('search-corsisti');
+    if(input)input.value='';
+    void window.loadCorsistiTable();
+};
+
 
 window.renderCorsistiPagination = function() {
     const root = document.getElementById('corsisti-pagination');
@@ -1135,6 +1148,8 @@ window.loadCorsistiTable = async function() {
     const companyFilter = document.getElementById('filter-corsisti-azienda')?.value || '';
     const courseFilter = document.getElementById('filter-corsisti-corso')?.value || '';
     const statusFilter = document.getElementById('filter-corsisti-stato')?.value || 'attivo';
+    const letter = queryText ? 'ALL' : paging.letter;
+    window.renderSafetyDirectoryAlphabet('corsisti-rubrica',letter,'selezionaLetteraCorsisti');
     
     tbody.innerHTML = '<tr><td colspan="7" class="p-6 text-center text-slate-400 italic"><i data-lucide="loader-2" class="w-5 h-5 animate-spin mx-auto mb-2"></i> Caricamento...</td></tr>';
     if(typeof lucide !== 'undefined') lucide.createIcons();
@@ -1183,7 +1198,7 @@ window.loadCorsistiTable = async function() {
         }
         // Conserva ricerca per azienda e progetto: risolvi i loro ID prima
         // della query paginata. Le altre ricerche usano i filtri PostgreSQL.
-        const normalizedSearch = queryText.replace(/[^\\p{L}\\p{N}\\s_-]/gu,'').trim().slice(0,80);
+        const normalizedSearch = window.safetyDirectorySafeSearch(queryText);
         if (normalizedSearch.length >= 2) {
             const courseKeys = Object.entries(window.DB_CORSI || {})
                 .filter(([id,course])=>(id+' '+(course?.code||'')+' '+(course?.t||'')).toLowerCase().includes(normalizedSearch.toLowerCase()))
@@ -1210,7 +1225,7 @@ window.loadCorsistiTable = async function() {
         return;
     }
     if(requestId!==paging.requestId)return;
-    const safeSearch=queryText.replace(/[^\\p{L}\\p{N}\\s_-]/gu,'').trim().slice(0,80);
+    const safeSearch=window.safetyDirectorySafeSearch(queryText);
     const matchingCompanyIds = safeSearch.length >= 2
         ? window.aziendeList.filter(a=>(a.ragione_sociale||'').toLowerCase().includes(safeSearch.toLowerCase())).map(a=>a.id)
         : [];
@@ -1230,6 +1245,9 @@ window.loadCorsistiTable = async function() {
             if(matchingCompanyIds.length)conditions.push('azienda_id.in.('+matchingCompanyIds.join(',')+')');
             if(matchedProjectSearchIds.length)conditions.push('id.in.('+matchedProjectSearchIds.join(',')+')');
             q=q.or(conditions.join(','));
+        } else {
+            // La lettera si applica al database completo prima della paginazione.
+            q=window.safetyDirectoryApplyLetter(q,'nome_cognome',letter);
         }
         return q.order('nome_cognome',{ascending:true}).order('id',{ascending:true})
             .range((page-1)*pageSize,page*pageSize-1);
@@ -1552,6 +1570,8 @@ window.filtraCorsisti = function() {
     // renderizzate: filtro server-side con debounce per non sovraccaricare l'API.
     const state=window.corsistiPageState;
     state.page=1;
+    // Digitando una ricerca si torna sempre all'intero database; non solo a una lettera.
+    if(document.getElementById('search-corsisti')?.value.trim())state.letter='ALL';
     clearTimeout(state.searchTimer);
     state.searchTimer=setTimeout(()=>{void window.loadCorsistiTable();},300);
 };
