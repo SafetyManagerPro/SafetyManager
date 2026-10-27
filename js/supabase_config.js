@@ -106,9 +106,19 @@ window.saveAzienda = async function(record) {
 
     window.lastAziendaSaveError=null;
     try {
+        // In modifica, se il form non contiene ente_id, leggi lo scope effettivo
+        // della scheda per non segnalare falsi duplicati di un altro ente.
+        let enteId=record.ente_id??null;
+        if(record.id && record.ente_id===undefined){
+            const {data:current,error:readError}=await supabaseClient
+                .from('aziende').select('ente_id').eq('id',record.id).maybeSingle();
+            if(readError)throw readError;
+            if(!current)throw Error('Azienda da modificare non trovata o non accessibile.');
+            enteId=current.ente_id??null;
+        }
         // La verifica è un aiuto UX; il trigger Supabase resta il controllo definitivo
         // anche contro salvataggi simultanei o chiusi su altri account.
-        const duplicato=await window.checkAziendaIdentificativoDuplicato(record.piva_cf,record.id||null,record.ente_id||null);
+        const duplicato=await window.checkAziendaIdentificativoDuplicato(record.piva_cf,record.id||null,enteId);
         if(duplicato){
             window.lastAziendaSaveError={
                 code:'AZIENDA_IDENTIFICATIVO_DUPLICATO',
