@@ -312,7 +312,8 @@ window.loadModule = async function(moduleId) {
                 'js/modules/checklist_corso.js',
                 'js/modules/prepara_corso.js',
                 'js/modules/ui_refinements.js',
-                'js/modules/professional_suite.js'
+                'js/modules/professional_suite.js',
+                'js/modules/graphic_upgrade_g4_dashboard.js'
             ];
             for (const src of dashboardScripts) {
                 await window.loadOptionalSafetyScript(src);
