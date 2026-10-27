@@ -1704,28 +1704,26 @@ window.chiudiQAAzienda = function() {
 window.salvaQAAzienda = async function() {
     const rag = document.getElementById('qa-az-rag').value.trim();
     const piva = document.getElementById('qa-az-piva').value.trim();
-    if (!rag) return alert("Inserisci la Ragione Sociale.");
-    
-    const { data, error } = await supabaseClient
-        .from('aziende')
-        .insert([{ ragione_sociale: rag, piva_cf: piva }])
-        .select();
-        
-    if (error) return alert("Errore nel salvataggio azienda: " + error.message);
-    
-    window.aziendeList = await window.getAziende();
-    
-    const selAzienda = document.getElementById('prog-azienda');
+    if(!rag) return alert('Inserisci la Ragione Sociale.');
+    // Il percorso rapido applica gli stessi controlli e messaggi del form azienda.
+    const saved=await window.saveAzienda({ragione_sociale:rag,piva_cf:piva});
+    if(!saved) return alert(window.getAziendaSaveErrorMessage?.()||'Impossibile salvare azienda.');
+    const azienda=Array.isArray(saved)?saved[0]:saved;
+    if(!azienda?.id) return alert('Azienda salvata ma identificativo non disponibile. Ricarica Anagrafica Aziende.');
+
+    window.aziendeList=await window.getAziende();
+    const selAzienda=document.getElementById('prog-azienda');
     if(selAzienda) {
-        let optHtml = '<option value="">-- Seleziona Azienda --</option>';
-        window.aziendeList.forEach(a => { 
-            optHtml += `<option value="${a.id}">${a.ragione_sociale}</option>`; 
-        });
-        selAzienda.innerHTML = optHtml;
-        selAzienda.value = data[0].id; 
-        window.calcolaDettagliProgetto();
+        selAzienda.innerHTML='<option value="">-- Seleziona Azienda --</option>'+
+            (window.aziendeList||[]).map(a=>
+                '<option value="'+window.dashEscape(a.id)+'">'+window.dashEscape(a.ragione_sociale||'')+'</option>'
+            ).join('');
+        selAzienda.value=azienda.id;
+        window.calcolaDettagliProgetto?.();
     }
     window.chiudiQAAzienda();
+    if(document.getElementById('tabella-aziende')&&typeof window.loadAziendeTable==='function')
+        await window.loadAziendeTable();
 };
 
 // QUICK ADD CORSO CUSTOM
