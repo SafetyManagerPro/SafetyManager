@@ -56,3 +56,12 @@ Nessuna modifica a SafetyTraining e nessuna operazione SQL di scrittura o migraz
 - Vercel produzione: `7dfe275dae77` **READY**; runtime errors nei 30 minuti controllati: nessuno segnalato.
 - Rimane indispensabile una verifica autenticata reale desktop/mobile dei form, delle aziende con storico, dei fascicoli e della navigazione omonimi/archiviati. I test con mock non equivalgono al collaudo manuale.
 - Non iniziare la Fase 3 senza approvazione esplicita; SafetyTraining non toccato.
+
+
+## Terzo blocco — conteggi non validi e sicurezza delle cancellazioni (27/10/2026)
+
+- `getAziendaDeleteImpact` ora interpreta conteggi `null`, assenti, negativi o non interi come **verifica non riuscita**, non come zero riferimenti: in questi casi `deleteAzienda` non invia alcuna DELETE.
+- Aggiunti test di regressione per tutte e sette le relazioni gestite, inclusi i PDF storici, e per conteggi incompleti. I test utilizzano mock e non cancellano dati veri.
+- **Limite intenzionale:** un count `0` restituito da una policy RLS che nasconde righe è indistinguibile da una tabella senza riferimenti. Per garantire la protezione anche fuori dal browser occorre intervenire sul vincolo FK nel database e/o introdurre una verifica server-side con autorizzazioni esaminate. Non basta il controllo client.
+- **Proposta da validare separatamente, NON applicata:** sostituire in `progetti.azienda_id` la FK `ON DELETE CASCADE` con `ON DELETE RESTRICT` dopo aver inventariato riferimenti, trigger, permessi, flussi di amministrazione, backup e procedura di rollback. Provare in un ambiente di staging isolato; mantenere invariati storici e documenti.
+- Nessuna migrazione SQL o modifica alle tabelle in produzione in questo blocco. Per chiudere la Fase 2 restano test autenticati desktop/iPhone e verifiche end-to-end (salvataggio, lookup da fascicolo, eliminazione azienda vuota, blocco azienda collegata, stampe/PDF). Fase 3 non avviata e SafetyTraining invariato.
