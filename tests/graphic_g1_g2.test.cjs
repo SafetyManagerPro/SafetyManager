@@ -82,7 +82,11 @@ for(const kind of ['corsisti','aziende']){
  test(kind+': riutilizza form originale in popup e salva con handler legacy',async()=>{
    const c=fixture(kind);
    assert.equal(c.window.SafetyGraphicG1G2.enhance(kind),true);
-   assert.ok(c.sidebar.classList.contains('safety-g2-sidebar'));
+   if(kind==='corsisti')assert.ok(c.sidebar.classList.contains('safety-g2-sidebar'));
+   else{
+     assert.equal(c.sidebar.classList.contains('safety-g2-sidebar'),false,'La griglia Aziende resta visibile');
+     assert.ok(c.registry.get('view-aziende').classList.contains('safety-g2-wide'));
+   }
    const overlay=c.app.children.find(el=>el.id==='safety-g2-overlay');
    assert.ok(overlay);
    assert.equal(overlay.hidden,true);
