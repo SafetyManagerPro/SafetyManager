@@ -573,3 +573,39 @@ Richiesta: archivio consultabile dalla scheda **Corsisti**, caricamento, apertur
 - Test client simulato corsisti: 35 record, lettera A=26 (20+6), lettera Z e iniziale É in E correttamente selezionate, ricerca per CF di un corsista fuori dalla lettera e fuori dalla pagina precedente trova il record e reimposta il filtro alfabetico: **PASS**.
 - Lettura aggregata DB SafetyManager: **45 aziende**, **115 corsisti** (alla verifica), quindi lista aziende 3 pagine e lista corsisti circa 6 pagine non filtrate. Nessun dato modificato.
 - Limite: manca ancora test end-to-end browser con sessione admin su iPhone/desktop; le navigazioni reali e i filtri combinati vanno collaudati nella UI. I risultati simulati sono test di logica, non verifica di produzione autenticata. Monitorare eventuali vincoli PostgREST sulle ricerche libere; usare sempre dati autorizzati.
+
+
+## 2026-10-27 — FASE 1 APPROVATA: stabilizzazione, controlli automatici, qualità caricamenti
+
+### Autorizzazione e confini
+L'utente ha approvato **soltanto la prima fase** della roadmap proposta: ridurre caricamenti «Attendi», timeout, cicli DOM, regressioni e predisporre un processo di collaudo. Non procedere automaticamente alle fasi 2+ (architettura generale, nuove dashboard, funzioni ulteriori). Nessun dato reale o schema Supabase modificato; SafetyTraining non toccato.
+
+### Modifiche del codice pubblicate su main
+- `js/utils.js` commit `b655d4ca67fd`: la conversione delle tabelle in card mobili evita di calcolare `tbody.innerHTML` su desktop; coda `requestAnimationFrame` delle card; observer globale legato a cambi dei figli diretti di `#app-content`, non a tutto il subtree; observer tabelle filtra eventi rilevanti. L'ottimizzazione `responsive_table_performance.js` resta compatibile.
+- `js/utils.js` commit `5c2d26c1db91`: `window.safetyReadWithDeadline()` con limite e cleanup timer; `loadCorsistiTable` racchiusa in try/catch, letture in `bounded()` da 15 s, requestId contro risposte obsolete, UI di errore con «Riprova caricamento», diagnostica locale `window.safetyLoadStats.corsisti` (contatori, esito, ms).
+- `js/app.js` commit `0aa2e1cd50b5`: timer 12 s per script opzionali, retry su errore, abort fetch moduli HTML dopo 12 s con `AbortController`, protezione di navigazioni concorrenti `__safetyNavigationId` e messaggio `safety-module-retry`. La Dashboard usa deadline 15 s per le statistiche in fase di caricamento, senza modificarne le query.
+- `js/utils.js` commit `8ed6abaeec53`: lettura pagine Aziende con limite 15 s, gestione errore «Riprova», contatori/tempi locali `safetyLoadStats.aziende`.
+- `sw.js` commit `686132ac81db`: cache PWA v11 → v12, consentendo eliminazione vecchie copie al successivo service-worker activate; strategia HTML/JS network-first mantenuta.
+- `tests/phase1_stability.test.cjs` commit `3e2937ff8ffd` e `4643a6dacc2`: 10 test di regressione (VM sintassi, timeout, script bloccato, binding responsive, paginazione/ricerca, navigazione, Aziende, nomine/fascicolo), test senza credenziali né dati reali.
+- `package.json` commit `8f79dc6bad4d`: `npm test` include test esistente Step67 e nuova suite; `npm run check` esteso a `js/utils.js`, `js/app.js`, `js/supabase_config.js`.
+- `.github/workflows/safetymanager-quality.yml` commit `63280f22ac79`: GitHub Actions su push `main` e PR verso `main`, `npm run check` + `npm test`, senza segreti né accesso al database.
+- `docs/COLLAUDO_STABILIZZAZIONE_FASE1_2026-10-27.md` commit `88fcddc17484`: checklist di accettazione desktop, mobile, PWA, stampe, documenti, backup, errori di rete, e limiti del test isolato.
+
+### Controlli verificati fino all'ultima versione
+- Verifica sintassi JS `new Function` dopo modifiche importanti: PASS.
+- GitHub Actions esecuzioni recenti: `40481036683`, `40481249312`, `40481420782`, `40481585350`, `40481720239` tutte **completed/success**.
+- Ultimo commit con protocollo `88fcddc17484` su Vercel produzione `safety-manager-ultimate`: **READY** (deployment `dpl_81tETvXK6JJsiSrUbvmj87LUy58G`).
+- Vercel runtime errors ultime 1h: nessuno rilevato. Attenzione: Vercel server runtime errors NON dimostra che la UI browser sia priva di errori.
+- Nessuna migrazione Supabase e nessun cambio di policy, bucket, anagrafiche, corsi, archivi o numeri attestati.
+- Test automatici sono su runner effimero indipendente dalla produzione. **Non c'è ancora una preview completa con un database di test isolato**; non utilizzare una Vercel Preview per scritture di collaudo finché non avrà un progetto Supabase diverso da produzione.
+- GitHub Actions verifica il codice ma **non blocca automaticamente** il deploy Vercel su main. Per un vero deployment gate servono branch-protection/deployment checks configurati e approvati separatamente.
+
+### Da verificare prima di dichiarare chiusa la fase operativa
+1. UI admin desktop/iPhone: aprire Corsisti/Aziende, ricerca globale, rubrica A–Z, scorrimento pagine; confermare scomparsa popup browser «Attendi».
+2. Simulare connessione interrotta/ritardata: mostrare «Riprova» entro il limite previsto, senza sovrascrivere navigazioni successive.
+3. Verificare stampe libere, facsimili, PDF/archiviazione facoltativa, storico e ruoli; non introdurre precondizioni di completamento corsi.
+4. Su PWA installata verificare update cache v12 e stato offline/online.
+5. Se persistono blocchi: raccogliere log browser `safetyLoadStats` (solo dati tecnici) e profilo performance, evitando di esporre CF o documenti. 
+6. Valutare successivamente ambiente browser staging con progetto DB isolato, senza esportare dati personali reali.
+
+**Non passare alla fase 2 senza nuova approvazione dell'utente.**
