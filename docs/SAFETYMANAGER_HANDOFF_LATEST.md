@@ -754,3 +754,13 @@ Autorizzazione: l'utente ha detto «perfetto, prosegui» dopo la G4 Dashboard.
 - Regressione: `tests/graphic_g5_docenti.test.cjs`. Dettagli: `docs/UPGRADE_GRAFICO_G5_DOCENTI_2026-10-27.md`.
 - Nessuna modifica a Supabase, dati storici, permessi, attestati, firme, stampe, archivio PDF, SafetyTraining; mantenere G1–G4.
 - Ancora da fare: CI, merge main, deploy Vercel, collaudo vero browser desktop/mobile su creazione/modifica/firma. Le prove simulate non sostituiscono un test amministratore autenticato.
+
+## 2026-10-27 — FIX popup Archivio e layout prima del caricamento dati
+
+L'utente segnala vecchi pannelli/schede Progetti, Corsisti, Aziende intermittenti e «Apri» dall'Archivio che naviga a Progetti. Ha autorizzato correzione. Analisi: \`ensureProgettiModuleReadyForProject\` naviga a Progetti se manca il form; i moderni layer G2/G3/G5 venivano montati solo dopo loader asincroni; cache SW v12 rete-prima comunque non causa primaria.
+
+- Nuovo \`js/modules/archive_project_popup_portal.js\` caricato da \`index.html\` dopo G2/G3/G5. **Solo in Archivio** recupera HTML Progetti fresco, estrae e monta il form originale, richiama la stessa funzione popup legacy senza navigazione, e rimuove il form alla chiusura. X/uscita proteggono modifiche non salvate, salva/chiude solo secondo business logic originale.
+- \`js/app.js\`: applica \`enhance\` G2/G3/G5 immediatamente dopo \`innerHTML=html\`, **prima** delle query lente; i loader mantengono re-applicazione idempotente dopo i dati. In errore UI il vecchio form resta disponibile. Fetch moduli \`cache:'no-store'\`.
+- \`sw.js\`: PWA cache v13, app shell include gli script moderni; \`index.html\`: JS versionati. Nessun cambio ai DB, migrazioni, atti, firme, archivi, SafetyTraining.
+- Nuovi test: \`tests/archive_project_popup_navigation.test.cjs\`; report \`docs/FIX_ARCHIVIO_POPUP_LAYOUT_CACHE_2026-10-27.md\`.
+- **Non** riaprire paginazione archivio PDF rinviata. Da registrare CI/main/deploy, collaudo autenticato desktop/PWA reale.
