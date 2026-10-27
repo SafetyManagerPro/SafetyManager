@@ -23,7 +23,7 @@ const elements=()=>({
   'cfasc-doc-date':{value:''},
   'cfasc-status':{value:'bozza'},
   'cfasc-notes':{value:''},
-  'cfasc-file':{value:'',files:[{size:32,name:'documento.pdf',type:'application/pdf',slice(){return {arrayBuffer:async()=>Buffer.from('%PDF-1.7')}}}]},
+  'cfasc-file':{value:'',files:[{size:32,name:'documento.pdf',type:'application/pdf',slice(){return {arrayBuffer:async()=>Buffer.from('%PDF-')}}}]},
   'cfasc-cancel-version':{classList:{remove(){}}},
   'cfasc-form':{scrollIntoView(){}},
   'cfasc-upload':{disabled:false}
@@ -34,8 +34,6 @@ test('Nuova versione di documento definitivo parte sempre come bozza',()=>{
   const old={id:'old',gruppo_versioni:'family',versione:1,stato:'definitivo',tipo_documento:'attestato',titolo:'Attestato',iscrizione_id:null,note:'',data_documento:null};
   const newest={...old,id:'newest',versione:2};
   const state={docs:[old,newest],previous:null};
-  vm.runInNewContext(newVersionSource,{state,el:id=>els[id],msg(){}});
-  newVersionSource && assert.ok(true);
   const fn=vm.runInNewContext(newVersionSource+'\nnewVersion',{state,el:id=>els[id],msg(){}});
   fn(old);
   assert.equal(state.previous.id,'newest');
