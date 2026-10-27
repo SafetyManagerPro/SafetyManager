@@ -125,3 +125,14 @@ test('apertura corsista dal fascicolo azienda non dipende dalle prime 20 righe',
   assert.match(func,/await window\.loadCorsistiTable\(\)/);
   assert.match(func,/window\.modificaCorsista\(corsistaId\)/);
 });
+
+
+test('inserimento rapido: preserva la paginazione solo in Anagrafica',()=>{
+  const utils=fs.readFileSync(path.join(root,'js/utils.js'),'utf8');
+  const role=fs.readFileSync(path.join(root,'js/modules/corsisti_ruolo_azienda.js'),'utf8');
+  for(const source of [utils,role]){
+    assert.match(source,/if\(document\.getElementById\('tabella-corsisti'\) && typeof window\.loadCorsistiTable==='function'\)/);
+    assert.match(source,/await window\.loadCorsistiTable\(\)/);
+    assert.match(source,/else window\.corsistiList = await window\.getCorsisti\(\)/);
+  }
+});
