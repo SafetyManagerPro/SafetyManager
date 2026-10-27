@@ -609,3 +609,26 @@ L'utente ha approvato **soltanto la prima fase** della roadmap proposta: ridurre
 6. Valutare successivamente ambiente browser staging con progetto DB isolato, senza esportare dati personali reali.
 
 **Non passare alla fase 2 senza nuova approvazione dell'utente.**
+
+
+## 2026-10-27 — Fase 2 approvata: anagrafiche, ricerca dei duplicati, collegamenti storici (primo blocco)
+
+L'utente ha confermato il funzionamento della Fase 1 e ha autorizzato a proseguire. Implementato un primo blocco CONSERVATIVO della **Fase 2**, senza nuove tabelle o migrazioni Supabase né modifiche a dati esistenti.
+
+### Interventi implementati
+- `js/supabase_config.js`: normalizzazione PIVA aziendale coerente con trigger SQL esistente (IT+11 cifre equivalenti a 11 cifre); verifica pre-salvataggio su azienda completa con paginazione DB, filtro ente ed esclusione ID per modifica, errori RLS/rete non nascosti; `lastAziendaSaveError`/messaggi chiari per collisioni e altri errori.
+- `js/supabase_config.js`: `getAziendaDeleteImpact(id)` conta riferimenti prima di ogni DELETE in progetti, corsisti, rapporti storici, iscrizioni storiche, PDF storici, richieste organismi e verifiche di efficacia. Se presente almeno un riferimento o lettura non affidabile, blocca la cancellazione (senza cambiare i dati), con motivazione `lastAziendaDeleteError`.
+- `js/utils.js`: `salvaAziendaDB()` visualizza il reale errore; `eliminaAzienda()` chiede conferma informata e non annuncia più cascata dei progetti. `apriPopupRelazioniAzienda()` legge direttamente azienda/progetti/corsisti filtrati per ID invece di scaricare interi archivi e usa timeout 15s/Riprova.
+- `js/utils.js`: `openCorsistaFromAziendaPopup` naviga a Corsisti con ricerca globale per CF/nome, esclude filtri precedenti, attende rendering e apre il record anche se fuori dalle prime 20 righe (inclusi archiviati).
+- `js/utils.js` e `js/modules/corsisti_ruolo_azienda.js`: inserimento rapido preserva la pagina da 20 in Anagrafica e mantiene full roster nei Progetti, che lo usano per iscrizioni.
+- `tests/phase2_anagrafiche.test.cjs`: suite di regressione; riscontrata una prima asserzione troppo rigida sul formato degli errori Supabase, corretta (CI successiva verde).
+- Report indipendente: `docs/FASE2_ANAGRAFICHE_INTEGRITA_2026-10-27.md` (interventi, limiti, collaudi necessari e prosecuzione prudente).
+
+### Diagnosi dati
+Verificato in sola lettura su Supabase SafetyManager `gblcedkfnasqlnrxupzx`: 45 aziende, 115 corsisti al momento del controllo; 0 gruppi PIVA duplicati tra aziende secondo la normalizzazione semplice, 1 gruppo CF duplicato tra corsisti. Non sono stati mostrati né modificati CF/nominativi nei report pubblicati. Non fondere automaticamente corsisti con duplicati perché potrebbero essere collegati a storico.
+
+### Limiti espliciti
+- Il database dispone già di trigger che previene collisioni fiscali. Non è stato creato un indice UNIQUE nuovo, dato lo storico e la necessità di considerare `ente_id` e formati IVA.
+- La guardia eliminazione azienda è a livello applicativo; un'invariante irreversibile server-side richiede una successiva review del modello FK e autorizzazione prima di aggiungere un trigger.
+- Mancano ancora test browser autentici desktop/mobile, su ambienti con database di prova realmente isolati. Non dichiarare completata tutta la Fase 2 prima della convalida dei flussi aziendali e dei collegamenti da pagina successiva.
+- Fase 3 (stampe/archivio) NON avviata e SafetyTraining NON modificato.
