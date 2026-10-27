@@ -679,3 +679,12 @@ Primo miglioramento della **Fase 3 Stampe e Archivio**:
 - `tests/phase3_pdf_cleanup.test.cjs`: test simulati per successo, immagini non pronte e print che genera errore.
 - Dettagli, rischi e prossime verifiche in `docs/FASE3_STAMPE_ARCHIVIO_2026-10-27.md`.
 - Non modificati modelli PDF, archivi storici, firme, stampe singole, RLS o dati. Non dichiarare collaudata interamente la Fase 3 senza prova browser. SafetyTraining invariato.
+
+## 2026-10-27 — Fase 3, secondo blocco dopo «prosegui»
+
+- `js/modules/stampe_bundle.js`: ora tutte le callback differite di stampa rapida, attestati progetto e attestato corsista usano `try/catch/finally`, garantendo la rimozione della classe `is-printing-temp` e lo svuotamento del contenitore anche dopo errore immagini/print.
+- L'archiviazione corsista facoltativa non deve bloccare la stampa se la cattura fallisce in modo sincrono; la gestione errori asincrona del modulo archivio esistente rimane invariata.
+- Fallback `renderPrintModuleToTemp` ripristina sempre modulo, sessione e holder mediante `finally` anche se `updateAll` fallisce.
+- Test di regressione in `tests/phase3_stampe_attestati.test.cjs` con DOM mockato. Risultati CI e deploy da verificare al merge.
+- Audit Supabase di sola lettura: 4 PDF nel fascicolo corsista, tutti `bozza`, 0 documenti definitivi/superati/versioni successive, 0 progetto orfano, 4 con azienda storica. Non intervenire sulle bozze reali e non alterare il contenuto dei PDF.
+- Fase 3 non ancora collaudata integralmente da browser. DB SafetyManager non mutato, FK di progetti ancora CASCADE, SafetyTraining non toccato.

@@ -20,3 +20,24 @@ Analizzando `js/modules/stampe_bundle.js`, la stampa `stampaFascicoloCompletoPDF
 - La protezione DB della FK progetti→aziende resta in attesa di autorizzazione e ambiente sicuro di collaudo.
 
 Questo è il primo intervento circoscritto della Fase 3, NON la certificazione dell'intera Fase 3.
+
+## Secondo intervento — stampe singole, attestati, ripristino sessione (27/10/2026)
+
+### Difetti verificati nel sorgente
+- Le stampe rapide, gli attestati multipli e gli attestati singoli programmavano una callback `async` senza `try/finally`. Errori durante `waitForPrintImages`, `window.print` o lo snapshot facoltativo potevano lasciare attiva `is-printing-temp` e l'area di stampa.
+- Il rendering alternativo `renderPrintModuleToTemp` ripristinava `currentPrintModule`, `currentSessionCorsisti` e rimuoveva l'holder soltanto nel percorso di successo. Un errore di `updateAll` lasciava il contesto alterato.
+
+### Correzioni implementate
+- `js/modules/stampe_bundle.js`: cleanup in `finally` delle tre callback differite, con feedback in `catch`.
+- La cattura `SafetyCorsistiAutoArchive.capture` nell'attestato singolo resta opzionale: un errore sincrono di avvio dell'archiviazione non impedisce `window.print`. La funzione di archiviazione continua a gestire autonomamente gli errori asincroni e la creazione delle bozze. Non sono state cambiate le policy, lo stato dei PDF o l'abilitazione facoltativa.
+- Nel percorso legacy di `renderPrintModuleToTemp`, un `finally` elimina sempre l'holder e ripristina il contesto di stampa precedente.
+- `tests/phase3_stampe_attestati.test.cjs`: 9 scenari di stampa (normale, errore immagini e `print` per ciascuna delle 3 modalità), avvio archiviazione fallito e 2 scenari per il fallback rendering. Test basati su mock, senza stampa fisica né scritture.
+
+### Audit Supabase in sola lettura
+Risultati aggregati alla verifica del 27/10/2026:
+- 4 PDF nel fascicolo corsista: 4 bozze, 0 definitivi, 0 superati e 0 versioni successive; 4 collegati a progetti, 4 con azienda storica, 0 collegamenti progetto orfani. **Queste bozze non sono state promosse a definitive**; la classificazione richiede controllo amministrativo.
+- Nessuna cancellazione, aggiornamento o accesso ai contenuti PDF eseguiti durante l'audit.
+- Il vincolo `progetti.azienda_id` è ancora `ON DELETE CASCADE`; la proposta `RESTRICT` è documentata ma non applicata.
+
+### Limiti del blocco
+Verificare browser reale su desktop/iPhone per finestre stampa, salvataggio PDF, firme, numero pagine e leggibilità. Le prove automatiche controllano lo stato JavaScript in caso di errore e non sono una certificazione grafica/legale del contenuto dei PDF. SafetyTraining e database invariati.
