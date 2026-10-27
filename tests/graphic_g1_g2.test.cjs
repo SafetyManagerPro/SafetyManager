@@ -22,6 +22,7 @@ function fixture(kind='corsisti'){
    const names=new Set();
    const n={id,children:[],parentNode:null,style:{},value:'',type:'',hidden:false,isConnected:true,
      textContent:'',disabled:false,checked:false,listeners:{},
+     get parentElement(){return this.parentNode},
      classList:{add(c){names.add(c)},remove(c){names.delete(c)},contains(c){return names.has(c)}},
      appendChild(child){if(child.parentNode){const idx=child.parentNode.children.indexOf(child);if(idx>=0)child.parentNode.children.splice(idx,1)}
        child.parentNode=this;this.children.push(child);child.isConnected=true;return child},
