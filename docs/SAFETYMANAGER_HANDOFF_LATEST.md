@@ -632,3 +632,17 @@ Verificato in sola lettura su Supabase SafetyManager `gblcedkfnasqlnrxupzx`: 45 
 - La guardia eliminazione azienda è a livello applicativo; un'invariante irreversibile server-side richiede una successiva review del modello FK e autorizzazione prima di aggiungere un trigger.
 - Mancano ancora test browser autentici desktop/mobile, su ambienti con database di prova realmente isolati. Non dichiarare completata tutta la Fase 2 prima della convalida dei flussi aziendali e dei collegamenti da pagina successiva.
 - Fase 3 (stampe/archivio) NON avviata e SafetyTraining NON modificato.
+
+
+## 2026-10-27 — Secondo blocco Fase 2, continuazione approvata
+
+L'utente ha chiesto «ok, prosegui». Autorizzazione limitata alla Fase 2 SafetyManager Pro; Fase 3 non iniziata.
+
+- `js/utils.js`: `salvaQAAzienda` ora usa **`saveAzienda`** anziché INSERT diretto: stessa verifica duplicati fiscali e messaggi degli inserimenti normali; aggiorna i selettori Progetti con escaping HTML. Commit `20d974b819bb`.
+- `js/utils.js`: navigazione precisa fascicolo Azienda → Corsista per ID tramite `corsistiPageState.focusId`, filtro `eq('id',focusId).range(0,0)` preemptive a ricerca/stato/azienda/corso; pulsante **Mostra tutti**; selezione lettera e ricerca globale cancellano focus. Testa anche omonimi, mancanza CF e record archiviati. Commit `fe35bd48a491`.
+- `js/supabase_config.js`: per modifica Azienda con `ente_id` omesso legge quello del record attuale, evita falsi duplicati cross-ente (server trigger resta decisivo). Commit `eec5985c8d36`.
+- `tests/phase2_anagrafiche.test.cjs`: nuovi test per quick-add, focused ID ed enteId reale. CI `7dfe275dae77` **verde** e Vercel produzione **READY**. Nessun errore runtime segnalato nella finestra dei 30 minuti.
+- **Audit integrità Supabase esclusivamente in lettura:** 45 aziende, 115 corsisti, 117 righe storico corsista-azienda su 115 corsisti; 0 record azienda attuale/storica, persona storica o progetto collegati a ID inesistenti nel controllo. La tabella PDF `corsisti_documenti_archivio` dispone di `azienda_storica_id`.
+- **Rischio residuo IMPORTANTISSIMO:** vincolo FK `progetti.azienda_id` verso `aziende.id` ha `ON DELETE CASCADE`, mentre altre FK hanno `SET NULL` o `RESTRICT`. La guardia frontend `getAziendaDeleteImpact()` blocca le cancellazioni quando ci sono riferimenti, ma un accesso server diretto potrebbe bypassarla. Proporre una migrazione DB `ON DELETE RESTRICT` dopo studio/test isolato, senza modificarla automaticamente. Non effettuate migrazioni DB né scritture.
+- Report dettagliato aggiornato: `docs/FASE2_ANAGRAFICHE_INTEGRITA_2026-10-27.md`.
+- Rimane da certificare test reali admin desktop/iPhone e stampa/fascicoli. Non passare a Fase 3 e non modificare SafetyTraining senza nuova indicazione.
