@@ -150,6 +150,7 @@ window.getAziendaDeleteImpact = async function(id) {
         ['corsisti','azienda_id','corsisti'],
         ['corsisti_rapporti_azienda','azienda_id','rapportiStorici'],
         ['iscrizioni','azienda_storica_id','iscrizioniStoriche'],
+        ['corsisti_documenti_archivio','azienda_storica_id','documentiStorici'],
         ['richieste_organismi_paritetici','azienda_id','richiesteOrganismi'],
         ['training_effectiveness_checks','azienda_id','verificheEfficacia']
     ];
@@ -168,7 +169,7 @@ window.deleteAzienda = async function(id) {
         if(linked.length){
             const labels={
                 progetti:'progetti',corsisti:'corsisti',rapportiStorici:'rapporti aziendali',
-                iscrizioniStoriche:'iscrizioni storiche',richiesteOrganismi:'richieste a organismi',
+                iscrizioniStoriche:'iscrizioni storiche',documentiStorici:'documenti archiviati',richiesteOrganismi:'richieste a organismi',
                 verificheEfficacia:'verifiche di efficacia'
             };
             const message='Eliminazione non consentita: azienda collegata a '+linked.map(([key,n])=>n+' '+labels[key]).join(', ')+'. Gli storici devono restare disponibili. Apri la scheda azienda per verificare i collegamenti.';
