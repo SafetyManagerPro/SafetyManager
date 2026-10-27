@@ -38,7 +38,7 @@ function view(){
  '<button type="button" id="cfasc-refresh" class="text-xs font-bold px-3 py-2 rounded-lg border border-slate-300 hover:bg-slate-100">Aggiorna</button></div></div>'+
  '<div id="cfasc-list" class="space-y-3" aria-live="polite">Caricamento…</div>'+
  '<div class="border-t border-slate-200 pt-5"><h3 id="cfasc-form-title" class="text-sm font-black uppercase">Archivia un nuovo PDF</h3>'+
- '<p id="cfasc-version-info" class="text-xs text-slate-500 mt-1">Puoi caricare anche documenti senza corsi associati. Per ristampare usa Apri PDF.</p>'+
+ '<p id="cfasc-version-info" class="text-xs text-slate-500 mt-1">Puoi caricare anche documenti senza corsi associati. Ogni nuova versione parte come bozza; i PDF precedenti mantengono il loro stato.</p>'+
  '<form id="cfasc-form" class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">'+
  '<label class="text-xs font-bold">Tipo documento<select id="cfasc-type" required class="block mt-1 w-full bg-white border border-slate-300 rounded-lg p-2 text-sm"></select></label>'+
  '<label class="text-xs font-bold">Titolo<input id="cfasc-title" type="text" required minlength="3" maxlength="200" placeholder="Es. Nomina addetto primo soccorso" class="block mt-1 w-full border border-slate-300 rounded-lg p-2 text-sm"></label>'+
@@ -92,7 +92,8 @@ function newVersion(item){
  el('cfasc-title').value=last.titolo;
  el('cfasc-enrollment').value=last.iscrizione_id||'';
  el('cfasc-doc-date').value=last.data_documento||'';
- el('cfasc-status').value=last.stato==='definitivo'?'definitivo':'bozza';
+ // Ogni nuovo file deve essere verificato: non eredita lo stato definitivo.
+ el('cfasc-status').value='bozza';
  el('cfasc-notes').value=last.note||'';
  el('cfasc-file').value='';
  el('cfasc-cancel-version').classList.remove('hidden');
@@ -172,6 +173,8 @@ async function upload(){
  const id=state.id,person=state.person,previous=state.previous;
  const file=el('cfasc-file')?.files?.[0],title=String(el('cfasc-title')?.value||'').trim();
  const type=String(el('cfasc-type')?.value||''),stato=String(el('cfasc-status')?.value||'bozza');
+ // L'archiviazione come definitivo richiede approvazione consapevole, mai ereditata.
+ if(stato==='definitivo'&&!confirm('Hai verificato il nuovo PDF e vuoi archiviarlo come DEFINITIVO? Le versioni già archiviate non verranno modificate.'))return;
  if(!file||file.size<1||file.size>MAX||!file.name.toLowerCase().endsWith('.pdf')){
   msg('Seleziona un PDF non vuoto di massimo 15 MB.',true);return;
  }
@@ -218,13 +221,11 @@ async function upload(){
   const {error:rowError}=await db().from(TABLE).insert(doc);
   if(rowError)throw rowError;
   storagePath=null; // Documento registrato: non eliminare il PDF se la fase successiva fallisce.
-  if(previous){
-   const {error:prevError}=await db().from(TABLE).update({stato:'superato'}).eq('id',previous.id).eq('corsista_id',id);
-   if(prevError)console.warn('[Fascicolo corsista] Versione precedente non aggiornata:',prevError.message);
-  }
+  // La creazione di una nuova versione NON deve mutare lo stato della precedente,
+  // specie se la nuova è soltanto una bozza. "Segna superato" resta una scelta admin.
   await refresh();
   resetVersion();
-  msg('PDF archiviato. È possibile riaprirlo e stamparlo in qualsiasi momento.');
+  msg('Nuova versione archiviata. Le versioni precedenti restano disponibili e mantengono il loro stato; se necessario puoi segnarle superate manualmente.');
  }catch(err){
   if(storagePath){
    const cleanup=await db().storage.from(BUCKET).remove([storagePath]);
