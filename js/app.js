@@ -45,13 +45,22 @@ window.loadOptionalSafetyScript = function(src) {
         script.src = src;
         script.async = false;
         script.dataset.safetyDynamic = src;
-        script.onload = () => resolve(true);
-        script.onerror = () => {
-            console.warn('SafetyManager: script opzionale non caricato:', src);
-            script.remove();
-            window.__safetyDynamicScriptPromises.delete(src);
-            resolve(false);
+        let resolved = false;
+        const finish = ok => {
+            if(resolved)return;
+            resolved = true;
+            clearTimeout(timeout);
+            if(!ok){
+                console.warn('SafetyManager: script opzionale non caricato:', src);
+                script.remove();
+                window.__safetyDynamicScriptPromises.delete(src);
+            }
+            resolve(ok);
         };
+        // Un CDN o file opzionale che non risponde non deve fermare la navigazione.
+        const timeout=setTimeout(()=>finish(false),12000);
+        script.onload = () => finish(true);
+        script.onerror = () => finish(false);
         document.head.appendChild(script);
     });
     window.__safetyDynamicScriptPromises.set(src, loading);
@@ -226,14 +235,18 @@ window.injectSafetyLogoutButton = function() {
     if (typeof lucide !== 'undefined') lucide.createIcons();
 };
 
+window.__safetyNavigationId=window.__safetyNavigationId||0;
 window.loadModule = async function(moduleId) {
     const contentDiv = document.getElementById('app-content');
     if (!contentDiv) return;
+    const navigationId=++window.__safetyNavigationId;
+    const isCurrent=()=>navigationId===window.__safetyNavigationId;
 
     if (typeof window.installSafetySignaturePatches === 'function') window.installSafetySignaturePatches();
 
     if (moduleId !== 'login') {
         const user = await window.getSafetyAdminUser();
+        if(!isCurrent())return;
         if (!user) {
             await window.ensureSafetyAdminOrLogin();
             return;
@@ -276,11 +289,18 @@ window.loadModule = async function(moduleId) {
         contentDiv.innerHTML = `<div class="flex items-center justify-center h-64 mt-20"><div class="text-center text-slate-500"><i data-lucide="loader-2" class="w-10 h-10 animate-spin mx-auto mb-4"></i><p class="font-bold uppercase tracking-widest text-sm">Caricamento modulo...</p></div></div>`;
         if (typeof lucide !== 'undefined') lucide.createIcons();
 
-        const response = await fetch(`modules/${moduleId}.html`);
-        if (!response.ok) throw new Error("File del modulo non trovato.");
-        
-        const html = await response.text();
-        contentDiv.innerHTML = html;
+        const controller=new AbortController();
+        const timeout=setTimeout(()=>controller.abort(),12000);
+        let html;
+        try {
+            const response=await fetch(`modules/${moduleId}.html`,{signal:controller.signal});
+            if(!response.ok)throw new Error('File modulo non disponibile ('+response.status+').');
+            html=await response.text();
+        } finally {
+            clearTimeout(timeout);
+        }
+        if(!isCurrent())return;
+        contentDiv.innerHTML=html;
         
         if (typeof lucide !== 'undefined') lucide.createIcons();
         
@@ -296,9 +316,13 @@ window.loadModule = async function(moduleId) {
             ];
             for (const src of dashboardScripts) {
                 await window.loadOptionalSafetyScript(src);
+                if(!isCurrent())return;
             }
-            if (typeof window.loadDashboardStats === 'function') {
-                await window.loadDashboardStats();
+            if(typeof window.loadDashboardStats==='function'){
+                await (window.safetyReadWithDeadline
+                    ? window.safetyReadWithDeadline(window.loadDashboardStats(),15000,'Dashboard')
+                    : window.loadDashboardStats());
+                if(!isCurrent())return;
             }
         }
         if (moduleId === 'aziende' && typeof window.loadAziendeTable === 'function') window.loadAziendeTable();
@@ -309,7 +333,9 @@ window.loadModule = async function(moduleId) {
             await window.loadOptionalSafetyScript('js/modules/progetti_corsisti_refinement.js');
             await window.loadOptionalSafetyScript('js/modules/corsisti_fascicolo_archivio.js');
             await window.loadOptionalSafetyScript('js/modules/corsisti_autoarchivia_stampe.js');
-            if (typeof window.loadCorsistiTable === 'function') await window.loadCorsistiTable();
+            if(!isCurrent())return;
+            if(typeof window.loadCorsistiTable==='function')await window.loadCorsistiTable();
+            if(!isCurrent())return;
         }
         if (moduleId === 'progetti' && typeof window.loadProgettiTable === 'function') await window.loadProgettiTable();
         if (moduleId === 'scadenze' && typeof window.loadScadenzeTable === 'function') window.loadScadenzeTable();
@@ -328,8 +354,14 @@ window.loadModule = async function(moduleId) {
         if (typeof window.updateNavOffset === 'function') setTimeout(window.updateNavOffset, 50);
 
     } catch (error) {
-        contentDiv.innerHTML = `<div class="p-10 text-center text-red-500 font-bold flex flex-col items-center mt-20"><i data-lucide="alert-triangle" class="w-10 h-10 mb-2"></i> Errore Modulo: ${error.message}</div>`;
-        if (typeof lucide !== 'undefined') lucide.createIcons();
+        if(!isCurrent())return;
+        console.error('[SafetyManager] Apertura modulo fallita:',moduleId,error);
+        const safeText=window.dashEscape?window.dashEscape(error?.name==='AbortError'?'Caricamento scaduto: controlla la connessione.':(error?.message||'Errore sconosciuto')):'Impossibile aprire il modulo';
+        contentDiv.innerHTML='<div class="p-8 text-center text-red-700 font-bold mt-10 bg-red-50 border border-red-200 rounded-xl" role="alert">'+
+            '<p>Impossibile caricare '+(window.dashEscape?window.dashEscape(moduleId):'questa sezione')+': '+safeText+'</p>'+
+            '<button type="button" id="safety-module-retry" class="mt-4 bg-blue-700 text-white rounded-lg px-5 py-2 text-xs font-bold">Riprova</button></div>';
+        contentDiv.querySelector('#safety-module-retry')?.addEventListener('click',()=>window.loadModule(moduleId));
+        if(typeof lucide!=='undefined')lucide.createIcons();
     }
 };
 
