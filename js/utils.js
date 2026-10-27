@@ -80,6 +80,12 @@ window.loadDashboardStats = async function() {
 // Vista mobile adattiva per tabelle gestionali.
 window.syncResponsiveTableCards = function(table) {
     if (!table) return;
+    // Le card mobili non vanno generate sul desktop: serializzare tbody.innerHTML
+    // ad ogni mutazione era una causa concreta di blocchi «Attendi».
+    if (window.matchMedia && !window.matchMedia('(max-width: 767px)').matches) {
+        table.dataset.responsiveCardsDirty = '1';
+        return;
+    }
     const cardsId = table.dataset?.responsiveCards;
     const cards = cardsId ? document.getElementById(cardsId) : null;
     const tbody = table.tBodies?.[0];
@@ -134,28 +140,58 @@ window.syncResponsiveTableCards = function(table) {
     if (typeof lucide !== 'undefined') lucide.createIcons();
 };
 
+window.__safetyResponsiveScheduledTables = window.__safetyResponsiveScheduledTables || new Set();
+window.scheduleSafetyResponsiveCards = function(table) {
+    if(!table || !table.isConnected) return;
+    const pending=window.__safetyResponsiveScheduledTables;
+    pending.add(table);
+    if(window.__safetyResponsiveFramePending) return;
+    window.__safetyResponsiveFramePending=true;
+    const schedule=typeof requestAnimationFrame==='function' ? requestAnimationFrame : (callback=>setTimeout(callback,16));
+    schedule(()=>{
+        window.__safetyResponsiveFramePending=false;
+        const tables=Array.from(pending);
+        pending.clear();
+        tables.forEach(t=>{if(t.isConnected)window.syncResponsiveTableCards(t);});
+    });
+};
 window.bindResponsiveTableCards = function(root = document) {
     root.querySelectorAll?.('table[data-responsive-cards]').forEach(table => {
         if (table.dataset.responsiveCardsBound !== '1') {
             table.dataset.responsiveCardsBound = '1';
-            const tbody = table.tBodies?.[0];
-            if (tbody && typeof MutationObserver !== 'undefined') {
-                const observer = new MutationObserver(() => window.syncResponsiveTableCards(table));
-                observer.observe(tbody, { childList: true, subtree: true, attributes: true, attributeFilter: ['style','class'] });
+            const tbody=table.tBodies?.[0];
+            if(tbody && typeof MutationObserver!=='undefined'){
+                const observer=new MutationObserver(mutations=>{
+                    // Ignora re-render di icone, badge e stili di elementi interni alle celle.
+                    const changed=mutations.some(m=>(m.type==='childList' &&
+                        (m.target===tbody || m.target.tagName==='TR')) ||
+                        (m.type==='attributes' && m.target.tagName==='TR'));
+                    if(changed)window.scheduleSafetyResponsiveCards(table);
+                });
+                observer.observe(tbody,{childList:true,subtree:true,attributes:true,attributeFilter:['style','class']});
+                table.__safetyFallbackCardsObserver=observer;
             }
         }
-        window.syncResponsiveTableCards(table);
+        window.scheduleSafetyResponsiveCards(table);
     });
 };
-
-if (typeof MutationObserver !== 'undefined') {
-    const responsiveRoot = document.getElementById('app-content') || document.body;
-    if (responsiveRoot) {
-        const responsiveTableObserver = new MutationObserver(() => window.bindResponsiveTableCards(responsiveRoot));
-        responsiveTableObserver.observe(responsiveRoot, { childList: true, subtree: true });
+// Le tabelle nuove arrivano con la sostituzione del contenuto del modulo.
+// Il caricamento interno delle celle non deve rieseguire il binding globale.
+if(typeof MutationObserver!=='undefined'){
+    const responsiveRoot=document.getElementById('app-content')||document.body;
+    if(responsiveRoot){
+        const observer=new MutationObserver(()=>window.bindResponsiveTableCards(responsiveRoot));
+        observer.observe(responsiveRoot,{childList:true});
     }
 }
-setTimeout(() => window.bindResponsiveTableCards(document), 0);
+if(window.matchMedia){
+    const breakpoint=window.matchMedia('(max-width: 767px)');
+    breakpoint.addEventListener?.('change',()=>{
+        document.querySelectorAll('table[data-responsive-cards]').forEach(t=>
+            window.scheduleSafetyResponsiveCards(t));
+    });
+}
+setTimeout(()=>window.bindResponsiveTableCards(document),0);
 
 window.dashEscape = function(value) {
     return String(value ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
