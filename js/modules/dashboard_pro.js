@@ -331,6 +331,13 @@
             renderProjectsOverview(projects || [], iscrizioniMap, step67Map);
             renderSystemHealth(counts, projects || [], iscrizioniMap);
 
+            // G4: usa ESCLUSIVAMENTE i dati già letti dal caricamento Dashboard.
+            // Il grafico è facoltativo: eventuali errori UI non bloccano la Dashboard.
+            if (typeof window.SafetyGraphicG4?.render === 'function') {
+                try { window.SafetyGraphicG4.render({ counts, projects: projects || [], statuses }); }
+                catch (error) { console.warn('G4: panoramica grafica non disponibile', error); }
+            }
+
             if (typeof window.loadDashboardCompliance === 'function') {
                 try { await window.loadDashboardCompliance(); } catch (e) { console.warn('Compliance dashboard non disponibile', e); }
             }
