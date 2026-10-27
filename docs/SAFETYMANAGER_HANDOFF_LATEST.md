@@ -764,3 +764,13 @@ L'utente segnala vecchi pannelli/schede Progetti, Corsisti, Aziende intermittent
 - \`sw.js\`: PWA cache v13, app shell include gli script moderni; \`index.html\`: JS versionati. Nessun cambio ai DB, migrazioni, atti, firme, archivi, SafetyTraining.
 - Nuovi test: \`tests/archive_project_popup_navigation.test.cjs\`; report \`docs/FIX_ARCHIVIO_POPUP_LAYOUT_CACHE_2026-10-27.md\`.
 - **Non** riaprire paginazione archivio PDF rinviata. Da registrare CI/main/deploy, collaudo autenticato desktop/PWA reale.
+
+## 2026-10-27 — G6 nav mobile e UX archivi/scadenze/stampe
+
+Utente: «ok funziona» conferma il precedente FIX Archivio popup e layout G1–G5; successivamente approva «prosegui».
+- Nuovo `js/modules/graphic_upgrade_g6_mobile.js` caricato dopo Archivio portal da `index.html`. Su viewport <=768px aggiunge Menu compatto, dropdown a 2 colonne con tutti i link (nessuna duplicazione/reinterpretazione `loadModule`), nomi accessibili anche per Impostazioni, close selezione/click fuori/Escape e aria-current attivo; desktop invariato.
+- CSS scoped mobile per KPI Archivio e Scadenze in 2 colonne, touch target minimi 44px, campi form >=16px anti-zoom, anteprima Centro Stampe scrollabile senza modificare PDF.
+- `modules/scadenze.html` aggiunge solo ID `scadenze-stats-grid` per CSS, nessuna modifica operativa.
+- `sw.js` aggiorna PWA `safetymanager-pwa-v14` e precache script G6. Script G6 versionato in index.
+- Test di regressione `tests/graphic_g6_mobile_navigation.test.cjs`. Report `docs/UPGRADE_GRAFICO_G6_MOBILE_2026-10-27.md`.
+- Non toccare Supabase, CRUD, storico, corsi, PDF, firme, attestati, stampa, archivio PDF congelato, SafetyTraining. Validare CI/main/deploy prima di dichiarare produzione; smoke browser autenticato ancora necessario.
