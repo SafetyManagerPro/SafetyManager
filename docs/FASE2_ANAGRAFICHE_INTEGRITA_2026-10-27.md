@@ -65,3 +65,21 @@ Nessuna modifica a SafetyTraining e nessuna operazione SQL di scrittura o migraz
 - **Limite intenzionale:** un count `0` restituito da una policy RLS che nasconde righe è indistinguibile da una tabella senza riferimenti. Per garantire la protezione anche fuori dal browser occorre intervenire sul vincolo FK nel database e/o introdurre una verifica server-side con autorizzazioni esaminate. Non basta il controllo client.
 - **Proposta da validare separatamente, NON applicata:** sostituire in `progetti.azienda_id` la FK `ON DELETE CASCADE` con `ON DELETE RESTRICT` dopo aver inventariato riferimenti, trigger, permessi, flussi di amministrazione, backup e procedura di rollback. Provare in un ambiente di staging isolato; mantenere invariati storici e documenti.
 - Nessuna migrazione SQL o modifica alle tabelle in produzione in questo blocco. Per chiudere la Fase 2 restano test autenticati desktop/iPhone e verifiche end-to-end (salvataggio, lookup da fascicolo, eliminazione azienda vuota, blocco azienda collegata, stampe/PDF). Fase 3 non avviata e SafetyTraining invariato.
+
+## Quarto blocco — collaudo confermato dall'utente e review FK (27/10/2026)
+
+**Collaudo operativo:** l'utente ha comunicato «collaudo fatto» e autorizzato a proseguire. Questo conferma il test da parte dell'operatore; non equivale all'esecuzione di una suite end-to-end autenticata indipendente né garantisce copertura di tutti gli scenari.
+
+**Audit database in sola lettura (Supabase SafetyManagerPro):**
+- 45 aziende e 81 progetti; zero progetti con `azienda_id` nullo e zero progetti con riferimento azienda orfano alla verifica.
+- La FK `progetti_azienda_id_fkey` è `ON DELETE CASCADE`, validata e NOT DEFERRABLE.
+- Numerose tabelle (iscrizioni, documenti fascicolo, test digitali, firme, ecc.) dipendono dai progetti e alcune hanno `ON DELETE CASCADE`: un'eliminazione diretta di azienda potrebbe propagarsi ai progetti e ai dati collegati.
+- Gli storici che riferiscono direttamente alle aziende usano anche `SET NULL` o `RESTRICT`; non dichiarare protetti tutti i legami solo tramite il cambio della FK progetti.
+- Non esiste un progetto Supabase *staging SafetyManager* autonomo fra quelli accessibili. SafetyTraining e DVR non vanno usati per test di SafetyManager.
+
+**Preparazione tecnica (senza applicazione SQL in produzione):**
+- Proposta revisionabile in `supabase/manual/FASE2_REVIEW_ONLY_progetti_azienda_delete_restrict_2026-10-27.sql`. È un intervento atomico con guard sulle caratteristiche della FK, verifica degli orfani, `lock_timeout`, `statement_timeout`, `ON DELETE RESTRICT` e validazione immediata.
+- Test statici di struttura in `tests/phase2_fk_proposta.test.cjs`; non equivalgono a prova reale PostgreSQL.
+- Prima dell'applicazione reale servono approvazione specifica della migrazione, backup verificato e test in ambiente isolato. In questa fase nessun vincolo in produzione è stato cambiato, né sono stati modificati record/documenti.
+- Da ricontrollare dopo l'eventuale applicazione: tipo FK r/RESTRICT, conteggio progetti invariato, creazione/modifica progetto, eliminazione azienda *con* progetto bloccata, eliminazione azienda *senza* riferimenti consentita se ammessa dalle altre protezioni.
+- Allarme indipendente emerso dagli advisor Supabase: protezione contro password compromesse disabilitata in Auth. Non modificarla nell'intervento anagrafiche; pianificare separatamente con amministratore.
