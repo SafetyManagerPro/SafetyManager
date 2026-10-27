@@ -35,6 +35,22 @@
         </div>
     </div>
 
+    <!-- G4: presentazione dei dati già recuperati da dashboard_pro.js, nessuna nuova query. -->
+    <section id="dash-g4-overview" class="mb-6" aria-label="Panoramica operativa e prossime verifiche">
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+            <div class="rounded-3xl bg-white border border-slate-200 shadow-sm p-5">
+                <h2 class="text-sm font-black text-slate-900 uppercase tracking-wide">Panoramica dei progetti</h2>
+                <p class="text-xs text-slate-600 mt-1">Distribuzione sui progetti caricati, in base ai controlli già disponibili.</p>
+                <div id="dash-g4-status" class="text-sm text-slate-500 py-8 text-center" aria-live="polite">Riepilogo in caricamento…</div>
+            </div>
+            <div class="rounded-3xl bg-white border border-slate-200 shadow-sm p-5">
+                <h2 class="text-sm font-black text-slate-900 uppercase tracking-wide">Prossime verifiche e fine corso</h2>
+                <p class="text-xs text-slate-600 mt-1">Date registrate nei prossimi 30 giorni. Non sono scadenze normative.</p>
+                <div id="dash-g4-upcoming" class="text-sm text-slate-500 py-8 text-center" aria-live="polite">Calendario in caricamento…</div>
+            </div>
+        </div>
+    </section>
+
     <div id="dash-operational-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
         <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 animate-pulse h-36"></div>
         <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 animate-pulse h-36"></div>
