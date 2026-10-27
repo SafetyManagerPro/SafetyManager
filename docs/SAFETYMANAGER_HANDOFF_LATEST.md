@@ -727,3 +727,13 @@ L'utente ha confermato «funziona, prosegui». G1/G2 collaudate manualmente dal 
 - Guida di navigazione ai cinque blocchi del form e tab Corsisti esistente nel popup.
 - Test regressione mockati `tests/graphic_g3_progetti.test.cjs` e report `docs/UPGRADE_GRAFICO_G3_PROGETTI_2026-10-27.md`. Risultati CI, merge e deploy da aggiornare/verificare.
 - Nessuna scrittura Supabase, modifica a progetti storici, archivi PDF/firme, RLS o SafetyTraining. Non riaprire in questa fase la paginazione dell'archivio PDF. G4 dashboard e G5 rifiniture globali ancora future.
+
+## 2026-10-27 — G3 rifinitura popup-only su conferma utente
+
+L'utente ha confermato che il popup di modifica Progetti funziona, ha segnalato il pannello laterale «Gestione Progetto» ancora presente e ha autorizzato di eliminarlo dalla **vista ordinaria**, mantenendo il form originale come popup. Branch `fix/g3-progetti-popup-only-20261027`.
+
+- `js/modules/graphic_upgrade_g3_progetti.js`: in Progetti `safety-g3-collapsed` per default, elenco a tutta larghezza e rimozione del comando UI «Amplia elenco». Il form HTML originale rimane DOM e viene reso visibile solo tramite overlay `.fixed`.
+- `Nuovo progetto`: reset nativo, popup nativo con classi/flag condivise con la modifica; `salvaProgettoDB` continua a chiudere dopo salvataggio riuscito con `projectEditOpenedAsPopup`; non introdurre insert parallele.
+- Il popup del nuovo progetto avvisa prima di scartare modifiche con X o cambiare modulo e non blocca la chiusura automatica dopo reset riuscito; il popup modifica mantiene comportamento originale.
+- `index.html` bust cache della risorsa G3. Test mock aggiornati `tests/graphic_g3_progetti.test.cjs`; report `docs/UPGRADE_GRAFICO_G3_PROGETTI_2026-10-27.md`.
+- Nessuna scrittura DB/migrazione né cambi su SafetyTraining, firma o stampa. Documentare CI e Vercel una volta verificate. Collaudo manuale definitivo nuova creazione/modifica da browser ancora richiesto.
