@@ -192,10 +192,20 @@ window.stampaFascicoloCompletoPDF = async function(projectId = null) {
         alert(`Ora si aprirà la stampa. Seleziona "Salva come PDF" per salvare sul PC il PDF unico progetto. Sono inclusi Analisi Fabbisogni, Scheda Rischi, ${teacherDeclarations} dichiarazioni requisiti docente, ${associationText}, ${registerDayPages} registri presenze, ${blankTests} test manuali, ${correctedTests} correttore/i, ${questionnaires} questionari di gradimento, riepilogo, monitoraggio qualità, ${tutorText}, ${linguaCandidatePages} pagine test lingua italiana (${linguaCorrectors} correttore/i), ${effectivenessPages} schede verifica efficacia e ${guidePages} pagine finali di guida alla compilazione del fascicolo. Gli attestati NON sono inclusi: usa il pulsante "PDF solo attestati". Corsisti: ${backupSession.length}.`);
         document.body.classList.add('is-printing-temp');
         setTimeout(async () => {
-            if (typeof window.waitForPrintImages === 'function') await window.waitForPrintImages(printArea);
-            window.print();
-            document.body.classList.remove('is-printing-temp');
-            printArea.innerHTML = '';
+            try {
+                if (typeof window.waitForPrintImages === 'function') {
+                    await window.waitForPrintImages(printArea);
+                }
+                window.print();
+            } catch (printError) {
+                console.error('Errore durante la stampa del PDF unico:', printError);
+                alert('Non è stato possibile aprire la stampa del PDF unico: ' + (printError?.message || printError));
+            } finally {
+                // Anche se il caricamento immagini o print() fallisce, la UI
+                // non deve restare in modalità stampa e l'area temporanea va svuotata.
+                document.body.classList.remove('is-printing-temp');
+                printArea.innerHTML = '';
+            }
         }, 1200);
     } catch (e) {
         console.error(e);
