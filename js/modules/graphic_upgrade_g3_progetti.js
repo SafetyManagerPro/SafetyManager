@@ -12,7 +12,7 @@ const SECTIONS=[
  ['iscritti','4. Corsisti','prog-draft-iscritti-box'],
  ['chiusura','5. Chiusura','prog-stato-corso']
 ];
-let selected='tutti',baseline='';
+let selected='tutti',baseline='',newPopupOpen=false,newPopupBaseline='';
 const el=id=>document.getElementById(id);
 const root=()=>el('progetto-form-col')?.parentElement||null;
 const stateOf=p=>p?.stato_corso==='chiuso'?'chiuso':p?.stato_corso==='svolto'?'svolto':'aperto';
@@ -31,6 +31,7 @@ function injectStyle(){
  '.safety-g3-chip[aria-pressed="true"]{background:#0f172a;color:#fff;border-color:#0f172a}',
  '.safety-g3-info{font-size:11px;color:#475569;line-height:1.4}',
  '.safety-g3-project-page.safety-g3-collapsed #progetto-form-col:not(.fixed){display:none!important}',
+ '.safety-g3-project-page.safety-g3-collapsed #progetto-form-col.fixed{position:fixed!important;display:flex!important}',
  '.safety-g3-project-page.safety-g3-collapsed #progetto-form-col.fixed{display:flex!important}',
  '.safety-g3-project-page.safety-g3-collapsed .safety-g3-list-col{width:100%!important;flex:1 1 100%!important;min-width:0!important}',
  '.safety-g3-steps{display:flex;gap:6px;flex-wrap:wrap;margin:3px 0 11px;padding:8px 0 10px;border-bottom:1px solid #e2e8f0;flex:none}',
@@ -92,17 +93,79 @@ function formSignature(){
   .filter(n=>n.type!=='file')
   .map(n=>[n.id||n.name||'',n.type==='checkbox'||n.type==='radio'?String(!!n.checked):String(n.value||'')].join('=')).join('|');
 }
+function openNewProjectPopup(){
+ const col=el('progetto-form-col'),card=el('progetto-form-card'),form=el('form-progetto');
+ const title=el('progetto-form-title'),closeBtn=el('btn-close-project-popup');
+ const header=el('popup-project-header'),errors=el('popup-project-errors'),corsisti=el('popup-corsisti-box');
+ if(!col||!card||!form||!title||!closeBtn)return false;
+ // Identici nodi del popup modifica legacy: gli ID e il submit NON cambiano.
+ if(!col.dataset.originalClass)col.dataset.originalClass=col.className;
+ if(!card.dataset.originalClass)card.dataset.originalClass=card.className;
+ if(!form.dataset.originalClass)form.dataset.originalClass=form.className;
+ if(corsisti&&!corsisti.dataset.originalClass)corsisti.dataset.originalClass=corsisti.className;
+ col.className='fixed inset-0 z-[90] bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4';
+ card.className='bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-4xl h-[82vh] max-h-[82vh] overflow-hidden flex flex-col p-5';
+ form.className='space-y-4 text-xs popup-project-pane popup-project-pane-dati flex-1 min-h-0 overflow-y-auto pr-2 pb-2';
+ title.textContent='Nuovo progetto formativo';
+ closeBtn.classList.remove('hidden');
+ header?.classList.add('shrink-0');
+ errors?.classList.add('hidden');
+ corsisti?.classList.add('hidden');
+ // Il gestionale usa questo flag per chiudere il popup SOLO dopo un salvataggio riuscito.
+ window.projectEditOpenedAsPopup=true;
+ newPopupOpen=true;
+ newPopupBaseline=formSignature();
+ const first=el('prog-azienda');first?.focus?.();
+ if(typeof lucide!=='undefined')lucide.createIcons();
+ return true;
+}
 function newProject(){
  if(!el('form-progetto')||typeof window.resetFormProgetto!=='function')return false;
  if(el('prog-id')?.value||formSignature()!==baseline){
    if(!window.confirm('Creare un nuovo progetto? Eventuali modifiche non salvate nel modulo corrente andranno perse.'))return false;
  }
- if(window.projectEditOpenedAsPopup&&typeof window.chiudiPopupProgetto==='function')window.chiudiPopupProgetto();
+ if(window.projectEditOpenedAsPopup&&typeof window.chiudiPopupProgetto==='function'){
+   // La conferma e' gia' stata chiesta sopra, non chiederla due volte.
+   newPopupOpen=false;
+   if(window.chiudiPopupProgetto()===false)return false;
+ }
  window.resetFormProgetto();
- setCollapsed(false);
  baseline=formSignature();
- const first=el('prog-azienda');first?.scrollIntoView?.({behavior:'smooth',block:'center'});first?.focus?.();
- return true;
+ // L'elenco resta sempre a tutta larghezza, mentre il form diventa un popup.
+ setCollapsed(true);
+ return openNewProjectPopup();
+}
+function wrapPopupClose(){
+ const fn=window.chiudiPopupProgetto;
+ if(typeof fn!=='function'||fn.__safetyG3PopupOnly)return;
+ const wrapped=function(...args){
+   if(newPopupOpen&&formSignature()!==newPopupBaseline){
+     if(!window.confirm('Hai modifiche non salvate nel nuovo progetto. Vuoi chiudere il popup e scartarle?'))return false;
+   }
+   const result=fn.apply(this,args);
+   if(newPopupOpen){
+     newPopupOpen=false;
+     if(typeof window.resetFormProgetto==='function')window.resetFormProgetto();
+     baseline=formSignature();
+   }
+   return result;
+ };
+ wrapped.__safetyG3PopupOnly=true;
+ window.chiudiPopupProgetto=wrapped;
+}
+function wrapReset(){
+ const fn=window.resetFormProgetto;
+ if(typeof fn!=='function'||fn.__safetyG3PopupOnly)return;
+ const wrapped=function(...args){
+   const result=fn.apply(this,args);
+   // Anche il salvataggio originale resetta il modulo PRIMA di chiudere il popup.
+   // Aggiornando qui lo snapshot, la chiusura successiva non chiede conferma.
+   if(newPopupOpen)newPopupBaseline=formSignature();
+   baseline=formSignature();
+   return result;
+ };
+ wrapped.__safetyG3PopupOnly=true;
+ window.resetFormProgetto=wrapped;
 }
 function goToSection(name){
  const row=SECTIONS.find(x=>x[0]===name);if(!row)return false;
@@ -126,8 +189,8 @@ function enhance(){
  list?.classList.add('safety-g3-list-col');
  if(!el('safety-g3-toolbar')){
    const panel=document.createElement('div');panel.id='safety-g3-toolbar';panel.className='safety-g3-toolbar';
-   panel.innerHTML='<div class="safety-g3-actions"><button type="button" id="safety-g3-new" class="safety-g3-button safety-g3-primary">+ Nuovo progetto</button>'+
-     '<button type="button" id="safety-g3-collapse" class="safety-g3-button" aria-expanded="true">Amplia elenco</button></div>'+
+   panel.innerHTML='<div class="safety-g3-actions"><button type="button" id="safety-g3-new" class="safety-g3-button safety-g3-primary">+ Nuovo progetto</button></div>'+
+
      '<div id="safety-g3-filters" class="safety-g3-filters" role="group" aria-label="Filtri stato progetti">'+
      Object.keys(STATUS).map(key=>'<button type="button" class="safety-g3-chip" aria-pressed="false" data-safety-g3-status="'+key+'"></button>').join('')+'</div>'+
      '<p class="safety-g3-info" id="safety-g3-count" aria-live="polite"></p>';
@@ -135,7 +198,6 @@ function enhance(){
    const header=heading?.parentElement;
    if(header)header.appendChild(panel);else list?.insertBefore(panel,list.firstChild);
    panel.querySelector('#safety-g3-new')?.addEventListener('click',newProject);
-   panel.querySelector('#safety-g3-collapse')?.addEventListener('click',()=>setCollapsed(!page.classList.contains('safety-g3-collapsed')));
    panel.querySelector('#safety-g3-filters')?.addEventListener('click',event=>{
      const button=event.target.closest?.('[data-safety-g3-status]');
      if(button)setStatus(button.dataset.safetyG3Status);
@@ -153,11 +215,15 @@ function enhance(){
    });
  }
  baseline=formSignature();
+ // Layout popup-only: nasconde la colonna laterale SENZA rimuovere il form dal DOM.
+ setCollapsed(true);
  refreshFilter();
  return true;
 }
 function install(){
  injectStyle();
+ wrapReset();
+ wrapPopupClose();
  if(typeof window.filtraProgetti==='function'&&!window.filtraProgetti.__safetyG3){
    const original=window.filtraProgetti;
    const wrapped=function(...args){const result=original.apply(this,args);applyStatus();return result;};
