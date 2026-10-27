@@ -69,7 +69,7 @@ window.normalizzaIdentificativoAzienda = function(value) {
 window.lastAziendaSaveError=null;
 window.getAziendaSaveErrorMessage=()=>window.lastAziendaSaveError?.message||'Salvataggio azienda non riuscito.';
 
-window.checkAziendaIdentificativoDuplicato = async function(value,excludeId=null) {
+window.checkAziendaIdentificativoDuplicato = async function(value,excludeId=null,enteId=null) {
     const key=window.normalizzaIdentificativoAzienda(value);
     if(!key)return null;
     // Query di sola lettura; nessun accesso all'archivio documentale e nessun invio a terzi.
@@ -80,6 +80,7 @@ window.checkAziendaIdentificativoDuplicato = async function(value,excludeId=null
           .range(offset,offset+499);
         if(error)throw error; // Non tradurre un errore RLS/rete in «nessun duplicato».
         const match=(data||[]).find(a=>String(a.id)!==String(excludeId||'') &&
+             (a.ente_id||null)===(enteId||null) &&
              window.normalizzaIdentificativoAzienda(a.piva_cf)===key);
         if(match)return match;
         if((data||[]).length<500)return null;
@@ -107,7 +108,7 @@ window.saveAzienda = async function(record) {
     try {
         // La verifica è un aiuto UX; il trigger Supabase resta il controllo definitivo
         // anche contro salvataggi simultanei o chiusi su altri account.
-        const duplicato=await window.checkAziendaIdentificativoDuplicato(record.piva_cf,record.id||null);
+        const duplicato=await window.checkAziendaIdentificativoDuplicato(record.piva_cf,record.id||null,record.ente_id||null);
         if(duplicato){
             window.lastAziendaSaveError={
                 code:'AZIENDA_IDENTIFICATIVO_DUPLICATO',
@@ -140,18 +141,46 @@ window.saveAzienda = async function(record) {
     }
 };
 
-// Elimina un'azienda tramite ID
+// Report preventivo: un'azienda collegata NON va eliminata con una cascata
+// potenzialmente distruttiva per progetti, iscrizioni e storico dei corsisti.
+window.getAziendaDeleteImpact = async function(id) {
+    if(!id)throw Error('Identificativo azienda mancante.');
+    const relazioni=[
+        ['progetti','azienda_id','progetti'],
+        ['corsisti','azienda_id','corsisti'],
+        ['corsisti_rapporti_azienda','azienda_id','rapportiStorici'],
+        ['iscrizioni','azienda_storica_id','iscrizioniStoriche'],
+        ['richieste_organismi_paritetici','azienda_id','richiesteOrganismi'],
+        ['training_effectiveness_checks','azienda_id','verificheEfficacia']
+    ];
+    const entries=await Promise.all(relazioni.map(async ([table,col,name])=>{
+        const {count,error}=await supabaseClient.from(table).select('id',{head:true,count:'exact'}).eq(col,id);
+        if(error)throw Error('Non riesco a verificare '+table+': '+error.message);
+        return [name,count||0];
+    }));
+    return Object.fromEntries(entries);
+};
 window.deleteAzienda = async function(id) {
+    window.lastAziendaDeleteError=null;
     try {
-        const { error } = await supabaseClient
-            .from('aziende')
-            .delete()
-            .eq('id', id);
-            
-        if (error) throw error;
+        const impact=await window.getAziendaDeleteImpact(id);
+        const linked=Object.entries(impact).filter(([,count])=>count>0);
+        if(linked.length){
+            const labels={
+                progetti:'progetti',corsisti:'corsisti',rapportiStorici:'rapporti aziendali',
+                iscrizioniStoriche:'iscrizioni storiche',richiesteOrganismi:'richieste a organismi',
+                verificheEfficacia:'verifiche di efficacia'
+            };
+            const message='Eliminazione non consentita: azienda collegata a '+linked.map(([key,n])=>n+' '+labels[key]).join(', ')+'. Gli storici devono restare disponibili. Apri la scheda azienda per verificare i collegamenti.';
+            window.lastAziendaDeleteError=message;
+            return false;
+        }
+        const {error}=await supabaseClient.from('aziende').delete().eq('id',id);
+        if(error)throw error;
         return true;
-    } catch (err) {
-        console.error("Errore eliminazione Azienda:", err);
+    }catch(err){
+        console.error('Eliminazione azienda impedita:',err);
+        window.lastAziendaDeleteError='Eliminazione annullata: '+String(err?.message||'verifica dei collegamenti non disponibile');
         return false;
     }
 };
