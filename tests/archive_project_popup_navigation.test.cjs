@@ -131,6 +131,22 @@ test('Salvataggio rifiutato lascia form e popup aperti',async()=>{
  assert.equal(x.state.form,true);
  assert.equal(x.traces.filter(k=>k==='legacyClose').length,0);
 });
+test('Cambio progetto nello stesso Archivio non perde modifiche non confermate',async()=>{
+ const x=setup();
+ await x.window.apriPopupProgettoById('prj-1','archivio_corsi');
+ x.dom.col.listeners.input();
+ x.state.confirm=false;
+ await x.window.apriPopupProgettoById('prj-2','archivio_corsi');
+ assert.deepEqual(x.traces.filter(k=>k.startsWith('legacyOpen')),['legacyOpen prj-1 archivio_corsi']);
+ assert.equal(x.state.archive,true);
+ x.state.confirm=true;
+ await x.window.apriPopupProgettoById('prj-2','archivio_corsi');
+ assert.deepEqual(x.traces.filter(k=>k.startsWith('legacyOpen')),[
+  'legacyOpen prj-1 archivio_corsi','legacyOpen prj-2 archivio_corsi'
+ ]);
+ assert.equal(x.traces.filter(k=>k.startsWith('fetch')).length,1);
+ assert.equal(x.state.form,true);
+});
 test('Errore rete non sposta l’utente dall’Archivio',async()=>{
  const x=setup();
  x.state.fetchOk=false;
