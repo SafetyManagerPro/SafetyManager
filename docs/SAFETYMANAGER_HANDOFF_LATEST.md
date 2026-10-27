@@ -708,3 +708,13 @@ L'utente ha chiesto «prosegui» dopo la messa in sicurezza degli stati bozza/de
 - Ristampa dalle singole versioni `storage_path` senza rigenerare il PDF; pulsanti full-width touch-friendly su schermi piccoli, conteggi documenti/versioni, escapings e reset espansioni.
 - `tests/phase3_archive_history_ui.test.cjs` aggiunge test della presentazione e dell'escaping con versioni e filtri simulati. Nessuna scrittura Supabase e nessuna modifica a Storage, firme, documenti PDF o SafetyTraining.
 - Limite residuo: il fascicolo legge massimo 500 documenti/iscrizioni per corsista. La paginazione su grandi archivi va progettata separatamente. Non equiparare CI a test grafico autenticato Safari/iPhone.
+
+## 2026-10-27 — Upgrade grafico G1/G2 autorizzato («procedi»)
+
+L'utente ha chiesto di sospendere temporaneamente l'ulteriore lavoro sull'archivio PDF e ha approvato l'inizio dell'upgrade grafico G1 (tema e componenti) e G2 (popup Corsisti/Aziende). Il layer UI è `js/modules/graphic_upgrade_g1_g2.js`, caricato da `index.html` dopo `js/app.js`.
+
+- CSS coerente per card, focus, stato navigazione e touch/mobile. Non coinvolge stampa e registri.
+- G2 sposta i form **originali** `form-corsista` e `form-azienda` in popup accessibili. Le funzioni originali di modifica, reset e salvataggio sono riutilizzate con wrapper leggeri; nessun clone dei campi e nessun secondo algoritmo di salvataggio.
+- Avvisa su modifiche non salvate in chiusura/navigazione; evita azioni concorrenti mentre salva; mantiene i controlli di autenticazione e RLS originali.
+- Test mock in `tests/graphic_g1_g2.test.cjs`. Report dedicato: `docs/UPGRADE_GRAFICO_G1_G2_2026-10-27.md`.
+- Nessuna modifica a Supabase, archivio PDF, attestati o SafetyTraining. Limitare claim di completamento alle parti testate da CI; rimane collaudo browser desktop/iPhone con utenza admin. G3/G4/G5 ancora da implementare.
