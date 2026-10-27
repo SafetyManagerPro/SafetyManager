@@ -718,3 +718,12 @@ L'utente ha chiesto di sospendere temporaneamente l'ulteriore lavoro sull'archiv
 - Avvisa su modifiche non salvate in chiusura/navigazione; evita azioni concorrenti mentre salva; mantiene i controlli di autenticazione e RLS originali.
 - Test mock in `tests/graphic_g1_g2.test.cjs`. Report dedicato: `docs/UPGRADE_GRAFICO_G1_G2_2026-10-27.md`.
 - Nessuna modifica a Supabase, archivio PDF, attestati o SafetyTraining. Limitare claim di completamento alle parti testate da CI; rimane collaudo browser desktop/iPhone con utenza admin. G3/G4/G5 ancora da implementare.
+
+## 2026-10-27 — Upgrade grafico G3 dopo collaudo riuscito di G1/G2
+
+L'utente ha confermato «funziona, prosegui». G1/G2 collaudate manualmente dal suo riscontro. Implementato blocco G3 solo UI:
+- `js/modules/graphic_upgrade_g3_progetti.js` dopo G1/G2 in `index.html`.
+- Barra rapida Progetti: nuova scheda via `resetFormProgetto` con avviso modifiche non salvate, layout elenco espandibile mantenendo il popup legacy, filtri di stato client-side cumulabili con gli esistenti, conteggi dei progetti caricati.
+- Guida di navigazione ai cinque blocchi del form e tab Corsisti esistente nel popup.
+- Test regressione mockati `tests/graphic_g3_progetti.test.cjs` e report `docs/UPGRADE_GRAFICO_G3_PROGETTI_2026-10-27.md`. Risultati CI, merge e deploy da aggiornare/verificare.
+- Nessuna scrittura Supabase, modifica a progetti storici, archivi PDF/firme, RLS o SafetyTraining. Non riaprire in questa fase la paginazione dell'archivio PDF. G4 dashboard e G5 rifiniture globali ancora future.
