@@ -636,6 +636,9 @@ window.selezionaLetteraAziende=function(letter){
 window.loadAziendeTable=async function(){
     const tbody=document.getElementById('tabella-aziende');if(!tbody)return;
     const st=window.aziendePageState,id=++st.requestId;
+    const started=Date.now();
+    const metrics=window.safetyLoadStats.aziende||(window.safetyLoadStats.aziende={attempts:0,failures:0,lastMs:null,lastStatus:'not_started'});
+    metrics.attempts++;
     const search=window.safetyDirectorySafeSearch(document.getElementById('search-aziende')?.value);
     const letter=search?'ALL':st.letter;
     window.renderSafetyDirectoryAlphabet('aziende-rubrica',letter,'selezionaLetteraAziende');
@@ -647,12 +650,16 @@ window.loadAziendeTable=async function(){
             const cols=['ragione_sociale','piva_cf','ateco','referente','indirizzo','sede_operativa'];
             query=query.or(cols.map(c=>c+'.ilike.%'+search+'%').join(','));
         }else query=window.safetyDirectoryApplyLetter(query,'ragione_sociale',letter);
-        const res=await query.order('ragione_sociale',{ascending:true}).order('id',{ascending:true})
-          .range((st.page-1)*st.pageSize,st.page*st.pageSize-1);
+        const res=await window.safetyReadWithDeadline(
+          query.order('ragione_sociale',{ascending:true}).order('id',{ascending:true})
+            .range((st.page-1)*st.pageSize,st.page*st.pageSize-1),
+          15000,'Anagrafica Aziende');
         ({data,error,count}=res);
     }catch(err){error=err;}
     if(id!==st.requestId||!document.getElementById('tabella-aziende'))return;
     if(error){
+        metrics.failures++;metrics.lastMs=Date.now()-started;
+        metrics.lastStatus=String(error.code||'error');
         console.error('Anagrafica Aziende:',error);
         tbody.innerHTML='<tr><td colspan="4" class="p-5 text-center text-red-700 font-bold">Caricamento non riuscito: '+
             window.dashEscape(error.message||'verifica connessione')+'</td></tr>';
@@ -660,6 +667,8 @@ window.loadAziendeTable=async function(){
         if(pager)pager.innerHTML='<button type="button" onclick="window.loadAziendeTable()" class="rounded bg-blue-700 px-3 py-2 text-white text-xs font-bold">Riprova</button>';
         return;
     }
+    metrics.lastStatus='ok';metrics.lastMs=Date.now()-started;
+    if(metrics.lastMs>3000)console.warn('[SafetyManager] Aziende: caricamento lento (ms)',metrics.lastMs);
     st.total=Number(count)||0;
     const last=Math.max(1,Math.ceil(st.total/st.pageSize));
     if(st.page>last){st.page=last;return window.loadAziendeTable();}
