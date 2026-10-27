@@ -193,6 +193,21 @@ if(window.matchMedia){
 }
 setTimeout(()=>window.bindResponsiveTableCards(document),0);
 
+// Monitoraggio locale non identificativo e scadenza controllata delle letture.
+window.safetyReadWithDeadline=function(read,timeoutMs=15000,label='Lettura'){
+    let timer;
+    const work=typeof read==='function'?Promise.resolve().then(read):Promise.resolve(read);
+    const timeout=new Promise((_,reject)=>{
+        timer=setTimeout(()=>{
+            const error=new Error(label+' non ha risposto entro '+Math.round(timeoutMs/1000)+' secondi. Controlla la connessione e riprova.');
+            error.code='SAFETY_READ_TIMEOUT';
+            reject(error);
+        },timeoutMs);
+    });
+    return Promise.race([work,timeout]).finally(()=>clearTimeout(timer));
+};
+window.safetyLoadStats=window.safetyLoadStats||{corsisti:{attempts:0,failures:0,lastMs:null,lastStatus:'not_started'}};
+
 window.dashEscape = function(value) {
     return String(value ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 };
@@ -1179,6 +1194,10 @@ window.loadCorsistiTable = async function() {
     if(!tbody) return;
     const paging = window.corsistiPageState;
     const requestId = ++paging.requestId;
+    const started=Date.now();
+    window.safetyLoadStats.corsisti.attempts++;
+    const bounded=(task,label)=>window.safetyReadWithDeadline(task,15000,label);
+    try {
     const pageNum = Math.max(1,paging.page);
     const pageSize = paging.pageSize;
     const queryText = (document.getElementById('search-corsisti')?.value || '').trim();
@@ -1191,7 +1210,7 @@ window.loadCorsistiTable = async function() {
     tbody.innerHTML = '<tr><td colspan="7" class="p-6 text-center text-slate-400 italic"><i data-lucide="loader-2" class="w-5 h-5 animate-spin mx-auto mb-2"></i> Caricamento...</td></tr>';
     if(typeof lucide !== 'undefined') lucide.createIcons();
     
-    window.aziendeList = (Array.isArray(window.aziendeList) && window.aziendeList.length) ? window.aziendeList : await window.getAziende();
+    window.aziendeList = (Array.isArray(window.aziendeList) && window.aziendeList.length) ? window.aziendeList : await bounded(window.getAziende(),'Elenco aziende');
 
     const selectAzienda = document.getElementById('cor-azienda');
     if (selectAzienda) {
@@ -1231,7 +1250,7 @@ window.loadCorsistiTable = async function() {
     let matchedProjectSearchIds = [];
     try {
         if (courseFilter) {
-            matchedCourseIds = await window.getCorsistiIdsPerCorso(courseFilter);
+            matchedCourseIds = await bounded(window.getCorsistiIdsPerCorso(courseFilter),'Filtro corso');
         }
         // Conserva ricerca per azienda e progetto: risolvi i loro ID prima
         // della query paginata. Le altre ricerche usano i filtri PostgreSQL.
@@ -1245,12 +1264,12 @@ window.loadCorsistiTable = async function() {
                 'codice.ilike.%'+normalizedSearch+'%,corso_id.in.('+courseKeys.join(',')+')'
             );
             else projectQuery=projectQuery.ilike('codice','%'+normalizedSearch+'%');
-            const {data:projects,error:projectError}=await projectQuery.limit(150);
+            const {data:projects,error:projectError}=await bounded(projectQuery.limit(150),'Ricerca progetti');
             if(projectError) throw projectError;
             const foundProjects=(projects||[]).map(p=>p.id);
             if(foundProjects.length) {
-                const {data:matches,error:matchError}=await supabaseClient
-                    .from('iscrizioni').select('corsista_id').in('progetto_id',foundProjects).limit(10000);
+                const {data:matches,error:matchError}=await bounded(supabaseClient
+                    .from('iscrizioni').select('corsista_id').in('progetto_id',foundProjects).limit(10000),'Ricerca iscrizioni');
                 if(matchError)throw matchError;
                 matchedProjectSearchIds=[...new Set((matches||[]).map(x=>x.corsista_id).filter(Boolean))];
             }
@@ -1290,7 +1309,7 @@ window.loadCorsistiTable = async function() {
             .range((page-1)*pageSize,page*pageSize-1);
     };
 
-    let {data,error,count} = await buildPageQuery(`
+    let {data,error,count} = await bounded(buildPageQuery(`
 id,
             cf,
             nome_cognome,
@@ -1326,7 +1345,7 @@ id,
                     azienda_id
                 )
             )
-    `,pageNum);
+    `,pageNum),'Pagina corsisti');
 
     if (error && (
         String(error.message || '').includes('lingua_test_') ||
@@ -1334,7 +1353,7 @@ id,
         String(error.message || '').includes('studi_scolastici_italia')
     )) {
         console.warn('Campi verifica lingua italiana non ancora presenti: applica la migration Step 63. Riprovo senza colonne lingua.');
-        const retry = await buildPageQuery(`
+        const retry = await bounded(buildPageQuery(`
                 id,
                 cf,
                 nome_cognome,
@@ -1358,7 +1377,7 @@ id,
                         azienda_id
                     )
                 )
-            `,pageNum);
+            `,pageNum),'Pagina corsisti');
         data = retry.data;
         error = retry.error;
         count = retry.count;
@@ -1366,7 +1385,7 @@ id,
 
     if (error && (String(error.message || '').includes('documento_identita_url') || String(error.message || '').includes('codice_fiscale_url') || String(error.message || '').includes('schema cache'))) {
         console.warn('Campi documentali corsisti non ancora presenti: applica la migration Step 47. Riprovo senza colonne documentali.');
-        const retry = await buildPageQuery(`
+        const retry = await bounded(buildPageQuery(`
                 id,
                 cf,
                 nome_cognome,
@@ -1389,7 +1408,7 @@ id,
                         azienda_id
                     )
                 )
-            `,pageNum);
+            `,pageNum),'Pagina corsisti');
         data = retry.data;
         error = retry.error;
         count = retry.count;
@@ -1493,6 +1512,22 @@ id,
     });
     tbody.innerHTML = html;
     if(typeof lucide !== 'undefined') lucide.createIcons();
+    if(requestId===paging.requestId){
+        window.safetyLoadStats.corsisti.lastStatus='ok';
+        window.safetyLoadStats.corsisti.lastMs=Date.now()-started;
+        if(Date.now()-started>3000)console.warn('[SafetyManager] Corsisti: caricamento lento (ms)',Date.now()-started);
+    }
+    } catch(err) {
+        if(requestId!==paging.requestId || document.getElementById('tabella-corsisti')!==tbody)return;
+        window.safetyLoadStats.corsisti.failures++;
+        window.safetyLoadStats.corsisti.lastStatus=String(err?.code||'error');
+        window.safetyLoadStats.corsisti.lastMs=Date.now()-started;
+        console.error('[SafetyManager] Errore pagina Corsisti',err);
+        tbody.innerHTML='<tr><td colspan="7" class="p-5 text-center text-red-700 font-bold">Caricamento Corsisti non riuscito. '+
+            window.dashEscape(err?.message||'Controlla la connessione')+'</td></tr>';
+        const pager=document.getElementById('corsisti-pagination');
+        if(pager)pager.innerHTML='<button type="button" onclick="window.loadCorsistiTable()" class="rounded bg-blue-700 px-3 py-2 text-white text-xs font-bold">Riprova caricamento</button>';
+    }
 };
 
 window.salvaCorsistaDB = async function() {
