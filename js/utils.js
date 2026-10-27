@@ -723,7 +723,9 @@ window.salvaAziendaDB = async function() {
     if (result) {
         window.resetFormAzienda();
         await window.reloadLinkedViewsAfterMutation('azienda', { aziendaId: record.id });
-    } 
+    } else {
+        alert(window.getAziendaSaveErrorMessage?.() || 'Salvataggio azienda non riuscito.');
+    }
 };
 
 window.modificaAzienda = function(id) {
@@ -740,12 +742,11 @@ window.modificaAzienda = function(id) {
 };
 
 window.eliminaAzienda = async function(id) {
-    if(confirm("Sei sicuro di voler eliminare questa azienda? \n\nTutti i progetti ad essa collegati verranno eliminati.")) {
-        if(await window.deleteAzienda(id)) {
-            await window.reloadLinkedViewsAfterMutation('azienda-delete', { aziendaId: id });
-        } else {
-            alert("Errore durante l'eliminazione.");
-        }
+    if(!confirm('Eliminare definitivamente questa azienda?\n\nPer sicurezza l’operazione sarà bloccata se esistono progetti, corsisti, iscrizioni o altri rapporti storici collegati.'))return;
+    if(await window.deleteAzienda(id)){
+        await window.reloadLinkedViewsAfterMutation('azienda-delete',{aziendaId:id});
+    }else{
+        alert(window.lastAziendaDeleteError||'Eliminazione non consentita: verifica i collegamenti aziendali.');
     }
 };
 
@@ -785,14 +786,36 @@ window.openProjectFromAziendaPopup = async function(projectId) {
 
 window.openCorsistaFromAziendaPopup = async function(corsistaId) {
     window.chiudiPopupRelazioniAzienda();
-    await window.loadModule('corsisti');
-    setTimeout(() => {
-        if (typeof window.modificaCorsista === 'function') {
-            window.modificaCorsista(corsistaId);
-            const form = document.getElementById('form-corsista');
-            if (form) form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    try {
+        // Non assumere che il corsista sia fra i 20 della pagina corrente.
+        const {data:person,error}=await window.safetyReadWithDeadline(
+            supabaseClient.from('corsisti').select('id,nome_cognome,cf,archived_at').eq('id',corsistaId).maybeSingle(),
+            15000,'Apertura corsista aziendale');
+        if(error)throw error;
+        if(!person)throw Error('Corsista non trovato o non accessibile.');
+        await window.loadModule('corsisti');
+        const input=document.getElementById('search-corsisti');
+        if(!input)throw Error('Modulo Corsisti non disponibile.');
+        const state=window.corsistiPageState;
+        state.page=1;state.letter='ALL';
+        clearTimeout(state.searchTimer);
+        input.value=person.cf||person.nome_cognome||'';
+        const stato=document.getElementById('filter-corsisti-stato');
+        if(stato)stato.value='tutti';
+        const azienda=document.getElementById('filter-corsisti-azienda');
+        if(azienda)azienda.value='';
+        const corso=document.getElementById('filter-corsisti-corso');
+        if(corso)corso.value='';
+        await window.loadCorsistiTable();
+        if(!(window.corsistiList||[]).some(c=>String(c.id)===String(corsistaId))){
+            throw Error('Il corsista non compare nei risultati della ricerca. Prova a cercarlo per nome o CF.');
         }
-    }, 350);
+        window.modificaCorsista(corsistaId);
+        document.getElementById('form-corsista')?.scrollIntoView({behavior:'smooth',block:'start'});
+    }catch(err){
+        console.error('Apertura corsista dal fascicolo aziendale:',err);
+        alert('Non riesco ad aprire la scheda richiesta: '+(err.message||err));
+    }
 };
 
 window.renderAziendaProjectCard = function(p, iscritti = []) {
@@ -885,23 +908,28 @@ window.apriPopupRelazioniAzienda = async function(aziendaId) {
     content.innerHTML = '<div class="text-center text-slate-400 p-8"><i data-lucide="loader-2" class="w-6 h-6 animate-spin mx-auto mb-2"></i> Caricamento relazioni azienda...</div>';
     if (typeof lucide !== 'undefined') lucide.createIcons();
 
-    window.aziendeList = await window.getAziende();
-    const azienda = (window.aziendeList || []).find(a => a.id === aziendaId);
-    if (!azienda) {
-        content.innerHTML = '<div class="text-red-300 font-bold p-6">Azienda non trovata.</div>';
+    let azienda,progetti,corsisti,iscrizioniMap;
+    try {
+        const read=(query,label)=>window.safetyReadWithDeadline(query,15000,label);
+        const [company,projects,people]=await Promise.all([
+            read(supabaseClient.from('aziende').select('*').eq('id',aziendaId).maybeSingle(),'Scheda azienda'),
+            read(supabaseClient.from('progetti').select('*').eq('azienda_id',aziendaId).limit(1000),'Progetti aziendali'),
+            read(supabaseClient.from('corsisti').select('*').eq('azienda_id',aziendaId).limit(1000),'Corsisti aziendali')
+        ]);
+        for(const result of [company,projects,people])if(result.error)throw result.error;
+        azienda=company.data;progetti=projects.data||[];corsisti=people.data||[];
+        if(!azienda)throw Error('Azienda non trovata o non accessibile.');
+        iscrizioniMap=window.getIscrizioniPerProgetti
+          ? await window.safetyReadWithDeadline(window.getIscrizioniPerProgetti(progetti.map(p=>p.id)),15000,'Iscrizioni aziendali')
+          : {};
+    }catch(err){
+        console.error('Fascicolo azienda:',err);
+        content.innerHTML='<div class="text-red-300 font-bold p-6">Fascicolo non disponibile: '+
+            window.dashEscape(err?.message||'Controlla la connessione')+
+            ' <button type="button" class="underline" onclick="window.apriPopupRelazioniAzienda(\''+aziendaId+'\')">Riprova</button></div>';
         return;
     }
-
     if (title) title.innerText = `${azienda.ragione_sociale || ''} · ${azienda.piva_cf || 'P.IVA/C.F. non indicata'}`;
-
-    const [allProjects, allCorsisti] = await Promise.all([
-        window.getProgetti(),
-        window.getCorsisti()
-    ]);
-
-    const progetti = (allProjects || []).filter(p => p.azienda_id === aziendaId);
-    const corsisti = (allCorsisti || []).filter(c => c.azienda_id === aziendaId);
-    const iscrizioniMap = window.getIscrizioniPerProgetti ? await window.getIscrizioniPerProgetti(progetti.map(p => p.id)) : {};
 
     const progettiByCorsista = {};
     progetti.forEach(p => {
