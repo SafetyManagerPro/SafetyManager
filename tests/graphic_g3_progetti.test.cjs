@@ -111,6 +111,7 @@ test('Nuovo progetto chiude il popup originale e riapre il modulo senza nuove fi
 });
 test('Navigazione guidata apre sezioni details e usa tab Corsisti del popup già presente',()=>{
   const x=fixture();
+  x.begin.matches=selector=>selector.includes('input'); // Element.matches presente nel browser reale
   const details={tagName:'DETAILS',open:false,parentElement:null};
   x.begin.parentElement=details;
   assert.equal(x.api.goToSection('date'),true);
