@@ -22,21 +22,24 @@ window.renderPrintModuleToTemp = async function(moduleId, singleCorsista = null,
     holder.innerHTML = html;
     document.body.appendChild(holder);
 
-    window.currentPrintModule = moduleId;
-    if (singleCorsista) window.currentSessionCorsisti = [singleCorsista];
-    window.updateAll();
+    try {
+        window.currentPrintModule = moduleId;
+        if (singleCorsista) window.currentSessionCorsisti = [singleCorsista];
+        window.updateAll();
 
-    const pages = Array.from(holder.querySelectorAll('.doc-page')).map(p => {
-        const clone = p.cloneNode(true);
-        clone.classList.remove('scale-[0.8]', 'origin-top');
-        clone.classList.add('print-show', 'temp-page');
-        return clone;
-    });
-    holder.remove();
-
-    window.currentPrintModule = prevModule;
-    window.currentSessionCorsisti = prevSession;
-    return pages;
+        return Array.from(holder.querySelectorAll('.doc-page')).map(p => {
+            const clone = p.cloneNode(true);
+            clone.classList.remove('scale-[0.8]', 'origin-top');
+            clone.classList.add('print-show', 'temp-page');
+            return clone;
+        });
+    } finally {
+        // In caso di errore nella creazione di una pagina, non lasciare
+        // il modulo/corsista di stampa selezionato nella sessione corrente.
+        holder.remove();
+        window.currentPrintModule = prevModule;
+        window.currentSessionCorsisti = prevSession;
+    }
 };
 
 
@@ -251,10 +254,16 @@ window.stampaModuloProgettoRapido = async function(projectId, moduleId, label = 
         alert(`Ora si aprirà la stampa del ${label}. Seleziona "Salva come PDF" per salvarlo.`);
         document.body.classList.add('is-printing-temp');
         setTimeout(async () => {
-            if (typeof window.waitForPrintImages === 'function') await window.waitForPrintImages(printArea);
-            window.print();
-            document.body.classList.remove('is-printing-temp');
-            printArea.innerHTML = '';
+            try {
+                if (typeof window.waitForPrintImages === 'function') await window.waitForPrintImages(printArea);
+                window.print();
+            } catch (printError) {
+                console.error('Stampa documento rapido non riuscita:', printError);
+                alert('Impossibile aprire la stampa del documento: ' + (printError?.message || printError));
+            } finally {
+                document.body.classList.remove('is-printing-temp');
+                printArea.innerHTML = '';
+            }
         }, 900);
     } catch (e) {
         console.error(e);
@@ -289,10 +298,16 @@ window.stampaAttestatiProgetto = async function(projectId) {
         alert(`Ora si aprirà la stampa degli attestati: ${n} corsisti.`);
         document.body.classList.add('is-printing-temp');
         setTimeout(async () => {
-            if (typeof window.waitForPrintImages === 'function') await window.waitForPrintImages(printArea);
-            window.print();
-            document.body.classList.remove('is-printing-temp');
-            printArea.innerHTML = '';
+            try {
+                if (typeof window.waitForPrintImages === 'function') await window.waitForPrintImages(printArea);
+                window.print();
+            } catch (printError) {
+                console.error('Stampa attestati progetto non riuscita:', printError);
+                alert('Impossibile aprire la stampa degli attestati: ' + (printError?.message || printError));
+            } finally {
+                document.body.classList.remove('is-printing-temp');
+                printArea.innerHTML = '';
+            }
         }, 1000);
     } catch (e) {
         console.error(e);
@@ -317,15 +332,27 @@ window.stampaAttestatoCorsista = async function(projectId, corsistaId) {
         alert(`Ora si aprirà la stampa dell'attestato di ${corsista.nome || 'corsista'}.`);
         document.body.classList.add('is-printing-temp');
         setTimeout(async () => {
-            if (typeof window.waitForPrintImages === 'function') await window.waitForPrintImages(printArea);
-            const project=(window.progettiList||[]).find(p=>String(p.id)===String(projectId));
-            const name=window.DB_CORSI?.[project?.corso_id]?.t||project?.corso_id||'Formazione';
-            window.SafetyCorsistiAutoArchive?.capture?.(printArea,{
-                corsistaId,projectId,type:'attestato',title:'Attestato · '+name
-            });
-            window.print();
-            document.body.classList.remove('is-printing-temp');
-            printArea.innerHTML = '';
+            try {
+                if (typeof window.waitForPrintImages === 'function') await window.waitForPrintImages(printArea);
+                // L'archiviazione automatica è facoltativa e non deve impedire
+                // la stampa quando il componente non è disponibile o dà errore.
+                try {
+                    const project=(window.progettiList||[]).find(p=>String(p.id)===String(projectId));
+                    const name=window.DB_CORSI?.[project?.corso_id]?.t||project?.corso_id||'Formazione';
+                    window.SafetyCorsistiAutoArchive?.capture?.(printArea,{
+                        corsistaId,projectId,type:'attestato',title:'Attestato · '+name
+                    });
+                } catch (archiveError) {
+                    console.warn('Archiviazione automatica facoltativa non avviata:', archiveError);
+                }
+                window.print();
+            } catch (printError) {
+                console.error('Stampa attestato corsista non riuscita:', printError);
+                alert('Impossibile aprire la stampa dell’attestato: ' + (printError?.message || printError));
+            } finally {
+                document.body.classList.remove('is-printing-temp');
+                printArea.innerHTML = '';
+            }
         }, 900);
     } catch (e) {
         console.error(e);
