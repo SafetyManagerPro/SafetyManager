@@ -192,3 +192,20 @@ test('G3 popup-only nasconde la sidebar di default quando monta i Progetti',()=>
  assert.ok(x.document.getElementById('form-progetto')===x.form);
  assert.doesNotMatch(source,/id="safety-g3-collapse" class="safety-g3-button"/);
 });
+
+test('Il cambio di sezione avvisa prima di perdere un nuovo progetto non salvato',async()=>{
+ const x=fixture();
+ x.api.newProject();
+ x.input.value='dato incompleto';
+ x.approve(false);
+ await x.window.loadModule('admin');
+ assert.equal(x.navigations,0);
+ assert.equal(x.popupClosed,0);
+ assert.equal(x.window.projectEditOpenedAsPopup,true);
+ x.approve(true);
+ await x.window.loadModule('admin');
+ assert.equal(x.navigations,1);
+ assert.equal(x.popupClosed,1);
+ assert.equal(x.window.projectEditOpenedAsPopup,false);
+ assert.equal(x.left.className,'original-left');
+});
