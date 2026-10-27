@@ -737,3 +737,9 @@ L'utente ha confermato che il popup di modifica Progetti funziona, ha segnalato 
 - Il popup del nuovo progetto avvisa prima di scartare modifiche con X o cambiare modulo e non blocca la chiusura automatica dopo reset riuscito; il popup modifica mantiene comportamento originale.
 - `index.html` bust cache della risorsa G3. Test mock aggiornati `tests/graphic_g3_progetti.test.cjs`; report `docs/UPGRADE_GRAFICO_G3_PROGETTI_2026-10-27.md`.
 - Nessuna scrittura DB/migrazione né cambi su SafetyTraining, firma o stampa. Documentare CI e Vercel una volta verificate. Collaudo manuale definitivo nuova creazione/modifica da browser ancora richiesto.
+
+## 2026-10-27 — G4 Dashboard grafica dopo conferma utente di G3 popup-only
+
+L'utente ha confermato con «perfetto» che G3 popup-only Progetti funziona, e ha autorizzato la G4 Dashboard. Nuovo layer facoltativo `js/modules/graphic_upgrade_g4_dashboard.js`, caricato nell'elenco `dashboardScripts` di `js/app.js` e alimentato da un singolo hook protetto nel caricamento esistente `js/modules/dashboard_pro.js`. La nuova sezione in `modules/admin.html` mostra donut + barre per stati già calcolati con Step 67 e prossime 5 date di verifica/fine corso entro 30 giorni da `data_esame`, solo da progetti non chiusi. Non sono scadenze normative. Test `tests/graphic_g4_dashboard.test.cjs` e report `docs/UPGRADE_GRAFICO_G4_DASHBOARD_2026-10-27.md`.
+
+Nessuna query Supabase nuova, scrittura/migrazione, modifica a PDF/firme/attestati o SafetyTraining. Preserve G1-G3 and user-specific popup workflows. Aggiornare qui risultati PR CI, main e Vercel dopo verifica. G5 rifiniture responsive globali e approfondimenti grafici rimane futura, non promessa.
