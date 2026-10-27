@@ -700,3 +700,11 @@ L'utente ha chiesto di proseguire anche se l'archivio contiene ancora pochi PDF.
 - Non eseguite migrazioni o operazioni di aggiornamento/eliminazione dei 4 PDF reali; test browser autentici ancora necessari. Non modificare SafetyTraining. Resta pendente proposta FK progetti-aziende CASCADE→RESTRICT.
 
 **Nota audit successivo 27/10/2026:** l'archivio PDF risulta cresciuto da 4 a **5 bozze** (0 definitivi, 0 superati, 0 versioni successive, 0 progetti orfani) durante la sessione. È uno snapshot aggregato read-only; non attribuire il nuovo PDF ai test o alle modifiche GitHub. La suite Fase 3 `tests/phase3_archive_versions.test.cjs` è verde dopo aver corretto una fixture d'intestazione PDF a cinque byte (nessun cambio aggiuntivo al codice applicativo).
+
+## 2026-10-27 — Fase 3, quarto blocco: storico e consultazione PDF
+
+L'utente ha chiesto «prosegui» dopo la messa in sicurezza degli stati bozza/definitivo. Proseguita Fase 3 con intervento mirato alla consultazione storica e al mobile:
+- `js/modules/corsisti_fascicolo_archivio.js`: raggruppa PDF per `gruppo_versioni` e mostra inizialmente la versione più recente, con **Mostra storico (N)** per aprire le precedenti. I filtri per stato mantengono visibili *tutte* le versioni che corrispondono al filtro, anche quando sono storiche.
+- Ristampa dalle singole versioni `storage_path` senza rigenerare il PDF; pulsanti full-width touch-friendly su schermi piccoli, conteggi documenti/versioni, escapings e reset espansioni.
+- `tests/phase3_archive_history_ui.test.cjs` aggiunge test della presentazione e dell'escaping con versioni e filtri simulati. Nessuna scrittura Supabase e nessuna modifica a Storage, firme, documenti PDF o SafetyTraining.
+- Limite residuo: il fascicolo legge massimo 500 documenti/iscrizioni per corsista. La paginazione su grandi archivi va progettata separatamente. Non equiparare CI a test grafico autenticato Safari/iPhone.

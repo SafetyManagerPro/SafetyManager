@@ -64,3 +64,21 @@ Potrebbero coesistere più versioni `definitivo` finché l'amministratore non ma
 
 ### Stato reale dell'archivio rilevato durante i test
 Una nuova lettura SQL aggregata, durante il lavoro sulla PR, ha rilevato **5 PDF**, tutti in `bozza`, nessun `definitivo`, nessun `superato`, nessuna versione successiva e nessun collegamento orfano a progetti. Il conteggio era 4 all'audit precedente: questa variazione può derivare dalla normale attività degli utenti e **non** da queste modifiche, che non hanno eseguito scritture su Supabase. Non dedurre l'esito della ristampa grafica dai test con mock.
+
+## Quarto intervento — storico PDF navigabile, filtri coerenti e leggibilità mobile (27/10/2026)
+
+### Problema rilevato
+Il fascicolo corsista mostrava ogni versione in una singola lista piatta. Con molti documenti la ricerca della versione corrente o di quella storica diventava difficile, soprattutto da iPhone. Il filtro per stato non distingueva i documenti/famiglie dal numero di versioni.
+
+### Cambiamenti limitati alla UI
+- `js/modules/corsisti_fascicolo_archivio.js`: raggruppa in pagina i record per `gruppo_versioni` (fallback su `id` per dati più vecchi o incompleti) e ordina le versioni numericamente, più recente per prima.
+- Vista `Tutti gli stati`: mostra una scheda per famiglia/versione più recente e il pulsante **Mostra storico (N)** per espandere le versioni precedenti. Ogni versione espansa mantiene il proprio pulsante **Apri / stampa PDF vN** sul `storage_path` esatto, stato e metadati storici senza rigenerazione o sovrascrittura.
+- Filtri `Bozze / Definitivi / Superati`: mostrano **tutte** le versioni corrispondenti anche quando non sono le ultime, evitando che un definitivo storico sia nascosto da una bozza più nuova.
+- Conteggio dinamico documenti e versioni, etichette `Più recente`/`Storica`, comandi più ampi e disposti verticalmente sui piccoli schermi (a partire da 44 px).
+- Espansione per singolo gruppo in memoria, senza query o cambi DB; reset quando si passa a un altro corsista o si chiude il fascicolo. Dati dei PDF inseriti in HTML solo tramite escaping.
+- Nessuna modifica alle richieste di URL firmati, allo Storage, alla logica di upload, alla promozione di stato o alle policy.
+
+### Test e collaudo
+- Nuovi test di regressione `tests/phase3_archive_history_ui.test.cjs`: versioni raggruppate/collassate, filtri su storico, escaping dei contenuti, comandi mobile, archivio vuoto, limitazione dell'espansione ai gruppi presenti.
+- Test su DOM simulato, non prova grafica su Safari/iPhone; necessaria verifica reale amministratore sui 5 PDF visti nell'ultimo audit, senza modificare gli stati.
+- Restano da verificare i casi con oltre 500 righe per corsista (query attualmente limitata a 500); non dichiarare il fascicolo totalmente scalabile finché non sarà stata progettata la paginazione.
