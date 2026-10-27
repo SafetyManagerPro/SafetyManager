@@ -658,3 +658,14 @@ Richiesta: «continua la chat Safetymanager pro 23-10». Ripreso il repository `
 - Dettagli e strategia successiva in `docs/FASE2_ANAGRAFICHE_INTEGRITA_2026-10-27.md`.
 - Non risolto lato server: la FK `progetti.azienda_id` ha `ON DELETE CASCADE`, da sostituire eventualmente con `RESTRICT` SOLO dopo review/migrazione isolata e autorizzazione esplicita; RLS può nascondere righe ai conteggi client restituendo 0.
 - Non certificare chiusura di tutta la Fase 2 finché mancano collaudo reale autenticato desktop/mobile e test integrati in ambiente DB separato. Nessuna migrazione SQL o cancellazione dati applicata.
+
+## 2026-10-27 — Collaudo Fase 2 dichiarato completato; proposta FK review-only
+
+L'utente ha comunicato «collaudo fatto. prosegui». Il collaudo operativo è segnato **confermato dall'utente**; non inventare copertura browser o DB test non forniti.
+
+- Nuova audit in sola lettura: 45 aziende, 81 progetti, nessun progetto orfano, nessun progetto senza azienda. FK reale `public.progetti.progetti_azienda_id_fkey` ancora `ON DELETE CASCADE`, VALIDATED, NOT DEFERRABLE.
+- Dipendenze ulteriori dei progetti con CASCADE verso iscrizioni/documenti/test/firme e alcuni vincoli RESTRICT. Protezione a livello browser precedente non sostituisce FK del database.
+- Preparata proposta SQL per sostituire CASCADE→RESTRICT *senza mutare righe*, in `supabase/manual/FASE2_REVIEW_ONLY_progetti_azienda_delete_restrict_2026-10-27.sql`; test statici `tests/phase2_fk_proposta.test.cjs`.
+- **Non è stata applicata la migrazione**: l'ambiente SafetyManager non dispone di staging Supabase isolato accessibile; per produzione sono necessari review, backup e autorizzazione specifica. Non confondere proposta con vincolo già aggiornato.
+- Il documento `docs/FASE2_ANAGRAFICHE_INTEGRITA_2026-10-27.md` dettaglia preflight, rischi e verifiche post-migrazione.
+- Fase 3 (stampe/archivio): non modificata in questo specifico blocco. SafetyTraining invariato.
