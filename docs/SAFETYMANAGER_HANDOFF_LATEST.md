@@ -698,3 +698,5 @@ L'utente ha chiesto di proseguire anche se l'archivio contiene ancora pochi PDF.
 - Ristampa PDF storici basata sul `storage_path` archiviato; confermato staticamente il flusso dei signed URL privati di 90 secondi.
 - Test di regressione aggiunti in `tests/phase3_archive_versions.test.cjs`, con mock Supabase e popup per verificare nessuna scrittura sulla versione precedente e apertura della versione corretta.
 - Non eseguite migrazioni o operazioni di aggiornamento/eliminazione dei 4 PDF reali; test browser autentici ancora necessari. Non modificare SafetyTraining. Resta pendente proposta FK progetti-aziende CASCADE→RESTRICT.
+
+**Nota audit successivo 27/10/2026:** l'archivio PDF risulta cresciuto da 4 a **5 bozze** (0 definitivi, 0 superati, 0 versioni successive, 0 progetti orfani) durante la sessione. È uno snapshot aggregato read-only; non attribuire il nuovo PDF ai test o alle modifiche GitHub. La suite Fase 3 `tests/phase3_archive_versions.test.cjs` è verde dopo aver corretto una fixture d'intestazione PDF a cinque byte (nessun cambio aggiuntivo al codice applicativo).
