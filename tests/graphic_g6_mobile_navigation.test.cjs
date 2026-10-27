@@ -26,6 +26,8 @@ function fixture(mobile=true){
      contains(x){return x===node||node.children.includes(x)||node===nav&&links.includes(x)}
    };
    if(id)registry.set(id,node);
+   let currentId=id;
+   Object.defineProperty(node,'id',{get(){return currentId},set(value){if(currentId)registry.delete(currentId);currentId=value;if(value)registry.set(value,node)},configurable:true});
    return node;
  }
  const nav=element('top-nav'),inner=element('top-nav-inner'),buttons=element('top-nav-buttons');
