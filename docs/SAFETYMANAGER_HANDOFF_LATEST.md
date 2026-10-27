@@ -688,3 +688,13 @@ Primo miglioramento della **Fase 3 Stampe e Archivio**:
 - Test di regressione in `tests/phase3_stampe_attestati.test.cjs` con DOM mockato. Risultati CI e deploy da verificare al merge.
 - Audit Supabase di sola lettura: 4 PDF nel fascicolo corsista, tutti `bozza`, 0 documenti definitivi/superati/versioni successive, 0 progetto orfano, 4 con azienda storica. Non intervenire sulle bozze reali e non alterare il contenuto dei PDF.
 - Fase 3 non ancora collaudata integralmente da browser. DB SafetyManager non mutato, FK di progetti ancora CASCADE, SafetyTraining non toccato.
+
+## 2026-10-27 — Fase 3, terzo blocco: versioni archivio e ristampa sicura
+
+L'utente ha chiesto di proseguire anche se l'archivio contiene ancora pochi PDF. Portata avanti una correzione conservativa sulla logica in `js/modules/corsisti_fascicolo_archivio.js`:
+- La nuova versione non eredita mai automaticamente lo stato `definitivo`, ma parte da `bozza`.
+- Caricare un file `definitivo` richiede conferma specifica; l'annullamento non effettua scritture.
+- Rimossa l'impostazione automatica `superato` sulla versione precedente in fase di nuovo upload: preserva i definitivi finché l'admin non decide la transizione.
+- Ristampa PDF storici basata sul `storage_path` archiviato; confermato staticamente il flusso dei signed URL privati di 90 secondi.
+- Test di regressione aggiunti in `tests/phase3_archive_versions.test.cjs`, con mock Supabase e popup per verificare nessuna scrittura sulla versione precedente e apertura della versione corretta.
+- Non eseguite migrazioni o operazioni di aggiornamento/eliminazione dei 4 PDF reali; test browser autentici ancora necessari. Non modificare SafetyTraining. Resta pendente proposta FK progetti-aziende CASCADE→RESTRICT.
