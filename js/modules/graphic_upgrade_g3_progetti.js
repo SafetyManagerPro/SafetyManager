@@ -237,6 +237,11 @@ function install(){
  if(typeof window.loadModule==='function'&&!window.loadModule.__safetyG3){
    const original=window.loadModule;
    const wrapped=async function(moduleId,...args){
+     if(newPopupOpen){
+       if(formSignature()!==newPopupBaseline&&!window.confirm('Modifiche non salvate nel nuovo progetto. Vuoi uscire dalla sezione?'))return;
+       newPopupOpen=false;
+       if(typeof window.chiudiPopupProgetto==='function')window.chiudiPopupProgetto();
+     }
      const result=await original.apply(this,[moduleId,...args]);
      if(moduleId==='progetti'&&el('tabella-progetti'))enhance();
      return result;
