@@ -798,8 +798,9 @@ window.openCorsistaFromAziendaPopup = async function(corsistaId) {
         if(!input)throw Error('Modulo Corsisti non disponibile.');
         const state=window.corsistiPageState;
         state.page=1;state.letter='ALL';
+        state.focusId=person.id; // ID esatto: funziona anche con omonimi o CF assente
         clearTimeout(state.searchTimer);
-        input.value=person.cf||person.nome_cognome||'';
+        input.value='';
         const stato=document.getElementById('filter-corsisti-stato');
         if(stato)stato.value='tutti';
         const azienda=document.getElementById('filter-corsisti-azienda');
@@ -1160,6 +1161,7 @@ window.selezionaLetteraCorsisti = function(letter) {
     const st=window.corsistiPageState;
     st.letter=letter;
     st.page=1;
+    st.focusId=null; // la scelta alfabetica esce dalla scheda singola
     clearTimeout(st.searchTimer);
     const input=document.getElementById('search-corsisti');
     if(input)input.value='';
@@ -1187,8 +1189,10 @@ window.renderCorsistiPagination = function() {
     const numbers = [];
     for (let i = startPage; i <= endPage; i++) numbers.push(makeBtn(i, i, i === page));
     root.innerHTML =
-        '<div class="text-xs font-bold text-slate-600">Corsisti ' + first + '–' + last + ' di ' + state.total +
-        ' · 20 per pagina</div>' +
+        '<div class="text-xs font-bold text-slate-600">' +
+        (state.focusId ? 'Scheda corsista collegata' : 'Corsisti ' + first + '–' + last + ' di ' + state.total + ' · 20 per pagina') +
+        (state.focusId ? ' <button type="button" class="ml-2 rounded-lg bg-blue-700 px-3 py-2 text-xs text-white" onclick="window.mostraTuttiCorsisti()">Mostra tutti</button>' : '') +
+        '</div>' +
         '<div class="flex flex-wrap items-center gap-1.5">' +
         (page > 1 ? makeBtn(page - 1, '← Precedente', false) : '') +
         (startPage > 1 ? makeBtn(1, '1', false) + '<span class="px-1 text-slate-500">…</span>' : '') +
@@ -1196,6 +1200,14 @@ window.renderCorsistiPagination = function() {
         (endPage < totalPages ? '<span class="px-1 text-slate-500">…</span>' + makeBtn(totalPages, totalPages, false) : '') +
         (page < totalPages ? makeBtn(page + 1, 'Successiva →', false) : '') +
         '</div>';
+};
+
+window.mostraTuttiCorsisti = function() {
+    const st=window.corsistiPageState;
+    st.focusId=null;st.page=1;st.letter='ALL';
+    const input=document.getElementById('search-corsisti');
+    if(input)input.value='';
+    void window.loadCorsistiTable();
 };
 
 window.vaiPaginaCorsisti = function(page) {
@@ -1237,6 +1249,7 @@ window.loadCorsistiTable = async function() {
     try {
     const pageNum = Math.max(1,paging.page);
     const pageSize = paging.pageSize;
+    const focusId=paging.focusId||null;
     const queryText = (document.getElementById('search-corsisti')?.value || '').trim();
     const companyFilter = document.getElementById('filter-corsisti-azienda')?.value || '';
     const courseFilter = document.getElementById('filter-corsisti-corso')?.value || '';
@@ -1286,13 +1299,13 @@ window.loadCorsistiTable = async function() {
     let matchedCourseIds = null;
     let matchedProjectSearchIds = [];
     try {
-        if (courseFilter) {
+        if (courseFilter && !focusId) {
             matchedCourseIds = await bounded(window.getCorsistiIdsPerCorso(courseFilter),'Filtro corso');
         }
         // Conserva ricerca per azienda e progetto: risolvi i loro ID prima
         // della query paginata. Le altre ricerche usano i filtri PostgreSQL.
         const normalizedSearch = window.safetyDirectorySafeSearch(queryText);
-        if (normalizedSearch.length >= 2) {
+        if (normalizedSearch.length >= 2 && !focusId) {
             const courseKeys = Object.entries(window.DB_CORSI || {})
                 .filter(([id,course])=>(id+' '+(course?.code||'')+' '+(course?.t||'')).toLowerCase().includes(normalizedSearch.toLowerCase()))
                 .map(([id])=>id).slice(0,100);
@@ -1324,6 +1337,7 @@ window.loadCorsistiTable = async function() {
         : [];
     const buildPageQuery = (columns,page) => {
         let q=supabaseClient.from('corsisti').select(columns,{count:'exact'});
+        if(focusId) return q.eq('id',focusId).range(0,0);
         if(statusFilter==='attivo')q=q.is('archived_at',null);
         if(statusFilter==='archiviato')q=q.not('archived_at','is',null);
         if(companyFilter)q=q.eq('azienda_id',companyFilter);
@@ -1679,6 +1693,7 @@ window.filtraCorsisti = function() {
     // renderizzate: filtro server-side con debounce per non sovraccaricare l'API.
     const state=window.corsistiPageState;
     state.page=1;
+    state.focusId=null; // una ricerca globale cancella la scheda collegata
     // Digitando una ricerca si torna sempre all'intero database; non solo a una lettera.
     if(document.getElementById('search-corsisti')?.value.trim())state.letter='ALL';
     clearTimeout(state.searchTimer);
