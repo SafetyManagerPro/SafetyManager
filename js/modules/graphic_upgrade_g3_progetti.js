@@ -132,7 +132,7 @@ function enhance(){
      Object.keys(STATUS).map(key=>'<button type="button" class="safety-g3-chip" aria-pressed="false" data-safety-g3-status="'+key+'"></button>').join('')+'</div>'+
      '<p class="safety-g3-info" id="safety-g3-count" aria-live="polite"></p>';
    const heading=list?.querySelector('h1');
-   const header=heading?.parentElement?.parentElement;
+   const header=heading?.parentElement;
    if(header)header.appendChild(panel);else list?.insertBefore(panel,list.firstChild);
    panel.querySelector('#safety-g3-new')?.addEventListener('click',newProject);
    panel.querySelector('#safety-g3-collapse')?.addEventListener('click',()=>setCollapsed(!page.classList.contains('safety-g3-collapsed')));
