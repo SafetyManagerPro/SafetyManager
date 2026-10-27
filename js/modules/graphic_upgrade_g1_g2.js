@@ -23,6 +23,7 @@ const css=[
  'body:not(.is-printing-temp) #app-content table tbody tr:focus-within{background-color:rgba(225,236,251,.6)}',
  'body:not(.is-printing-temp) #top-nav .btn-tab.active{box-shadow:inset 0 -2px 0 #60a5fa}',
  '.safety-g2-sidebar{display:none!important}',
+ '#view-aziende.safety-g2-wide > .grid > :not(.safety-g2-sidebar){grid-column:1/-1!important}',
  '#view-aziende.safety-g2-wide > .grid{grid-template-columns:minmax(0,1fr)!important}',
  '.safety-g2-new-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;border:1px solid #1d4ed8;border-radius:12px;padding:10px 16px;background:#1d4ed8;color:#fff;font-size:12px;font-weight:800;box-shadow:0 8px 20px rgba(29,78,216,.15);cursor:pointer;white-space:nowrap}',
  '.safety-g2-new-btn:hover{background:#1e40af}',
