@@ -11,7 +11,7 @@ const TYPES={
  quota_dpi:'Incarico quota / DPI III categoria',consegna_dpi:'Consegna DPI',
  registro_dpi:'Registro DPI',altro:'Altro documento'
 };
-const state={id:null,person:null,docs:[],enrollments:[],previous:null,busy:false,filter:'all'};
+const state={id:null,person:null,docs:[],enrollments:[],previous:null,busy:false,filter:'all',expandedGroups:new Set()};
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const db=()=>window.supabaseClient;
 const el=id=>document.getElementById(id);
@@ -36,7 +36,8 @@ function view(){
  '<div class="flex flex-wrap justify-between gap-3 items-center"><h3 class="text-sm font-black uppercase">Documenti archiviati</h3>'+
  '<div class="flex flex-wrap gap-2"><select id="cfasc-filter" class="border border-slate-300 bg-white rounded-lg p-2 text-xs"><option value="all">Tutti gli stati</option><option value="bozza">Bozze</option><option value="definitivo">Definitivi</option><option value="superato">Superati</option></select>'+
  '<button type="button" id="cfasc-refresh" class="text-xs font-bold px-3 py-2 rounded-lg border border-slate-300 hover:bg-slate-100">Aggiorna</button></div></div>'+
- '<div id="cfasc-list" class="space-y-3" aria-live="polite">Caricamento…</div>'+
+ '<p id="cfasc-summary" class="text-xs text-slate-600" aria-live="polite"></p>'+ 
+ '<div id="cfasc-list" class="space-y-3" aria-live="polite">Caricamento…</div>'+ 
  '<div class="border-t border-slate-200 pt-5"><h3 id="cfasc-form-title" class="text-sm font-black uppercase">Archivia un nuovo PDF</h3>'+
  '<p id="cfasc-version-info" class="text-xs text-slate-500 mt-1">Puoi caricare anche documenti senza corsi associati. Ogni nuova versione parte come bozza; i PDF precedenti mantengono il loro stato.</p>'+
  '<form id="cfasc-form" class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">'+
@@ -61,9 +62,17 @@ function view(){
  root.querySelector('#cfasc-list').onclick=e=>{
    const button=e.target.closest('button[data-cfasc-action]');
    if(!button)return;
+   const action=button.dataset.cfascAction;
+   if(action==='history'){
+     const groupId=button.dataset.groupId;
+     if(!state.docs.some(d=>String(d.gruppo_versioni||d.id)===groupId))return;
+     if(state.expandedGroups.has(groupId))state.expandedGroups.delete(groupId);
+     else state.expandedGroups.add(groupId);
+     render();
+     return;
+   }
    const item=state.docs.find(d=>d.id===button.dataset.docId);
    if(!item)return;
-   const action=button.dataset.cfascAction;
    if(action==='open')void open(item);
    if(action==='version')newVersion(item);
    if(action==='state')void updateStatus(item);
@@ -73,7 +82,7 @@ function view(){
  el('cfasc-type').innerHTML=Object.entries(TYPES).map(([value,label])=>'<option value="'+esc(value)+'">'+esc(label)+'</option>').join('');
  return root;
 }
-function close(){el('cfasc-modal')?.remove();state.previous=null;state.id=null;state.docs=[];state.enrollments=[];state.person=null;}
+function close(){el('cfasc-modal')?.remove();state.previous=null;state.id=null;state.docs=[];state.enrollments=[];state.expandedGroups.clear();state.person=null;}
 function resetVersion(){
  state.previous=null;
  el('cfasc-form').reset();
@@ -100,32 +109,78 @@ function newVersion(item){
  msg('');
  el('cfasc-form')?.scrollIntoView({block:'nearest',behavior:'smooth'});
 }
+
+function documentVersionGroups(){
+ const byGroup=new Map();
+ state.docs.forEach(doc=>{
+   const groupId=String(doc.gruppo_versioni||doc.id);
+   if(!byGroup.has(groupId))byGroup.set(groupId,[]);
+   byGroup.get(groupId).push(doc);
+ });
+ return Array.from(byGroup,([id,items])=>({
+   id,
+   items:items.sort((a,b)=>(Number(b.versione)||0)-(Number(a.versione)||0)||
+     String(b.creato_il||'').localeCompare(String(a.creato_il||'')))
+ })).sort((a,b)=>String(b.items[0]?.creato_il||'').localeCompare(String(a.items[0]?.creato_il||'')));
+}
 function render(){
  const list=el('cfasc-list');if(!list)return;
- const rows=state.docs.filter(d=>state.filter==='all'||state.filter===d.stato);
- if(!rows.length){
-   list.innerHTML='<div class="border border-slate-200 bg-slate-50 rounded-xl p-4 text-sm text-slate-500">'+(state.docs.length?'Nessun documento per questo filtro.':'Non ci sono ancora PDF archiviati per questo corsista. Puoi caricarli anche senza corsi.')+'</div>';
+ const groups=documentVersionGroups();
+ const visible=groups.map(group=>({
+   ...group,
+   matching:group.items.filter(d=>state.filter==='all'||state.filter===d.stato)
+ })).filter(group=>group.matching.length>0);
+ const summary=el('cfasc-summary');
+ if(summary){
+   summary.textContent=state.filter==='all'
+     ?groups.length+' documenti · '+state.docs.length+' versioni conservate. Apri lo storico per consultare e ristampare ogni versione.'
+     :visible.length+' documenti · '+visible.reduce((n,g)=>n+g.matching.length,0)+' versioni con stato '+state.filter+'.';
+ }
+ if(!visible.length){
+   list.innerHTML='<div class="border border-slate-200 bg-slate-50 rounded-xl p-4 text-sm text-slate-500">'+
+     (state.docs.length?'Nessun documento per questo filtro.':'Non ci sono ancora PDF archiviati per questo corsista. Puoi caricarli anche senza corsi.')+'</div>';
    return;
  }
- list.innerHTML=rows.map(d=>{
-  const badge=d.stato==='definitivo'?'bg-emerald-100 text-emerald-800':d.stato==='superato'?'bg-slate-200 text-slate-700':'bg-amber-100 text-amber-800';
-  const course=state.enrollments.find(e=>e.id===d.iscrizione_id);
-  const source=course?.progetti?.codice||'Documento indipendente da corsi';
-  return '<article class="border border-slate-200 rounded-xl p-3 bg-white shadow-sm">'+
-    '<div class="flex flex-wrap items-start justify-between gap-2"><div class="min-w-0 flex-1">'+
-    '<h4 class="font-black text-sm text-slate-900 break-words">'+esc(d.titolo)+'</h4>'+
-    '<div class="flex flex-wrap gap-2 mt-2 text-[11px] text-slate-600">'+
-    '<span class="px-2 py-1 rounded-full '+badge+' font-black">'+esc(d.stato.toUpperCase())+'</span>'+
-    '<span>Versione '+d.versione+'</span><span>'+esc(TYPES[d.tipo_documento]||d.tipo_documento)+'</span>'+
-    '<span>Archiviato '+esc(fmtDate(d.creato_il))+'</span>'+
-    '</div><p class="text-xs text-slate-700 mt-2">Azienda storica: '+esc(d.azienda_storica_nome||'Non indicata')+' · '+esc(source)+'</p>'+
-    '<p class="text-xs text-slate-500">Corsista: '+esc(d.nome_cognome_storico)+' · '+esc(d.cf_storico||'C.F. non indicato')+'</p>'+
-    (d.note?'<p class="text-xs text-slate-500 mt-1">'+esc(d.note)+'</p>':'')+
-    '</div><div class="flex gap-1 flex-wrap shrink-0">'+
-    '<button type="button" data-cfasc-action="open" data-doc-id="'+esc(d.id)+'" class="px-3 py-2 rounded-lg bg-indigo-700 hover:bg-indigo-600 text-white text-xs font-bold">Apri / stampa PDF</button>'+
-    '<button type="button" data-cfasc-action="version" data-doc-id="'+esc(d.id)+'" class="px-3 py-2 rounded-lg border border-slate-300 hover:bg-slate-100 text-xs font-bold">Nuova versione</button>'+
-    (d.stato!=='superato'?'<button type="button" data-cfasc-action="state" data-doc-id="'+esc(d.id)+'" class="px-3 py-2 rounded-lg border border-slate-300 hover:bg-slate-100 text-xs font-bold">'+(d.stato==='bozza'?'Segna definitivo':'Segna superato')+'</button>':'')+
-    '</div></div></article>';
+ list.innerHTML=visible.map(group=>{
+  const newest=group.items[0],expanded=state.expandedGroups.has(group.id);
+  // I filtri per stato mostrano tutte le versioni corrispondenti, anche storiche;
+  // nella vista Tutti le versioni precedenti restano consultabili su richiesta.
+  const rows=state.filter==='all'?(expanded?group.items:[newest]):group.matching;
+  const historyButton=state.filter==='all'&&group.items.length>1
+    ?'<button type="button" data-cfasc-action="history" data-group-id="'+esc(group.id)+'" aria-expanded="'+(expanded?'true':'false')+'" class="min-h-11 w-full sm:w-auto px-3 py-2 rounded-lg border border-indigo-300 text-indigo-900 bg-indigo-50 hover:bg-indigo-100 text-xs font-bold">'+
+      (expanded?'Nascondi versioni precedenti':'Mostra storico ('+(group.items.length-1)+')')+'</button>'
+    :'';
+  return '<section class="rounded-xl border border-slate-300 bg-white shadow-sm overflow-hidden">'+
+    '<div class="px-3 sm:px-4 py-3 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">'+
+    '<div class="min-w-0"><h4 class="font-black text-sm text-slate-900 break-words">'+esc(newest.titolo)+'</h4>'+
+    '<p class="text-[11px] text-slate-600">'+group.items.length+' '+(group.items.length===1?'versione archiviata':'versioni archiviate')+
+    ' · '+esc(TYPES[newest.tipo_documento]||newest.tipo_documento)+'</p></div>'+
+    historyButton+'</div><div class="divide-y divide-slate-200">'+
+    rows.map(d=>{
+      const badge=d.stato==='definitivo'?'bg-emerald-100 text-emerald-800':d.stato==='superato'?'bg-slate-200 text-slate-700':'bg-amber-100 text-amber-800';
+      const course=state.enrollments.find(e=>e.id===d.iscrizione_id);
+      const source=course?.progetti?.codice||'Documento indipendente da corsi';
+      const latest=String(d.id)===String(newest.id);
+      return '<article class="px-3 sm:px-4 py-3">'+
+        '<div class="flex flex-col lg:flex-row lg:items-start gap-3">'+
+        '<div class="min-w-0 flex-1">'+
+        '<div class="flex flex-wrap items-center gap-2 text-[11px]">'+
+        '<span class="font-black text-slate-900">Versione '+esc(d.versione)+'</span>'+
+        (latest?'<span class="font-bold text-indigo-700">Più recente</span>':'<span class="font-bold text-slate-500">Storica</span>')+
+        '<span class="px-2 py-1 rounded-full '+badge+' font-black">'+esc(String(d.stato||'bozza').toUpperCase())+'</span>'+
+        '</div>'+
+        (d.titolo!==newest.titolo?'<p class="text-xs font-bold text-slate-700 mt-1">'+esc(d.titolo)+'</p>':'')+
+        '<p class="text-xs text-slate-600 mt-2">Archiviato '+esc(fmtDate(d.creato_il))+
+        (d.data_documento?' · Data documento '+esc(fmtDate(d.data_documento)):'')+'</p>'+
+        '<p class="text-xs text-slate-700 mt-1">Azienda storica: '+esc(d.azienda_storica_nome||'Non indicata')+' · '+esc(source)+'</p>'+
+        '<p class="text-xs text-slate-500">Corsista: '+esc(d.nome_cognome_storico)+' · '+esc(d.cf_storico||'C.F. non indicato')+'</p>'+
+        (d.note?'<p class="text-xs text-slate-500 mt-1">'+esc(d.note)+'</p>':'')+
+        '</div><div class="flex flex-col sm:flex-row lg:flex-col gap-2 w-full lg:w-auto lg:min-w-40">'+
+        '<button type="button" data-cfasc-action="open" data-doc-id="'+esc(d.id)+'" aria-label="Apri o stampa PDF versione '+esc(d.versione)+'" class="min-h-11 w-full px-3 py-2 rounded-lg bg-indigo-700 hover:bg-indigo-600 text-white text-xs font-bold">Apri / stampa PDF v'+esc(d.versione)+'</button>'+
+        '<button type="button" data-cfasc-action="version" data-doc-id="'+esc(d.id)+'" class="min-h-11 w-full px-3 py-2 rounded-lg border border-slate-300 hover:bg-slate-100 text-xs font-bold">Nuova versione</button>'+
+        (d.stato!=='superato'?'<button type="button" data-cfasc-action="state" data-doc-id="'+esc(d.id)+'" class="min-h-11 w-full px-3 py-2 rounded-lg border border-slate-300 hover:bg-slate-100 text-xs font-bold">'+(d.stato==='bozza'?'Segna definitivo':'Segna superato')+'</button>':'')+
+        '</div></div></article>';
+    }).join('')+'</div></section>';
  }).join('');
 }
 async function refresh(){
@@ -316,7 +371,7 @@ window.SafetyCorsistiFascicolo={
 window.apriFascicoloCorsista=async function(corsistaId){
  const person=(window.corsistiList||[]).find(c=>String(c.id)===String(corsistaId));
  if(!person){alert('Corsista non disponibile nella tabella. Ricarica la pagina.');return;}
- state.id=String(corsistaId);state.person=person;state.docs=[];state.enrollments=[];state.previous=null;state.filter='all';
+ state.id=String(corsistaId);state.person=person;state.docs=[];state.enrollments=[];state.previous=null;state.filter='all';state.expandedGroups.clear();
  view();
  el('cfasc-person').textContent=[person.nome_cognome,person.cf].filter(Boolean).join(' · ');
  el('cfasc-filter').value='all';
