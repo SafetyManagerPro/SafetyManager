@@ -287,7 +287,11 @@
       if(!saved) return alert(window.getCorsistaSaveErrorMessage?.() || 'Salvataggio corsista non riuscito.');
 
       const savedId = Array.isArray(saved) && saved[0] ? saved[0].id : (saved.id || id);
-      window.corsistiList = await window.getCorsisti();
+      // Nell'anagrafica non convertire mai il sottoinsieme paginato in un elenco completo.
+      // Nei Progetti è ancora necessario il roster completo per le iscrizioni.
+      if(document.getElementById('tabella-corsisti') && typeof window.loadCorsistiTable==='function')
+        await window.loadCorsistiTable();
+      else window.corsistiList = await window.getCorsisti();
       window.__safetyCorsistiRoleMap = new Map((window.corsistiList || []).map(c => [String(c.id), normalizeRole(c.ruolo_aziendale)]));
       if(window.SafetyCompanyDocs) window.SafetyCompanyDocs.directoryCache = null;
 
