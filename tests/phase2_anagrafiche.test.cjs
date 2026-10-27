@@ -136,3 +136,51 @@ test('inserimento rapido: preserva la paginazione solo in Anagrafica',()=>{
     assert.match(source,/else window\.corsistiList = await window\.getCorsisti\(\)/);
   }
 });
+
+
+test('quick-add Aziende usa lo stesso salvataggio e non INSERT diretto',()=>{
+  const a=utils.indexOf('window.salvaQAAzienda = async function()');
+  const b=utils.indexOf('// QUICK ADD CORSO CUSTOM',a);
+  assert.ok(a>=0&&b>a);
+  const snippet=utils.slice(a,b);
+  assert.match(snippet,/await window\.saveAzienda\(\{ragione_sociale:rag,piva_cf:piva\}\)/);
+  assert.doesNotMatch(snippet,/\.from\('aziende'\)\s*\.insert\(/);
+  assert.match(snippet,/getAziendaSaveErrorMessage/);
+  assert.match(snippet,/window\.dashEscape\(a\.ragione_sociale/);
+});
+
+test('fascicolo aziendale raggiunge esattamente il record selezionato per ID',()=>{
+  const a=utils.indexOf('window.openCorsistaFromAziendaPopup = async function');
+  const b=utils.indexOf('window.renderAziendaProjectCard = function',a);
+  const snippet=utils.slice(a,b);
+  assert.match(snippet,/state\.focusId=person\.id/);
+  assert.match(snippet,/window\.modificaCorsista\(corsistaId\)/);
+  assert.match(snippet,/input\.value=''/);
+});
+test('query focus corsista ignora filtri alfabetici e consente di tornare a tutti',()=>{
+  const a=utils.indexOf('const buildPageQuery = (columns,page) => {',utils.indexOf('window.loadCorsistiTable = async function()'));
+  const b=utils.indexOf('\n\n    let {data,error,count}',a);
+  assert.ok(a>0&&b>a);
+  const operations=[];
+  const q={
+    select(){operations.push(['select']);return this},
+    eq(k,v){operations.push(['eq',k,v]);return this},
+    range(a,b){operations.push(['range',a,b]);return this},
+    order(){operations.push(['order']);return this},
+    is(){throw Error('Il filtro stato non deve intervenire sul focus')},
+    not(){throw Error('Il filtro stato non deve intervenire sul focus')},
+    in(){throw Error('Il filtro corso non deve intervenire sul focus')},
+    or(){throw Error('Ricerca generale non deve intervenire sul focus')}
+  };
+  const scope={
+    supabaseClient:{from:()=>q},focusId:'id-di-prova',statusFilter:'attivo',
+    companyFilter:'x',matchedCourseIds:[],safeSearch:'Mario',
+    matchedProjectSearchIds:[],matchingCompanyIds:[],letter:'Z',
+    window:{safetyDirectoryApplyLetter(){throw Error('La lettera non deve intervenire')}},
+    pageSize:20
+  };
+  vm.runInNewContext(utils.slice(a,b)+'\nresult=buildPageQuery("id",5);',scope);
+  assert.deepEqual(operations,[['select'],['eq','id','id-di-prova'],['range',0,0]]);
+  assert.match(utils,/window\.mostraTuttiCorsisti = function/);
+  assert.match(utils,/st\.focusId=null/);
+});
