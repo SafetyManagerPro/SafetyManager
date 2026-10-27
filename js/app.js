@@ -293,7 +293,7 @@ window.loadModule = async function(moduleId) {
         const timeout=setTimeout(()=>controller.abort(),12000);
         let html;
         try {
-            const response=await fetch(`modules/${moduleId}.html`,{signal:controller.signal});
+            const response=await fetch(`modules/${moduleId}.html`,{signal:controller.signal,cache:'no-store'});
             if(!response.ok)throw new Error('File modulo non disponibile ('+response.status+').');
             html=await response.text();
         } finally {
@@ -301,6 +301,22 @@ window.loadModule = async function(moduleId) {
         }
         if(!isCurrent())return;
         contentDiv.innerHTML=html;
+        // Applica il layout popup-only nello STESSO frame in cui il modulo viene
+        // inserito: non attendere query o tabelle (evita la sidebar legacy visibile).
+        try {
+            if ((moduleId === 'corsisti' || moduleId === 'aziende') && window.SafetyGraphicG1G2?.enhance) {
+                window.SafetyGraphicG1G2.enhance(moduleId);
+            }
+            if (moduleId === 'progetti' && window.SafetyGraphicG3?.enhance) {
+                window.SafetyGraphicG3.enhance();
+            }
+            if (moduleId === 'docenti' && window.SafetyGraphicG5?.enhance) {
+                window.SafetyGraphicG5.enhance();
+            }
+        } catch (layoutError) {
+            // Se il layer UI non e' disponibile, mantenere utilizzabili i form originali.
+            console.warn('SafetyManager: layout moderno non pronto, UI originale disponibile', layoutError);
+        }
         
         if (typeof lucide !== 'undefined') lucide.createIcons();
         
