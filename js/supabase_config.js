@@ -59,6 +59,34 @@ window.getAziende = async function() {
     });
 };
 
+// L'identificativo fiscale va confrontato con la stessa normalizzazione
+// già usata dal trigger del database. IT + 11 cifre e 11 cifre sono equivalenti.
+window.normalizzaIdentificativoAzienda = function(value) {
+    let key=String(value||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+    if(/^IT[0-9]{11}$/.test(key))key=key.slice(2);
+    return key;
+};
+window.lastAziendaSaveError=null;
+window.getAziendaSaveErrorMessage=()=>window.lastAziendaSaveError?.message||'Salvataggio azienda non riuscito.';
+
+window.checkAziendaIdentificativoDuplicato = async function(value,excludeId=null) {
+    const key=window.normalizzaIdentificativoAzienda(value);
+    if(!key)return null;
+    // Query di sola lettura; nessun accesso all'archivio documentale e nessun invio a terzi.
+    // Pagine esplicite per non limitare il controllo ai primi 1000 record di PostgREST.
+    for(let offset=0;offset<100000;offset+=500){
+        const {data,error}=await supabaseClient.from('aziende')
+          .select('id,ragione_sociale,piva_cf,ente_id').order('id',{ascending:true})
+          .range(offset,offset+499);
+        if(error)throw error; // Non tradurre un errore RLS/rete in «nessun duplicato».
+        const match=(data||[]).find(a=>String(a.id)!==String(excludeId||'') &&
+             window.normalizzaIdentificativoAzienda(a.piva_cf)===key);
+        if(match)return match;
+        if((data||[]).length<500)return null;
+    }
+    throw Error('Controllo partita IVA incompleto. Riprova prima di salvare.');
+};
+
 // Crea o aggiorna un'azienda
 window.saveAzienda = async function(record) {
     const runSave = async (payload) => {
@@ -75,7 +103,18 @@ window.saveAzienda = async function(record) {
             .select();
     };
 
+    window.lastAziendaSaveError=null;
     try {
+        // La verifica è un aiuto UX; il trigger Supabase resta il controllo definitivo
+        // anche contro salvataggi simultanei o chiusi su altri account.
+        const duplicato=await window.checkAziendaIdentificativoDuplicato(record.piva_cf,record.id||null);
+        if(duplicato){
+            window.lastAziendaSaveError={
+                code:'AZIENDA_IDENTIFICATIVO_DUPLICATO',
+                message:'Partita IVA / codice fiscale già associato a «'+(duplicato.ragione_sociale||'altra azienda')+'». Apri la scheda esistente per modificarla.'
+            };
+            return false;
+        }
         let result = await runSave(record);
         if (result.error && (String(result.error.message || '').includes('sede_operativa') || String(result.error.message || '').includes('legale_documento_url') || String(result.error.message || '').includes('schema cache'))) {
             console.warn('Colonne opzionali azienda non presenti: salvataggio fallback senza campi documentali/sede operativa. Applicare le migration Step 29/47.');
@@ -87,8 +126,16 @@ window.saveAzienda = async function(record) {
         if (result.error) throw result.error;
         return result.data;
     } catch (err) {
-        console.error("Errore salvataggio Azienda:", err);
-        alert("ERRORE DATABASE: " + err.message); 
+        console.error('Errore salvataggio Azienda:',err);
+        const message=String(err?.message||'Errore non disponibile');
+        const code=String(err?.code||'');
+        const duplicate=code==='23505'&&/partita iva|codice fiscale azienda|duplicat|già presente/i.test(message);
+        const friendly=duplicate
+          ?'Partita IVA / codice fiscale già presente in un’altra anagrafica aziendale.'
+          :code==='23503'?'Collegamento aziendale non valido: '+message
+          :code==='42501'?'Permessi insufficienti per salvare l’azienda.'
+          :'Salvataggio azienda non riuscito ('+(code||'connessione o database')+'): '+message;
+        window.lastAziendaSaveError={code:code||'SAVE_FAILED',message:friendly};
         return false;
     }
 };
