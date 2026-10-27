@@ -41,3 +41,23 @@ Risultati aggregati alla verifica del 27/10/2026:
 
 ### Limiti del blocco
 Verificare browser reale su desktop/iPhone per finestre stampa, salvataggio PDF, firme, numero pagine e leggibilità. Le prove automatiche controllano lo stato JavaScript in caso di errore e non sono una certificazione grafica/legale del contenuto dei PDF. SafetyTraining e database invariati.
+
+## Terzo intervento — Versioni archiviate e ristampa storica (27/10/2026)
+
+Anche con un archivio iniziale di soli quattro PDF, le regole di conservazione devono evitare stati incoerenti quando si aggiungeranno versioni.
+
+### Problema risolto
+La UI `newVersion(item)` proponeva `definitivo` se la versione precedente lo era; il salvataggio manuale `upload()` marcava sempre la versione precedente `superato` dopo l'INSERT della nuova, **anche quando quest'ultima era ancora una bozza**. In tal modo l'unica versione definitiva poteva perdere il suo stato prima della verifica della nuova.
+
+### Comportamento introdotto
+- Una nuova versione aperta dalla scheda parte **sempre come `bozza`**, senza ereditare lo stato della precedente.
+- Se l'operatore sceglie esplicitamente `definitivo` durante un nuovo upload, viene chiesta una seconda conferma consapevole prima di caricare il PDF.
+- L'upload di una nuova versione non aggiorna automaticamente `stato` della precedente, indipendentemente dallo stato del nuovo file. L'azione già presente **Segna superato** resta una scelta amministrativa esplicita.
+- I PDF non sono stati riscritti. Percorso `storage_path` e metadati storici restano immutabili; le ristampe già usano un URL firmato a 90 secondi del file salvato.
+- UI e feedback esplicitano che le versioni precedenti mantengono il proprio stato.
+
+### Copertura test
+Nuovo file `tests/phase3_archive_versions.test.cjs`: selezione versione più recente con stato bozza, upload bozza conservando precedente definitivo, conferma nuovo definitivo, annullamento della conferma senza scritture, ristampa tramite percorso storico esatto, gestione dell'errore di apertura. Sono test su mock, **non** prove con dati reali o browser iOS.
+
+### Nota operativa
+Potrebbero coesistere più versioni `definitivo` finché l'amministratore non marca quelle obsolete come `superato`. È intenzionale privilegiare la conservazione rispetto a riclassificazioni automatiche. Una transizione automatica *atomica* e un vincolo server-side per la gestione degli stati richiedono analisi e autorizzazione di una migrazione separata. Restano invariati SafetyTraining, documenti reali e vincoli DB.
