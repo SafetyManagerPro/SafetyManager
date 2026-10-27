@@ -99,3 +99,39 @@ test('nessun blocco alle stampe libere, fascicolo sempre separato', () => {
   assert.match(read('js/modules/corsisti_fascicolo_archivio.js'),/archiveGenerated/);
   assert.match(read('js/modules/corsisti_autoarchivia_stampe.js'),/const enabled=\(\)=>/);
 });
+
+
+test('un file opzionale che non risponde non blocca la navigazione', async () => {
+  const from=app.indexOf('window.loadOptionalSafetyScript = function(src)');
+  const to=app.indexOf('window.isSafetyAdminEmail = function',from);
+  assert.ok(from>=0&&to>from);
+  const scripts=[];
+  const sandbox={
+    window:{__safetyDynamicScriptPromises:new Map()},
+    document:{
+      querySelectorAll(){return []},
+      createElement(){return {dataset:{},remove(){this.removed=true}}},
+      head:{appendChild(s){scripts.push(s)}}
+    },
+    setTimeout:(callback)=>setTimeout(callback,5),
+    clearTimeout,
+    Promise,Map,Array,console
+  };
+  vm.runInNewContext(app.slice(from,to),sandbox);
+  const first=sandbox.window.loadOptionalSafetyScript('js/modules/test-stuck.js');
+  const second=sandbox.window.loadOptionalSafetyScript('js/modules/test-stuck.js');
+  assert.equal(first,second,'richieste concorrenti allo stesso script condividono la Promise');
+  assert.equal(await first,false);
+  assert.equal(scripts.length,1,'lo stesso file viene richiesto una volta');
+  assert.equal(scripts[0].removed,true,'script non caricato rimosso dal DOM');
+  assert.equal(sandbox.window.__safetyDynamicScriptPromises.size,0,'il tentativo può essere ripetuto');
+});
+
+test('aziende: deadline di lettura senza spin infinito', () => {
+  const from=utils.indexOf('window.loadAziendeTable=async function()');
+  const to=utils.indexOf('window.salvaAziendaDB = async function()',from);
+  const snippet=utils.slice(from,to);
+  assert.match(snippet,/window\.safetyReadWithDeadline/);
+  assert.match(snippet,/15000,'Anagrafica Aziende'/);
+  assert.match(snippet,/metrics\.failures\+\+/);
+});
