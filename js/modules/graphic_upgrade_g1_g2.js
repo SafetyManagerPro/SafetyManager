@@ -143,7 +143,9 @@ function enhance(kind){
  }
  const form=document.getElementById(info.form),card=info.card?document.getElementById(info.card):form?.parentElement;
  if(!form||!card||!card.parentNode)return false;
- const sidebar=card.parentElement;
+ // In Corsisti il form ha una colonna propria; in Aziende il card e' figlio
+ // DIRETTO della griglia, quindi NON si deve nascondere il parent (la griglia).
+ const sidebar=kind==='corsisti'?card.parentElement:null;
  const title=kind==='corsisti'
    ? Array.from(app.querySelectorAll('h1')).find(el=>/anagrafica corsisti/i.test(el.textContent||''))
    : app.querySelector('#view-aziende h1');
@@ -169,7 +171,7 @@ function enhance(kind){
  app.appendChild(overlay);
  overlay.querySelector('#safety-g2-slot').appendChild(card);
  if(kind==='aziende')card.classList.add('safety-g2-company-card');
- sidebar.classList.add('safety-g2-sidebar');
+ if(sidebar)sidebar.classList.add('safety-g2-sidebar');
  const companyPage=kind==='aziende'?document.getElementById('view-aziende'):null;
  if(companyPage)companyPage.classList.add('safety-g2-wide');
  active={kind,form,card,sidebar,marker,overlay,companyPage,quickbar,opened:false,saving:false,saved:false,
