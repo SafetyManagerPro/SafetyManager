@@ -184,3 +184,35 @@ test('query focus corsista ignora filtri alfabetici e consente di tornare a tutt
   assert.match(utils,/window\.mostraTuttiCorsisti = function/);
   assert.match(utils,/st\.focusId=null/);
 });
+
+
+test('modifica azienda legge lo scope ente reale e non segnala duplicati cross-ente',async()=>{
+  const calls=[];
+  const records=[
+    {id:'other',ente_id:null,ragione_sociale:'Un altro ente',piva_cf:'IT01234567890'},
+    {id:'self',ente_id:'ente-A',ragione_sociale:'Azienda corrente',piva_cf:'IT01234567890'}
+  ];
+  const client={from(table){
+    assert.equal(table,'aziende');
+    return {
+      select(){return this},
+      eq(col,value){
+        calls.push(['lookup',col,value]);
+        return {maybeSingle:async()=>({data:{ente_id:'ente-A'},error:null})};
+      },
+      order(){return this},
+      range(a,b){
+        return Promise.resolve({data:records.slice(a,b+1),error:null});
+      },
+      update(payload){
+        calls.push(['update',payload.id]);
+        return {eq(){return {select:async()=>({data:[payload],error:null})}}};
+      },
+      insert(){throw Error('La modifica non deve inserire')}
+    };
+  }};
+  const w=setup(client);
+  const result=await w.saveAzienda({id:'self',ragione_sociale:'Azienda aggiornata',piva_cf:'01234567890'});
+  assert.ok(Array.isArray(result));
+  assert.equal(calls.filter(c=>c[0]==='update').length,1);
+});
