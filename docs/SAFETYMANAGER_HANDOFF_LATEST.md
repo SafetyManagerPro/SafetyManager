@@ -646,3 +646,15 @@ L'utente ha chiesto «ok, prosegui». Autorizzazione limitata alla Fase 2 Safety
 - **Rischio residuo IMPORTANTISSIMO:** vincolo FK `progetti.azienda_id` verso `aziende.id` ha `ON DELETE CASCADE`, mentre altre FK hanno `SET NULL` o `RESTRICT`. La guardia frontend `getAziendaDeleteImpact()` blocca le cancellazioni quando ci sono riferimenti, ma un accesso server diretto potrebbe bypassarla. Proporre una migrazione DB `ON DELETE RESTRICT` dopo studio/test isolato, senza modificarla automaticamente. Non effettuate migrazioni DB né scritture.
 - Report dettagliato aggiornato: `docs/FASE2_ANAGRAFICHE_INTEGRITA_2026-10-27.md`.
 - Rimane da certificare test reali admin desktop/iPhone e stampa/fascicoli. Non passare a Fase 3 e non modificare SafetyTraining senza nuova indicazione.
+
+
+## 2026-10-27 — Ripresa SafetyManager Pro 23-10: ulteriore rinforzo Fase 2
+
+Richiesta: «continua la chat Safetymanager pro 23-10». Ripreso il repository `SafetyManagerPro/SafetyManager`. Conservare il perimetro approvato della Fase 2, senza modifiche a SafetyTraining o a database di produzione.
+
+- Rischio individuato: `getAziendaDeleteImpact` assimilava `count:null` o altro conteggio invalido a zero, autorizzando potenzialmente la DELETE malgrado il controllo incompleto.
+- Corretto `js/supabase_config.js` con fail-closed quando il conteggio di una delle 7 tabelle è assente/non numerico/negativo: la cancellazione NON viene eseguita.
+- Ampliati `tests/phase2_anagrafiche.test.cjs` con scenari per ciascuno dei sette riferimenti e conteggi malformati; nessun accesso a dati reali nei test.
+- Dettagli e strategia successiva in `docs/FASE2_ANAGRAFICHE_INTEGRITA_2026-10-27.md`.
+- Non risolto lato server: la FK `progetti.azienda_id` ha `ON DELETE CASCADE`, da sostituire eventualmente con `RESTRICT` SOLO dopo review/migrazione isolata e autorizzazione esplicita; RLS può nascondere righe ai conteggi client restituendo 0.
+- Non certificare chiusura di tutta la Fase 2 finché mancano collaudo reale autenticato desktop/mobile e test integrati in ambiente DB separato. Nessuna migrazione SQL o cancellazione dati applicata.

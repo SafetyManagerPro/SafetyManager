@@ -167,7 +167,12 @@ window.getAziendaDeleteImpact = async function(id) {
     const entries=await Promise.all(relazioni.map(async ([table,col,name])=>{
         const {count,error}=await supabaseClient.from(table).select('id',{head:true,count:'exact'}).eq(col,id);
         if(error)throw Error('Non riesco a verificare '+table+': '+error.message);
-        return [name,count||0];
+        // Un conteggio mancante/non valido NON equivale a zero collegamenti.
+        // Per sicurezza blocca la DELETE se il controllo non è affidabile.
+        if(!Number.isSafeInteger(count)||count<0){
+            throw Error('Conteggio collegamenti non disponibile per '+table+'.');
+        }
+        return [name,count];
     }));
     return Object.fromEntries(entries);
 };

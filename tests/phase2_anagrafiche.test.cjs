@@ -216,3 +216,56 @@ test('modifica azienda legge lo scope ente reale e non segnala duplicati cross-e
   assert.ok(Array.isArray(result));
   assert.equal(calls.filter(c=>c[0]==='update').length,1);
 });
+
+
+test('un conteggio DB nullo non autorizza mai la cancellazione azienda',async()=>{
+  let deleteCalls=0;
+  const client={from(table){
+    return {
+      select(){return {eq(){return Promise.resolve({count:table==='progetti'?null:0,error:null})}}},
+      delete(){deleteCalls++;throw Error('DELETE non consentita nel test')}
+    };
+  }};
+  const w=setup(client);
+  assert.equal(await w.deleteAzienda('azienda-1'),false);
+  assert.equal(deleteCalls,0);
+  assert.match(w.lastAziendaDeleteError,/Conteggio collegamenti non disponibile per progetti/);
+});
+
+test('un conteggio negativo/non numerico non autorizza la cancellazione',async()=>{
+  for(const invalid of [-1,NaN,'0',undefined]){
+    let deleteCalls=0;
+    const client={from(table){
+      return {
+        select(){return {eq(){return Promise.resolve({count:table==='progetti'?invalid:0,error:null})}}},
+        delete(){deleteCalls++;throw Error('DELETE non consentita nel test')}
+      };
+    }};
+    const w=setup(client);
+    assert.equal(await w.deleteAzienda('azienda-1'),false);
+    assert.equal(deleteCalls,0);
+  }
+});
+
+for(const [table,description] of [
+  ['progetti','progetti'],
+  ['corsisti','corsisti correnti'],
+  ['corsisti_rapporti_azienda','rapporti storici'],
+  ['iscrizioni','iscrizioni storiche'],
+  ['corsisti_documenti_archivio','documenti archiviati'],
+  ['richieste_organismi_paritetici','richieste organismi'],
+  ['training_effectiveness_checks','verifiche efficacia']
+]){
+  test('eliminazione bloccata per riferimento in '+description,async()=>{
+    let deleteCalls=0;
+    const client={from(name){
+      return {
+        select(){return {eq(){return Promise.resolve({count:name===table?1:0,error:null})}}},
+        delete(){deleteCalls++;throw Error('DELETE non consentita nel test')}
+      };
+    }};
+    const w=setup(client);
+    assert.equal(await w.deleteAzienda('azienda-1'),false);
+    assert.equal(deleteCalls,0);
+  });
+}
