@@ -61,3 +61,6 @@ Nuovo file `tests/phase3_archive_versions.test.cjs`: selezione versione più rec
 
 ### Nota operativa
 Potrebbero coesistere più versioni `definitivo` finché l'amministratore non marca quelle obsolete come `superato`. È intenzionale privilegiare la conservazione rispetto a riclassificazioni automatiche. Una transizione automatica *atomica* e un vincolo server-side per la gestione degli stati richiedono analisi e autorizzazione di una migrazione separata. Restano invariati SafetyTraining, documenti reali e vincoli DB.
+
+### Stato reale dell'archivio rilevato durante i test
+Una nuova lettura SQL aggregata, durante il lavoro sulla PR, ha rilevato **5 PDF**, tutti in `bozza`, nessun `definitivo`, nessun `superato`, nessuna versione successiva e nessun collegamento orfano a progetti. Il conteggio era 4 all'audit precedente: questa variazione può derivare dalla normale attività degli utenti e **non** da queste modifiche, che non hanno eseguito scritture su Supabase. Non dedurre l'esito della ristampa grafica dai test con mock.
