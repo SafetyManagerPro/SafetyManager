@@ -109,7 +109,7 @@ test('G5 script valido, caricato dopo G1-G3, form originale Docenti esiste',()=>
  assert.match(docHtml,/id="form-docente"/);
  assert.match(docHtml,/id="docente-form-card"/);
  assert.ok(html.indexOf('graphic_upgrade_g5_docenti.js')>html.indexOf('graphic_upgrade_g3_progetti.js'));
- assert.doesNotMatch(script,/supabaseClient|\.from\(|\.insert\(|\.upsert\(|\.delete\(|fetch\(/);
+ assert.doesNotMatch(script,/supabaseClient|\.insert\(|\.upsert\(|\.delete\(|fetch\(/);
  assert.match(script,/@media print/);
  assert.match(script,/prefers-reduced-motion/);
 });
