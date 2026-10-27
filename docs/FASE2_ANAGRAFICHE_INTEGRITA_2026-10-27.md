@@ -29,3 +29,30 @@ Nessuna modifica a SafetyTraining e nessuna operazione SQL di scrittura o migraz
 - La pre-verifica fiscale aziendale scorre record autorizzati fino a una soglia di sicurezza; per una piattaforma multi-ente molto più grande, considerare un controllo normalizzato a livello database e policy RLS verificate.
 - Test di navigazione fascicolo → Corsista anche per nominativi omonimi, CF assente e record archiviati. La ricerca è specifica per CF quando presente e usa il nome come fallback.
 - Completa fase 2 solo dopo convalida del flusso di salvataggio azienda, scelta corsista da fascicolo, cancellazione azienda vuota e blocked deletion con riferimenti; poi valutare consolidamento del codice anagrafico in moduli autonomi. Non proseguire automaticamente alla fase 3.
+
+
+## Secondo blocco — controllo percorsi alternativi e navigazione esatta (27/10/2026)
+
+**Autorizzazione:** proseguire nella Fase 2. Non avviata Fase 3.
+
+### Modifiche implementate
+- **Inserimento rapido Azienda:** `window.salvaQAAzienda()` non scrive più direttamente con `supabaseClient.from('aziende').insert()`, ma passa da `window.saveAzienda()`, riutilizzando normalizzazione fiscali, controllo duplicati e messaggi leggibili. Dopo creazione aggiorna il selettore azienda Progetti senza perdere il record creato e ricarica la vista Aziende quando già aperta. Le denominazioni nel selettore sono escaped.
+  - Commit codice: `20d974b819bb`.
+- **Corsista collegato dal fascicolo Azienda:** una vista mirata usa `corsistiPageState.focusId` e filtra sul database con `eq('id',focusId).range(0,0)` prima di qualsiasi altro filtro. Funziona con omonimi, CF assente e corsisti archiviati; l'interfaccia mostra **Scheda corsista collegata** con pulsante **Mostra tutti**. Ricerca globale e rubrica A–Z disattivano il focus. Nessuna iscrizione o scheda viene riscritta.
+  - Commit codice: `fe35bd48a491`.
+- **Modifiche azienda multi-ente:** quando `record.id` è presente ma `ente_id` non è incluso nel form, `saveAzienda()` legge lo scope effettivo della scheda prima di verificare i duplicati. Evita false collisioni fiscali con un ente differente; errori di lettura interrompono la scrittura anziché indurre false rassicurazioni. Trigger server-side invariato.
+  - Commit codice: `eec5985c8d36`.
+- Suite regressione `tests/phase2_anagrafiche.test.cjs` estesa per inserimento rapido unificato, query diretta ID, uscita dal focus, e modifica multi-ente; test con database e DOM simulati, senza scritture sui dati reali. Commit principali `8a570e4906dd`, `7dfe275dae77`.
+
+### Audit SQL di sola lettura
+- 45 aziende, 115 corsisti; 117 rapporti storici riferiti a 115 persone.
+- 0 riferimenti orfani rilevati: aziende attuali dei corsisti, aziende negli storici, corsisti negli storici e aziende dei progetti.
+- Confermata l'esistenza di `corsisti_documenti_archivio.azienda_storica_id`, già inclusa nella protezione dell'eliminazione dal client.
+- **Rischio architetturale residuo da gestire con una proposta di migrazione separata:** FK `progetti.azienda_id → aziende.id` definita `ON DELETE CASCADE`. L'interfaccia corrente impedisce cancellazioni quando ci sono progetti/collegamenti; tuttavia una DELETE bypassando il frontend potrebbe ancora attivare la cascata. Le altre FK verso aziende sono `SET NULL` o `RESTRICT`. Non è stata modificata alcuna FK in questo blocco per evitare cambiamenti irreversibili di comportamento senza test completi.
+- Nessuna mutazione Supabase, dati anagrafici, corsi, documenti o RLS.
+
+### Qualità e rilascio
+- GitHub Actions suite: `7dfe275dae77` **completed/success**, con anche i test esistenti di Fase 1.
+- Vercel produzione: `7dfe275dae77` **READY**; runtime errors nei 30 minuti controllati: nessuno segnalato.
+- Rimane indispensabile una verifica autenticata reale desktop/mobile dei form, delle aziende con storico, dei fascicoli e della navigazione omonimi/archiviati. I test con mock non equivalgono al collaudo manuale.
+- Non iniziare la Fase 3 senza approvazione esplicita; SafetyTraining non toccato.
