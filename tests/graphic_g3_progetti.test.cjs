@@ -88,8 +88,9 @@ test('Conteggi stato basati solo sui progetti caricati, senza modificare i dati'
 });
 test('Filtro stato si combina al filtro originale senza alterare i record',()=>{
   const x=fixture();
+  const before=x.filtered; // enhance() esegue gia' il filtro al montaggio del modulo
   x.api.setStatus('svolto');
-  assert.equal(x.filtered,1);
+  assert.equal(x.filtered,before+1);
   assert.deepEqual(x.rows.map(r=>r.style.display),['none','','none','none']);
   x.api.setStatus('chiuso');
   assert.deepEqual(x.rows.map(r=>r.style.display),['none','none','','none']);
