@@ -669,3 +669,13 @@ L'utente ha comunicato «collaudo fatto. prosegui». Il collaudo operativo è se
 - **Non è stata applicata la migrazione**: l'ambiente SafetyManager non dispone di staging Supabase isolato accessibile; per produzione sono necessari review, backup e autorizzazione specifica. Non confondere proposta con vincolo già aggiornato.
 - Il documento `docs/FASE2_ANAGRAFICHE_INTEGRITA_2026-10-27.md` dettaglia preflight, rischi e verifiche post-migrazione.
 - Fase 3 (stampe/archivio): non modificata in questo specifico blocco. SafetyTraining invariato.
+
+## 2026-10-27 — Fase 3 avviata, primo intervento PDF unico
+
+Dopo «collaudo fatto. prosegui», completato l'audit read-only FK e pubblicata su main la proposta review-only in `supabase/manual/FASE2_REVIEW_ONLY_progetti_azienda_delete_restrict_2026-10-27.sql` (NON applicata al database; Supabase resta CASCADE).
+
+Primo miglioramento della **Fase 3 Stampe e Archivio**:
+- `js/modules/stampe_bundle.js`: ripristino garantito di `is-printing-temp` e pulizia `#print-area-temp` con `try/catch/finally` nella callback asincrona della stampa PDF unico. Prima un errore di preparazione immagini/stampa poteva lasciare la UI in modalità stampa.
+- `tests/phase3_pdf_cleanup.test.cjs`: test simulati per successo, immagini non pronte e print che genera errore.
+- Dettagli, rischi e prossime verifiche in `docs/FASE3_STAMPE_ARCHIVIO_2026-10-27.md`.
+- Non modificati modelli PDF, archivi storici, firme, stampe singole, RLS o dati. Non dichiarare collaudata interamente la Fase 3 senza prova browser. SafetyTraining invariato.
