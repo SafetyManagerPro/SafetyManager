@@ -743,3 +743,14 @@ L'utente ha confermato che il popup di modifica Progetti funziona, ha segnalato 
 L'utente ha confermato con «perfetto» che G3 popup-only Progetti funziona, e ha autorizzato la G4 Dashboard. Nuovo layer facoltativo `js/modules/graphic_upgrade_g4_dashboard.js`, caricato nell'elenco `dashboardScripts` di `js/app.js` e alimentato da un singolo hook protetto nel caricamento esistente `js/modules/dashboard_pro.js`. La nuova sezione in `modules/admin.html` mostra donut + barre per stati già calcolati con Step 67 e prossime 5 date di verifica/fine corso entro 30 giorni da `data_esame`, solo da progetti non chiusi. Non sono scadenze normative. Test `tests/graphic_g4_dashboard.test.cjs` e report `docs/UPGRADE_GRAFICO_G4_DASHBOARD_2026-10-27.md`.
 
 Nessuna query Supabase nuova, scrittura/migrazione, modifica a PDF/firme/attestati o SafetyTraining. Preserve G1-G3 and user-specific popup workflows. Aggiornare qui risultati PR CI, main e Vercel dopo verifica. G5 rifiniture responsive globali e approfondimenti grafici rimane futura, non promessa.
+
+## 2026-10-27 — G5 prima rifinitura: Docenti popup e mobile
+
+Autorizzazione: l'utente ha detto «perfetto, prosegui» dopo la G4 Dashboard.
+- `js/modules/graphic_upgrade_g5_docenti.js` caricato da `index.html` dopo G3. In Docenti, sidebar originale nascosta, elenco esteso a tutta la larghezza, tasto «Nuovo docente» e popup per nuovo/modifica.
+- **Unico form** originale con upload documenti e firma; spostato fisicamente nel popup, restituito alla posizione di origine prima della navigazione/logout.
+- Wrapper async sui metodi originali `resetFormDocente`, `modificaDocente`, `salvaDocenteDB`; non vengono toccati JS database né tabelle. Il popup si chiude dopo salvataggio solo se il salvataggio ha invocato con successo il reset. Fallimenti tengono il popup aperto.
+- Chiusura/cambio pagina con modifiche non salvate richiedono conferma; niente chiusura durante salvataggio; accessibilità tastiera e touch; CSS responsive.
+- Regressione: `tests/graphic_g5_docenti.test.cjs`. Dettagli: `docs/UPGRADE_GRAFICO_G5_DOCENTI_2026-10-27.md`.
+- Nessuna modifica a Supabase, dati storici, permessi, attestati, firme, stampe, archivio PDF, SafetyTraining; mantenere G1–G4.
+- Ancora da fare: CI, merge main, deploy Vercel, collaudo vero browser desktop/mobile su creazione/modifica/firma. Le prove simulate non sostituiscono un test amministratore autenticato.
