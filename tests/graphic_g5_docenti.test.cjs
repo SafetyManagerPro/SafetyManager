@@ -50,6 +50,8 @@ function fixture(){
        }
      },get innerHTML(){return this._html||''}
    };
+   let currentId=id;
+   Object.defineProperty(n,'id',{get(){return currentId},set(value){if(currentId)registry.delete(currentId);currentId=value;if(value)registry.set(value,n)},configurable:true});
    if(id)registry.set(id,n);return n;
  }
  const app=N('app-content'),head=N('head'),body=N('body');
