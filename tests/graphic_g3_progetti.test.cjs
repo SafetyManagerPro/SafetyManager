@@ -19,6 +19,9 @@ function fixture(){
   const root=element('root');
   root.querySelectorAll=()=>rows;
   const left=element('progetto-form-col',{parentElement:root,className:'original-left'});
+  const listing=element('progetti-list');listing.querySelector=()=>null;
+  left.nextElementSibling=listing;
+  const table=element('tabella-progetti');
   const card=element('progetto-form-card',{className:'original-card'});
   const header=element('popup-project-header');
   const title=element('progetto-form-title');
@@ -60,6 +63,7 @@ function fixture(){
     switchProjectPopupTab:tab=>window.lastTab=tab
   };
   vm.runInNewContext(source,{window,document,console});
+  window.SafetyGraphicG3.enhance(); // come quando loadProgettiTable completa il render reale
   return {api:window.SafetyGraphicG3,window,document,nodes,root,left,card,title,close,input,id,begin,form,rows,statusBtns,note,
     get filtered(){return filtered},get resets(){return resets},get popupClosed(){return popupClosed},
     get prompts(){return prompts},get navigations(){return navigations},
