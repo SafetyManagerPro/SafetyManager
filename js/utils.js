@@ -1822,7 +1822,11 @@ window.salvaQACorsista = async function() {
     if (!saved) return alert(window.getCorsistaSaveErrorMessage?.() || "Salvataggio corsista non riuscito.");
 
     const savedId = Array.isArray(saved) && saved[0] ? saved[0].id : (saved.id || id);
-    window.corsistiList = await window.getCorsisti();
+    // In Anagrafica Corsisti mantieni le 20 righe paginate; in Progetti
+    // conserva la lista completa necessaria alla gestione iscrizioni.
+    if(document.getElementById('tabella-corsisti') && typeof window.loadCorsistiTable==='function')
+        await window.loadCorsistiTable();
+    else window.corsistiList = await window.getCorsisti();
 
     window.chiudiQACorsista();
 
