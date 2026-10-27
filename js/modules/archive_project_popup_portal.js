@@ -53,8 +53,8 @@ async function mount(){
    col.dataset.safetyArchivePortal='true';
    document.body.appendChild(col);
    const state={col,trigger:document.activeElement,previousOverflow:document.body.style.overflow||'',dirty:false,saving:false,resetSeen:false,opening:true};
-   col.addEventListener('input',()=>{if(active===state)state.dirty=true});
-   col.addEventListener('change',()=>{if(active===state)state.dirty=true});
+   col.addEventListener('input',()=>{if(active===state&&!state.opening)state.dirty=true});
+   col.addEventListener('change',()=>{if(active===state&&!state.opening)state.dirty=true});
    active=state;
    return state;
  })();
@@ -62,7 +62,16 @@ async function mount(){
 }
 window.apriPopupProgettoById=async function(projectId,target='progetti'){
  // La funzione originale resta invariata se ci troviamo in Progetti o altrove.
- if(!archiveActive()||formExists())return originalOpen.apply(this,arguments);
+ if(!archiveActive())return originalOpen.apply(this,arguments);
+ if(active&&formExists()){
+   if(active.saving){window.alert('Attendi la conclusione del salvataggio.');return;}
+   if(active.dirty&&!window.confirm('Modifiche non salvate al progetto. Vuoi aprire un’altra scheda?'))return;
+   active.dirty=false;
+   active.opening=true;
+   try{return await originalOpen.apply(this,arguments)}
+   finally{if(active)active.opening=false}
+ }
+ if(formExists())return originalOpen.apply(this,arguments);
  let state;
  try{
    state=await mount();
