@@ -48,6 +48,7 @@ function fixture(kind='corsisti'){
    return n;
  }
  const app=node('app-content'),head=node(),body=node();
+ body.style.overflow=''; // CSSStyleDeclaration del browser restituisce stringa vuota, non undefined
  const form=node(kind==='corsisti'?'form-corsista':'form-azienda');
  const id=node(kind==='corsisti'?'cor-id':'az-id'),name=node(kind==='corsisti'?'cor-nome':'az-ragione-sociale');
  id.type='hidden';name.type='text';form.fields=[id,name];
