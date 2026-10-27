@@ -147,7 +147,7 @@ function install(){
    const btn=event.target.closest('[data-safety-g4-project]');
    if(!btn)return;
    const projectId=btn.getAttribute('data-safety-g4-project');
-   if(!(window.SafetyGraphicG4.lastProjects||[]).some(function(p){return String(p.id)===projectId}))return;
+   if(!window.SafetyGraphicG4.visibleProjectIds.has(projectId))return;
    if(typeof window.dashboardOpenProject==='function')window.dashboardOpenProject(projectId);
    else if(typeof window.loadModule==='function')window.loadModule('progetti');
  });
@@ -155,8 +155,8 @@ function install(){
 window.SafetyGraphicG4={
  distribution:distribution,upcoming:upcoming,render:function(model){
    const ok=render(model);
-   if(ok){window.SafetyGraphicG4.lastProjects=Array.isArray(model&&model.projects)?model.projects:[];install()}
+   if(ok){window.SafetyGraphicG4.visibleProjectIds=new Set((Array.isArray(model&&model.projects)?model.projects:[]).map(function(p){return String(p.id)}));install()}
    return ok;
- },lastProjects:[]
+ },visibleProjectIds:new Set()
 };
 })();
