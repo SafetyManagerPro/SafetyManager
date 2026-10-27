@@ -35,7 +35,7 @@ const css=[
  ' #safety-g6-toggle:hover,#safety-g6-toggle[aria-expanded="true"]{background:#1d4ed8;border-color:#60a5fa}',
  ' #safety-g6-toggle:focus-visible,#top-nav.safety-g6-nav #top-nav-buttons>.btn-tab:focus-visible{outline:3px solid #93c5fd!important;outline-offset:2px!important}',
  ' #safety-g6-toggle svg{width:18px;height:18px;flex:none}',
- ' body:not(.is-printing-temp) #view-scadenze>div.grid:first-of-type{grid-template-columns:repeat(2,minmax(0,1fr))!important}',
+ ' body:not(.is-printing-temp) #view-scadenze #scadenze-stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}',
  ' body:not(.is-printing-temp) #app-content[data-safety-module="archivio_corsi"] #archivio-advanced-stats{grid-template-columns:repeat(2,minmax(0,1fr))!important}',
  ' body:not(.is-printing-temp) #view-scadenze button,body:not(.is-printing-temp) #app-content[data-safety-module="archivio_corsi"] button{min-height:44px}',
  ' body:not(.is-printing-temp) #view-scadenze input,body:not(.is-printing-temp) #view-scadenze select,body:not(.is-printing-temp) #app-content[data-safety-module="archivio_corsi"] input,body:not(.is-printing-temp) #app-content[data-safety-module="archivio_corsi"] select,body:not(.is-printing-temp) #app-content[data-safety-module="stampe"] select{font-size:16px!important;max-width:100%;min-width:0}',
