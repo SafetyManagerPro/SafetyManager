@@ -64,7 +64,7 @@ test('duplicato fiscale trovato senza toccare i dati e con esclusione ID in modi
 test('errore di lettura non viene interpretato come assenza duplicati',async()=>{
   const {client}=companyDB([],{code:'42501',message:'Accesso negato'});
   const w=setup(client);
-  await assert.rejects(w.checkAziendaIdentificativoDuplicato('01234567890'),/Accesso negato/);
+  await assert.rejects(w.checkAziendaIdentificativoDuplicato('01234567890'),err=>err?.code==='42501'&&err.message==='Accesso negato');
 });
 
 test('salvataggio impedito se PIVA/CF è già presente; mai doppia insert',async()=>{
