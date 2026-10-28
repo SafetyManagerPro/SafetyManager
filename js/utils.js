@@ -2826,6 +2826,7 @@ window.renderPopupCorsisti = async function(projectId) {
                         <th class="p-2 text-center">Certificato</th>
                         <th class="p-2 text-center">Esito</th>
                         <th class="p-2 text-center">Frequenza</th>
+                        <th class="p-2 text-center">Azioni</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -2839,6 +2840,11 @@ window.renderPopupCorsisti = async function(projectId) {
                             <td class="p-2 text-center font-mono ${isc.id_certificato ? 'text-emerald-700' : 'text-red-700 font-black'}">${window.dashEscape ? window.dashEscape(isc.id_certificato || 'Mancante') : (isc.id_certificato || 'Mancante')}</td>
                             <td class="p-2 text-center ${isc.esito ? 'text-emerald-700 font-bold' : 'text-red-700 font-black'}">${window.dashEscape ? window.dashEscape(isc.esito || 'Mancante') : (isc.esito || 'Mancante')}</td>
                             <td class="p-2 text-center ${isc.percentuale_frequenza !== null && isc.percentuale_frequenza !== undefined ? 'text-slate-700 font-bold' : 'text-red-700 font-black'}">${isc.percentuale_frequenza !== null && isc.percentuale_frequenza !== undefined ? isc.percentuale_frequenza + '%' : 'Mancante'}</td>
+                            <td class="p-2 text-center">
+                                <button type="button" onclick="window.rimuoviIscrizione('${isc.id}', '${projectId}')"
+                                    class="px-3 py-2.5 min-h-[44px] bg-rose-100 text-rose-800 hover:bg-rose-200 rounded-lg font-black text-[10px]"
+                                    title="Disiscrivi dal corso senza cancellare l'anagrafica">Disiscrivi</button>
+                            </td>
                         </tr>`;
                     }).join('')}
                 </tbody>
@@ -4262,14 +4268,41 @@ window.aggiungiIscrizione = async function() {
 };
 
 
+window.__safetyUnenrollInProgress = null;
 window.rimuoviIscrizione = async function(id, projectId = null) {
-    if(confirm("Rimuovere l'allievo dal corso?")) {
-        if(await window.deleteIscrizione(id)) {
+    if (!id || window.__safetyUnenrollInProgress) return false;
+    if (!confirm('Disiscrivere questo corsista dal corso?\\n\\nLa sua anagrafica e le iscrizioni ad altri corsi rimarranno invariate. Se esistono presenze, firme o altre evidenze formative la disiscrizione sarà bloccata.')) return false;
+    window.__safetyUnenrollInProgress = id;
+    try {
+        const removed = await window.deleteIscrizione(id);
+        if (!removed) {
+            alert(window.lastIscrizioneDeleteError || 'Disiscrizione non riuscita. Nessun dato modificato.');
+            return false;
+        }
+        try {
             if (typeof window.loadIscrittiTable === 'function' && document.getElementById('tabella-iscritti')) {
                 await window.loadIscrittiTable();
             }
-            await window.reloadLinkedViewsAfterMutation('iscrizione-delete', { projectId });
+            if (typeof window.reloadLinkedViewsAfterMutation === 'function') {
+                await window.reloadLinkedViewsAfterMutation('iscrizione-delete', { projectId });
+            }
+            const currentPopupId = document.getElementById('prog-id')?.value;
+            if (projectId && currentPopupId === projectId &&
+                document.getElementById('popup-corsisti-list') &&
+                typeof window.renderPopupCorsisti === 'function') {
+                await window.renderPopupCorsisti(projectId);
+            }
+        } catch (refreshError) {
+            console.warn('Disiscrizione riuscita, ma aggiornamento delle viste non riuscito:', refreshError);
+            alert('Corsista disiscritto correttamente. Aggiorna la pagina per vedere la lista aggiornata.');
         }
+        return true;
+    } catch (error) {
+        console.error('Disiscrizione: errore imprevisto', error);
+        alert('Impossibile disiscrivere il corsista: ' + String(error?.message || 'errore inatteso'));
+        return false;
+    } finally {
+        window.__safetyUnenrollInProgress = null;
     }
 };
 
