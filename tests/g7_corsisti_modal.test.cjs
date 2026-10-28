@@ -40,11 +40,11 @@ test('Apri e chiudi finestra senza mutazioni dati, ripristinando il focus',async
  assert.equal(errors.length,1);
 });
 test('Cache PWA aggiornata e caricamenti script allineati',()=>{
- assert.match(sw,/safetymanager-pwa-v19/);
- assert.ok(index.includes('utils.js?v=20261028-g8-status'));
- assert.ok(index.includes('app.js?v=20261028-g8-status'));
- assert.ok(index.includes('iscrizioni_rettifica.js?v=20261028-g8-status'));
- assert.ok(app.includes('progetti_corsisti_refinement.js?v=20261028-g8-status'));
- assert.match(app,/if \(moduleId === 'progetti'\) \{[\s\S]*?loadOptionalSafetyScript\('js\/modules\/progetti_corsisti_refinement\.js\?v=20261028-g8-status'\)/);
- assert.ok(sw.includes('progetti_corsisti_refinement.js?v=20261028-g8-status'));
+ assert.match(sw,/safetymanager-pwa-v20/);
+ assert.ok(index.includes('utils.js?v=20261028-g81-status'));
+ assert.ok(index.includes('app.js?v=20261028-g81-status'));
+ assert.ok(index.includes('iscrizioni_rettifica.js?v=20261028-g81-status'));
+ assert.ok(app.includes('progetti_corsisti_refinement.js?v=20261028-g81-status'));
+ assert.match(app,/if \(moduleId === 'progetti'\) \{[\s\S]*?loadOptionalSafetyScript\('js\/modules\/progetti_corsisti_refinement\.js\?v=20261028-g81-status'\)/);
+ assert.ok(sw.includes('progetti_corsisti_refinement.js?v=20261028-g81-status'));
 });

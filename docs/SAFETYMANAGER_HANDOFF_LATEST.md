@@ -831,3 +831,5 @@ GitHub Actions, deploy Vercel e runtime logs da verificare dopo il commit; nessu
 
 ## 2026-10-28 — G8.1 Correzione segnalazione e leggibilità Progetti
 Segnalazione stato separata dai controlli per trasferimenti G7: l'annotazione può essere registrata con motivazione anche quando esistono evidenze, che restano integre e richiedono verifica amministrativa. Trigger DB aggiornato senza cancellare documenti o storico, policy RLS admin invariata. Titolo corso, committente e data ingranditi con testo bianco su sfondo scuro in Progetti attivi. PWA v20. Nuovo collaudo UI autenticato richiesto.
+
+Collaudo G8.1: migration 20261028153233 applicata, segnalazione conserva audit/evidenze e non usa la verifica trasferimento G7. Referenze test PWA v20 allineate; verifica UI autenticata ancora necessaria.
