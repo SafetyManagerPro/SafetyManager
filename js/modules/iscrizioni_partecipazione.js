@@ -20,12 +20,7 @@ async function update(id,state,reason){
  if(why.length<12||why.length>500)throw Error('Motivazione obbligatoria da 12 a 500 caratteri.');
  const old=await get(id),before=old.partecipazione_stato||'iscritto';
  if(before===state)throw Error('Seleziona uno stato diverso.');
- if(state!=='iscritto'){
-  if(!window.SafetyEnrollmentReview?.examine)throw Error('Verifica delle evidenze non disponibile.');
-  const report=await window.SafetyEnrollmentReview.examine(id);
-  const blocked=report.reasons.filter(r=>r!=='Corso già svolto o chiuso');
-  if(blocked.length)throw Error('Evidenze presenti: '+blocked.join('; '));
- }
+ // La segnalazione non è un trasferimento: conservare evidenze esistenti e annotare l'errore.
  const {data,error}=await window.supabaseClient.from('iscrizioni')
  .update({partecipazione_stato:state,partecipazione_motivo:why})
  .eq('id',id).eq('progetto_id',old.progetto_id).eq('partecipazione_stato',before)
@@ -70,7 +65,7 @@ async function open(id){
    const status=el('safety-partecipazione-select')?.value,reason=el('safety-partecipazione-reason')?.value;
    if(!window.confirm('Confermi la rettifica dello stato? Rimarrà nello storico.'))return;
    busy=true;const button=el('safety-partecipazione-save');button.disabled=true;
-   try{const result=await update(id,status,reason);busy=false;close();await refresh(result.projectId);window.alert('Stato registrato.');}
+   try{const result=await update(id,status,reason);busy=false;close();try{await refresh(result.projectId)}catch(e){console.warn('Ricaricamento iscrizioni:',e)}window.alert('Stato registrato.');}
    catch(err){const box=el('safety-partecipazione-error');if(box){box.textContent=String(err.message||err);box.classList.remove('hidden');}}
    finally{busy=false;if(button.isConnected)button.disabled=false;}
   });

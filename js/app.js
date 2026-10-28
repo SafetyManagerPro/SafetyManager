@@ -347,7 +347,7 @@ window.loadModule = async function(moduleId) {
         if (moduleId === 'corsisti') {
             // I documenti del corsista non dipendono dalla Dashboard o dalla suite professionale.
             // Carica prima i comandi di stampa e poi la tabella, senza requisiti sui corsi.
-            await window.loadOptionalSafetyScript('js/modules/progetti_corsisti_refinement.js?v=20261028-g8-status');
+            await window.loadOptionalSafetyScript('js/modules/progetti_corsisti_refinement.js?v=20261028-g81-status');
             await window.loadOptionalSafetyScript('js/modules/corsisti_fascicolo_archivio.js');
             await window.loadOptionalSafetyScript('js/modules/corsisti_autoarchivia_stampe.js');
             if(!isCurrent())return;
@@ -357,7 +357,7 @@ window.loadModule = async function(moduleId) {
         if (moduleId === 'progetti') {
             // Necessario anche quando si entra direttamente in Progetti: la UI Corsisti
             // non deve dipendere da una visita preliminare all'Anagrafica Corsisti.
-            await window.loadOptionalSafetyScript('js/modules/progetti_corsisti_refinement.js?v=20261028-g8-status');
+            await window.loadOptionalSafetyScript('js/modules/progetti_corsisti_refinement.js?v=20261028-g81-status');
             if (!isCurrent()) return;
             if (typeof window.loadProgettiTable === 'function') await window.loadProgettiTable();
         }

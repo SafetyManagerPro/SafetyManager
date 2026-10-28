@@ -828,3 +828,6 @@ Audit successivo ha individuato un ulteriore problema di caricamento: il modulo 
 - Test non scrivono dati reali. Richiesti collaudi autenticati desktop/mobile e valutazione successiva di un'RPC transazionale per G7.
 
 GitHub Actions, deploy Vercel e runtime logs da verificare dopo il commit; nessuna rettifica reale compiuta nei test. SafetyTraining non toccato.
+
+## 2026-10-28 — G8.1 Correzione segnalazione e leggibilità Progetti
+Segnalazione stato separata dai controlli per trasferimenti G7: l'annotazione può essere registrata con motivazione anche quando esistono evidenze, che restano integre e richiedono verifica amministrativa. Trigger DB aggiornato senza cancellare documenti o storico, policy RLS admin invariata. Titolo corso, committente e data ingranditi con testo bianco su sfondo scuro in Progetti attivi. PWA v20. Nuovo collaudo UI autenticato richiesto.

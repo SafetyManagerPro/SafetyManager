@@ -118,7 +118,7 @@
         ? window.renderProjectQualityDashboard(p, iscritti, 'compact')
         : '';
 
-      return `<tr class="bg-white hover:bg-slate-50 transition-colors" data-corso="${esc(p.corso_id || '')}" data-azienda="${esc(p.azienda_id || '')}" data-project-id="${p.id}" data-project-separator="${p.id}">
+      return `<tr class="bg-slate-900 hover:bg-slate-800 transition-colors" data-corso="${esc(p.corso_id || '')}" data-azienda="${esc(p.azienda_id || '')}" data-project-id="${p.id}" data-project-separator="${p.id}">
         <td class="p-3 border-b border-slate-200 align-top">
           <button type="button" onclick="window.apriPopupProgettoById('${p.id}', 'progetti')" class="inline-flex rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 px-2 py-1 font-mono font-black text-[10px] text-rose-700">${esc(p.codice || 'Senza codice')}</button>
           <div class="mt-2 flex flex-wrap gap-1">${projectBadges(p, issues, iscritti)}</div>
@@ -127,14 +127,14 @@
           <div class="flex items-start gap-3">
             <div class="shrink-0 w-9 h-9 rounded-xl bg-blue-50 border border-blue-100 text-blue-700 flex items-center justify-center"><i data-lucide="graduation-cap" class="w-4 h-4"></i></div>
             <div class="min-w-0">
-              <p class="font-black text-slate-900 text-xs leading-snug"><span class="font-mono text-blue-700">[${esc(sigla)}]</span> ${esc(nomeCorso)}</p>
-              <p class="mt-1 text-[10px] font-bold text-slate-500 flex items-center gap-1"><i data-lucide="building-2" class="w-3 h-3"></i>${esc(nomeAzienda)}</p>
-              <p class="mt-1 text-[9px] text-slate-400 uppercase font-bold">${iscritti.length} corsisti iscritti</p>
+              <p class="font-black text-white text-lg leading-snug"><span class="font-mono text-amber-300">[${esc(sigla)}]</span> ${esc(nomeCorso)}</p>
+              <p class="mt-2 text-base font-bold text-slate-100 flex items-center gap-1"><i data-lucide="building-2" class="w-3 h-3"></i>${esc(nomeAzienda)}</p>
+              <p class="mt-2 text-xs text-slate-200 uppercase font-bold">${iscritti.length} corsisti iscritti</p>
             </div>
           </div>
         </td>
         <td class="p-3 border-b border-slate-200 align-top text-center">
-          <span class="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 font-mono text-[10px] font-bold text-slate-700"><i data-lucide="calendar-days" class="w-3 h-3"></i>${esc(window.formatDataToItalian ? window.formatDataToItalian(p.data_esame) : (p.data_esame || '-'))}</span>
+          <span class="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-800 px-3 py-2 font-mono text-base font-bold text-white"><i data-lucide="calendar-days" class="w-3 h-3"></i>${esc(window.formatDataToItalian ? window.formatDataToItalian(p.data_esame) : (p.data_esame || '-'))}</span>
         </td>
         <td class="p-3 border-b border-slate-200 align-top text-center whitespace-nowrap">
           <button onclick="window.apriPopupProgettoById('${p.id}', 'progetti')" class="text-blue-700 hover:bg-blue-200 bg-blue-100 p-2 rounded-lg transition" title="Modifica progetto"><i data-lucide="edit" class="w-3.5 h-3.5"></i></button>
@@ -164,13 +164,13 @@
       const quality = typeof window.renderProjectQualityDashboard === 'function'
         ? window.renderProjectQualityDashboard(p, iscritti, 'compact')
         : '';
-      return `<article class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden" data-corso="${esc(p.corso_id || '')}" data-azienda="${esc(p.azienda_id || '')}" data-mobile-project-id="${p.id}" data-project-id="${p.id}">
+      return `<article class="rounded-2xl border border-slate-200 bg-slate-900 shadow-sm overflow-hidden" data-corso="${esc(p.corso_id || '')}" data-azienda="${esc(p.azienda_id || '')}" data-mobile-project-id="${p.id}" data-project-id="${p.id}">
         <div class="p-4 border-b border-slate-200">
           <div class="flex items-start justify-between gap-3">
             <div class="min-w-0">
               <button onclick="window.apriPopupProgettoById('${p.id}', 'progetti')" class="font-mono text-rose-700 font-black text-xs hover:underline">${esc(p.codice || 'Senza codice')}</button>
-              <h3 class="mt-2 font-black text-slate-900 text-sm leading-snug"><span class="text-blue-700 font-mono text-[10px]">[${esc(sigla)}]</span> ${esc(nomeCorso)}</h3>
-              <p class="mt-1 text-[10px] font-bold text-slate-500">${esc(azienda)}</p>
+              <h3 class="mt-2 font-black text-white text-lg leading-snug"><span class="text-amber-300 font-mono text-sm">[${esc(sigla)}]</span> ${esc(nomeCorso)}</h3>
+              <p class="mt-2 text-base font-bold text-slate-100">${esc(azienda)}</p>
             </div>
             <div class="flex gap-1 shrink-0">
               <button onclick="window.apriPopupProgettoById('${p.id}', 'progetti')" class="text-blue-700 bg-blue-100 p-2 rounded-lg"><i data-lucide="edit" class="w-4 h-4"></i></button>
@@ -179,7 +179,7 @@
             </div>
           </div>
           <div class="mt-3 flex flex-wrap gap-1">${projectBadges(p, issues, iscritti)}</div>
-          <p class="mt-3 text-[9px] font-bold uppercase tracking-widest text-slate-400">Esame · ${esc(window.formatDataToItalian ? window.formatDataToItalian(p.data_esame) : (p.data_esame || '-'))}</p>
+          <p class="mt-3 text-base font-black uppercase text-white">Data corso / esame · ${esc(window.formatDataToItalian ? window.formatDataToItalian(p.data_esame) : (p.data_esame || '-'))}</p>
         </div>
         <div class="p-3 space-y-3 bg-slate-50">
           ${quality}
