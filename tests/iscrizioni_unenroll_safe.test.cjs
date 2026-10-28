@@ -105,7 +105,7 @@ test('Disiscrizione riporta un errore quando manca ID',async()=>{
 test('Il pulsante Disiscrivi è presente nel popup e usa ID iscrizione, non ID corsista',()=>{
  const a=utils.slice(utils.indexOf('window.renderPopupCorsisti ='),utils.indexOf('window.ensureProjectPopupTabs ='));
  assert.match(a,/<th class="p-2 text-center">Azioni<\/th>/);
- assert.match(a,/window\.rimuoviIscrizione\('\\$\{isc\.id\}', '\\$\{projectId\}'\)/);
+ assert.ok(a.includes("window.rimuoviIscrizione('${isc.id}', '${projectId}')"));
  assert.match(a,/>Disiscrivi<\/button>/);
 });
 test('Rimozione da UI segnala errori e ricarica la tab iscritti senza navigare',()=>{
