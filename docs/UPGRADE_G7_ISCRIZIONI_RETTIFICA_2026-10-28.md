@@ -27,3 +27,6 @@ Progetti → corso → Corsisti abbinati → Verifica / trasferisci. Se protetto
 
 ## Deploy
 PR, suite, merge e Vercel da registrare a rilascio.
+
+### Protezione aggiuntiva (28/10)
+Verifica anche firme, test, documenti archiviati e verifiche di efficacia collegate direttamente alla coppia corsista+progetto, anche se la FK iscrizione_id è NULL. In assenza di evidenze o in caso di query non disponibile resta la regola fail-closed. Stessa protezione aggiunta alla funzione di disiscrizione esistente. Non è stata eseguita alcuna cancellazione reale.
