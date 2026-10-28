@@ -110,7 +110,7 @@ window.getSchedaClienteCommittenteData = async function(subjectId) {
         iscritti.forEach(isc => {
             const c = isc.corsisti || {};
             const cid = c.id || isc.corsista_id || `${c.cf || ''}-${c.nome_cognome || ''}`;
-            if (cid) corsistiMap[cid] = c;
+            if (cid && !window.SafetyEnrollmentStatus?.flagged(isc)) corsistiMap[cid] = c;
             rows.push({
                 soggetto: subject.ragione_sociale || '',
                 piva_cf: subject.piva_cf || '',
@@ -131,6 +131,8 @@ window.getSchedaClienteCommittenteData = async function(subjectId) {
                 data_attestato: p.data_esame || '',
                 scadenza_attestato: isc.data_scadenza || '',
                 id_certificato: isc.id_certificato || '',
+                partecipazione_stato: isc.partecipazione_stato || 'iscritto',
+                partecipazione_motivo: isc.partecipazione_motivo || '',
                 esito: isc.esito || '',
                 frequenza: (isc.percentuale_frequenza !== null && isc.percentuale_frequenza !== undefined) ? `${isc.percentuale_frequenza}%` : '',
                 stato_corso: p.stato_corso || 'aperto',
@@ -150,8 +152,8 @@ window.getSchedaClienteCommittenteData = async function(subjectId) {
         stats: {
             progetti: progetti.length,
             corsisti: corsisti.length,
-            attestati: rows.filter(r => r.id_certificato).length,
-            scadenze: rows.filter(r => r.scadenza_attestato).length
+            attestati: rows.filter(r => r.id_certificato && !window.SafetyEnrollmentStatus?.flagged(r)).length,
+            scadenze: rows.filter(r => r.scadenza_attestato && !window.SafetyEnrollmentStatus?.flagged(r)).length
         }
     };
 };
@@ -166,18 +168,18 @@ window.buildSchedaClienteCommittenteHtml = function(data, printMode = false) {
     const emptyText = data.isEnte ? 'Nessun corsista/attestato collegato ai corsi erogati dall’ente.' : 'Nessun corsista/attestato collegato a questa azienda.';
 
     const rowsHtml = rows.length ? rows.map((r, idx) => `
-        <tr class="${idx % 2 === 0 ? 'bg-white' : 'bg-slate-100'}">
+        <tr class="${window.SafetyEnrollmentStatus?.flagged(r)?'bg-rose-100 text-rose-900':(idx%2===0?'bg-white':'bg-slate-100')}">
             <td>${idx + 1}</td>
             <td><strong>${window.dashEscape(r.corsista)}</strong><br><span style="font-family:monospace">${window.dashEscape(r.cf)}</span></td>
             <td>${window.dashEscape(r.nascita || '-')}</td>
             <td>${window.dashEscape(r.mansione || '-')}</td>
             <td>${window.dashEscape(r.azienda_committente || '-')}</td>
-            <td><strong>[${window.dashEscape(r.codice_corso)}]</strong><br>${window.dashEscape(r.corso)}</td>
+            <td><strong>[${window.dashEscape(r.codice_corso)}]</strong><br>${window.dashEscape(r.corso)}${window.SafetyEnrollmentStatus?.flagged(r)?'<br><strong style="color:#9f1239">⚠ '+window.dashEscape(window.SafetyEnrollmentStatus.label(r))+' — RIFERIMENTO STORICO NON VALIDO</strong>':''}</td>
             <td><span style="font-family:monospace">${window.dashEscape(r.codice_progetto)}</span><br>${window.formatDataToItalian(r.data_inizio)}</td>
             <td>${window.formatDataToItalian(r.data_attestato)}</td>
             <td>${window.formatDataToItalian(r.scadenza_attestato)}</td>
             <td><span style="font-family:monospace">${window.dashEscape(r.id_certificato || '-')}</span></td>
-            <td>${window.dashEscape(r.esito || '-')}<br>${window.dashEscape(r.frequenza || '')}</td>
+            <td>${window.SafetyEnrollmentStatus?.flagged(r)?'SEGNALAZIONE AMMINISTRATIVA':window.dashEscape(r.esito||'-')}<br>${window.dashEscape(r.frequenza||'')}</td>
         </tr>`).join('') : `
         <tr><td colspan="11" style="text-align:center;padding:18px;color:#64748b">${emptyText}</td></tr>`;
 
@@ -284,6 +286,8 @@ window.esportaSchedaClienteCommittenteXLS = async function(subjectId) {
         'Data attestato': r.data_attestato,
         'Scadenza attestato': r.scadenza_attestato,
         'ID certificato': r.id_certificato,
+        'Stato partecipazione': window.SafetyEnrollmentStatus?.label(r) || 'Iscritto',
+        'Motivo segnalazione': r.partecipazione_motivo || '',
         'Esito': r.esito,
         'Frequenza': r.frequenza,
         'Stato corso': r.stato_corso,
@@ -409,6 +413,7 @@ window.renderArchivioCorsi = function() {
                     const course = window.DB_CORSI[p.corso_id]?.t || p.corso_id;
                     const ccode = window.DB_CORSI[p.corso_id]?.code || '';
                     const iscritti = iscrizioniByProject[p.id] || [];
+                    const anomalies=iscritti.filter(i=>window.SafetyEnrollmentStatus?.flagged(i)).length;
                     const stato = p.stato_corso || 'aperto';
                     const badge = stato === 'chiuso' ? 'bg-slate-900 text-white' : (stato === 'svolto' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800');
                     return `<div class="archive-project-row p-4 ${projectIndex % 2 === 0 ? 'archive-project-row-even' : 'archive-project-row-odd'}">
@@ -417,6 +422,7 @@ window.renderArchivioCorsi = function() {
                                 <button onclick="window.apriPopupProgettoById('${p.id}', 'progetti')" class="font-mono text-rose-700 hover:underline font-black text-xs">${window.dashEscape(p.codice || '')}</button>
                                 <p class="font-black text-slate-900 uppercase text-sm mt-1"><span class="font-mono text-blue-700">[${window.dashEscape(ccode)}]</span> ${window.dashEscape(course)}</p>
                                 <p class="text-[10px] text-slate-500 uppercase mt-0.5">Esame: ${window.formatDataToItalian(p.data_esame)} · Corsisti: ${iscritti.length}</p>
+                                ${anomalies?`<p class="text-rose-900 bg-rose-100 border border-rose-400 rounded px-2 py-1 mt-2 text-xs font-black">⚠ ${anomalies} iscrizioni segnalate</p>`:''}
                                 ${p.documenti_firmati_url ? `<a href="${window.dashEscape(p.documenti_firmati_url)}" target="_blank" class="inline-block mt-2 text-[10px] font-black text-blue-700 hover:underline uppercase">Apri scansioni documenti firmati</a>` : ''}
                             </div>
                             <div class="flex flex-wrap gap-2 self-start justify-start lg:justify-end">
@@ -427,9 +433,10 @@ window.renderArchivioCorsi = function() {
                             </div>
                         </div>
                         <div class="mt-3 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
-                            ${iscritti.length ? iscritti.map((isc, idx) => `<div class="border border-slate-200 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'} rounded-lg p-2">
+                            ${iscritti.length ? iscritti.map((isc, idx) => `<div class="border ${window.SafetyEnrollmentStatus?.flagged(isc)?'border-rose-500 bg-rose-100':(idx%2===0?'border-slate-200 bg-white':'border-slate-200 bg-slate-50')} rounded-lg p-2">
                                 <p class="font-black uppercase text-slate-900 text-[11px]">${window.dashEscape(isc.corsisti?.nome_cognome || '-')}</p>
                                 <p class="font-mono text-[9px] text-slate-500">${window.dashEscape(isc.corsisti?.cf || '-')}</p>
+                                ${window.SafetyEnrollmentStatus?.flagged(isc)?`<p class="text-rose-900 font-black text-[10px] mt-1">⚠ ${window.dashEscape(window.SafetyEnrollmentStatus.label(isc))} — non certificabile</p>`:''}
                                 <p class="text-[9px] text-slate-500 mt-1">${window.dashEscape(isc.mansione_storica || isc.corsisti?.mansione_storica || '-')}</p>
                             </div>`).join('') : '<div class="text-[10px] text-red-600 font-bold uppercase">Nessun corsista abbinato</div>'}
                         </div>

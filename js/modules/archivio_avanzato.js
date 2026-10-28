@@ -121,7 +121,7 @@
     const iscrizioniByProject = window.archivioCorsiState.iscrizioniByProject || {};
     const projects = groups.flatMap(g => g.progetti || []);
     const iscrizioni = projects.flatMap(p => iscrizioniByProject[p.id] || []);
-    const uniqueCorsisti = new Set(iscrizioni.map(i => i.corsisti?.id || i.corsista_id || i.corsisti?.cf || i.corsisti?.nome_cognome).filter(Boolean));
+    const uniqueCorsisti = new Set(iscrizioni.filter(i=>!window.SafetyEnrollmentStatus?.flagged(i)).map(i => i.corsisti?.id || i.corsista_id || i.corsisti?.cf || i.corsisti?.nome_cognome).filter(Boolean));
     const stats = {
       groups: groups.length,
       projects: projects.length,
@@ -193,17 +193,19 @@
       const dd = daysTo(isc.data_scadenza);
       const scadTone = dd === null ? 'slate' : (dd < 0 ? 'rose' : (dd <= 90 ? 'amber' : 'emerald'));
       const scadText = dd === null ? 'Scadenza n/d' : (dd < 0 ? `Scaduto da ${Math.abs(dd)}g` : (dd <= 90 ? `Scade tra ${dd}g` : `Scade ${fmt(isc.data_scadenza)}`));
-      return `<div class="border border-slate-200 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'} rounded-xl p-3">
+      const flagged=window.SafetyEnrollmentStatus?.flagged(isc)||false;
+      return `<div class="border ${flagged?'border-rose-500 bg-rose-100':(idx%2===0?'border-slate-200 bg-white':'border-slate-200 bg-slate-50')} rounded-xl p-3">
         <div class="flex items-start justify-between gap-2">
           <div class="min-w-0">
             <p class="font-black uppercase text-slate-900 text-[11px] truncate">${esc(c.nome_cognome || '-')}</p>
             <p class="font-mono text-[9px] text-slate-500">${esc(c.cf || '-')}</p>
+            ${flagged?`<p role="status" class="mt-1 text-[10px] text-rose-900 font-black">⚠ ${esc(window.SafetyEnrollmentStatus.label(isc))} — attestato inibito</p>`:''}
           </div>
           <span class="shrink-0 px-2 py-0.5 rounded-full bg-${scadTone}-50 text-${scadTone}-800 border border-${scadTone}-100 text-[8px] font-black uppercase">${esc(scadText)}</span>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 text-[9px] text-slate-600">
           <p><strong>Mansione:</strong> ${esc(isc.mansione_storica || c.mansione_storica || '-')}</p>
-          <p><strong>Esito:</strong> ${esc(isc.esito || '-')}</p>
+          <p><strong>Esito:</strong> ${flagged?'SEGNALATO — '+esc(window.SafetyEnrollmentStatus.label(isc)):esc(isc.esito||'-')}</p>
           <p><strong>ID:</strong> <span class="font-mono">${esc(isc.id_certificato || '-')}</span></p>
           <p><strong>Freq.:</strong> ${esc(isc.percentuale_frequenza ?? '-')}%</p>
         </div>
@@ -237,7 +239,7 @@
       const isCollapsed = !!collapsed[g.key];
       const iscrizioniByProject = window.archivioCorsiState.iscrizioniByProject || {};
       const iscrittiGroup = g.progetti.flatMap(p => iscrizioniByProject[p.id] || []);
-      const attestatiGroup = iscrittiGroup.filter(i => ok(i.id_certificato)).length;
+      const attestatiGroup = iscrittiGroup.filter(i => ok(i.id_certificato)&&!window.SafetyEnrollmentStatus?.flagged(i)).length;
       const scad90 = iscrittiGroup.filter(i => { const dd = daysTo(i.data_scadenza); return dd !== null && dd >= 0 && dd <= 90; }).length;
       return `
       <div class="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden">
@@ -326,6 +328,8 @@
           'Codice fiscale': i.corsisti?.cf || '',
           'Mansione': i.mansione_storica || i.corsisti?.mansione_storica || '',
           'ID attestato': i.id_certificato || '',
+          'Stato partecipazione': window.SafetyEnrollmentStatus?.label(i)||'Iscritto',
+          'Motivo segnalazione': i.partecipazione_motivo||'',
           'Scadenza': i.data_scadenza || '',
           'Esito': i.esito || '',
           'Frequenza %': i.percentuale_frequenza ?? '',
@@ -355,7 +359,7 @@
     const printArea = document.getElementById('print-area-temp');
     if (!printArea) return alert('Area stampa non disponibile.');
     const sample = rows.slice(0, 120);
-    const headers = ['Soggetto','Codice progetto','Corso','Data verifica','Stato','Corsista','ID attestato','Scadenza'];
+    const headers = ['Soggetto','Codice progetto','Corso','Data verifica','Stato','Corsista','Stato partecipazione','ID attestato','Scadenza'];
     printArea.innerHTML = `<div class="export-print-page"><h1>Archivio corsi - sintesi filtrata</h1><p style="font-size:8pt;color:#64748b;margin-bottom:5mm">Generata il ${new Date().toLocaleString('it-IT')} · ${rows.length} righe totali${rows.length>sample.length ? ' · prime ' + sample.length + ' righe' : ''}</p><table><thead><tr>${headers.map(h=>`<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${sample.map(r=>`<tr>${headers.map(h=>`<td>${esc(r[h] || '')}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
     document.body.classList.add('is-printing-temp');
     setTimeout(() => {

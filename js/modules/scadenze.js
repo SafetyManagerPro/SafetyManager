@@ -6,6 +6,8 @@ window.fetchScadenzeData = async function() {
         .from('iscrizioni')
         .select(`
             id,
+            partecipazione_stato,
+            partecipazione_motivo,
             data_scadenza,
             id_certificato,
             corsisti (
@@ -92,6 +94,7 @@ window.renderScadenzeTable = function() {
         const nomeCorso = window.DB_CORSI[corsoId] ? window.DB_CORSI[corsoId].t : corsoId;
         const dataEsame = isc.progetti && isc.progetti.data_esame ? window.formatDataToItalian(isc.progetti.data_esame) : '-';
         const dataScad = window.formatDataToItalian(isc.data_scadenza);
+        const flagged=window.SafetyEnrollmentStatus?.flagged(isc)||false;
 
         let dScad = new Date(isc.data_scadenza);
         let timeDiff = dScad.getTime() - oggi.getTime();
@@ -108,10 +111,11 @@ window.renderScadenzeTable = function() {
             statusBadge = `<span class="bg-emerald-100 text-emerald-700 px-2 py-1 rounded font-bold text-[9px] uppercase border border-emerald-200">Attivo</span>`;
         }
 
+        if(flagged)statusBadge=`<span role="status" class="bg-rose-700 text-white px-2 py-1 rounded font-black text-[10px]">⚠ ${window.SafetyEnrollmentStatus.label(isc)} · Scadenza non valida</span>`;
         html += `
-            <tr class="hover:bg-slate-50 border-b border-slate-100 transition-colors text-xs">
+            <tr class="${flagged?'bg-rose-100 border-rose-500':'hover:bg-slate-50 border-slate-100'} border-b transition-colors text-xs">
                 <td class="p-3 font-bold text-slate-800">${corsista}</td>
-                <td class="p-3 text-slate-600 font-semibold truncate max-w-[200px]" title="${nomeCorso}">${nomeCorso}</td>
+                <td class="p-3 ${flagged?'text-rose-900 font-black':'text-slate-600 font-semibold'} max-w-[200px]" title="${nomeCorso}">${nomeCorso}${flagged?' ⚠':''}</td>
                 <td class="p-3 text-center text-slate-500 font-mono text-[10px]">${dataEsame}</td>
                 <td class="p-3 text-center font-bold text-red-600 font-mono">${dataScad}<br><div class="mt-1">${statusBadge}</div></td>
                 <td class="p-3 font-bold text-blue-900 text-[10px] uppercase">${azienda}</td>

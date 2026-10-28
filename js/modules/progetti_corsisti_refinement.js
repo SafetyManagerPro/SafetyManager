@@ -264,7 +264,8 @@
     const courses=(row.iscrizioni||[]).filter(isc=>isc.progetti?.id).map(isc=>{
       const id=String(isc.progetti.id);
       const corso=window.DB_CORSI?.[isc.progetti.corso_id];
-      return {id,label:[corso?.t||isc.progetti.corso_id||'Corso',isc.progetti.codice||''].filter(Boolean).join(' · ')};
+      const flagged=window.SafetyEnrollmentStatus?.flagged(isc)||false;
+      return {id,flagged,label:[corso?.t||isc.progetti.corso_id||'Corso',isc.progetti.codice||''].filter(Boolean).join(' · ')+(flagged?' ⚠ '+window.SafetyEnrollmentStatus.label(isc):'')};
     });
     const courseOptions=[...new Map(courses.map(c=>[c.id,c])).values()];
     overlay.innerHTML=`<div class="w-full max-w-xl rounded-2xl shadow-2xl bg-white border border-slate-200 p-5 space-y-4">
@@ -279,8 +280,9 @@
       <button type="button" data-corsista-print-go class="w-full rounded-lg bg-indigo-700 text-white px-4 py-3 font-black text-xs uppercase">Stampa facsimile precompilato</button>
       <button type="button" data-corsista-open-fascicolo class="w-full rounded-lg border border-violet-300 bg-violet-50 text-violet-900 px-4 py-2 font-black text-xs">Apri fascicolo PDF e archivio storico</button>
       ${courseOptions.length?`<div class="border-t border-slate-200 pt-3 space-y-2"><label class="block text-xs font-bold text-slate-700">Attestato del corso associato
-        <select data-corsista-print-course class="mt-1 w-full rounded-lg border border-slate-300 bg-white text-slate-900 px-3 py-2">${courseOptions.map(c=>`<option value="${esc(c.id)}">${esc(c.label)}</option>`).join('')}</select></label>
-        <button type="button" data-corsista-print-course-go class="w-full rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-900 px-4 py-2 font-black text-xs">Stampa attestato del corso selezionato</button></div>`:''}
+        <select data-corsista-print-course class="mt-1 w-full rounded-lg border border-slate-300 bg-white text-slate-900 px-3 py-2">${courseOptions.map(c=>`<option value="${esc(c.id)}" ${c.flagged?'disabled':''}>${esc(c.label)}</option>`).join('')}</select></label>
+        <button type="button" data-corsista-print-course-go ${courseOptions.every(c=>c.flagged)?'disabled':''} class="w-full rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-900 px-4 py-2 font-black text-xs disabled:opacity-40">Stampa attestato del corso selezionato</button>
+        ${courseOptions.some(c=>c.flagged)?'<p class="text-rose-900 font-black text-xs">⚠ I corsi segnalati sono disabilitati per i nuovi attestati.</p>':''}</div>`:''}
       <p class="text-[11px] text-slate-500">La stampa non emette automaticamente un attestato ufficiale e non conferisce nomine o abilitazioni.</p>
     </div>`;
     const close=()=>{if(overlay.isConnected)overlay.remove();};
@@ -308,7 +310,8 @@
     const courseButton=overlay.querySelector('[data-corsista-print-course-go]');
     if(courseButton)courseButton.onclick=async e=>{
       const courseId=overlay.querySelector('[data-corsista-print-course]')?.value;
-      if(!courseId)return;
+      const chosen=courseOptions.find(c=>c.id===courseId);
+      if(!courseId||!chosen||chosen.flagged)return alert('Attestato inibito: iscrizione non partecipante o erronea.');
       close();
       await window.stampaAttestatoCorsista(courseId,corsistaId);
     };

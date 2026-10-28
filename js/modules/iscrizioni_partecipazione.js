@@ -31,6 +31,10 @@ async function update(id,state,reason){
 }
 function close(){if(busy)return;el('safety-partecipazione-modal')?.remove();opened=null;}
 async function refresh(id){
+ window.allScadenzeList=[];
+ if(window.archivioCorsiState)window.archivioCorsiState.iscrizioniByProject={};
+ if(el('tabella-corsisti')&&typeof window.loadCorsistiTable==='function')await window.loadCorsistiTable();
+ if(el('tabella-scadenze')&&typeof window.loadScadenzeTable==='function')await window.loadScadenzeTable();
  if(el('tabella-progetti')&&typeof window.loadProgettiTable==='function')await window.loadProgettiTable();
  if(el('popup-corsisti-list')&&el('prog-id')?.value===id&&typeof window.renderPopupCorsisti==='function')await window.renderPopupCorsisti(id);
  if(el('panel-iscrizioni')?.classList.contains('flex')&&window.currentProgettoId===id&&typeof window.loadIscrittiTable==='function')await window.loadIscrittiTable();
@@ -71,5 +75,17 @@ async function open(id){
   });
  }catch(err){root.innerHTML='<section class="max-w-xl mx-auto bg-white rounded-xl p-5"><p class="text-rose-800 font-bold">'+esc(err.message||err)+'</p><button id="safety-partecipazione-close" class="mt-4 border p-2 rounded-lg">Chiudi</button></section>';el('safety-partecipazione-close')?.addEventListener('click',close);}
 }
+
+window.SafetyEnrollmentStatus = Object.freeze({
+ flagged: i => ['non_partecipante','iscrizione_erronea'].includes(String(i?.partecipazione_stato||'iscritto')),
+ label: i => ({non_partecipante:'NON PARTECIPANTE',iscrizione_erronea:'ISCRIZIONE ERRONEA'})[i?.partecipazione_stato]||'',
+ flaggedIn: rows => (Array.isArray(rows)?rows:[]).some(i=>window.SafetyEnrollmentStatus.flagged(i)),
+ assertPrintable: rows => {
+  if(window.SafetyEnrollmentStatus.flaggedIn(rows))
+   throw Error('ATTESTATO BLOCCATO: iscrizione erronea o non partecipante. Sono consultabili i documenti storici senza nuova emissione.');
+  return true;
+ }
+});
+
 window.SafetyPartecipazione={open,close,update,labels};window.apriSegnalazioneIscrizione=open;
 })();

@@ -132,7 +132,7 @@
   async function fetchInternalHistory(corsistaId) {
     const { data, error } = await window.supabaseClient
       .from('iscrizioni')
-      .select('id,id_certificato,esito,data_scadenza,ore_frequentate,percentuale_frequenza,progetti(id,codice,corso_id,data_esame)')
+      .select('id,id_certificato,esito,data_scadenza,ore_frequentate,percentuale_frequenza,partecipazione_stato,partecipazione_motivo,progetti(id,codice,corso_id,data_esame)')
       .eq('corsista_id',corsistaId);
     if (error) throw error;
     return (data || []).sort((a,b) => String(b.progetti?.data_esame || '').localeCompare(String(a.progetti?.data_esame || '')));
@@ -164,16 +164,17 @@
     return history.map(i => {
       const cid=i.progetti?.corso_id||'';
       const c=window.DB_CORSI?.[cid]||{};
-      return `<div class="rounded-xl border border-slate-200 bg-white p-3">
+      const flagged=window.SafetyEnrollmentStatus?.flagged(i)||false;
+      return `<div class="rounded-xl border ${flagged?'border-rose-500 bg-rose-100':'border-slate-200 bg-white'} p-3">
         <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
           <div>
-            <p class="font-black text-slate-900 text-xs">${esc(c.t||cid||'Corso')}</p>
+            <p class="font-black ${flagged?'text-rose-900':'text-slate-900'} text-xs">${esc(c.t||cid||'Corso')}</p>${flagged?`<p role="status" class="text-rose-900 font-black text-[10px] mt-1">⚠ ${esc(window.SafetyEnrollmentStatus.label(i))} — non valido ai fini della formazione</p>`:''}
             <p class="text-[9px] text-slate-500 mt-0.5">${esc(i.progetti?.codice||'')} · verifica ${esc(fmt(i.progetti?.data_esame))}</p>
           </div>
-          <span class="font-mono text-[9px] text-blue-700">${esc(i.id_certificato||'ID non registrato')}</span>
+          <span class="font-mono text-[9px] ${flagged?'text-rose-900':'text-blue-700'}">${esc(i.id_certificato||'ID non registrato')}${flagged?' · NON CERTIFICABILE':''}</span>
         </div>
         <div class="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-2 text-[9px]">
-          <div><span class="text-slate-400 uppercase font-black">Esito</span><p class="font-bold text-slate-700">${esc(i.esito||'-')}</p></div>
+          <div><span class="text-slate-400 uppercase font-black">Esito</span><p class="font-bold ${flagged?'text-rose-900':'text-slate-700'}">${flagged?'SEGNALATO — '+esc(window.SafetyEnrollmentStatus.label(i)):esc(i.esito||'-')}</p></div>
           <div><span class="text-slate-400 uppercase font-black">Frequenza</span><p class="font-bold text-slate-700">${i.percentuale_frequenza==null?'-':esc(i.percentuale_frequenza+'%')}</p></div>
           <div><span class="text-slate-400 uppercase font-black">Ore</span><p class="font-bold text-slate-700">${i.ore_frequentate==null?'-':esc(i.ore_frequentate)}</p></div>
           <div><span class="text-slate-400 uppercase font-black">Scadenza</span><p class="font-bold text-slate-700">${esc(fmt(i.data_scadenza))}</p></div>

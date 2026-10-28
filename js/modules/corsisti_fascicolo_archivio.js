@@ -173,6 +173,7 @@ function render(){
         '<p class="text-xs text-slate-600 mt-2">Archiviato '+esc(fmtDate(d.creato_il))+
         (d.data_documento?' · Data documento '+esc(fmtDate(d.data_documento)):'')+'</p>'+
         '<p class="text-xs text-slate-700 mt-1">Azienda storica: '+esc(d.azienda_storica_nome||'Non indicata')+' · '+esc(source)+'</p>'+
+        (course&&window.SafetyEnrollmentStatus?.flagged(course)?'<p class="text-xs font-black mt-1 text-rose-900 bg-rose-100 border border-rose-400 rounded px-2 py-1">⚠ '+esc(window.SafetyEnrollmentStatus.label(course))+' — PDF storico conservato; nuova emissione attestati inibita</p>':'')+
         '<p class="text-xs text-slate-500">Corsista: '+esc(d.nome_cognome_storico)+' · '+esc(d.cf_storico||'C.F. non indicato')+'</p>'+
         (d.note?'<p class="text-xs text-slate-500 mt-1">'+esc(d.note)+'</p>':'')+
         '</div><div class="flex flex-col sm:flex-row lg:flex-col gap-2 w-full lg:w-auto lg:min-w-40">'+
@@ -188,7 +189,7 @@ async function refresh(){
  const id=state.id;
  const [docRes,enrRes]=await Promise.all([
   db().from(TABLE).select('*').eq('corsista_id',id).order('creato_il',{ascending:false}).limit(500),
-  db().from('iscrizioni').select('id,progetto_id,nome_cognome_storico,cf_storico,mansione_storica,azienda_storica_nome,azienda_storica_id,progetti(codice,corso_id,data_esame)').eq('corsista_id',id).limit(500)
+  db().from('iscrizioni').select('id,progetto_id,nome_cognome_storico,cf_storico,mansione_storica,azienda_storica_nome,azienda_storica_id,partecipazione_stato,partecipazione_motivo,progetti(codice,corso_id,data_esame)').eq('corsista_id',id).limit(500)
  ]);
  if(state.id!==id)return;
  if(docRes.error)throw docRes.error;
@@ -197,7 +198,7 @@ async function refresh(){
  state.enrollments=enrRes.data||[];
  const select=el('cfasc-enrollment'),chosen=select?.value||'';
  if(select){
-   select.innerHTML='<option value="">Nessun corso associato</option>'+state.enrollments.map(e=>'<option value="'+esc(e.id)+'">'+esc([e.progetti?.codice,e.progetti?.corso_id].filter(Boolean).join(' · ')||'Iscrizione')+'</option>').join('');
+   select.innerHTML='<option value="">Nessun corso associato</option>'+state.enrollments.map(e=>'<option value="'+esc(e.id)+'">'+esc([e.progetti?.codice,e.progetti?.corso_id].filter(Boolean).join(' · ')||'Iscrizione')+(window.SafetyEnrollmentStatus?.flagged(e)?' ⚠ '+esc(window.SafetyEnrollmentStatus.label(e)):'')+'</option>').join('');
    if(chosen)select.value=chosen;
  }
  render();
@@ -244,6 +245,8 @@ async function upload(){
  let storagePath=null;
  try{
   const enrollment=state.enrollments.find(e=>e.id===el('cfasc-enrollment')?.value);
+  if(type==='attestato'&&enrollment&&window.SafetyEnrollmentStatus?.flagged(enrollment))
+    throw Error('Impossibile archiviare un nuovo attestato per iscrizione segnalata. I PDF storici rimangono consultabili.');
   let companyName=enrollment?.azienda_storica_nome||'';
   let companyId=enrollment?.azienda_storica_id||null;
   if(!companyName){
@@ -304,12 +307,14 @@ window.SafetyCorsistiFascicolo={
    if(!person)throw Error('Corsista non presente nella anagrafica.');
    const cid=String(corsistaId),pid=projectId?String(projectId):null;
    let query=db().from('iscrizioni').select(
-      'id,progetto_id,nome_cognome_storico,cf_storico,mansione_storica,azienda_storica_nome,azienda_storica_id'
+      'id,progetto_id,nome_cognome_storico,cf_storico,mansione_storica,azienda_storica_nome,azienda_storica_id,partecipazione_stato'
    ).eq('corsista_id',cid).limit(1);
    query=pid?query.eq('progetto_id',pid):query.is('progetto_id',null);
    const {data:matches,error:enrollmentError}=await query;
    if(enrollmentError)throw enrollmentError;
    const enrollment=(matches||[])[0]||null;
+   if(tipo_documento==='attestato'&&pid&&(!enrollment||window.SafetyEnrollmentStatus?.flagged(enrollment)))
+     throw Error('Nuovo attestato non archiviabile: iscrizione segnalata o non trovata.');
    // Senza iscrizione collegata i modelli rimangono indipendenti dal corso.
    const actualPid=enrollment?.progetto_id||null;
    const title=String(titolo||'Documento').trim().slice(0,200);

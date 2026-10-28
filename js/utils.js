@@ -1387,7 +1387,9 @@ id,
             aziende ( ragione_sociale, sede_operativa ),
             iscrizioni (
                 id_certificato,
-                progetto_id,
+                partecipazione_stato,
+                    partecipazione_motivo,
+                    progetto_id,
                 progetti (
                     id,
                     codice,
@@ -1419,6 +1421,8 @@ id,
                 aziende ( ragione_sociale, sede_operativa ),
                 iscrizioni (
                     id_certificato,
+                    partecipazione_stato,
+                    partecipazione_motivo,
                     progetto_id,
                     progetti (
                         id,
@@ -1450,6 +1454,8 @@ id,
                 aziende ( ragione_sociale, sede_operativa ),
                 iscrizioni (
                     id_certificato,
+                    partecipazione_stato,
+                    partecipazione_motivo,
                     progetto_id,
                     progetti (
                         id,
@@ -1505,11 +1511,13 @@ id,
                     const projectId = isc.progetti.id || isc.progetto_id;
                     const codice = isc.progetti.codice || '';
                     const siglaCorso = cInfo ? cInfo.code : (isc.progetti.corso_id || 'CRS');
-                    cArr.push(`<div class="flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1">
+                    const flagged=window.SafetyEnrollmentStatus?.flagged(isc)||false;
+                    const reason=window.SafetyEnrollmentStatus?.label(isc)||'';
+                    cArr.push(`<div data-enrollment-status="${window.dashEscape(isc.partecipazione_stato||'iscritto')}" class="flex items-center justify-between gap-2 rounded-lg border ${flagged?'border-rose-500 bg-rose-100':'border-slate-200 bg-slate-50'} px-2 py-1">
                         <button type="button" onclick="window.apriProgettoDaCorsoSvolto('${projectId}', '${cor.id}')" class="min-w-0 block text-left font-black text-blue-700 hover:text-blue-900 hover:underline text-[11px] truncate" title="Apri progetto esistente ${codice}">• <span class="font-mono text-slate-900">[${window.dashEscape(siglaCorso)}]</span> ${window.dashEscape(tCorso)} <span class="font-mono text-[9px] text-slate-500">${window.dashEscape(codice)}</span></button>
-                        <button type="button" onclick="window.stampaAttestatoCorsista('${projectId}', '${cor.id}')" class="shrink-0 bg-emerald-700 hover:bg-emerald-600 text-white rounded px-2 py-1 text-[8px] font-black uppercase" title="Stampa attestato corsista">Attestato</button>
+                        ${flagged ? `<span role="status" class="shrink-0 bg-rose-700 text-white rounded px-2 py-1 text-[9px] font-black">⚠ ${window.dashEscape(reason)} · Attestato inibito</span>` : `<button type="button" onclick="window.stampaAttestatoCorsista('${projectId}', '${cor.id}')" class="shrink-0 bg-emerald-700 hover:bg-emerald-600 text-white rounded px-2 py-1 text-[8px] font-black uppercase" title="Stampa attestato corsista">Attestato</button>`}
                     </div>`);
-                    dArr.push(`<button type="button" onclick="window.apriProgettoDaCorsoSvolto('${projectId}', '${cor.id}')" class="font-mono text-blue-700 hover:underline text-[10px]" title="Apri progetto esistente">${dFine}</button>`);
+                    dArr.push(`<button type="button" onclick="window.apriProgettoDaCorsoSvolto('${projectId}', '${cor.id}')" class="font-mono ${flagged?'bg-rose-100 border border-rose-500 rounded px-2 py-1 text-rose-900 font-black':'text-blue-700 hover:underline'} text-xs" title="Apri progetto esistente">${dFine}${flagged?' ⚠':''}</button>`);
                 }
             });
             if (cArr.length > 0) {
@@ -3029,14 +3037,15 @@ window.renderInlineIscrittiCards = function(projectId, iscritti, showAll = false
             ${visible.map(isc => {
                 const c = isc.corsisti || {};
                 const missing = !isc.id_certificato || !isc.esito || isc.percentuale_frequenza === null || isc.percentuale_frequenza === undefined;
-                return `<div class="rounded-xl border ${missing ? 'border-red-500/70 bg-red-950/80' : 'border-slate-600 bg-slate-800'} p-3 shadow-sm">
+                const flagged=window.SafetyEnrollmentStatus?.flagged(isc)||false;
+                return `<div class="rounded-xl border ${flagged?'border-rose-500 bg-rose-950':(missing?'border-red-500/70 bg-red-950/80':'border-slate-600 bg-slate-800')} p-3 shadow-sm">
                     <div class="flex items-start justify-between gap-2">
                         <div class="min-w-0">
                             <p class="font-black uppercase text-white text-[11px] leading-tight break-words">${window.dashEscape(c.nome_cognome || '-')}</p>
                             <p class="font-mono text-[9px] text-slate-300 mt-0.5">${window.dashEscape(c.cf || '-')}</p>
                         </div>
                         <div class="flex gap-1 shrink-0">
-                            <button onclick="window.stampaAttestatoCorsista('${projectId}', '${c.id || isc.corsista_id}')" class="p-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white" title="Stampa attestato individuale"><i data-lucide="award" class="w-3 h-3"></i></button>
+                            ${flagged?'<span class="text-rose-200 text-[10px] font-black">⚠ ATTESTATO INIBITO</span>':`<button onclick="window.stampaAttestatoCorsista('${projectId}', '${c.id || isc.corsista_id}')" class="p-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white" title="Stampa attestato individuale"><i data-lucide="award" class="w-3 h-3"></i></button>`}
                             ${typeof window.isLinguaTestRequired === 'function' && window.isLinguaTestRequired(c) ? `<button onclick="window.stampaTestLinguaCorsista('${projectId}', '${c.id || isc.corsista_id}')" class="p-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950" title="Stampa test lingua italiana"><i data-lucide="languages" class="w-3 h-3"></i></button>` : ''}
                             <button onclick="window.modificaCorsistaDaProgetto('${c.id || isc.corsista_id}','${projectId}')" class="p-2 rounded-lg bg-blue-500 hover:bg-blue-400 text-white" title="Modifica corsista"><i data-lucide="edit-3" class="w-3 h-3"></i></button>
                             <button onclick="window.rimuoviIscrizione('${isc.id}', '${projectId}')" class="p-2 rounded-lg bg-red-600 hover:bg-red-500 text-white" title="Rimuovi dal corso"><i data-lucide="user-minus" class="w-3 h-3"></i></button>
@@ -4600,14 +4609,15 @@ window.buildFoglioProgettoHtml = function(project, iscritti, printMode = false) 
     const rows = (iscritti || []).map((isc, idx) => {
         const c = isc.corsisti || {};
         const even = idx % 2 === 0;
-        return `<tr class="${even ? 'bg-white' : 'bg-slate-100'}">
+        const flagged=window.SafetyEnrollmentStatus?.flagged(isc)||false;
+        return `<tr class="${flagged?'bg-rose-100 text-rose-900':(even?'bg-white':'bg-slate-100')}">
             <td class="border border-slate-300 p-2 text-center font-black">${idx + 1}</td>
-            <td class="border border-slate-300 p-2 font-black uppercase">${window.dashEscape(c.nome_cognome || '')}</td>
+            <td class="border border-slate-300 p-2 font-black uppercase">${window.dashEscape(c.nome_cognome || '')}${flagged?`<span class="block text-[9px] text-rose-900">⚠ ${window.dashEscape(window.SafetyEnrollmentStatus.label(isc))}</span>`:''}</td>
             <td class="border border-slate-300 p-2 font-mono">${window.dashEscape(c.cf || '')}</td>
             <td class="border border-slate-300 p-2">${window.dashEscape(c.luogo_data_nascita || '')}</td>
             <td class="border border-slate-300 p-2">${window.dashEscape(isc.mansione_storica || c.mansione_storica || '')}</td>
             <td class="border border-slate-300 p-2 font-mono">${window.dashEscape(isc.id_certificato || '')}</td>
-            <td class="border border-slate-300 p-2 text-center">${window.dashEscape(isc.esito || '')}</td>
+            <td class="border border-slate-300 p-2 text-center">${flagged?'NON VALIDO · '+window.dashEscape(window.SafetyEnrollmentStatus.label(isc)):window.dashEscape(isc.esito || '')}</td>
             <td class="border border-slate-300 p-2 text-center">${isc.percentuale_frequenza !== null && isc.percentuale_frequenza !== undefined ? isc.percentuale_frequenza + '%' : ''}</td>
             <td class="border border-slate-300 p-2">${window.dashEscape(isc.note_verifica || '')}</td>
         </tr>`;
@@ -4996,6 +5006,7 @@ window.renderManualTestsForCurrentPrintProject = function(options = {}) {
 };
 
 window.renderPrintModulePages = async function(moduleId, singleCorsista = null, options = {}) {
+    if(moduleId==='attestato') window.SafetyEnrollmentStatus?.assertPrintable(singleCorsista?[singleCorsista]:(options.session||window.currentSessionCorsisti||[]));
     const preview = !!options.preview;
     // Le condizioni dei documenti sono informative: non impediscono più la
     // generazione e la stampa di modelli vuoti o ancora da completare.
@@ -5163,6 +5174,11 @@ window.renderPrintModulePages = async function(moduleId, singleCorsista = null, 
 
 window.renderAttestatiMultipli = async function(targetContainer, options = {}) {
     const session = [...(window.currentSessionCorsisti || [])];
+    if(window.SafetyEnrollmentStatus?.flaggedIn(session)) {
+        const message='⚠ ATTESTATI INIBITI: presenti iscrizioni erronee o non partecipanti. Le evidenze storiche rimangono consultabili.';
+        if(options.preview){targetContainer.textContent=message;return 0;}
+        throw Error(message);
+    }
     if (!session.length) {
         targetContainer.innerHTML = '<div class="p-6 text-center text-red-500 font-bold">Nessun corsista iscritto al progetto selezionato.</div>';
         return 0;
@@ -5196,6 +5212,7 @@ window.renderAttestatiMultipli = async function(targetContainer, options = {}) {
 };
 
 window.stampaAttestatiMultipli = async function() {
+    if(window.SafetyEnrollmentStatus?.flaggedIn(window.currentSessionCorsisti||[]))return alert('Stampa attestati inibita: sono presenti iscrizioni erronee o non partecipanti.');
     const printArea = document.getElementById('print-area-temp');
     if (!printArea) return alert('Area di stampa non disponibile.');
     const session = [...(window.currentSessionCorsisti || [])];

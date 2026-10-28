@@ -347,8 +347,8 @@ window.loadModule = async function(moduleId) {
         if (moduleId === 'corsisti') {
             // I documenti del corsista non dipendono dalla Dashboard o dalla suite professionale.
             // Carica prima i comandi di stampa e poi la tabella, senza requisiti sui corsi.
-            await window.loadOptionalSafetyScript('js/modules/progetti_corsisti_refinement.js?v=20261028-g81-status');
-            await window.loadOptionalSafetyScript('js/modules/corsisti_fascicolo_archivio.js');
+            await window.loadOptionalSafetyScript('js/modules/progetti_corsisti_refinement.js?v=20261028-g9-global-status');
+            await window.loadOptionalSafetyScript('js/modules/corsisti_fascicolo_archivio.js?v=20261028-g9-global-status');
             await window.loadOptionalSafetyScript('js/modules/corsisti_autoarchivia_stampe.js');
             if(!isCurrent())return;
             if(typeof window.loadCorsistiTable==='function')await window.loadCorsistiTable();
@@ -357,7 +357,7 @@ window.loadModule = async function(moduleId) {
         if (moduleId === 'progetti') {
             // Necessario anche quando si entra direttamente in Progetti: la UI Corsisti
             // non deve dipendere da una visita preliminare all'Anagrafica Corsisti.
-            await window.loadOptionalSafetyScript('js/modules/progetti_corsisti_refinement.js?v=20261028-g81-status');
+            await window.loadOptionalSafetyScript('js/modules/progetti_corsisti_refinement.js?v=20261028-g9-global-status');
             if (!isCurrent()) return;
             if (typeof window.loadProgettiTable === 'function') await window.loadProgettiTable();
         }
@@ -399,7 +399,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     await window.loadOptionalSafetyScript('js/modules/corsisti_ruolo_azienda.js');
     await window.loadOptionalSafetyScript('js/modules/ai_assistant.js');
     await window.loadOptionalSafetyScript('js/modules/compliance_advisor.js');
-    await window.loadOptionalSafetyScript('js/modules/training_history_advisor.js');
+    await window.loadOptionalSafetyScript('js/modules/training_history_advisor.js?v=20261028-g9-global-status');
     await window.loadOptionalSafetyScript('js/modules/teacher_qualification_advisor.js');
     await window.loadOptionalSafetyScript('js/modules/effectiveness_monitor.js');
     if (typeof window.installSafetySignaturePatches === 'function') window.installSafetySignaturePatches();
