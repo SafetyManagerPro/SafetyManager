@@ -4195,33 +4195,60 @@ window.resetFormProgetto = function() {
 };
 
 window.apriIscrizioni = async function(progetto_id) {
+    const p = (window.progettiList || []).find(x => x.id === progetto_id);
+    const panel = document.getElementById('panel-iscrizioni');
+    if (!p || !panel) {
+        alert('Finestra corsisti non disponibile per questo progetto. Ricarica Progetti e riprova.');
+        return false;
+    }
+    window.__safetyIscrittiReturnFocus = document.activeElement;
     window.currentProgettoId = progetto_id;
-    const p = window.progettiList.find(x => x.id === progetto_id);
-    const aziendaName = p.aziende ? p.aziende.ragione_sociale : 'Privato';
-    
-    document.getElementById('lbl-progetto-attivo').innerHTML = `Cod: <span class="text-white">${p.codice}</span> | Azienda: <span class="text-white">${aziendaName}</span>`;
-    const panelIscrizioni = document.getElementById('panel-iscrizioni');
-    panelIscrizioni.classList.remove('hidden');
-    panelIscrizioni.classList.add('flex');
-    
-    if(window.corsistiList.length === 0) window.corsistiList = await window.getCorsisti();
-    
-    const sel = document.getElementById('sel-iscrivi-corsista');
-    let opts = '<option value="">-- Seleziona Corsista da aggiungere --</option>';
-    window.corsistiList.forEach(c => {
-        const marker = c.azienda_id === p.azienda_id ? "📌 " : "";
-        opts += `<option value="${c.id}">${marker}${c.nome_cognome} (${c.cf})</option>`;
-    });
-    sel.innerHTML = opts;
-
-    await window.loadIscrittiTable();
+    const label = document.getElementById('lbl-progetto-attivo');
+    if (label) label.textContent = 'Cod: ' + (p.codice || '-') + ' | Azienda: ' + (p.aziende?.ragione_sociale || 'Privato');
+    panel.classList.remove('hidden');
+    panel.classList.add('flex');
+    if (panel.dataset.escapeBound !== '1') {
+        panel.dataset.escapeBound = '1';
+        panel.addEventListener('keydown', event => {
+            if (event.key === 'Escape' && !document.getElementById('safety-enrollment-review-modal') &&
+                document.getElementById('qa-modal-corsista')?.classList.contains('hidden')) {
+                event.stopPropagation();
+                window.chiudiPannelloIscrizioni();
+            }
+        });
+    }
+    try {
+        if (!Array.isArray(window.corsistiList) || !window.corsistiList.length) window.corsistiList = await window.getCorsisti();
+        if (window.currentProgettoId !== progetto_id) return false;
+        const sel = document.getElementById('sel-iscrivi-corsista');
+        if (!sel) throw Error('Selettore corsisti non disponibile.');
+        const esc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+        let opts = '<option value="">-- Seleziona Corsista da aggiungere --</option>';
+        (window.corsistiList || []).filter(c => !c.archived_at).forEach(c => {
+            const marker = c.azienda_id === p.azienda_id ? '📌 ' : '';
+            opts += `<option value="${esc(c.id)}">${marker}${esc(c.nome_cognome)} (${esc(c.cf)})</option>`;
+        });
+        sel.innerHTML = opts;
+        await window.loadIscrittiTable();
+        panel.querySelector('[data-close-iscritti]')?.focus();
+        return true;
+    } catch (error) {
+        if (window.currentProgettoId === progetto_id) window.chiudiPannelloIscrizioni();
+        alert('Impossibile aprire la finestra Corsisti: ' + String(error?.message || error));
+        return false;
+    }
 };
 
 window.chiudiPannelloIscrizioni = function() {
     window.currentProgettoId = null;
-    const panelIscrizioni = document.getElementById('panel-iscrizioni');
-    panelIscrizioni.classList.add('hidden');
-    panelIscrizioni.classList.remove('flex');
+    const panel = document.getElementById('panel-iscrizioni');
+    if (panel) {
+        panel.classList.add('hidden');
+        panel.classList.remove('flex');
+    }
+    const returnFocus = window.__safetyIscrittiReturnFocus;
+    window.__safetyIscrittiReturnFocus = null;
+    if (returnFocus?.isConnected) returnFocus.focus();
 };
 
 
@@ -4251,8 +4278,13 @@ window.loadIscrittiTable = async function() {
                 <td data-label="Allievo" class="p-3 border-b border-slate-700 text-sm font-black text-blue-300 uppercase align-middle">${window.dashEscape ? window.dashEscape(nome) : nome}</td>
                 <td data-label="Codice Fiscale" class="p-3 border-b border-slate-700 font-mono text-[10px] text-slate-300 align-middle">${window.dashEscape ? window.dashEscape(cf) : cf}</td>
                 <td data-label="Num. Attestato" class="p-3 border-b border-slate-700 font-mono text-[9px] text-amber-200 align-middle break-all">${window.dashEscape ? window.dashEscape(cert) : cert}</td>
-                <td data-label="Rimuovi" class="p-3 border-b border-slate-700 text-center align-middle">
-                    <button onclick="window.rimuoviIscrizione('${isc.id}')" class="text-red-300 hover:text-white hover:bg-red-500 p-2 rounded-lg transition inline-flex items-center justify-center" title="Rimuovi iscrizione"><i data-lucide="user-minus" class="w-4 h-4"></i></button>
+                <td data-label="Azioni" class="p-3 border-b border-slate-700 text-center align-middle">
+                    <div class="flex flex-wrap justify-center items-center gap-2">
+                        <button type="button" onclick="window.apriGestioneIscrizione('${isc.id}')"
+                            class="min-h-[44px] rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 font-bold text-[10px]" title="Verifica le evidenze e, se consentito, trasferisci l'iscrizione">Verifica / trasferisci</button>
+                        <button type="button" onclick="window.rimuoviIscrizione('${isc.id}', '${window.currentProgettoId}')"
+                            class="min-h-[44px] rounded-lg bg-rose-900 hover:bg-rose-700 text-white px-3 py-2 font-bold text-[10px]" title="Disiscrizione protetta">Disiscrivi</button>
+                    </div>
                 </td>
             </tr>
         `;

@@ -801,3 +801,18 @@ Richiesta dopo blocco disiscrizione per evidenze formative: trovare storico, ges
 
 ### Protezione aggiuntiva (28/10)
 Verifica anche firme, test, documenti archiviati e verifiche di efficacia collegate direttamente alla coppia corsista+progetto, anche se la FK iscrizione_id è NULL. In assenza di evidenze o in caso di query non disponibile resta la regola fail-closed. Stessa protezione aggiunta alla funzione di disiscrizione esistente. Non è stata eseguita alcuna cancellazione reale.
+
+## 2026-10-28 — G7.1: finestra Corsisti e rettifica visibile
+
+Segnalazione dopo G7 READY: il comando «Verifica / trasferisci» non compariva nella vista Corsisti aperta dall'elenco Progetti. Causa: G7 era stato aggiunto solo alla tab «Corsisti abbinati» del popup progetto; l'elenco Progetti espandeva una UI inline differente e la finestra legacy «Gestione iscritti» non esponeva il comando.
+
+- js/modules/progetti_corsisti_refinement.js: «Apri corsisti» apre la finestra iscrizioni esistente, senza allungare l'elenco con un'espansione inline. Desktop e mobile condividono il percorso.
+- modules/progetti.html: dialog richiudibile con Chiudi, clic sfondo, posizione sopra il popup Progetti, quick-add corsista sopra il dialog, ARIA e corpo scrollabile.
+- js/utils.js: apertura più robusta con Escape, ripristino focus, aggiornamento iscritti e due pulsanti nella finestra: «Verifica / trasferisci» e «Disiscrivi»; la tabella produce anche le card mobile.
+- js/modules/iscrizioni_rettifica.js: dopo un eventuale trasferimento autorizzato aggiorna la finestra corsisti ancora aperta, mantenendo i controlli fail-closed.
+- js/app.js, index.html, sw.js: asset versionati e PWA v17. Test nuovo tests/g7_corsisti_modal.test.cjs e test cache esistenti allineati.
+- Tutti questi cambiamenti, documentazione compresa, in un unico commit su main; CI, READY, commit di produzione e log da verificare dopo la pubblicazione.
+- Nessuna migrazione, nessuna eliminazione o trasferimento di dati reali nei test; firme, attestati, documenti, storico, permessi, SafetyTraining non modificati.
+
+### Completamento collaudo sorgenti G7.1 — accesso diretto Progetti (28/10)
+Audit successivo ha individuato un ulteriore problema di caricamento: il modulo progetti_corsisti_refinement.js veniva importato dall'app quando si entrava in Corsisti, ma non sempre in accesso diretto a Progetti. Corretta la branch Progetti in js/app.js per caricarlo PRIMA della tabella; il nuovo comportamento non dipende più dall'ordine di navigazione. Aggiornato URL app.js, service worker PWA v18 e test dedicati. Consolidare questa correzione nell'unico commit G7.1 su main; verificare nuova CI e deploy. Nessuna migrazione o mutazione DB.

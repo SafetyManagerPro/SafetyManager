@@ -213,6 +213,7 @@ function draw(report,other){
    try{
     if(typeof window.reloadLinkedViewsAfterMutation==='function')await window.reloadLinkedViewsAfterMutation('iscrizione-transfer',{projectId:target});
     if(el('popup-corsisti-list')&&typeof window.renderPopupCorsisti==='function')await window.renderPopupCorsisti(report.project.id);
+    if(window.currentProgettoId===report.project.id&&el('panel-iscrizioni')?.classList.contains('flex')&&typeof window.loadIscrittiTable==='function')await window.loadIscrittiTable();
    }catch(e){console.warn('Ricaricamento dati dopo trasferimento:',e);}
    window.alert('Iscrizione trasferita. Il corsista risulta ora nel corso di destinazione.');
   }catch(e){paintError(e.message||e)}
