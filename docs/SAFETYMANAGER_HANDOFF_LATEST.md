@@ -774,3 +774,13 @@ Utente: «ok funziona» conferma il precedente FIX Archivio popup e layout G1–
 - `sw.js` aggiorna PWA `safetymanager-pwa-v14` e precache script G6. Script G6 versionato in index.
 - Test di regressione `tests/graphic_g6_mobile_navigation.test.cjs`. Report `docs/UPGRADE_GRAFICO_G6_MOBILE_2026-10-27.md`.
 - Non toccare Supabase, CRUD, storico, corsi, PDF, firme, attestati, stampa, archivio PDF congelato, SafetyTraining. Validare CI/main/deploy prima di dichiarare produzione; smoke browser autenticato ancora necessario.
+
+## 2026-10-28 — FIX disiscrizione corsista accidentale
+
+Segnalazione: utente non riesce a rimuovere un corsista iscritto per errore a un corso.
+- Diagnosi: pulsanti già presenti nella lista Progetti, **assenti nella tab Corsisti abbinati del popup**; `deleteIscrizione` restituiva true anche per DELETE zero righe e `rimuoviIscrizione` non mostrava errori.
+- Verificati in sola lettura metadata Supabase: `session_attendance` è RESTRICT, `firme_digitali`, `test_digitali`, `course_completion_items` sono CASCADE; `corsisti_documenti_archivio` e `training_credits` SET NULL. Nessuna modifica DB. Il certificato ID e `esito='Idoneo'` sono generati automaticamente all'iscrizione: non bloccare disiscrizioni solo per questi campi.
+- Aggiornato `js/supabase_config.js`: protezione previa delle sei dipendenze e dei risultati di frequenza, blocco corsi chiusi, nessuna cancellazione in caso di errore di verifica. DELETE restituisce true SOLO se `.select('id')` conferma l'ID realmente rimosso; messaggi tramite `lastIscrizioneDeleteError`.
+- Aggiornato `js/utils.js`: messaggio disiscrizione esplicito, blocco doppio click, refresh viste e lista popup, pulsante **Disiscrivi** in tab Corsisti abbinati. Conservare anagrafica, storico e tutte le altre iscrizioni.
+- Test `tests/iscrizioni_unenroll_safe.test.cjs`. Report `docs/FIX_DISISCRIZIONE_CORSISTA_2026-10-28.md`. Nessuna prova che modifichi record reali.
+- Restano: CI, merge main, deploy Vercel e collaudo browser autenticato. Non modificare RLS/migrazioni, dati storici, firme/attestati o SafetyTraining.

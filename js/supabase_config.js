@@ -572,11 +572,78 @@ window.saveIscrizione = async function(record) {
     }
 };
 
+// Disiscrizione protetta: una DELETE senza errore può aver cancellato 0 righe
+// (ad esempio per RLS). Inoltre alcune relazioni hanno ON DELETE CASCADE:
+// prima di rimuovere un'iscrizione verificare che non ci siano evidenze formative.
+window.lastIscrizioneDeleteError = null;
 window.deleteIscrizione = async function(id) {
+    window.lastIscrizioneDeleteError = null;
+    if (!id) {
+        window.lastIscrizioneDeleteError = 'Iscrizione non identificata. Ricarica il corso e riprova.';
+        return false;
+    }
     try {
-        const { error } = await supabaseClient.from('iscrizioni').delete().eq('id', id);
-        if (error) throw error; return true;
-    } catch (err) { console.error(err); return false; }
+        const { data: iscrizione, error: readError } = await supabaseClient
+            .from('iscrizioni')
+            .select('id,progetto_id,ore_frequentate,percentuale_frequenza,voto_test,esito_pratica')
+            .eq('id', id)
+            .maybeSingle();
+        if (readError) throw readError;
+        if (!iscrizione) throw new Error('Iscrizione non trovata o non visibile all’utente amministratore.');
+
+        // La cancellazione non deve rimuovere prove di presenza, test, firme o
+        // verifiche per effetto delle foreign key CASCADE/SET NULL/RESTRICT.
+        const evidenze = [
+            ['session_attendance', 'iscrizione_id', 'presenze registrate'],
+            ['firme_digitali', 'iscrizione_id', 'firme digitali'],
+            ['test_digitali', 'iscrizione_id', 'test digitali'],
+            ['course_completion_items', 'iscrizione_id', 'controlli di completamento'],
+            ['corsisti_documenti_archivio', 'iscrizione_id', 'documenti archiviati'],
+            ['training_credits', 'source_iscrizione_id', 'crediti formativi']
+        ];
+        const counts = await Promise.all(evidenze.map(async ([table, column, label]) => {
+            const { count, error } = await supabaseClient
+                .from(table).select('id', { count: 'exact', head: true }).eq(column, id);
+            if (error) throw new Error('Impossibile verificare ' + label + ': ' + error.message);
+            if (!Number.isSafeInteger(count) || count < 0) {
+                throw new Error('Conteggio delle evidenze non disponibile: ' + label + '.');
+            }
+            return { label, count };
+        }));
+        const linked = counts.filter(item => item.count > 0);
+        const hasAttendance = [
+            iscrizione.ore_frequentate, iscrizione.percentuale_frequenza,
+            iscrizione.voto_test
+        ].some(value => value !== null && value !== undefined && value !== '');
+        const hasPracticalResult = !!String(iscrizione.esito_pratica || '').trim();
+        if (linked.length || hasAttendance || hasPracticalResult) {
+            throw new Error(
+                'La disiscrizione è bloccata perché risultano già dati o evidenze del percorso' +
+                (linked.length ? ': ' + linked.map(item => item.label + ' (' + item.count + ')').join(', ') : '') +
+                '. Nessuna informazione è stata cancellata. Verifica lo storico prima di procedere.'
+            );
+        }
+        if (iscrizione.progetto_id) {
+            const { data: progetto, error: projectError } = await supabaseClient
+                .from('progetti').select('stato_corso').eq('id', iscrizione.progetto_id).maybeSingle();
+            if (projectError) throw projectError;
+            if (!progetto) throw new Error('Impossibile verificare lo stato del corso collegato.');
+            if (progetto.stato_corso === 'chiuso') {
+                throw new Error('Il corso è chiuso/archiviato: la disiscrizione non può cancellare lo storico di frequenza.');
+            }
+        }
+        const { data: deleted, error: deleteError } = await supabaseClient
+            .from('iscrizioni').delete().eq('id', id).select('id');
+        if (deleteError) throw deleteError;
+        if (!Array.isArray(deleted) || !deleted.some(row => String(row.id) === String(id))) {
+            throw new Error('Nessuna iscrizione eliminata. Controlla la sessione amministratore e i permessi di accesso.');
+        }
+        return true;
+    } catch (err) {
+        console.error('Disiscrizione non riuscita:', err);
+        window.lastIscrizioneDeleteError = String(err?.message || 'Errore durante la disiscrizione.');
+        return false;
+    }
 };
 // ==========================================
 // API ENTE FORMATORE
