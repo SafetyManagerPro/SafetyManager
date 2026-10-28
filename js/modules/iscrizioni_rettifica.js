@@ -39,7 +39,7 @@ async function examine(id){
  if(!uuid(id))throw Error('ID iscrizione non valido.');
  await ensureAdmin();
  const enrollment=await single('iscrizioni',
-  'id,progetto_id,corsista_id,ore_frequentate,percentuale_frequenza,voto_test,esito_pratica,note_verifica,id_certificato,esito',
+  'id,progetto_id,corsista_id,ore_frequentate,percentuale_frequenza,voto_test,esito_pratica,note_verifica,id_certificato,esito,partecipazione_stato',
   'id',id);
  if(!enrollment)throw Error('Iscrizione non trovata o non accessibile.');
  const [project,dependentCounts]=await Promise.all([
@@ -76,6 +76,7 @@ async function examine(id){
  const reasons=[
   ...linked.map(x=>x.label+': '+x.count),
   ...fieldProof.map(x=>x.label+' compilato/a'),
+  ...(enrollment.partecipazione_stato&&enrollment.partecipazione_stato!=='iscritto'?['Iscrizione già segnalata: ripristinare prima del trasferimento']:[]),
   ...(closed?['Corso già svolto o chiuso']:[])
  ];
  return {enrollment,project,counts:allCounts,fieldProof,blocked:reasons.length>0,reasons};

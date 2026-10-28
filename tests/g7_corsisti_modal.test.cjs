@@ -3,12 +3,7 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const read=p=>fs.readFileSync(path.resolve(__dirname,'..',p),'utf8');
 const util=read('js/utils.js'),refinement=read('js/modules/progetti_corsisti_refinement.js'),
       html=read('modules/progetti.html'),index=read('index.html'),sw=read('sw.js'),app=read('js/app.js');
-test('Lista progetti: apre una modale anziche espandere corsisti sotto la scheda',()=>{
- const section=refinement.split('function renderProjectParticipantsSummary(')[1].split('function installProjectRenderers()')[0];
- assert.match(section,/window\.apriIscrizioni/);
- assert.match(section,/aria-haspopup="dialog"/);
- assert.doesNotMatch(section,/toggleInlineIscritti|Mostra corsisti/);
-});
+test('Corsisti nel progetto sono un accordion',()=>{const x=refinement.split('function renderProjectParticipantsSummary(')[1].split('function installProjectRenderers()')[0];assert.match(x,/<details/);assert.doesNotMatch(x,/> Apri corsisti/);});
 test('Popup progetto e finestra iscritti espongono la rettifica G7',()=>{
  assert.match(util,/window\.renderPopupCorsisti[\s\S]*?Verifica \/ trasferisci/);
  const legacy=util.split('window.loadIscrittiTable = async function() {')[1].split('window.aggiungiIscrizione = async function()')[0];
@@ -45,11 +40,11 @@ test('Apri e chiudi finestra senza mutazioni dati, ripristinando il focus',async
  assert.equal(errors.length,1);
 });
 test('Cache PWA aggiornata e caricamenti script allineati',()=>{
- assert.match(sw,/safetymanager-pwa-v18/);
- assert.ok(index.includes('utils.js?v=20261028-g7-modal'));
- assert.ok(index.includes('app.js?v=20261028-g7-direct'));
- assert.ok(index.includes('iscrizioni_rettifica.js?v=20261028-g7-modal'));
- assert.ok(app.includes('progetti_corsisti_refinement.js?v=20261028-g7-modal'));
- assert.match(app,/if \(moduleId === 'progetti'\) \{[\s\S]*?loadOptionalSafetyScript\('js\/modules\/progetti_corsisti_refinement\.js\?v=20261028-g7-modal'\)/);
- assert.ok(sw.includes('progetti_corsisti_refinement.js?v=20261028-g7-modal'));
+ assert.match(sw,/safetymanager-pwa-v19/);
+ assert.ok(index.includes('utils.js?v=20261028-g8-status'));
+ assert.ok(index.includes('app.js?v=20261028-g8-status'));
+ assert.ok(index.includes('iscrizioni_rettifica.js?v=20261028-g8-status'));
+ assert.ok(app.includes('progetti_corsisti_refinement.js?v=20261028-g8-status'));
+ assert.match(app,/if \(moduleId === 'progetti'\) \{[\s\S]*?loadOptionalSafetyScript\('js\/modules\/progetti_corsisti_refinement\.js\?v=20261028-g8-status'\)/);
+ assert.ok(sw.includes('progetti_corsisti_refinement.js?v=20261028-g8-status'));
 });

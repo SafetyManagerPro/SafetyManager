@@ -184,7 +184,7 @@ test('UI popup-only applicata prima delle letture DB, moduli senza cache HTTP',(
  assert.match(app,/fetch\(\`modules\/\$\{moduleId\}\.html\`,\{signal:controller\.signal,cache:'no-store'\}\)/);
  assert.match(index,/archive_project_popup_portal\.js\?v=20261027-archive-popup/);
  assert.ok(index.indexOf('archive_project_popup_portal.js')>index.indexOf('graphic_upgrade_g3_progetti.js'));
- assert.match(sw,/safetymanager-pwa-v18/);
+ assert.match(sw,/safetymanager-pwa-v19/);
  assert.match(sw,/archive_project_popup_portal\.js\?v=20261027-archive-popup/);
  assert.doesNotMatch(code,/\.insert\(|\.upsert\(|\.delete\(|supabaseClient|\.from\(['"]/);
 });

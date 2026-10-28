@@ -69,10 +69,10 @@ function fixture(opt={}){
 }
 test('Script valido, link/JS versionato, nessuna nuova tabella SQL o migrazione',()=>{
  assert.doesNotThrow(()=>new vm.Script(script));
- assert.ok(html.includes('iscrizioni_rettifica.js?v=20261028-g7-modal'));
+ assert.ok(html.includes('iscrizioni_rettifica.js?v=20261028-g8-status'));
  assert.ok(util.includes('window.apriGestioneIscrizione'));
- assert.match(sw,/safetymanager-pwa-v18/);
- assert.match(sw,/iscrizioni_rettifica.js\?v=20261028-g7-modal/);
+ assert.match(sw,/safetymanager-pwa-v19/);
+ assert.match(sw,/iscrizioni_rettifica.js\?v=20261028-g8-status/);
 });
 test('Diagnostica sola lettura: un iscritto per errore risulta trasferibile',async()=>{
  const f=fixture(),r=await f.window.SafetyEnrollmentReview.examine(IDs.one);

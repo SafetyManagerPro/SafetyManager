@@ -816,3 +816,15 @@ Segnalazione dopo G7 READY: il comando «Verifica / trasferisci» non compariva 
 
 ### Completamento collaudo sorgenti G7.1 — accesso diretto Progetti (28/10)
 Audit successivo ha individuato un ulteriore problema di caricamento: il modulo progetti_corsisti_refinement.js veniva importato dall'app quando si entrava in Corsisti, ma non sempre in accesso diretto a Progetti. Corretta la branch Progetti in js/app.js per caricarlo PRIMA della tabella; il nuovo comportamento non dipende più dall'ordine di navigazione. Aggiornato URL app.js, service worker PWA v18 e test dedicati. Consolidare questa correzione nell'unico commit G7.1 su main; verificare nuova CI e deploy. Nessuna migrazione o mutazione DB.
+
+## 2026-10-28 — G8 iscrizioni / Corsisti
+# G8 — Stati iscrizioni e Corsisti integrati (28/10/2026)
+
+- Iscritto, Non partecipante, Iscrizione erronea: stato amministrativo separato dall'esito formativo, motivazione obbligatoria, audit storico append-only con admin/timestamp, ripristino motivato.
+- Trigger SECURITY INVOKER e RLS admin preesistente: blocca marcatura anomala se ci sono presenze, firme, test, documenti, crediti o verifiche.
+- Progetti: rimosso pulsante Apri corsisti dal riepilogo, elenco direttamente visibile e richiudibile con details su desktop/mobile. Evidenza rossa individuale e motivazione in scheda. Comandi Verifica / trasferisci e Segnala stato.
+- Popup Corsisti e Gestione iscritti: azione di segnalazione disponibile. Nuovi attestati individuali di segnalati bloccati; stampa cumulativa bloccata se include segnalati. PDF storici invariati.
+- Migration applicata prima della pubblicazione frontend: 20261028150902_iscrizioni_partecipazione_stato_audit_g8.sql.
+- Test non scrivono dati reali. Richiesti collaudi autenticati desktop/mobile e valutazione successiva di un'RPC transazionale per G7.
+
+GitHub Actions, deploy Vercel e runtime logs da verificare dopo il commit; nessuna rettifica reale compiuta nei test. SafetyTraining non toccato.

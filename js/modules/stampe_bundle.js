@@ -284,7 +284,8 @@ window.stampaAttestatiProgetto = async function(projectId) {
 
     try {
         await window.caricaDatiStampa(projectId);
-        const n = (window.currentSessionCorsisti || []).length;
+        const n = (window.currentSessionCorsisti || []).filter(c=>(c.partecipazione_stato||'iscritto')==='iscritto').length;
+        if(n!==(window.currentSessionCorsisti||[]).length)return alert('Stampa cumulativa bloccata: contiene iscrizioni segnalate. Usa stampe individuali.');
         if (!n) return alert('Nessun corsista iscritto a questo progetto.');
         printArea.innerHTML = '';
         if (typeof window.renderAttestatiMultipli === 'function') {
@@ -326,6 +327,7 @@ window.stampaAttestatoCorsista = async function(projectId, corsistaId) {
         await window.caricaDatiStampa(projectId);
         const corsista = (window.currentSessionCorsisti || []).find(c => c.corsista_id === corsistaId || c.corsista_id == corsistaId);
         if (!corsista) return alert('Corsista non trovato tra gli iscritti del progetto selezionato.');
+        if(corsista.partecipazione_stato&&corsista.partecipazione_stato!=='iscritto')return alert('Attestato non generabile per iscrizione segnalata.');
         printArea.innerHTML = '';
         const pages = await window.renderPrintModuleToTemp('attestato', corsista);
         pages.forEach(p => printArea.appendChild(p));

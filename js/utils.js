@@ -2833,7 +2833,7 @@ window.renderPopupCorsisti = async function(projectId) {
                     ${iscritti.map(isc => {
                         const c = isc.corsisti || {};
                         const incomplete = !isc.id_certificato || !isc.esito || isc.percentuale_frequenza === null || isc.percentuale_frequenza === undefined;
-                        return `<tr data-popup-corsista-id="${c.id || ''}" class="${incomplete ? 'bg-red-50' : 'bg-white'} border-b border-slate-200">
+                        return `<tr data-popup-corsista-id="${c.id || ''}" class="${isc.partecipazione_stato&&isc.partecipazione_stato!=='iscritto'?'bg-rose-100 border-rose-400':(incomplete?'bg-red-50':'bg-white border-slate-200')} border-b">
                             <td class="p-2 font-black uppercase text-slate-900">${window.dashEscape ? window.dashEscape(c.nome_cognome || '-') : (c.nome_cognome || '-')}</td>
                             <td class="p-2 font-mono text-slate-600">${window.dashEscape ? window.dashEscape(c.cf || '-') : (c.cf || '-')}</td>
                             <td class="p-2 text-slate-600">${window.dashEscape ? window.dashEscape(isc.mansione_storica || c.mansione_storica || '-') : (isc.mansione_storica || c.mansione_storica || '-')}</td>
@@ -2844,6 +2844,7 @@ window.renderPopupCorsisti = async function(projectId) {
                                 <button type="button" onclick="window.rimuoviIscrizione('${isc.id}', '${projectId}')"
                                     class="px-3 py-2.5 min-h-[44px] bg-rose-100 text-rose-800 hover:bg-rose-200 rounded-lg font-black text-[10px]"
                                     title="Disiscrivi dal corso senza cancellare l'anagrafica">Disiscrivi</button>
+                                <button type="button" onclick="window.apriSegnalazioneIscrizione('${isc.id}')" class="px-3 py-2 min-h-[44px] bg-rose-700 text-white rounded-lg text-[10px] font-black">Segnala stato</button>
                                 <button type="button" onclick="window.apriGestioneIscrizione('${isc.id}')"
                                     class="px-3 py-2.5 min-h-[44px] bg-indigo-100 text-indigo-900 hover:bg-indigo-200 rounded-lg font-black text-[10px]"
                                     title="Verifica i dati collegati e trasferisci a un altro corso">Verifica / trasferisci</button>
@@ -4274,12 +4275,13 @@ window.loadIscrittiTable = async function() {
         const cf = corsista.cf || '-';
         const cert = isc.id_certificato || 'Da generare';
         html += `
-            <tr class="hover:bg-slate-700/80 transition-colors">
+            <tr class="${isc.partecipazione_stato&&isc.partecipazione_stato!=='iscritto'?'bg-rose-950/90':'hover:bg-slate-700/80'} transition-colors">
                 <td data-label="Allievo" class="p-3 border-b border-slate-700 text-sm font-black text-blue-300 uppercase align-middle">${window.dashEscape ? window.dashEscape(nome) : nome}</td>
                 <td data-label="Codice Fiscale" class="p-3 border-b border-slate-700 font-mono text-[10px] text-slate-300 align-middle">${window.dashEscape ? window.dashEscape(cf) : cf}</td>
                 <td data-label="Num. Attestato" class="p-3 border-b border-slate-700 font-mono text-[9px] text-amber-200 align-middle break-all">${window.dashEscape ? window.dashEscape(cert) : cert}</td>
                 <td data-label="Azioni" class="p-3 border-b border-slate-700 text-center align-middle">
                     <div class="flex flex-wrap justify-center items-center gap-2">
+                        <button type="button" onclick="window.apriSegnalazioneIscrizione('${isc.id}')" class="min-h-[44px] rounded-lg bg-rose-700 text-white px-3 py-2 font-bold text-[10px]">Segnala stato</button>
                         <button type="button" onclick="window.apriGestioneIscrizione('${isc.id}')"
                             class="min-h-[44px] rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 font-bold text-[10px]" title="Verifica le evidenze e, se consentito, trasferisci l'iscrizione">Verifica / trasferisci</button>
                         <button type="button" onclick="window.rimuoviIscrizione('${isc.id}', '${window.currentProgettoId}')"
@@ -4791,6 +4793,7 @@ window.caricaDatiStampa = async function(projectId = null, options = {}) {
             esito_pratica: isc.esito_pratica,
             note_verifica: isc.note_verifica,
             esito: isc.esito || "Da verificare",
+            partecipazione_stato: isc.partecipazione_stato || 'iscritto',
             lingua_test_stato: c.lingua_test_stato || 'non_richiesto',
             cittadinanza: c.cittadinanza || '',
             studi_scolastici_italia: c.studi_scolastici_italia,

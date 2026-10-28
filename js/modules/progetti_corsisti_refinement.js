@@ -24,7 +24,7 @@
     return { label:'In lavorazione', cls:'bg-emerald-50 text-emerald-700 border-emerald-200', icon:'circle-check' };
   }
 
-  function projectBadges(p, issues = []) {
+  function projectBadges(p, issues = [], iscritti = []) {
     const badges = [];
     const stato = statoCorsoMeta(p, issues);
     badges.push(`<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full border ${stato.cls} text-[8px] font-black uppercase"><i data-lucide="${stato.icon}" class="w-3 h-3"></i>${esc(stato.label)}</span>`);
@@ -35,22 +35,28 @@
     const fab = typeof window.getFabbisogniStatus === 'function' ? window.getFabbisogniStatus(p) : null;
     if (fab?.ready) badges.push('<span class="inline-flex px-2 py-1 rounded-full border border-cyan-200 bg-cyan-50 text-cyan-800 text-[8px] font-black uppercase">Fabbisogni OK</span>');
 
+    const anomalie=(iscritti||[]).filter(i=>i.partecipazione_stato&&i.partecipazione_stato!=='iscritto').length;
+    if(anomalie)badges.push(`<span class="rounded-lg bg-rose-700 text-white px-2 py-1 text-[9px] font-black">${anomalie} iscrizioni segnalate</span>`);
     return badges.join('');
   }
 
-  // Finestra iscritti unica per la vista Progetti, sia desktop sia mobile.
-  function renderProjectParticipantsSummary(p, iscritti, _showAll, _view) {
-    return `<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3 py-3">
-      <div class="min-w-0">
-        <p class="text-[9px] font-black uppercase tracking-widest text-slate-500">Partecipanti</p>
-        <p class="text-xs font-black text-slate-800 mt-0.5">${iscritti.length} corsisti iscritti a ${esc(p.codice || 'questo progetto')}</p>
+  function renderProjectParticipantsSummary(p, iscritti, _showAll, view) {
+    const flagged=iscritti.filter(i=>i.partecipazione_stato&&i.partecipazione_stato!=='iscritto').length;
+    const opened=window.safetyProjectCorsistiOpen?.[p.id]!==false;
+    return `<details data-project-corsisti="${esc(p.id)}" ${opened?'open':''} ontoggle="window.safetyRememberCorsistiOpen('${p.id}',this.open)"
+      class="rounded-xl border ${flagged?'border-rose-500 bg-rose-50':'border-slate-200 bg-white'} overflow-hidden">
+      <summary class="cursor-pointer p-3 font-black text-xs text-slate-900 min-h-[48px]">
+        ▾ Corsisti · ${iscritti.length} ${flagged?' · ⚠ '+flagged+' segnalati':''}
+        <span class="float-right font-bold text-blue-800">Apri / chiudi</span>
+      </summary>
+      <div class="border-t p-3 space-y-3 max-h-[330px] overflow-y-auto">
+        ${window.renderInlineIscrittiControls?.(p,view)||''}
+        ${window.renderInlineIscrittiCards?.(p.id,iscritti,true)||''}
       </div>
-      <button type="button" onclick="window.apriIscrizioni('${p.id}')" aria-haspopup="dialog" aria-controls="panel-iscrizioni"
-        class="shrink-0 inline-flex items-center justify-center gap-2 rounded-lg border border-blue-200 bg-blue-50 hover:bg-blue-100 px-3 py-2.5 min-h-[44px] text-[10px] font-black uppercase text-blue-800">
-        <i data-lucide="users" class="w-4 h-4"></i> Apri corsisti
-      </button>
-    </div>`;
+    </details>`;
   }
+  window.safetyProjectCorsistiOpen=window.safetyProjectCorsistiOpen||{};
+  window.safetyRememberCorsistiOpen=(id,open)=>{window.safetyProjectCorsistiOpen[id]=!!open;};
 
   function installProjectRenderers() {
     if (typeof window.renderProjectDesktopRows !== 'function' || window.renderProjectDesktopRows.__safetyLightUi) return;
@@ -78,35 +84,28 @@
       </div>`;
     };
 
-    window.renderInlineIscrittiCards = function(projectId, iscritti, showAll = false) {
-      if (!iscritti?.length) {
-        return '<div class="rounded-xl border border-slate-200 bg-slate-50 p-3 text-[10px] font-bold text-slate-500">Nessun corsista iscritto a questo progetto.</div>';
-      }
-      if (!showAll) return '';
-      return `<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
-        ${iscritti.map(isc => {
-          const c = isc.corsisti || {};
-          const missing = !isc.id_certificato || !isc.esito;
-          return `<div class="rounded-xl border ${missing ? 'border-amber-200 bg-amber-50' : 'border-slate-200 bg-slate-50'} p-3">
-            <div class="flex items-start justify-between gap-2">
-              <div class="min-w-0">
-                <p class="font-black uppercase text-slate-900 text-[10px] leading-tight">${esc(c.nome_cognome || '-')}</p>
-                <p class="font-mono text-[9px] text-slate-500 mt-0.5">${esc(c.cf || '-')}</p>
-              </div>
-              <div class="flex gap-1 shrink-0">
-                <button onclick="window.stampaAttestatoCorsista('${projectId}', '${c.id || isc.corsista_id}')" class="p-1.5 rounded-lg bg-emerald-100 hover:bg-emerald-200 text-emerald-800" title="Stampa attestato"><i data-lucide="award" class="w-3 h-3"></i></button>
-                <button onclick="window.modificaCorsistaDaProgetto('${c.id || isc.corsista_id}','${projectId}')" class="p-1.5 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-800" title="Modifica corsista"><i data-lucide="edit-3" class="w-3 h-3"></i></button>
-                <button onclick="window.rimuoviIscrizione('${isc.id}', '${projectId}')" class="p-1.5 rounded-lg bg-red-100 hover:bg-red-200 text-red-700" title="Rimuovi dal corso"><i data-lucide="user-minus" class="w-3 h-3"></i></button>
-              </div>
+    window.renderInlineIscrittiCards = function(projectId, iscritti, showAll = true) {
+      if(!iscritti?.length)return '<p class="text-xs text-slate-500 p-3">Nessun corsista iscritto.</p>';
+      if(!showAll)return '';
+      return `<div class="space-y-2">${iscritti.map(isc=>{
+        const c=isc.corsisti||{},state=isc.partecipazione_stato||'iscritto',flag=state!=='iscritto';
+        const label=state==='non_partecipante'?'NON PARTECIPANTE':'ISCRIZIONE ERRONEA';
+        return `<div class="rounded-xl border p-3 ${flag?'bg-rose-100 border-rose-500':'bg-slate-50 border-slate-200'}" data-iscrizione-stato="${esc(state)}">
+          <div class="flex flex-wrap justify-between gap-2">
+            <div><p class="font-black text-xs ${flag?'text-rose-900':'text-slate-900'}">${esc(c.nome_cognome||isc.nome_cognome_storico||'-')}</p>
+              <p class="text-[10px] text-slate-500 font-mono">${esc(c.cf||isc.cf_storico||'')}</p>
+              ${flag?`<span class="inline-block mt-1 rounded bg-rose-700 text-white text-[9px] font-black px-2 py-1">${label}</span>`:''}
             </div>
-            <div class="mt-2 text-[9px] text-slate-600 space-y-0.5">
-              <p><span class="font-black uppercase text-slate-400">Mansione:</span> ${esc(isc.mansione_storica || c.mansione_storica || '-')}</p>
-              <p><span class="font-black uppercase text-slate-400">Certificato:</span> <span class="font-mono">${esc(isc.id_certificato || 'da completare')}</span></p>
-              <p><span class="font-black uppercase text-slate-400">Esito:</span> ${esc(isc.esito || 'da completare')}</p>
+            <div class="flex flex-wrap gap-1 items-start">
+              <button type="button" onclick="window.apriGestioneIscrizione('${isc.id}')" class="rounded-lg min-h-[40px] bg-indigo-100 text-indigo-900 px-2 py-2 font-black text-[10px]">Verifica / trasferisci</button>
+              <button type="button" onclick="window.apriSegnalazioneIscrizione('${isc.id}')" class="rounded-lg min-h-[40px] bg-rose-700 text-white px-2 py-2 font-black text-[10px]">Segnala stato</button>
+              ${flag?'':`<button type="button" onclick="window.stampaAttestatoCorsista('${projectId}','${c.id||isc.corsista_id}')" class="rounded-lg min-h-[40px] bg-emerald-100 text-emerald-900 px-2 py-2 text-[10px] font-bold">Attestato</button>`}
             </div>
-          </div>`;
-        }).join('')}
-      </div>`;
+          </div>
+          <p class="text-[10px] mt-1 text-slate-600">Mansione: ${esc(isc.mansione_storica||c.mansione_storica||'-')} · Riferimento: ${esc(isc.id_certificato||'-')}</p>
+          ${flag&&isc.partecipazione_motivo?`<p class="text-[10px] font-bold text-rose-800 mt-1">Motivo: ${esc(isc.partecipazione_motivo)}</p>`:''}
+        </div>`;
+      }).join('')}</div>`;
     };
 
     const desktop = function(p, iscritti, issues) {
@@ -122,7 +121,7 @@
       return `<tr class="bg-white hover:bg-slate-50 transition-colors" data-corso="${esc(p.corso_id || '')}" data-azienda="${esc(p.azienda_id || '')}" data-project-id="${p.id}" data-project-separator="${p.id}">
         <td class="p-3 border-b border-slate-200 align-top">
           <button type="button" onclick="window.apriPopupProgettoById('${p.id}', 'progetti')" class="inline-flex rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 px-2 py-1 font-mono font-black text-[10px] text-rose-700">${esc(p.codice || 'Senza codice')}</button>
-          <div class="mt-2 flex flex-wrap gap-1">${projectBadges(p, issues)}</div>
+          <div class="mt-2 flex flex-wrap gap-1">${projectBadges(p, issues, iscritti)}</div>
         </td>
         <td class="p-3 border-b border-slate-200 align-top">
           <div class="flex items-start gap-3">
@@ -179,7 +178,7 @@
               <button onclick="window.stampaFascicoloCompletoDaProgetti('${p.id}')" class="text-indigo-800 bg-indigo-100 p-2 rounded-lg"><i data-lucide="file-archive" class="w-4 h-4"></i></button>
             </div>
           </div>
-          <div class="mt-3 flex flex-wrap gap-1">${projectBadges(p, issues)}</div>
+          <div class="mt-3 flex flex-wrap gap-1">${projectBadges(p, issues, iscritti)}</div>
           <p class="mt-3 text-[9px] font-bold uppercase tracking-widest text-slate-400">Esame · ${esc(window.formatDataToItalian ? window.formatDataToItalian(p.data_esame) : (p.data_esame || '-'))}</p>
         </div>
         <div class="p-3 space-y-3 bg-slate-50">
