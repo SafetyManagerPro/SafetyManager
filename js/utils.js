@@ -2844,6 +2844,9 @@ window.renderPopupCorsisti = async function(projectId) {
                                 <button type="button" onclick="window.rimuoviIscrizione('${isc.id}', '${projectId}')"
                                     class="px-3 py-2.5 min-h-[44px] bg-rose-100 text-rose-800 hover:bg-rose-200 rounded-lg font-black text-[10px]"
                                     title="Disiscrivi dal corso senza cancellare l'anagrafica">Disiscrivi</button>
+                                <button type="button" onclick="window.apriGestioneIscrizione('${isc.id}')"
+                                    class="px-3 py-2.5 min-h-[44px] bg-indigo-100 text-indigo-900 hover:bg-indigo-200 rounded-lg font-black text-[10px]"
+                                    title="Verifica i dati collegati e trasferisci a un altro corso">Verifica / trasferisci</button>
                             </td>
                         </tr>`;
                     }).join('')}

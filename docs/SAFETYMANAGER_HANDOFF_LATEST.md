@@ -788,3 +788,16 @@ Segnalazione: utente non riesce a rimuovere un corsista iscritto per errore a un
 ### 2026-10-28 — Cache-bust finale fix Disiscrizione
 
 La correzione UI/backend di disiscrizione è stata integrata con PR #14 su main commit `2ebd8f2c1ccd2baf2b1b2f8006def3d134f677b2`, suite GitHub Actions main SUCCESS. Per ridurre la possibilità di restare sul vecchio JavaScript già precaricato dalla PWA, `index.html` versiona `js/supabase_config.js` e `js/utils.js` con `?v=20261028-unenroll-safe`, e `sw.js` usa `safetymanager-pwa-v15` con i nuovi URL precache. Aggiornate aspettative cache nei test Archivio e G6. Nessuna nuova modifica logica a cancellazioni, storico, RLS o database. Verificare PR cache-bust/main/Vercel al termine.
+
+
+## 2026-10-28 — G7: storico, diagnostica e trasferimento iscrizioni
+
+Richiesta dopo blocco disiscrizione per evidenze formative: trovare storico, gestire errori e trasferire da un corso a un altro.
+- Storico UI: Corsisti → Corsi Svolti; icona orologio Formazione pregressa / crediti (modifica/elimina solo record esterni); icona cartella Fascicolo PDF.
+- Nuovo js/modules/iscrizioni_rettifica.js: pulsante «Verifica / trasferisci» nella tab Corsisti abbinati, anche da Archivio popup. Diagnostica sei tabelle evidenze e note/frequenza + stato sorgente, fail-closed. Se tutto libero e corso aperto: motivazione scritta, selezione altro corso aperto, controllo capienza/azienda/duplicati e UPDATE della stessa riga iscrizioni con snapshot di destinazione e audit/nota. Nessuna scrittura automatica da CI.
+- index.html + sw.js v16, test tests/iscrizioni_rettifica_transfer.test.cjs, docs/UPGRADE_G7_ISCRIZIONI_RETTIFICA_2026-10-28.md.
+- Storici con presenze, firme, test, documenti, crediti, verifiche e corsi svolti/chiusi NON cancellabili/trasferibili tramite G7. Necessaria rettifica amministrativa manuale tracciata. Non toccare schema/RLS, PDF/attestati, SafetyTraining.
+
+
+### Protezione aggiuntiva (28/10)
+Verifica anche firme, test, documenti archiviati e verifiche di efficacia collegate direttamente alla coppia corsista+progetto, anche se la FK iscrizione_id è NULL. In assenza di evidenze o in caso di query non disponibile resta la regola fail-closed. Stessa protezione aggiunta alla funzione di disiscrizione esistente. Non è stata eseguita alcuna cancellazione reale.

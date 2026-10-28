@@ -585,7 +585,7 @@ window.deleteIscrizione = async function(id) {
     try {
         const { data: iscrizione, error: readError } = await supabaseClient
             .from('iscrizioni')
-            .select('id,progetto_id,ore_frequentate,percentuale_frequenza,voto_test,esito_pratica')
+            .select('id,progetto_id,corsista_id,ore_frequentate,percentuale_frequenza,voto_test,esito_pratica')
             .eq('id', id)
             .maybeSingle();
         if (readError) throw readError;
@@ -610,7 +610,23 @@ window.deleteIscrizione = async function(id) {
             }
             return { label, count };
         }));
-        const linked = counts.filter(item => item.count > 0);
+        const cross = await Promise.all([
+            ['firme_digitali', 'Firme riferite a corsista/corso'],
+            ['test_digitali', 'Test riferiti a corsista/corso'],
+            ['corsisti_documenti_archivio', 'Documenti riferiti a corsista/corso'],
+            ['training_effectiveness_checks', 'Verifiche efficacia riferite a corsista/corso']
+        ].map(async ([table, label]) => {
+            const { count, error } = await supabaseClient.from(table)
+                .select('id', { count: 'exact', head: true })
+                .eq('progetto_id', iscrizione.progetto_id)
+                .eq('corsista_id', iscrizione.corsista_id);
+            if (error) throw new Error('Impossibile verificare ' + label + ': ' + error.message);
+            if (!Number.isSafeInteger(count) || count < 0) {
+                throw new Error('Conteggio non disponibile: ' + label);
+            }
+            return { label, count };
+        }));
+        const linked = [...counts, ...cross].filter(item => item.count > 0);
         const hasAttendance = [
             iscrizione.ore_frequentate, iscrizione.percentuale_frequenza,
             iscrizione.voto_test
