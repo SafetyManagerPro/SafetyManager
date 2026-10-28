@@ -95,10 +95,7 @@ async function transfer(id,toId,reason){
   throw Error('Numero massimo di corsisti raggiunto nel corso di destinazione.');
  }
  if(typeof window.buildIscrizioneRecord!=='function')throw Error('Funzione di preparazione iscrizione non disponibile.');
- const [azienda,prepared]=await Promise.all([
-  dest.azienda_id?single('aziende','id,ragione_sociale,piva_cf','id',dest.azienda_id):Promise.resolve(null),
-  Promise.resolve(null)
- ]);
+ const azienda=dest.azienda_id?await single('aziende','id,ragione_sociale,piva_cf','id',dest.azienda_id):null;
  const snapshot=window.buildIscrizioneRecord({...dest,aziende:azienda},c);
  if(!snapshot||snapshot.progetto_id!==dest.id||!snapshot.id_certificato){
   throw Error('Non è stato possibile generare correttamente il riferimento al nuovo corso.');
@@ -184,7 +181,7 @@ function draw(report,other){
   '<button type="button" id="safety-enrollment-open-history" class="px-4 py-3 border border-slate-300 rounded-xl text-slate-900 font-bold">Apri storico corsista</button></div></section>';
  el('safety-enrollment-review-close')?.addEventListener('click',close);
  el('safety-enrollment-open-history')?.addEventListener('click',()=>{
-  if(typeof window.apriFormazionePregressa==='function')window.apriFormazionePregressa(en.corsista_id);
+  if(typeof window.apriFormazionePregressa==='function'){close();window.apriFormazionePregressa(en.corsista_id);}
   else paintError('Lo storico formativo non è disponibile in questa sessione. Apri la sezione Corsisti.');
  });
  el('safety-enrollment-transfer')?.addEventListener('click',async()=>{
