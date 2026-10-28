@@ -784,3 +784,7 @@ Segnalazione: utente non riesce a rimuovere un corsista iscritto per errore a un
 - Aggiornato `js/utils.js`: messaggio disiscrizione esplicito, blocco doppio click, refresh viste e lista popup, pulsante **Disiscrivi** in tab Corsisti abbinati. Conservare anagrafica, storico e tutte le altre iscrizioni.
 - Test `tests/iscrizioni_unenroll_safe.test.cjs`. Report `docs/FIX_DISISCRIZIONE_CORSISTA_2026-10-28.md`. Nessuna prova che modifichi record reali.
 - Restano: CI, merge main, deploy Vercel e collaudo browser autenticato. Non modificare RLS/migrazioni, dati storici, firme/attestati o SafetyTraining.
+
+### 2026-10-28 — Cache-bust finale fix Disiscrizione
+
+La correzione UI/backend di disiscrizione è stata integrata con PR #14 su main commit `2ebd8f2c1ccd2baf2b1b2f8006def3d134f677b2`, suite GitHub Actions main SUCCESS. Per ridurre la possibilità di restare sul vecchio JavaScript già precaricato dalla PWA, `index.html` versiona `js/supabase_config.js` e `js/utils.js` con `?v=20261028-unenroll-safe`, e `sw.js` usa `safetymanager-pwa-v15` con i nuovi URL precache. Aggiornate aspettative cache nei test Archivio e G6. Nessuna nuova modifica logica a cancellazioni, storico, RLS o database. Verificare PR cache-bust/main/Vercel al termine.
