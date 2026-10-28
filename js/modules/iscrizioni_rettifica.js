@@ -55,14 +55,30 @@ async function examine(id){
   ['note_verifica','Note verifica']
  ].filter(([field])=>enrollment[field]!==null&&enrollment[field]!==undefined&&String(enrollment[field]).trim()!=='')
   .map(([field,label])=>({field,label}));
- const linked=dependentCounts.filter(x=>x.count>0);
+ // Alcune prove storiche sono legate a (corsista, progetto), senza ID iscrizione.
+ // Non trasferire una registrazione se tali prove resterebbero nel corso origine.
+ const crossSpecs=[
+  ['firme_digitali','Firme riferite a corsista/corso'],
+  ['test_digitali','Test riferiti a corsista/corso'],
+  ['corsisti_documenti_archivio','Documenti riferiti a corsista/corso'],
+  ['training_effectiveness_checks','Verifiche efficacia riferite a corsista/corso']
+ ];
+ const crossCounts=await Promise.all(crossSpecs.map(async ([table,label])=>{
+  const {count:n,error}=await DB().from(table).select('id',{head:true,count:'exact'})
+   .eq('progetto_id',enrollment.progetto_id).eq('corsista_id',enrollment.corsista_id);
+  if(error)throw new Error('Impossibile verificare '+label+': '+error.message);
+  if(!Number.isSafeInteger(n)||n<0)throw new Error('Conteggio non disponibile: '+label);
+  return {table,label,count:n};
+ }));
+ const allCounts=[...dependentCounts,...crossCounts];
+ const linked=allCounts.filter(x=>x.count>0);
  const closed=['chiuso','svolto'].includes(String(project.stato_corso||'').toLowerCase());
  const reasons=[
   ...linked.map(x=>x.label+': '+x.count),
   ...fieldProof.map(x=>x.label+' compilato/a'),
   ...(closed?['Corso già svolto o chiuso']:[])
  ];
- return {enrollment,project,counts:dependentCounts,fieldProof,blocked:reasons.length>0,reasons};
+ return {enrollment,project,counts:allCounts,fieldProof,blocked:reasons.length>0,reasons};
 }
 async function targets(source,studentId){
  const ps=typeof window.getProgetti==='function'?await window.getProgetti():[];
