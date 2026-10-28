@@ -30,7 +30,7 @@ function fixture(opt={}){
         updated={...enrollment,...s.patch};
         return {data:[{id:IDs.one,progetto_id:IDs.to}],error:null};
       }
-      if(s.mode==='count')return {count:counts[table]||0,error:null};
+      if(s.mode==='count')return {count:s.cond.some(([key])=>key==='progetto_id')?(opt.crossCounts?.[table]||0):(counts[table]||0),error:null};
       if(s.cols==='id'&&table==='iscrizioni')return {data:opt.duplicate?[{id:'other'}]:[],error:null};
       const data=table==='iscrizioni'?enrollment:table==='progetti'?
         (s.cond.some(x=>x[1]===IDs.from)?from:to):table==='corsisti'?student:
@@ -79,7 +79,7 @@ test('Diagnostica sola lettura: un iscritto per errore risulta trasferibile',asy
  assert.equal(r.blocked,false);
  assert.equal(r.reasons.length,0);
  assert.equal(f.operations.filter(x=>x.mode==='update').length,0);
- assert.equal(r.counts.length,6);
+ assert.equal(r.counts.length,10);
 });
 for(const table of ['session_attendance','firme_digitali','test_digitali','course_completion_items','corsisti_documenti_archivio','training_credits']){
  test('Il trasferimento non aggira il vincolo '+table,async()=>{
@@ -88,6 +88,12 @@ for(const table of ['session_attendance','firme_digitali','test_digitali','cours
   assert.equal(f.operations.filter(x=>x.mode==='update').length,0);
  });
 }
+test('Prova legata al corsista e progetto, anche senza ID iscrizione, blocca il trasferimento',async()=>{
+ const f=fixture({crossCounts:{firme_digitali:1}});
+ await assert.rejects(()=>f.window.SafetyEnrollmentReview.transfer(IDs.one,IDs.to,'Errore materiale inserimento'),/Trasferimento bloccato/);
+ assert.equal(f.operations.filter(x=>x.mode==='update').length,0);
+ assert.ok(f.operations.some(x=>x.table==='firme_digitali'&&x.cond.some(([key,val])=>key==='corsista_id'&&val===IDs.student)));
+});
 test('Note/risultati di frequenza presenti impediscono trasferimento',async()=>{
  const f=fixture({enrollment:{note_verifica:'Verifica svolta'}});
  await assert.rejects(()=>f.window.SafetyEnrollmentReview.transfer(IDs.one,IDs.to,'Errore materiale inserimento'),/bloccato/);
