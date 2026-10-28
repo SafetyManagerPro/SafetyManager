@@ -797,3 +797,7 @@ Richiesta dopo blocco disiscrizione per evidenze formative: trovare storico, ges
 - Nuovo js/modules/iscrizioni_rettifica.js: pulsante «Verifica / trasferisci» nella tab Corsisti abbinati, anche da Archivio popup. Diagnostica sei tabelle evidenze e note/frequenza + stato sorgente, fail-closed. Se tutto libero e corso aperto: motivazione scritta, selezione altro corso aperto, controllo capienza/azienda/duplicati e UPDATE della stessa riga iscrizioni con snapshot di destinazione e audit/nota. Nessuna scrittura automatica da CI.
 - index.html + sw.js v16, test tests/iscrizioni_rettifica_transfer.test.cjs, docs/UPGRADE_G7_ISCRIZIONI_RETTIFICA_2026-10-28.md.
 - Storici con presenze, firme, test, documenti, crediti, verifiche e corsi svolti/chiusi NON cancellabili/trasferibili tramite G7. Necessaria rettifica amministrativa manuale tracciata. Non toccare schema/RLS, PDF/attestati, SafetyTraining.
+
+
+### Protezione aggiuntiva (28/10)
+Verifica anche firme, test, documenti archiviati e verifiche di efficacia collegate direttamente alla coppia corsista+progetto, anche se la FK iscrizione_id è NULL. In assenza di evidenze o in caso di query non disponibile resta la regola fail-closed. Stessa protezione aggiunta alla funzione di disiscrizione esistente. Non è stata eseguita alcuna cancellazione reale.
