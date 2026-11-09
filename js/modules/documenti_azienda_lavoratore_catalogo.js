@@ -154,7 +154,7 @@
   const completed=h=>typeof D.isTrainingCompleted==='function'?D.isTrainingCompleted(h)===true:h.completed===true;
   const courseLine=h=>`${h.course?.titolo||''}${h.project?.data_esame?' — '+fmt(h.project.data_esame):''}`;
   // Datore di lavoro: persona dell'azienda con ruolo "Datore di lavoro", altrimenti il referente dell'azienda.
-  const employerOf=companyId=>{const p=people(companyId).find(x=>x.ruolo_aziendale==='datore_lavoro');return p?p.nome:(company(companyId)?.datore||'');};
+  const employerOf=companyId=>company(companyId)?.datore||''; // stessa regola dei modelli esistenti (D.employerNameFor)
   const workersOf=companyId=>people(companyId).filter(p=>p.ruolo_aziendale!=='datore_lavoro').sort((a,b)=>a.nome.localeCompare(b.nome,'it'));
   const rlsCandidates=companyId=>people(companyId).map(p=>{const h=histories(p.id).find(x=>RLS_COURSES.has(String(x.course?.id||''))&&completed(x));return h?{nome:p.nome,cf:p.cf,corso:courseLine(h)}:null;}).filter(Boolean);
   const optionsFor=(source,companyId,personId)=>{

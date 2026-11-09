@@ -7,7 +7,24 @@ il riquadro verde **Documenti D.Lgs. 81/08 — datore di lavoro e lavoratore**.
 Corsi, progetti e attestati non sono modificati: il modulo li **legge** soltanto (candidati RLS formati,
 formazione del preposto, abilitazioni alle attrezzature). Nessuna modifica al database.
 I 4 modelli storici (verbale consegna DPI, registro consegna DPI, lettera nomina/incarico,
-dichiarazione DL) restano gestiti dal codice originale e producono le stesse stampe di prima (verificato).
+dichiarazione DL) restano gestiti dal codice originale; cambia solo la fonte del nome del datore di lavoro (vedi sotto).
+
+## Datore di lavoro in tutti i documenti (scelta del 9/11/2026)
+
+Il nome del datore di lavoro viene dalla **persona dell'azienda registrata con ruolo "Datore di lavoro"**;
+se l'azienda non ce l'ha, dal campo **"Referente"** dell'azienda (`D.employerNameFor` e `D.companyFromRow`
+in `documenti_azienda_lavoratore_core.js`). Vale per i 4 modelli storici, per la Stampa libera e per i nuovi
+documenti. Sui dati reali del 9/11/2026: 18 aziende con dati coincidenti, 28 con solo il referente,
+3 con persone diverse (per queste ora si stampa la persona con ruolo "Datore di lavoro").
+
+## Stampa libera di qualsiasi modello
+
+Prima stampava sempre il modello in bianco, anche con azienda e persona scelte. Ora:
+- con azienda e persona scelte: modello precompilato con azienda, datore di lavoro, lavoratore e C.F.;
+- con la sola azienda: azienda e datore precompilati, lavoratore in bianco;
+- la bozza di attestato resta sempre in bianco (attestati non modificati);
+- dal Centro Stampe non viene salvata alcuna copia nel fascicolo del corsista (`archive:false`);
+  il richiamo dalla scheda corsista resta invariato.
 
 ## Documenti
 
@@ -40,11 +57,17 @@ poi i documenti aziendali. I campi specifici restano da compilare a mano sul fog
 
 ## Verifica
 
-- `npm run check`, `npm test` (177 test, inclusi 7 nuovi in `tests/documenti_81_08_catalogo.test.cjs`).
-- Banco di prova: HTML dei 4 modelli storici identico con e senza il nuovo modulo; ognuno dei 9 documenti
+- `npm run check`, `npm test` (179 test, inclusi 9 nuovi in `tests/documenti_81_08_catalogo.test.cjs`).
+- Banco di prova: 4 modelli storici e 10 modelli della Stampa libera con datore di lavoro dalla persona con ruolo (referente come riserva), azienda, lavoratore e C.F.; bozza attestato invariata; ognuno dei 9 documenti
   sta in una pagina A4; stampa unica per un'azienda con 3 lavoratori = 24 pagine, tutte inviate alla stampa.
 
 ## Da fare prima dell'uso
 
 I testi sono una base redatta sulla normativa: vanno letti da chi segue la sicurezza in CNA e adattati
 alle procedure e ai modelli già in uso.
+
+## Controllo sui dati reali (9/11/2026, solo anteprima)
+
+Sui 4 modelli storici, con un'azienda e un lavoratore reali: ragione sociale, P.IVA, indirizzo, datore di lavoro,
+nome, C.F. e mansione del lavoratore presenti. Non previsti dai modelli storici: luogo e data di nascita del
+lavoratore e C.F. del datore nella dichiarazione DL.

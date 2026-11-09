@@ -83,3 +83,21 @@ test('Il modulo e caricato dopo quello esistente e non tocca corsi o database',(
  }
  assert.doesNotMatch(source,/supabaseClient|\.insert\(|\.upsert\(|\.update\(|\.delete\(/);
 });
+
+test('Datore di lavoro: persona con ruolo "Datore di lavoro", referente solo come riserva (tutti i documenti)',()=>{
+ const core=read('js/modules/documenti_azienda_lavoratore_core.js');
+ assert.match(core,/datore:D\.employerNameFor\(a\?\.id\)\|\|a\?\.referente\|\|''/);
+ assert.match(core,/datore:D\.employerNameFor\(a\.id\|\|p\?\.azienda_id\)\|\|a\.referente/);
+ assert.match(core,/p\.ruolo_aziendale==='datore_lavoro'/);
+ assert.match(source,/const employerOf=companyId=>company\(companyId\)\?\.datore\|\|''/);
+});
+
+test('Stampa libera: precompilata con azienda e persona scelte, attestato in bianco, nessuna copia in archivio',()=>{
+ const dir=read('js/modules/documenti_azienda_lavoratore_directory.js');
+ assert.match(dir,/window\.scdFreePrint=\(\)=>/);
+ assert.match(dir,/if\(type==='attestato'\) return window\.stampaModelloVuotoSafetyDoc\(type,'','',\{archive:false\}\)/);
+ assert.match(dir,/return window\.stampaModelloVuotoSafetyDoc\(type,corsistaId,companyId,\{archive:false\}\)/);
+ assert.match(dir,/if\(corsistaId&&options\?\.archive!==false\)/);
+ // il richiamo dalla scheda corsista resta invariato (archivia come prima)
+ assert.match(read('js/modules/progetti_corsisti_refinement.js'),/await window\.stampaModelloVuotoSafetyDoc\(type,corsistaId\);/);
+});

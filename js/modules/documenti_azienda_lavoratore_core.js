@@ -16,6 +16,16 @@
     }
     return p||null;
   };
+  // Datore di lavoro (scelta del 9/11/2026): la persona dell'azienda registrata con ruolo
+  // "Datore di lavoro"; se non c'e', il campo "Referente" dell'azienda. Vale per tutti i documenti.
+  D.employerNameFor=companyId=>{
+    const id=String(companyId||'');
+    if(!id) return '';
+    const fromCache=(D.directoryCache?.people||[]).find(p=>String(p.azienda_id)===id&&p.ruolo_aziendale==='datore_lavoro');
+    if(fromCache?.nome) return fromCache.nome;
+    const fromList=(window.corsistiList||[]).find(p=>String(p.azienda_id||'')===id&&String(p.ruolo_aziendale||'')==='datore_lavoro'&&!p.archived_at);
+    return fromList?.nome_cognome||'';
+  };
   D.companyFromRow=a=>({
     id:String(a?.id||''),
     nome:a?.ragione_sociale||'',
@@ -23,7 +33,7 @@
     indirizzo:a?.indirizzo||'',
     sede:a?.sede_operativa||'',
     ateco:a?.ateco||'',
-    datore:a?.referente||''
+    datore:D.employerNameFor(a?.id)||a?.referente||''
   });
   D.companyFrom=p=>{
     const a=p?.aziende||{};
@@ -34,7 +44,7 @@
       indirizzo:a.indirizzo||window.AppState?.['cfg-azienda-indirizzo']||'',
       sede:a.sede_operativa||window.AppState?.['cfg-azienda-sede-operativa']||'',
       ateco:a.ateco||window.AppState?.['cfg-ateco']||'',
-      datore:a.referente||window.AppState?.['cfg-azienda-referente']||''
+      datore:D.employerNameFor(a.id||p?.azienda_id)||a.referente||window.AppState?.['cfg-azienda-referente']||''
     };
   };
   D.courseFrom=p=>{const c=window.DB_CORSI?.[p?.corso_id]||{};return{id:p?.corso_id||'',titolo:c.t||p?.corso_id||'',codice:p?.codice||'',inizio:p?.data_inizio||'',fine:p?.data_esame||''};};
