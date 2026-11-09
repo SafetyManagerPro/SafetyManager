@@ -114,6 +114,7 @@ window.runCollaudoSistema = async function() {
         'js/modules/tutor_riesame.js',
         'js/modules/documenti_condizionali.js',
         'js/modules/lingua_italiana.js',
+        'js/modules/informativa_privacy.js',
         'js/modules/registri_multigiorno.js',
         'js/modules/backup.js',
         'js/modules/export_sezioni.js',
@@ -130,7 +131,7 @@ window.runCollaudoSistema = async function() {
     }
 
     // Moduli HTML.
-    const modules = ['admin','aziende','corsisti','docenti','progetti','archivio_corsi','scadenze','stampe','migrazione','kit_cliente','ente','collaudo','attestato','registro','fascicolo_corso','analisi_fabbisogni','scheda_rischi_settore','questionario_gradimento','riepilogo_gradimento','monitoraggio_qualita','relazione_tutor','scheda_riesame','test_lingua_italiana'];
+    const modules = ['admin','aziende','corsisti','docenti','progetti','archivio_corsi','scadenze','stampe','migrazione','kit_cliente','ente','collaudo','attestato','registro','fascicolo_corso','analisi_fabbisogni','scheda_rischi_settore','questionario_gradimento','riepilogo_gradimento','monitoraggio_qualita','relazione_tutor','scheda_riesame','test_lingua_italiana','informativa_privacy'];
     for (const m of modules) {
         try {
             const resp = await fetch(`modules/${m}.html`, { cache: 'no-store' });

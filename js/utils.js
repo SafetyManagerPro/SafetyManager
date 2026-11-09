@@ -5135,6 +5135,19 @@ window.renderPrintModulePages = async function(moduleId, singleCorsista = null, 
         pages.splice(0, pages.length, ...teacherDeclarations);
     }
 
+    // Informativa privacy art. 13 GDPR + foglio unico di presa visione dei partecipanti.
+    if (moduleId === 'informativa_privacy' && typeof window.expandPrivacyPages === 'function') {
+        const privacyPages = await window.expandPrivacyPages(pages, { preview, session: window.currentSessionCorsisti || [] });
+        pages.splice(0, pages.length, ...privacyPages);
+    }
+
+    // Il fascicolo del corso allega sempre l'informativa privacy e la presa visione.
+    if (moduleId === 'fascicolo_corso' &&
+        options.includePrivacyAnnexes !== false &&
+        typeof window.expandPrivacyPages === 'function') {
+        pages.push(...await window.renderPrintModulePages('informativa_privacy', null, { preview }));
+    }
+
     if ((moduleId === 'progetto_formativo' || moduleId === 'fascicolo_corso') &&
         options.includeNeedsRiskAnnexes !== false &&
         typeof window.renderNeedsRiskAnnexPages === 'function') {
@@ -5350,7 +5363,8 @@ window.loadPrintPreview = async function(modulo) {
             modulo === 'registro' ||
             modulo === 'dichiarazione_docenza' ||
             modulo === 'autocert' ||
-            modulo === 'relazione_tutor') &&
+            modulo === 'relazione_tutor' ||
+            modulo === 'informativa_privacy') &&
             typeof window.renderPrintModulePages === 'function') {
             const pages = await window.renderPrintModulePages(modulo, null, { preview: true });
             container.innerHTML = '';

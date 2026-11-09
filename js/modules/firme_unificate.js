@@ -335,6 +335,9 @@
 
     const isWidePage = (page) => {
         if (!page || isAttestatoPage(page)) return false;
+        // Pagine verticali per costruzione (es. informativa privacy): mai ruotate,
+        // anche se il testo cita il registro presenze.
+        if (page?.dataset?.safetyPortrait === '1') return false;
         return isRegistroPage(page) || isManualTestPage(page);
     };
 

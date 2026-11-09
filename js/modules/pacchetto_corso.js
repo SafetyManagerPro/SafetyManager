@@ -13,6 +13,7 @@
     autocert: 'Autocertificazione requisiti ente',
     richiesta_organismo_paritetico: 'Richiesta Organismo Paritetico',
     dichiarazione_attrezzature: 'Idoneità attrezzature / area pratica',
+    informativa_privacy: 'Informativa privacy + presa visione',
     registro: 'Registri presenze',
     monitoraggio_qualita: 'Monitoraggio qualità',
     relazione_tutor: 'Relazione tutor',
@@ -105,7 +106,8 @@
     await addModule('richiesta_organismo_paritetico', employerProvider);
     await addModule('dichiarazione_attrezzature', practical);
 
-    // Documenti da usare durante il corso.
+    // Documenti da usare durante il corso: l'informativa privacy si consegna prima di raccogliere i dati.
+    await addModule('informativa_privacy');
     await addModule('registro');
 
     if (typeof window.renderManualTestsForCurrentPrintProject === 'function') {
