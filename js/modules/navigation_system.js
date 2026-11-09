@@ -21,8 +21,19 @@
       .safety-popup-nav .safety-nav-btn{width:34px;height:34px;border-color:rgba(255,255,255,.18);background:rgba(255,255,255,.1);color:#fff}
       .safety-popup-nav .safety-nav-btn:hover:not(:disabled){background:#fff;color:#0f172a;border-color:#fff}
       .safety-popup-nav .safety-nav-btn-close{color:#fecaca}
-      @media(max-width:640px){.safety-page-nav{position:sticky;top:calc(var(--nav-offset,84px) + 6px);z-index:45}.safety-popup-nav{top:6px;left:6px}.safety-nav-btn{width:40px;height:40px}}
-      @media print{.safety-page-nav,.safety-popup-nav{display:none!important}}
+      .safety-page-nav-inline{margin:0;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;backdrop-filter:none;justify-content:flex-start;gap:6px;flex:0 0 auto}
+      .safety-page-nav-inline .safety-nav-btn{width:34px;height:34px}
+      .safety-page-nav[hidden]{display:none!important}
+      /* Indietro/Avanti dentro l'intestazione del popup, accanto alla X originale: non copre piu' titoli e testi. */
+      .safety-popup-nav-inline{display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;margin-left:auto}
+      /* Intestazioni strette (telefoni piccoli): il gruppo va a capo a destra invece di uscire dallo schermo. */
+      :has(> .safety-popup-nav-inline){flex-wrap:wrap}
+      .safety-popup-nav-inline .safety-nav-btn{width:32px;height:32px;border:1px solid rgba(148,163,184,.45);background:rgba(148,163,184,.14);color:inherit}
+      .safety-popup-nav-inline .safety-nav-btn:hover:not(:disabled){background:rgba(148,163,184,.32);color:inherit;border-color:rgba(148,163,184,.7)}
+      /* Popup senza X in alto: la barra resta flottante ma il popup le lascia spazio sopra. */
+      .safety-popup-floating-nav{padding-top:60px!important;overflow-y:auto!important}
+      @media(max-width:640px){.safety-page-nav:not(.safety-page-nav-inline){position:sticky;top:calc(var(--nav-offset,84px) + 6px);z-index:45}.safety-popup-nav{top:6px;left:6px}.safety-nav-btn{width:40px;height:40px}.safety-page-nav-inline .safety-nav-btn{width:38px;height:38px}}
+      @media print{.safety-page-nav,.safety-popup-nav,.safety-popup-nav-inline{display:none!important}}
     `;
     document.head.appendChild(style);
   }
@@ -83,10 +94,31 @@
     return app.querySelector(':scope > .safety-module-root')||Array.from(app.children).find(el=>el.id!=='safety-module-toolbar'&&!el.classList.contains('safety-module-toolbar'))||null;
   }
 
+  function toolbarSlot(){
+    return document.querySelector('#app-content #safety-module-toolbar .safety-module-toolbar-left');
+  }
+
+  // Con la barra "Dashboard / sezione" presente, Indietro e Avanti entrano li' dentro:
+  // niente seconda barra vuota sopra la pagina e niente colonna vuota nei layout a colonne.
+  // La X "torna alla Dashboard" non serve: il pulsante Dashboard e' gia' accanto.
+  function placeInToolbar(nav,slot){
+    // Se la barra Dashboard/sezione e' finita dentro la barra autonoma, la riporta fuori prima.
+    if(nav.contains(slot)){const tb=slot.closest('#safety-module-toolbar');nav.parentElement.insertBefore(tb,nav);}
+    nav.classList.add('safety-page-nav-inline');
+    nav.querySelector('[data-safety-nav="close"]')?.remove();
+    slot.insertBefore(nav,slot.firstChild);
+  }
+
   function decoratePage(){
     const app=document.getElementById('app-content'), root=pageRoot();
-    if(!app||!root||root.querySelector(':scope > .safety-page-nav')) return false;
+    if(!app||!root) return false;
     if(root.querySelector('#safety-login-email')) return false;
+    const slot=toolbarSlot();
+    const existing=app.querySelector('.safety-page-nav');
+    if(existing){
+      if(slot&&existing.parentElement!==slot) placeInToolbar(existing,slot);
+      return false;
+    }
     const current=inferModule();
     if(current&&!state.history.length){state.history=[current];state.index=0;}
     const nav=document.createElement('div');
@@ -99,7 +131,9 @@
     nav.querySelector('[data-safety-nav="back"]').onclick=goBack;
     nav.querySelector('[data-safety-nav="forward"]').onclick=goForward;
     nav.querySelector('[data-safety-nav="close"]').onclick=closePage;
-    root.insertBefore(nav,root.firstChild);
+    if(slot) placeInToolbar(nav,slot);
+    // Fuori dal contenitore della pagina: nei layout a colonne non diventa una colonna vuota.
+    else root.parentElement.insertBefore(nav,root);
     return true;
   }
 
@@ -122,7 +156,7 @@
 
   function nativeCloseButton(overlay){
     return Array.from(overlay.querySelectorAll('button')).find(btn=>{
-      if(btn.closest('.safety-popup-nav')) return false;
+      if(btn.closest('.safety-popup-nav')||btn.hasAttribute('data-safety-popup-nav')) return false;
       const aria=String(btn.getAttribute('aria-label')||'').toLowerCase();
       const title=String(btn.getAttribute('title')||'').toLowerCase();
       const text=String(btn.textContent||'').trim().toLowerCase();
@@ -147,10 +181,52 @@
   async function popupBack(overlay){closeOverlay(overlay);if(canBack()) await goBack();}
   async function popupForward(overlay){closeOverlay(overlay);if(canForward()) await goForward();}
 
+  // X originale del popup, purche' sia nell'intestazione (in alto nel pannello).
+  function headerCloseButton(overlay){
+    const native=nativeCloseButton(overlay);
+    if(!native||!isVisible(native)) return null;
+    let panel=native;
+    while(panel.parentElement&&panel.parentElement!==overlay) panel=panel.parentElement;
+    const pr=(panel.parentElement===overlay?panel:overlay).getBoundingClientRect();
+    const nr=native.getBoundingClientRect();
+    if(!nr.width||!nr.height) return null;
+    return (nr.top-pr.top)<=140?native:null;
+  }
+
+  function buildInlinePopupNav(overlay,native){
+    const group=document.createElement('span');
+    group.className='safety-popup-nav-inline';
+    group.dataset.safetyNavigation='popup-inline';
+    group.innerHTML=`
+      <button type="button" class="safety-nav-btn" data-safety-popup-nav="back" aria-label="Indietro" title="Indietro">${icon('arrow-left')}</button>
+      <button type="button" class="safety-nav-btn" data-safety-popup-nav="forward" aria-label="Avanti" title="Avanti">${icon('arrow-right')}</button>`;
+    group.querySelector('[data-safety-popup-nav="back"]').onclick=()=>popupBack(overlay);
+    group.querySelector('[data-safety-popup-nav="forward"]').onclick=()=>popupForward(overlay);
+    // La X originale entra nel gruppo e ne conserva l'eventuale posizionamento assoluto.
+    const cs=getComputedStyle(native);
+    if(cs.position==='absolute'){
+      group.style.position='absolute';
+      ['top','right','bottom','left','zIndex'].forEach(k=>{if(cs[k]&&cs[k]!=='auto')group.style[k]=cs[k];});
+      native.style.position='static';
+    }
+    native.parentNode.insertBefore(group,native);
+    group.appendChild(native);
+  }
+
   function decoratePopups(){
     let created=0;
     popupCandidates().forEach(overlay=>{
+      if(overlay.querySelector('.safety-popup-nav-inline')) return;
+      const native=headerCloseButton(overlay);
+      if(native){
+        overlay.querySelector(':scope > .safety-popup-nav')?.remove();
+        overlay.classList.remove('safety-popup-floating-nav');
+        buildInlinePopupNav(overlay,native);
+        created+=1;
+        return;
+      }
       if(overlay.querySelector(':scope > .safety-popup-nav')) return;
+      overlay.classList.add('safety-popup-floating-nav');
       const nav=document.createElement('div');
       nav.className='safety-popup-nav';
       nav.dataset.safetyNavigation='popup';
@@ -171,6 +247,10 @@
     document.querySelectorAll('.safety-page-nav [data-safety-nav="back"]').forEach(b=>b.disabled=!canBack());
     document.querySelectorAll('.safety-page-nav [data-safety-nav="forward"],.safety-popup-nav [data-safety-popup-nav="forward"]').forEach(b=>b.disabled=!canForward());
     document.querySelectorAll('.safety-page-nav [data-safety-nav="close"]').forEach(b=>b.disabled=inferModule()==='admin');
+    // Barra autonoma (es. Dashboard) con tutti i pulsanti disattivati: e' solo spazio vuoto, la nascondo.
+    document.querySelectorAll('.safety-page-nav:not(.safety-page-nav-inline)').forEach(n=>{
+      n.hidden=![...n.querySelectorAll('button')].some(b=>!b.disabled);
+    });
   }
 
   let scheduled=false;
