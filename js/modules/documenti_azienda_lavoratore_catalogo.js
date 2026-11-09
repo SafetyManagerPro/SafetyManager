@@ -260,7 +260,7 @@
     container.style.width='210mm';container.style.maxWidth='210mm';container.style.display='block';
     window.closeSafetyCompanyDoc();
     const n=(html.match(/class="doc-page safety-company-doc-page"/g)||[]).length;
-    if(typeof window.showSafetyToast==='function') window.showSafetyToast(`${n} ${n===1?'pagina pronta':'pagine pronte'}: controlla l’anteprima e usa “Esegui Stampa”.`,{title:'Documenti generati',type:'ok',icon:'file-check-2'});
+    if(typeof window.showSafetyToast==='function') window.showSafetyToast(`${n} ${n===1?'pagina pronta':'pagine pronte'}: controlla l’anteprima; per stampare o inviare usa “Ristampa documento visualizzato” o “Condividi PDF”.`,{title:'Documenti generati',type:'ok',icon:'file-check-2'});
   }
 
   // ---------- aggancio alle funzioni esistenti (i 4 modelli storici restano invariati) ----------
