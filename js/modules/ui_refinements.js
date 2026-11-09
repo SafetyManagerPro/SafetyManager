@@ -255,7 +255,7 @@
     corsisti: [ ['progetti','Progetti','folder-kanban'], ['archivio_corsi','Archivio','archive'] ],
     progetti: [ ['stampe','Stampe','printer'], ['archivio_corsi','Archivio','archive'], ['migrazione','Backup','database'] ],
     scadenze: [ ['archivio_corsi','Archivio','archive'], ['stampe','Stampe','printer'] ],
-    ente: [ ['stampe','Stampe','printer'], ['migrazione','Backup','database'] ],
+    ente: [ ['stampe','Stampe','printer'], ['migrazione','Backup','database'], ['collaudo','Collaudo','shield-check'] ],
     stampe: [ ['progetti','Progetti','folder-kanban'], ['archivio_corsi','Archivio','archive'] ],
     migrazione: [ ['archivio_corsi','Archivio','archive'], ['progetti','Progetti','folder-kanban'] ],
     archivio_corsi: [ ['stampe','Stampe','printer'], ['progetti','Progetti','folder-kanban'] ],
