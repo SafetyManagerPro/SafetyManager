@@ -137,7 +137,9 @@
 
   // Libreria di modelli liberamente stampabili, anche senza progetto, anagrafica,
   // attestato, corso o esito. Nessun modello contiene firme o esiti presunti.
-  window.stampaModelloVuotoSafetyDoc = async function(type, corsistaId='') {
+  // corsistaId: precompila persona e sua azienda. companyId: precompila solo l'azienda (dal Centro Stampe).
+  // options.archive=false: nessuna copia automatica nel fascicolo del corsista (stampa dal Centro Stampe).
+  window.stampaModelloVuotoSafetyDoc = async function(type, corsistaId='', companyId='', options={}) {
     const area=document.getElementById('print-area-temp');
     if(!area)return alert('Area stampa non disponibile. Apri il Centro Stampe.');
     // I modelli possono essere stampati senza corsista o corso; se è stata scelta
@@ -159,6 +161,11 @@
           const selected=(allCompanies||[]).find(a=>String(a.id)===String(raw.azienda_id));
           if(selected)company=D.companyFromRow(selected);
         }
+      } else if(companyId){
+        let allCompanies=window.aziendeList||[];
+        if(!allCompanies.some(a=>String(a.id)===String(companyId))&&typeof window.getAziende==='function') allCompanies=await window.getAziende();
+        const selected=(allCompanies||[]).find(a=>String(a.id)===String(companyId));
+        if(selected)company=D.companyFromRow(selected);
       }
       const ctx={company,course:{id:'',titolo:'________________',codice:'',inizio:'',fine:''},
         date:'',place:'',datore:company.datore||'',effective:'',courseRef:'________________',duration:'________________',
@@ -196,7 +203,7 @@
         try {
           if(typeof window.waitForPrintImages==='function')await window.waitForPrintImages(area);
           // Il salvataggio è opzionale; prepara una copia prima che la stampa liberi l'area.
-          if(corsistaId){
+          if(corsistaId&&options?.archive!==false){
             const labels={
               attestato:'Schema attestato',preposto:'Nomina preposto',
               primo_soccorso:'Designazione primo soccorso',antincendio:'Designazione antincendio',
@@ -249,7 +256,8 @@
           <option value="registro_consegna_dpi">Registro consegna DPI</option>
           <option value="dichiarazione_dl_diretta">Dichiarazione DL</option>
         </select>
-        <button type="button" onclick="window.stampaModelloVuotoSafetyDoc(document.getElementById('scd-free-type')?.value)" class="w-full rounded-lg bg-indigo-700 hover:bg-indigo-600 text-white font-black px-3 py-2 text-[10px] uppercase">Stampa modello in bianco</button>
+        <p class="text-[9px] font-bold text-indigo-800">Con azienda e persona scelte sopra il modello esce precompilato con i loro dati; senza scelta esce in bianco.</p>
+        <button type="button" onclick="window.scdFreePrint()" class="w-full rounded-lg bg-indigo-700 hover:bg-indigo-600 text-white font-black px-3 py-2 text-[10px] uppercase">Stampa modello</button>
       </div>`;
   }
 
@@ -308,6 +316,16 @@
   }
 
   window.scdLauncherCompanyChanged=()=>{populatePersons('__all__');updateLauncherState();};
+  // Stampa libera: usa azienda e persona scelte nel riquadro sopra (se presenti).
+  window.scdFreePrint=()=>{
+    const type=document.getElementById('scd-free-type')?.value;
+    const companyId=document.getElementById('scd-launch-company')?.value||'';
+    const personId=document.getElementById('scd-launch-person')?.value||'__all__';
+    // La bozza di attestato resta sempre in bianco, come prima (attestati non modificati).
+    if(type==='attestato') return window.stampaModelloVuotoSafetyDoc(type,'','',{archive:false});
+    const corsistaId=personId&&personId!=='__all__'?personId:'';
+    return window.stampaModelloVuotoSafetyDoc(type,corsistaId,companyId,{archive:false});
+  };
   window.scdLauncherPersonChanged=updateLauncherState;
 
   function trainingLabel(h){

@@ -228,7 +228,8 @@
       'js/modules/documenti_azienda_lavoratore_core.js',
       'js/modules/documenti_azienda_lavoratore_ui.js',
       'js/modules/documenti_azienda_lavoratore_print.js',
-      'js/modules/documenti_azienda_lavoratore_directory.js'
+      'js/modules/documenti_azienda_lavoratore_directory.js',
+      'js/modules/documenti_azienda_lavoratore_catalogo.js'
     ];
     for (const src of scripts) await loader(src);
     const D = window.SafetyCompanyDocs;
