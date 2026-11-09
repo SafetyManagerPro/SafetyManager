@@ -19,7 +19,8 @@ const LABELS={
 };
 const css=[
  '#safety-g6-toggle{display:none}',
- '@media(max-width:768px){',
+ // Menu a tendina sotto i 1280 px: la barra a una riga con i nomi non ci sta (fase 3 audit, 9/11/2026).
+ '@media(max-width:1279px){',
  ' #top-nav.safety-g6-nav #top-nav-inner{position:relative!important;min-height:68px!important;flex-direction:row!important;align-items:center!important;justify-content:space-between!important;flex-wrap:nowrap!important;gap:8px!important;padding:8px 12px!important}',
  ' #top-nav.safety-g6-nav #top-nav-brand{min-width:0!important;justify-content:flex-start!important;align-self:center!important;margin:0!important;gap:8px!important}',
  ' #top-nav.safety-g6-nav #top-nav-brand h1{font-size:1.3rem!important}',
@@ -35,6 +36,8 @@ const css=[
  ' #safety-g6-toggle:hover,#safety-g6-toggle[aria-expanded="true"]{background:#1d4ed8;border-color:#60a5fa}',
  ' #safety-g6-toggle:focus-visible,#top-nav.safety-g6-nav #top-nav-buttons>.btn-tab:focus-visible{outline:3px solid #93c5fd!important;outline-offset:2px!important}',
  ' #safety-g6-toggle svg{width:18px;height:18px;flex:none}',
+ '}',
+ '@media(max-width:768px){',
  ' body:not(.is-printing-temp) #view-scadenze #scadenze-stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}',
  ' body:not(.is-printing-temp) #app-content[data-safety-module="archivio_corsi"] #archivio-advanced-stats{grid-template-columns:repeat(2,minmax(0,1fr))!important}',
  ' body:not(.is-printing-temp) #view-scadenze button,body:not(.is-printing-temp) #app-content[data-safety-module="archivio_corsi"] button{min-height:44px}',
@@ -58,7 +61,7 @@ toggle.setAttribute('aria-expanded','false');
 toggle.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg><span>Menu</span>';
 inner.insertBefore(toggle,buttons);
 nav.classList.add('safety-g6-nav');
-function isMobile(){return typeof window.matchMedia==='function'?window.matchMedia('(max-width: 768px)').matches:window.innerWidth<=768}
+function isMobile(){return typeof window.matchMedia==='function'?window.matchMedia('(max-width: 1279px)').matches:window.innerWidth<=1279}
 function isOpen(){return nav.classList.contains('safety-g6-open')}
 function close(focus=false){
  if(!isOpen())return;

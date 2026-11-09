@@ -50,13 +50,32 @@
         #top-nav-inner { min-height: 5rem; height: auto !important; }
         #top-nav-buttons { overflow: visible !important; flex-wrap: wrap !important; row-gap: 0.35rem; justify-content: flex-end; }
         #top-nav .btn-tab { flex: 0 1 auto; }
-        @media (max-width: 1280px) {
+        @media (max-width: 1279px) {
             #top-nav-inner { align-items: flex-start !important; padding-top: 0.75rem; padding-bottom: 0.75rem; }
             #top-nav-brand { align-self: flex-start; margin-top: 0.25rem; }
             #top-nav-buttons { max-width: calc(100vw - 260px); }
             #top-nav .btn-tab { padding: 0.45rem 0.55rem !important; }
             #top-nav .btn-tab span { display: none !important; }
         }
+        /* Fase 3 audit (9/11/2026): da 1280 px menu su una sola riga, con i nomi delle voci.
+           Sotto i 1280 px c'e' il menu a tendina (graphic_upgrade_g6_mobile.js). */
+        @media (min-width: 1280px) {
+            #top-nav-inner { max-width: 1680px; flex-wrap: nowrap !important; align-items: center !important; padding-top: .55rem; padding-bottom: .55rem; min-height: 4.25rem; }
+            #top-nav-brand { align-self: center !important; margin-top: 0 !important; }
+            #top-nav-buttons { flex-wrap: nowrap !important; gap: .15rem !important; max-width: none !important; }
+            #top-nav .btn-tab { padding: .45rem .55rem !important; gap: .4rem !important; white-space: nowrap; }
+            #top-nav .btn-tab .icon-box { width: 1.5rem; height: 1.5rem; }
+            /* Strumenti tecnici fuori dalla barra: restano nel menu a tendina e nelle scorciatoie di Impostazioni. */
+            #top-nav #top-nav-buttons > #nav-migrazione,
+            #top-nav #top-nav-buttons > #nav-collaudo,
+            #top-nav #top-nav-buttons > div.w-px { display: none !important; }
+        }
+        @media (min-width: 1280px) and (max-width: 1599px) {
+            /* Spazio stretto: solo i nomi, senza riquadro icona. */
+            #top-nav .btn-tab .icon-box { display: none !important; }
+        }
+        /* Modulo Procedure in pausa: voce nascosta ovunque (il modulo resta nel codice). */
+        #top-nav #top-nav-buttons > #nav-procedure { display: none !important; }
         @media (max-width: 768px) {
             #top-nav-inner { flex-direction: column !important; align-items: stretch !important; gap: 0.6rem; }
             #top-nav-buttons { max-width: 100%; justify-content: center; }
