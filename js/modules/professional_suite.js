@@ -26,6 +26,7 @@
       'js/modules/documenti_azienda_lavoratore_ui.js',
       'js/modules/documenti_azienda_lavoratore_print.js',
       'js/modules/documenti_azienda_lavoratore_directory.js',
+      'js/modules/documenti_azienda_lavoratore_catalogo.js',
       'js/modules/collaudo_pro.js',
       'js/modules/audit_attivita.js',
       'js/modules/chiusura_corso.js',
