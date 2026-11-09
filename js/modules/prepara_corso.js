@@ -43,12 +43,25 @@
     return list.find(p => p.id === id);
   };
 
+  // Registro Step 67 (stati segnati a mano, documenti acquisiti, efficacia): unica fonte della percentuale.
+  // Se non disponibile si torna al calcolo sui soli dati del progetto, come prima.
+  const step67StateFor = async (p, iscritti) => {
+    try { return window.SafetyStep67 ? await window.SafetyStep67.evaluateProject(p, iscritti) : null; }
+    catch (e) { console.warn('Prepara corso: registro Step 67 non disponibile.', e); return null; }
+  };
+  const step67StatesFor = async (projects, map) => {
+    try { return window.SafetyStep67 ? await window.SafetyStep67.evaluateProjects(projects, map) : {}; }
+    catch (e) { console.warn('Prepara corso: registro Step 67 non disponibile.', e); return {}; }
+  };
+
   const getChecklistData = async projectId => {
     await ensureChecklist();
     const p = await getProject(projectId);
     if(!p) throw new Error('Progetto non trovato.');
     const iscritti = window.getIscrizioni ? await window.getIscrizioni(projectId) : [];
-    const checklist = window.buildSafetyCourseChecklist ? window.buildSafetyCourseChecklist(p, iscritti || []) : null;
+    // Stessa regola della Checklist: la percentuale viene dal registro Step 67.
+    const step67 = await step67StateFor(p, iscritti || []);
+    const checklist = window.buildSafetyCourseChecklist ? window.buildSafetyCourseChecklist(p, iscritti || [], step67) : null;
     if(!checklist) throw new Error('Checklist non disponibile.');
     return { p, iscritti: iscritti || [], checklist };
   };
@@ -293,9 +306,10 @@
       const projects = window.getProgetti ? await window.getProgetti() : [];
       const ids = projects.map(p => p.id).filter(Boolean);
       const map = ids.length && window.getIscrizioniPerProgetti ? await window.getIscrizioniPerProgetti(ids) : {};
+      const states = await step67StatesFor(projects, map);
       const rows = projects.map(p => {
         const iscritti = map[p.id] || [];
-        const checklist = window.buildSafetyCourseChecklist(p, iscritti);
+        const checklist = window.buildSafetyCourseChecklist(p, iscritti, states[p.id] || null);
         const prep = buildPreparationSteps(p, iscritti, checklist);
         return { p, checklist, prep };
       }).sort((a,b) => {

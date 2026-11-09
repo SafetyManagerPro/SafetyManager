@@ -298,6 +298,8 @@
     if(existing?.id) result=await window.supabaseClient.from('course_completion_items').update(payload).eq('id',existing.id).select().single();
     else result=await window.supabaseClient.from('course_completion_items').insert({...payload,created_by:user?.id||null}).select().single();
     if(result.error) throw result.error;
+    // Il Cruscotto qualità tiene in memoria la percentuale per 30 secondi: dopo un salvataggio va riletta.
+    window.__qualityStep67Cache?.clear?.();
     runtime.completionTableAvailable=true;
     if(window.safetyAudit) await window.safetyAudit('course_completion_item_saved',{table_name:'course_completion_items',record_id:result.data?.id||null,details:{project_id:projectId,item_key:itemKey,iscrizione_id:enrollmentId}});
     return result.data;
