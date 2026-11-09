@@ -3508,9 +3508,54 @@ window.handleProjectQualityAction = async function(projectId, key, mode = 'deskt
 };
 
 
+// Percentuale del Cruscotto = registro Step 67, la stessa regola di Checklist e Preparazione corsi.
+// Il Cruscotto si disegna subito; il registro si legge dal database in un'unica richiesta per tutti
+// i progetti mostrati e poi aggiorna i numeri. Risultati tenuti 30 secondi per non rileggere a ogni filtro.
+window.__qualityStep67Cache = window.__qualityStep67Cache || new Map();
+window.__qualityStep67Queue = window.__qualityStep67Queue || new Map();
+window.getCachedQualityStep67Percent = function(projectId) {
+    const hit = window.__qualityStep67Cache.get(projectId);
+    return hit && (Date.now() - hit.at) < 30000 ? hit.percent : null;
+};
+window.applyQualityStep67Percent = function(projectId, percent) {
+    if (percent === null || percent === undefined || !projectId) return;
+    const safe = Math.max(0, Math.min(100, Math.round(Number(percent) || 0)));
+    document.querySelectorAll('[data-quality-step67]').forEach(el => { if (el.dataset.qualityStep67 === projectId) el.textContent = safe + '%'; });
+    document.querySelectorAll('[data-quality-step67-bar]').forEach(el => { if (el.dataset.qualityStep67Bar === projectId) el.style.width = safe + '%'; });
+};
+window.queueQualityStep67Percent = function(p, iscritti) {
+    if (!p?.id || !window.SafetyStep67?.evaluateProjects) return;
+    window.__qualityStep67Queue.set(p.id, { p, iscritti: iscritti || [] });
+    clearTimeout(window.__qualityStep67Timer);
+    window.__qualityStep67Timer = setTimeout(async () => {
+        const batch = [...window.__qualityStep67Queue.values()];
+        window.__qualityStep67Queue.clear();
+        if (!batch.length) return;
+        try {
+            const states = await window.SafetyStep67.evaluateProjects(batch.map(b => b.p), Object.fromEntries(batch.map(b => [b.p.id, b.iscritti])));
+            batch.forEach(({ p, iscritti }) => {
+                let percent = states?.[p.id]?.percentuale;
+                if (percent === null || percent === undefined) percent = window.getProjectQualitySummary(window.getProjectQualityItems(p, iscritti)).percent;
+                else window.__qualityStep67Cache.set(p.id, { percent, at: Date.now() });
+                window.applyQualityStep67Percent(p.id, percent);
+            });
+        } catch (e) {
+            console.warn('Cruscotto qualità: registro Step 67 non disponibile, resta la percentuale per aree.', e);
+            batch.forEach(({ p, iscritti }) => window.applyQualityStep67Percent(p.id, window.getProjectQualitySummary(window.getProjectQualityItems(p, iscritti)).percent));
+        }
+    }, 60);
+};
+
 window.renderProjectQualityDashboard = function(p = {}, iscritti = [], mode = 'desktop') {
     const items = window.getProjectQualityItems(p, iscritti);
     const summary = window.getProjectQualitySummary(items);
+    // Percentuale principale dal registro Step 67 (vedi sopra); finché non arriva si mostra "…".
+    const hasStep67 = !!window.SafetyStep67?.evaluateProjects && !!p.id;
+    const cachedStep67 = hasStep67 ? window.getCachedQualityStep67Percent(p.id) : null;
+    const mainPercent = !hasStep67 ? summary.percent : cachedStep67;
+    const percentText = mainPercent === null ? '…' : mainPercent + '%';
+    const barWidth = mainPercent === null ? 0 : mainPercent;
+    if (hasStep67 && cachedStep67 === null) window.queueQualityStep67Percent(p, iscritti);
     const isPopup = mode === 'popup';
     const compact = mode === 'compact' || mode === 'mobile';
     const bg = isPopup ? 'bg-slate-50 border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-700 text-white';
@@ -3536,11 +3581,11 @@ window.renderProjectQualityDashboard = function(p = {}, iscritti = [], mode = 'd
                         Cruscotto qualità corso
                         <span class="px-2 py-0.5 rounded-full bg-blue-600 text-white text-[8px] font-black uppercase">non bloccante</span>
                     </p>
-                    <p class="${subText} text-[9px] font-bold uppercase tracking-widest mt-1">${summary.complete}/${summary.total} complete · ${summary.attention} da verificare · ${summary.percent}%</p>
+                    <p class="${subText} text-[9px] font-bold uppercase tracking-widest mt-1">Avanzamento <span data-quality-step67="${projectId}">${percentText}</span> · aree: ${summary.complete}/${summary.total} complete, ${summary.attention} da verificare</p>
                 </div>
                 <div class="flex items-center gap-2 shrink-0">
                     <div class="w-28 h-2 rounded-full bg-slate-300 overflow-hidden border border-slate-300">
-                        <div class="h-full bg-emerald-400" style="width:${summary.percent}%"></div>
+                        <div class="h-full bg-emerald-400" data-quality-step67-bar="${projectId}" style="width:${barWidth}%"></div>
                     </div>
                     <button type="button" data-quality-toggle="${projectId}" onclick="window.toggleProjectQualityDetails('${projectId}')" class="px-2 py-1 rounded-lg bg-slate-900 text-white text-[8px] font-black uppercase inline-flex items-center gap-1">
                         <i data-quality-chevron="${projectId}" data-lucide="${detailsVisible ? 'chevron-up' : 'chevron-down'}" class="w-3 h-3"></i>
@@ -3565,12 +3610,12 @@ window.renderProjectQualityDashboard = function(p = {}, iscritti = [], mode = 'd
                     Cruscotto qualità corso
                     <span class="px-2 py-0.5 rounded-full bg-blue-600 text-white text-[8px] font-black uppercase">non bloccante</span>
                 </p>
-                <p class="${subText} text-[10px] font-bold uppercase tracking-widest mt-1">Percorso guidato: ${summary.complete}/${summary.total} aree complete · ${summary.attention} da verificare · avanzamento ${summary.percent}%</p>
+                <p class="${subText} text-[10px] font-bold uppercase tracking-widest mt-1">Avanzamento <span data-quality-step67="${projectId}">${percentText}</span> · aree: ${summary.complete}/${summary.total} complete, ${summary.attention} da verificare</p>
             </div>
             <div class="flex items-center gap-3 shrink-0">
                 <div class="w-28 md:w-40">
                     <div class="h-2 rounded-full bg-slate-700 overflow-hidden border border-slate-600">
-                        <div class="h-full bg-emerald-400" style="width:${summary.percent}%"></div>
+                        <div class="h-full bg-emerald-400" data-quality-step67-bar="${projectId}" style="width:${barWidth}%"></div>
                     </div>
                 </div>
                 <button type="button" data-quality-toggle="${projectId}" onclick="window.toggleProjectQualityDetails('${projectId}')" class="px-3 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-[9px] font-black uppercase inline-flex items-center gap-1 shadow">

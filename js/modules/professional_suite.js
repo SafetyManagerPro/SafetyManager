@@ -169,6 +169,10 @@
           continue;
         }
 
+        // Popup che ricostruisce il proprio contenuto (es. Checklist, Prepara corso): l'intestazione
+        // nuova deve ricevere di nuovo Indietro/Avanti, anche se il nodo aggiunto non e' il popup stesso.
+        const parent=asElement(mutation.target);
+        if(mutation.addedNodes.length&&parent?.matches?.(POPUP_SELECTOR)&&!isInsideOwnNavigation(parent)){queue('ui');queue('navigation');}
         for(const node of mutation.addedNodes){
           const el=asElement(node);
           if(!el) continue;

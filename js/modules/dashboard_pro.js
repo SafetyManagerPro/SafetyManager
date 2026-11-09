@@ -61,7 +61,7 @@
             if (step67.daCompletare.length) return { key: 'post_complete', label: state === 'chiuso' ? 'Chiuso · da completare' : 'Dati da registrare', tone: 'amber', missing, priority: 1, step67 };
             if (step67.daAcquisire.length) return { key: 'post_acquire', label: state === 'chiuso' ? 'Chiuso · da acquisire' : 'Da acquisire', tone: 'blue', missing, priority: 2, step67 };
             if (state === 'chiuso') return { key: 'closed', label: 'Archiviato', tone: 'emerald', missing, priority: 5, step67 };
-            return { key: 'ready_archive', label: 'Pronto archiviazione', tone: 'emerald', missing, priority: 3, step67 };
+            return { key: 'ready_archive', label: 'Pronto per l\'archivio', tone: 'emerald', missing, priority: 3, step67 };
         }
         if (state === 'chiuso') {
             return { key: 'closed', label: 'Chiuso', tone: 'emerald', missing, priority: 5 };
@@ -72,7 +72,7 @@
         if (missing.length) {
             return { key: 'draft', label: 'Dati mancanti', tone: 'rose', missing, priority: 2 };
         }
-        return { key: 'ready', label: 'Pronto stampa', tone: 'blue', missing, priority: 3 };
+        return { key: 'ready', label: 'Pronto per le stampe', tone: 'blue', missing, priority: 3 };
     };
 
     const badge = (status) => {
@@ -113,7 +113,7 @@
             const s = projectStatus(p, iscritti, state67);
             if (state67 && ['post_review','post_complete','post_acquire','ready_archive'].includes(s.key)) {
                 const level=s.key==='post_review'?'rose':s.key==='post_complete'?'amber':s.key==='post_acquire'?'blue':'emerald';
-                const title=s.key==='post_review'?'Errori sostanziali':s.key==='post_complete'?'Dati da registrare':s.key==='post_acquire'?'Documenti da acquisire':'Pronto per archiviazione';
+                const title=s.key==='post_review'?'Errori sostanziali':s.key==='post_complete'?'Dati da registrare':s.key==='post_acquire'?'Documenti da acquisire':'Pronto per l\'archivio';
                 const text=`${state67.errori.length} errori · ${state67.daCompletare.length} da completare · ${state67.daAcquisire.length} da acquisire · efficacia: ${state67.postFormazione.label}.`;
                 items.push({level,icon:s.key==='post_acquire'?'scan-line':s.key==='ready_archive'?'archive':'clipboard-check',title,project:p,text});
             } else if (s.key === 'toclose') {
@@ -121,7 +121,7 @@
             } else if (s.key === 'draft') {
                 items.push({ level: 'rose', icon: 'clipboard-warning', title: 'Dati mancanti', project: p, text: `Mancano: ${s.missing.slice(0, 5).join(', ')}${s.missing.length > 5 ? '…' : ''}.` });
             } else if (s.key === 'ready') {
-                items.push({ level: 'blue', icon: 'printer-check', title: 'Pronto per stampe', project: p, text: 'Dati minimi completi: puoi generare progetto, registro, test e fascicolo.' });
+                items.push({ level: 'blue', icon: 'printer-check', title: 'Pronto per le stampe', project: p, text: 'Dati minimi completi: puoi generare progetto, registro, test e fascicolo.' });
             }
         });
 
@@ -323,7 +323,7 @@
                     statusCard({ id: 'dash-post-complete', title: 'Dati da registrare', value: counts.postComplete, subtitle: 'Corsi conclusi con attività reali o dati gestionali ancora da completare.', icon: 'clipboard-edit', tone: 'amber', action: "window.apriChiusuraCorsiGuidata && window.apriChiusuraCorsiGuidata()" }),
                     statusCard({ id: 'dash-post-acquire', title: 'Da acquisire', value: counts.postAcquire, subtitle: 'Fascicoli con originali o scansioni ancora da classificare/acquisire.', icon: 'scan-line', tone: 'blue', action: "window.apriChiusuraCorsiGuidata && window.apriChiusuraCorsiGuidata()" }),
                     statusCard({ id: 'dash-effectiveness-open', title: 'Efficacia da gestire', value: counts.effectivenessOpen, subtitle: 'Verifiche scadute o con follow-up necessario.', icon: 'activity', tone: 'rose', action: "window.loadModule('progetti')" }),
-                    statusCard({ id: 'dash-ready-archive', title: 'Pronti archivio', value: counts.readyArchive, subtitle: 'Corsi senza errori, dati aperti o evidenze da acquisire.', icon: 'archive-restore', tone: 'emerald', action: "window.apriChiusuraCorsiGuidata && window.apriChiusuraCorsiGuidata()" })
+                    statusCard({ id: 'dash-ready-archive', title: 'Pronti per l\'archivio', value: counts.readyArchive, subtitle: 'Corsi senza errori, dati aperti o evidenze da acquisire.', icon: 'archive-restore', tone: 'emerald', action: "window.apriChiusuraCorsiGuidata && window.apriChiusuraCorsiGuidata()" })
                 ].join('');
             }
 
