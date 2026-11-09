@@ -248,21 +248,26 @@
     collaudo: 'Collaudo'
   };
 
+  // Il pulsante Dashboard e' gia' a sinistra nella barra: le scorciatoie non lo ripetono.
   const QUICK_ACTIONS = {
-    aziende: [ ['progetti','Progetti','folder-kanban'], ['archivio_corsi','Archivio','archive'], ['admin','Dashboard','layout-dashboard'] ],
-    docenti: [ ['progetti','Progetti','folder-kanban'], ['stampe','Stampe','printer'], ['admin','Dashboard','layout-dashboard'] ],
-    corsisti: [ ['progetti','Progetti','folder-kanban'], ['archivio_corsi','Archivio','archive'], ['admin','Dashboard','layout-dashboard'] ],
+    aziende: [ ['progetti','Progetti','folder-kanban'], ['archivio_corsi','Archivio','archive'] ],
+    docenti: [ ['progetti','Progetti','folder-kanban'], ['stampe','Stampe','printer'] ],
+    corsisti: [ ['progetti','Progetti','folder-kanban'], ['archivio_corsi','Archivio','archive'] ],
     progetti: [ ['stampe','Stampe','printer'], ['archivio_corsi','Archivio','archive'], ['migrazione','Backup','database'] ],
-    scadenze: [ ['archivio_corsi','Archivio','archive'], ['stampe','Stampe','printer'], ['admin','Dashboard','layout-dashboard'] ],
-    ente: [ ['stampe','Stampe','printer'], ['migrazione','Backup','database'], ['admin','Dashboard','layout-dashboard'] ],
-    stampe: [ ['progetti','Progetti','folder-kanban'], ['archivio_corsi','Archivio','archive'], ['admin','Dashboard','layout-dashboard'] ],
-    migrazione: [ ['admin','Dashboard','layout-dashboard'], ['archivio_corsi','Archivio','archive'], ['progetti','Progetti','folder-kanban'] ],
-    archivio_corsi: [ ['stampe','Stampe','printer'], ['progetti','Progetti','folder-kanban'], ['admin','Dashboard','layout-dashboard'] ],
-    kit_cliente: [ ['aziende','Aziende','building-2'], ['migrazione','Backup','database'], ['admin','Dashboard','layout-dashboard'] ],
-    collaudo: [ ['admin','Dashboard','layout-dashboard'], ['stampe','Stampe','printer'], ['migrazione','Backup','database'] ]
+    scadenze: [ ['archivio_corsi','Archivio','archive'], ['stampe','Stampe','printer'] ],
+    ente: [ ['stampe','Stampe','printer'], ['migrazione','Backup','database'] ],
+    stampe: [ ['progetti','Progetti','folder-kanban'], ['archivio_corsi','Archivio','archive'] ],
+    migrazione: [ ['archivio_corsi','Archivio','archive'], ['progetti','Progetti','folder-kanban'] ],
+    archivio_corsi: [ ['stampe','Stampe','printer'], ['progetti','Progetti','folder-kanban'] ],
+    kit_cliente: [ ['aziende','Aziende','building-2'], ['migrazione','Backup','database'] ],
+    collaudo: [ ['stampe','Stampe','printer'], ['migrazione','Backup','database'] ]
   };
 
-  const findModuleRoot = () => document.getElementById('app-content')?.firstElementChild || document.getElementById('app-content');
+  const findModuleRoot = () => {
+    const app = document.getElementById('app-content');
+    // La barra Indietro/Avanti (navigation_system) non e' la radice del modulo.
+    return Array.from(app?.children || []).find(el => !el.classList.contains('safety-page-nav')) || app;
+  };
 
   const injectToolbar = moduleId => {
     if (!moduleId || moduleId === 'admin' || moduleId === 'login') return;
@@ -272,7 +277,7 @@
     toolbar.id = 'safety-module-toolbar';
     toolbar.className = 'safety-module-toolbar';
     const label = MODULE_LABELS[moduleId] || moduleId;
-    const actions = QUICK_ACTIONS[moduleId] || [['admin','Dashboard','layout-dashboard'], ['stampe','Stampe','printer'], ['archivio_corsi','Archivio','archive']];
+    const actions = QUICK_ACTIONS[moduleId] || [['stampe','Stampe','printer'], ['archivio_corsi','Archivio','archive']];
     toolbar.innerHTML = `
       <div class="safety-module-toolbar-left">
         <button type="button" class="safety-mini-btn safety-mini-btn-primary" onclick="window.loadModule('admin')">${iconHtml('home')} Dashboard</button>
@@ -325,6 +330,8 @@
     try {
       window.currentSafetyModuleId = moduleId || window.currentSafetyModuleId || '';
       injectToolbar(moduleId);
+      // Indietro/Avanti vanno dentro questa barra (navigation_system): riallinea dopo averla creata.
+      if (typeof window.SafetyNavigation?.decorate === 'function') window.SafetyNavigation.decorate();
       polishTables();
       labelEmptyContainers();
       improveInputs();
@@ -341,9 +348,7 @@
     const wrapped = async function(moduleId, ...args) {
       const result = await original.apply(this, [moduleId, ...args]);
       setTimeout(() => window.applySafetyUiRefinements(moduleId), 120);
-      if (moduleId && moduleId !== 'admin' && moduleId !== 'login') {
-        setTimeout(() => window.showSafetyToast(`${MODULE_LABELS[moduleId] || moduleId} pronto.`, { title: 'Modulo caricato', type: 'ok', icon: 'check-circle', duration: 1800 }), 180);
-      }
+      // Nessun avviso "Modulo caricato": la voce attiva del menu lo indica gia' e l'avviso copriva i pulsanti sui telefoni.
       return result;
     };
     wrapped.__uiRefinementsWrapped = true;
@@ -354,8 +359,7 @@
     if (e.key === 'Escape') {
       if (typeof window.closePreparaCorsoModal === 'function') window.closePreparaCorsoModal();
       if (typeof window.closeSafetyChecklistModal === 'function') window.closeSafetyChecklistModal();
-      const openModals = document.querySelectorAll('.fixed.inset-0.z-\[99999\]:not(.hidden)');
-      openModals.forEach(m => m.classList.add('hidden'));
+      // Gli altri popup si chiudono con Esc tramite i propri gestori. Il vecchio selettore qui era non valido e generava un errore a ogni Esc.
       return;
     }
     if (!e.altKey || e.ctrlKey || e.metaKey) return;
