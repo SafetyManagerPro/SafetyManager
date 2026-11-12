@@ -44,15 +44,72 @@
       needs_analysis_accepted:project?.fabbisogni_accettato===true
     };
   }
-  function download(name,data){
-    const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  function downloadBlob(name,blob){
     const url=URL.createObjectURL(blob),a=document.createElement('a');
     a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
   }
 
+  // Il CSV e il JSON nascono dal medesimo payload validato.
+  // La versione safetytraining.transfer 1.2 rimane invariata.
+  const excludedStates=new Set(['non_partecipante','iscrizione_erronea']);
+  function isExcludedEnrollment(row){
+    return excludedStates.has(String(row?.partecipazione_stato||'iscritto'));
+  }
+  function csvRows(payload){
+    const base={
+      schema:payload.schema,
+      schema_version:payload.schema_version,
+      source_system:payload.source_system,
+      export_id:payload.export_id,
+      exported_at:payload.exported_at
+    };
+    Object.entries(payload.company||{}).forEach(([k,v])=>{base['company_'+k]=v});
+    Object.entries(payload.project||{}).forEach(([k,v])=>{base['project_'+k]=v});
+    return (payload.learners||[]).map(learner=>{
+      const row={...base};
+      Object.entries(learner||{}).forEach(([k,v])=>{row['learner_'+k]=v});
+      return row;
+    });
+  }
+  function csvCell(value){
+    if(value==null)return '';
+    const raw=typeof value==='object'?JSON.stringify(value):String(value);
+    // Evita che Excel interpreti contenuti anagrafici come formule.
+    const guarded=typeof value==='string' && /^[\s]*[=+\-@]/.test(raw)?"'"+raw:raw;
+    return /[";\r\n]/.test(guarded)?'"'+guarded.replace(/"/g,'""')+'"':guarded;
+  }
+  function transferToCsv(payload){
+    const headers=[
+      'schema','schema_version','source_system','export_id','exported_at',
+      ...Object.keys(payload.company||{}).map(k=>'company_'+k),
+      ...Object.keys(payload.project||{}).map(k=>'project_'+k),
+      ...Object.keys((payload.learners||[])[0]||{}).map(k=>'learner_'+k)
+    ];
+    const lines=[headers.map(csvCell).join(';')];
+    csvRows(payload).forEach(row=>{lines.push(headers.map(h=>csvCell(row[h])).join(';'))});
+    return '\uFEFF'+lines.join('\r\n')+'\r\n';
+  }
+  async function downloadTransfer(name,payload,format){
+    const json=JSON.stringify(payload,null,2);
+    if(format==='json'){
+      downloadBlob(name+'.json',new Blob([json],{type:'application/json;charset=utf-8'}));
+    }else if(format==='csv'){
+      downloadBlob(name+'.csv',new Blob([transferToCsv(payload)],{type:'text/csv;charset=utf-8'}));
+    }else if(format==='zip'){
+      if(typeof window.JSZip!=='function')throw Error('Libreria ZIP non disponibile. Usa JSON/CSV oppure ricarica la pagina.');
+      const zip=new window.JSZip();
+      zip.file(name+'.json',json);
+      zip.file(name+'.csv',transferToCsv(payload));
+      const blob=await zip.generateAsync({type:'blob'});
+      downloadBlob(name+'.zip',blob);
+    }else{
+      throw Error('Formato di esportazione non valido.');
+    }
+  }
+
   function buildTransfer(project,iscrizioni,company){
     const course=courseData(project),ctx=riskContext(project);
-    const learners=(iscrizioni||[]).map(i=>{
+    const learners=(iscrizioni||[]).filter(i=>!isExcludedEnrollment(i)).map(i=>{
       const c=i.corsisti||{};
       return {
         external_id:String(i.corsista_id||c.id||''),
@@ -170,7 +227,7 @@
     if(modal) return modal;
     modal=document.createElement('div');modal.id='safetytraining-export-modal';modal.className='hidden fixed inset-0 z-[120000] bg-slate-950/75 backdrop-blur-sm p-4 items-center justify-center';
     modal.innerHTML=`<div class="w-full max-w-3xl max-h-[92vh] overflow-auto bg-white rounded-3xl shadow-2xl border border-slate-200">
-      <div class="p-5 bg-slate-950 text-white flex items-start justify-between gap-4"><div><div class="text-[10px] font-black uppercase tracking-widest text-cyan-300">Ponte dati v1.2</div><h2 class="text-xl font-black mt-1">Esporta per SafetyTraining</h2><p class="text-xs text-slate-300 mt-1">File JSON idempotente: nessun database condiviso e nessuna chiave privilegiata nel browser.</p></div><button id="stx-close" class="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 text-xl">×</button></div>
+      <div class="p-5 bg-slate-950 text-white flex items-start justify-between gap-4"><div><div class="text-[10px] font-black uppercase tracking-widest text-cyan-300">Ponte dati v1.2</div><h2 class="text-xl font-black mt-1">Esporta per SafetyTraining</h2><p class="text-xs text-slate-300 mt-1">Scegli JSON (formato importazione v1.2), CSV per Excel o ZIP con entrambi. Nessun database condiviso.</p></div><button id="stx-close" class="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 text-xl">×</button></div>
       <div class="p-5 space-y-5">
         <div><label class="text-[10px] font-black uppercase tracking-widest text-slate-500">Progetto / corso</label><select id="stx-project" class="input-field mt-1"><option value="">Caricamento…</option></select></div>
         <div id="stx-preview" class="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">Seleziona un progetto.</div>
@@ -178,11 +235,19 @@
         <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-950 leading-relaxed">P. IVA/CF azienda e CF corsisti vengono normalizzati prima dell’export. Identificativi mancanti o CF duplicati bloccano il file; un cambio azienda successivo del corsista viene segnalato senza perdere il contesto storico del progetto.</div>
         <div id="stx-message" class="text-xs min-h-5"></div>
       </div>
-      <div class="p-5 border-t border-slate-200 bg-slate-50 flex justify-end gap-3"><button id="stx-cancel" class="px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-xs font-black uppercase">Annulla</button><button id="stx-export" class="px-5 py-2.5 rounded-xl bg-cyan-700 hover:bg-cyan-600 text-white text-xs font-black uppercase">Esporta JSON</button></div>
+      <div class="p-5 border-t border-slate-200 bg-slate-50 flex flex-wrap justify-end gap-2">
+        <button id="stx-cancel" class="px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-xs font-black uppercase">Annulla</button>
+        <button id="stx-export-json" class="px-4 py-2.5 rounded-xl bg-cyan-700 hover:bg-cyan-600 text-white text-xs font-black uppercase disabled:opacity-40">Esporta JSON</button>
+        <button id="stx-export-csv" class="px-4 py-2.5 rounded-xl bg-blue-700 hover:bg-blue-600 text-white text-xs font-black uppercase disabled:opacity-40">Esporta CSV</button>
+        <button id="stx-export-both" class="px-4 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-black uppercase disabled:opacity-40">JSON + CSV (ZIP)</button>
+      </div>
     </div>`;
     document.body.appendChild(modal);
     modal.querySelector('#stx-close').onclick=close;modal.querySelector('#stx-cancel').onclick=close;modal.addEventListener('click',e=>{if(e.target===modal)close();});
-    modal.querySelector('#stx-project').onchange=preview;modal.querySelector('#stx-export').onclick=exportSelected;
+    modal.querySelector('#stx-project').onchange=preview;
+    modal.querySelector('#stx-export-json').onclick=()=>exportSelected('json');
+    modal.querySelector('#stx-export-csv').onclick=()=>exportSelected('csv');
+    modal.querySelector('#stx-export-both').onclick=()=>exportSelected('zip');
     return modal;
   }
 
@@ -207,7 +272,8 @@
   async function getTransferForProject(project){
     const iscrizioni=typeof window.getIscrizioni==='function'?await window.getIscrizioni(project.id):[];
     const company=project.aziende || (typeof window.getAziende==='function'?(await window.getAziende()).find(a=>a.id===project.azienda_id):null) || {};
-    return buildTransfer(project,iscrizioni,company);
+    const excluded=(iscrizioni||[]).filter(isExcludedEnrollment);
+    return {payload:buildTransfer(project,iscrizioni,company),excludedCount:excluded.length};
   }
 
   async function preview(){
@@ -215,31 +281,34 @@
     const p=state.projects.find(x=>String(x.id)===String(id));state.selected=p||null;
     if(!p){box.innerHTML='Seleziona un progetto.';if(msg)msg.textContent='';return;}
     try{
-      const payload=await getTransferForProject(p),check=validateTransfer(payload),course=courseData(p),ctx=riskContext(p);
+      const {payload,excludedCount}=await getTransferForProject(p),check=validateTransfer(payload),course=courseData(p),ctx=riskContext(p);
       const issues=check.errors.length?`<div class="mt-3 text-red-700"><strong>Da correggere:</strong><br>${check.errors.map(esc).join('<br>')}</div>`:'';
       const warnings=check.warnings.length?`<div class="mt-3 text-amber-700"><strong>Avvisi:</strong><br>${check.warnings.map(esc).join('<br>')}</div>`:'';
-      box.innerHTML=`<div class="grid sm:grid-cols-2 gap-3"><div><span class="text-[10px] uppercase font-black text-slate-400">Azienda</span><strong class="block text-slate-900">${esc(payload.company.name||companyName(p))}</strong><small>ID fiscale normalizzato: ${esc(payload.company.vat_or_fiscal_code||'—')}</small></div><div><span class="text-[10px] uppercase font-black text-slate-400">Corso</span><strong class="block text-slate-900">${esc(courseLabel(p))}</strong><small>codice: ${esc(p.corso_id||'—')} · ${esc(course.ore||'—')} h${requiresPresence(p)?' · presenza/pratica':''}</small></div><div><span class="text-[10px] uppercase font-black text-slate-400">Periodo</span><strong class="block text-slate-900">${esc(p.data_inizio||'—')} → ${esc(p.data_esame||'—')}</strong></div><div><span class="text-[10px] uppercase font-black text-slate-400">Corsisti iscritti</span><strong class="block text-slate-900">${payload.learners.length}</strong></div><div class="sm:col-span-2"><span class="text-[10px] uppercase font-black text-slate-400">Contesto rischi</span><strong class="block text-slate-900">${esc(ctx.risk_sector_label||ctx.risk_sector_code||'Settore non indicato')} · ${ctx.risk_codes.length} rischi selezionati${ctx.custom_risks.length?` + ${ctx.custom_risks.length} personalizzati`:''}</strong><small>${ctx.needs_analysis_accepted?'Analisi fabbisogni validata':'Analisi fabbisogni da validare / non presente'}</small></div></div>${issues}${warnings}`;
-      const run=document.getElementById('stx-export');if(run)run.disabled=!check.ok;
-      if(msg)msg.textContent=check.ok?'Controlli anagrafici superati. File pronto per l’export.':'Correggi gli errori indicati prima dell’export.';
+      const skipped=excludedCount?'<div class="mt-3 rounded-lg border border-rose-300 bg-rose-50 p-3 text-rose-900 text-xs font-bold">Escluse dall’export '+excludedCount+' iscrizioni segnalate come non partecipanti o erronee. I dati rimangono in SafetyManager Pro.</div>':'';
+      box.innerHTML=`<div class="grid sm:grid-cols-2 gap-3"><div><span class="text-[10px] uppercase font-black text-slate-400">Azienda</span><strong class="block text-slate-900">${esc(payload.company.name||companyName(p))}</strong><small>ID fiscale normalizzato: ${esc(payload.company.vat_or_fiscal_code||'—')}</small></div><div><span class="text-[10px] uppercase font-black text-slate-400">Corso</span><strong class="block text-slate-900">${esc(courseLabel(p))}</strong><small>codice: ${esc(p.corso_id||'—')} · ${esc(course.ore||'—')} h${requiresPresence(p)?' · presenza/pratica':''}</small></div><div><span class="text-[10px] uppercase font-black text-slate-400">Periodo</span><strong class="block text-slate-900">${esc(p.data_inizio||'—')} → ${esc(p.data_esame||'—')}</strong></div><div><span class="text-[10px] uppercase font-black text-slate-400">Corsisti iscritti</span><strong class="block text-slate-900">${payload.learners.length}</strong></div><div class="sm:col-span-2"><span class="text-[10px] uppercase font-black text-slate-400">Contesto rischi</span><strong class="block text-slate-900">${esc(ctx.risk_sector_label||ctx.risk_sector_code||'Settore non indicato')} · ${ctx.risk_codes.length} rischi selezionati${ctx.custom_risks.length?` + ${ctx.custom_risks.length} personalizzati`:''}</strong><small>${ctx.needs_analysis_accepted?'Analisi fabbisogni validata':'Analisi fabbisogni da validare / non presente'}</small></div></div>${issues}${warnings}${skipped}`;
+      ['stx-export-json','stx-export-csv','stx-export-both'].forEach(id=>{const run=document.getElementById(id);if(run)run.disabled=!check.ok;});
+      if(msg)msg.textContent=(check.ok?'Controlli superati. File pronti per l’export.':'Correggi gli errori indicati prima dell’export.')+(excludedCount?' Iscrizioni escluse: '+excludedCount+'.':'');
     }catch(e){box.innerHTML=`<span class="text-red-700">${esc(e?.message||e)}</span>`;}
   }
 
-  async function exportSelected(){
+  async function exportSelected(format='json'){
     const msg=document.getElementById('stx-message'),p=state.selected||state.projects.find(x=>String(x.id)===String(document.getElementById('stx-project')?.value));
     if(!p){msg.textContent='Seleziona prima un progetto.';return;}
     try{
       msg.textContent='Preparazione file…';
-      const payload=await getTransferForProject(p),check=validateTransfer(payload);
+      const {payload,excludedCount}=await getTransferForProject(p),check=validateTransfer(payload);
       if(!check.ok) throw new Error(check.errors.join(' '));
       const safeCode=String(p.codice||p.id).replace(/[^a-z0-9_-]+/gi,'_');
-      download(`SafetyTraining_${safeCode}_${new Date().toISOString().slice(0,10)}.json`,payload);
-      msg.textContent=`File creato: ${payload.learners.length} corsisti con CF normalizzato, azienda identificata e ${(payload.project.risk_codes||[]).length} rischi catalogati inclusi.`;
+      const base='SafetyTraining_'+safeCode+'_'+new Date().toISOString().slice(0,10);
+      await downloadTransfer(base,payload,format);
+      msg.textContent='Export '+(format==='zip'?'JSON + CSV (ZIP)':format.toUpperCase())+' creato: '+payload.learners.length+' corsisti inclusi, '+excludedCount+' iscrizioni segnalate escluse.';
     }catch(e){msg.textContent='Esportazione non riuscita: '+(e?.message||e);}
   }
 
   window.openSafetyTrainingExport=open;
   window.SafetyTrainingBridge={
     open,exportSelected,riskContext,buildTransfer,validateTransfer,
+    isExcludedEnrollment,csvRows,transferToCsv,downloadTransfer,
     normalizeCompanyIdentifier,normalizeLearnerFiscalCode
   };
   const boot=()=>{

@@ -854,3 +854,16 @@ Le sole iscrizioni marcate `partecipazione_stato=non_partecipante` o `iscrizione
 
 Cache service worker prevista: v21. Nessuna migrazione Supabase, nessuna rettifica reale, nessuna modifica a SafetyTraining. Verificare CI, commit/deploy e collaudo visivo autenticato. Questo blocco riguarda la generazione nell'interfaccia: non annulla né revoca legalmente attestati precedentemente emessi e non sostituisce una procedura formale di rettifica.
 
+
+## 2026-11-12 — SafetyManager G10.1 Bridge SafetyTraining export JSON/CSV/ZIP
+
+Intervento solo su repo SafetyManagerPro/SafetyManager, modulo js/modules/safetytraining_bridge.js. Importatore SafetyTraining separato NON modificato.
+- Bridge safetytraining.transfer v1.2 e struttura JSON precedenti preservati; JSON prodotto dal payload unico validato.
+- Tre azioni: Esporta JSON, Esporta CSV UTF-8 (BOM, separatore ";", CRLF, nomi colonne company_/project_/learner_), JSON + CSV in ZIP (JSZip già fornito dalla pagina).
+- CSV per Excel o elaborazione manuale: non significa che SafetyTraining sappia importarlo direttamente. JSON resta formato d'interscambio corrente.
+- Stesso filtro per tutti i formati: iscrizioni con partecipazione_stato non_partecipante/iscrizione_erronea sono escluse prima della validazione; preview mostra conteggio esclusi. Se nessun corsista idoneo, nessun file viene prodotto.
+- Valori con ";", virgolette, righe multiple e array serializzati con escaping CSV; protezione formula injection per valori stringa che iniziano con =,+,-,@. Il JSON non è alterato per protezione Excel.
+- Nessuna scrittura/migrazione database, nessuna eliminazione di iscrizioni né modifica documenti; test isolati aggiunti.
+- Service worker v22, bridge con cache-busting, aggiornati documentazione e verifiche repository/deployment. Previsto singolo commit su main e singolo deployment Vercel, ancora da verificare.
+
+Nota cache: app.js versionato ?v=20261112-json-csv in index.html e sw.js per invalidare in modo affidabile il loader del bridge.
