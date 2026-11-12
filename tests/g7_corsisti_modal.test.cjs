@@ -40,7 +40,7 @@ test('Apri e chiudi finestra senza mutazioni dati, ripristinando il focus',async
  assert.equal(errors.length,1);
 });
 test('Cache PWA aggiornata e caricamenti script allineati',()=>{
- assert.match(sw,/safetymanager-pwa-v21/);
+ assert.match(sw,/safetymanager-pwa-v22/);
  assert.ok(index.includes('utils.js?v=20261028-g9-global-status'));
  assert.ok(index.includes('app.js?v=20261112-json-csv'));
  assert.ok(index.includes('iscrizioni_rettifica.js?v=20261028-g9-global-status'));

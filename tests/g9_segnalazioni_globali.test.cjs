@@ -46,6 +46,6 @@ test('Storici, scadenze, archivi e report portano stato amministrativo',()=>{
  assert.match(adv,/attestato inibito/);
 });
 test('Cache PWA versione nuova',()=>{
- assert.match(src('sw.js'),/safetymanager-pwa-v21/);
+ assert.match(src('sw.js'),/safetymanager-pwa-v22/);
  assert.match(src('index.html'),/20261028-g9-global-status/);
 });

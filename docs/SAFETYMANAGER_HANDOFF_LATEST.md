@@ -867,3 +867,6 @@ Intervento solo su repo SafetyManagerPro/SafetyManager, modulo js/modules/safety
 - Service worker v22, bridge con cache-busting, aggiornati documentazione e verifiche repository/deployment. Previsto singolo commit su main e singolo deployment Vercel, ancora da verificare.
 
 Nota cache: app.js versionato ?v=20261112-json-csv in index.html e sw.js per invalidare in modo affidabile il loader del bridge.
+
+## 2026-11-12 — Allineamento CI dopo G10.1
+Verificato log GitHub Actions run 43210508484, tentativo 4: checkout e syntax validation PASS; esattamente 5 test di regressione falliscono perché attendono PWA v21 mentre sw.js in produzione è v22. Aggiornate soltanto le asserzioni di versione nei test Archivio popup, G7, G9, G6 mobile e iscrizioni/rettifica. Nessuna modifica ai file runtime, dati storici, RLS, Supabase o SafetyTraining separata. Eseguire CI su main e verificare il deployment automatico Vercel del commit di test.

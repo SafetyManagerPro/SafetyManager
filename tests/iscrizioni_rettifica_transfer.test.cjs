@@ -71,7 +71,7 @@ test('Script valido, link/JS versionato, nessuna nuova tabella SQL o migrazione'
  assert.doesNotThrow(()=>new vm.Script(script));
  assert.ok(html.includes('iscrizioni_rettifica.js?v=20261028-g9-global-status'));
  assert.ok(util.includes('window.apriGestioneIscrizione'));
- assert.match(sw,/safetymanager-pwa-v21/);
+ assert.match(sw,/safetymanager-pwa-v22/);
  assert.match(sw,/iscrizioni_rettifica.js\?v=20261028-g9-global-status/);
 });
 test('Diagnostica sola lettura: un iscritto per errore risulta trasferibile',async()=>{

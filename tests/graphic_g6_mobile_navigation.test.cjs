@@ -69,7 +69,7 @@ test('G6 è solo UI, senza modifiche DB o salvataggi; CSS responsive confinato',
  assert.match(source,/#print-preview-container/);
  assert.match(scadenze,/id="scadenze-stats-grid"/);
  assert.match(index,/graphic_upgrade_g6_mobile\.js\?v=20261027-g6-mobile/);
- assert.match(sw,/safetymanager-pwa-v21/);
+ assert.match(sw,/safetymanager-pwa-v22/);
  assert.match(sw,/graphic_upgrade_g6_mobile\.js\?v=20261027-g6-mobile/);
 });
 test('Mobile: attiva menu compatto, aria-expanded e accessibilità per icone sole',()=>{
