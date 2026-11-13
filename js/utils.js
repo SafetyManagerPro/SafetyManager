@@ -4841,6 +4841,7 @@ window.caricaDatiStampa = async function(projectId = null, options = {}) {
             nascita: isc.luogo_data_nascita_storico || c.luogo_data_nascita || "",
             mansione: isc.mansione_storica || c.mansione_storica || "N/D",
             id_certificato: isc.id_certificato,
+            verifica_token: isc.verifica_token || null,
             data_scadenza: isc.data_scadenza,
             ore_frequentate: isc.ore_frequentate,
             percentuale_frequenza: isc.percentuale_frequenza,
@@ -5105,6 +5106,8 @@ window.renderPrintModulePages = async function(moduleId, singleCorsista = null, 
     const pages = Array.from(holder.querySelectorAll('.doc-page')).map(page => {
         const clone = page.cloneNode(true);
         clone.id = '';
+        // Le bozze di attestato non portano il QR di verifica.
+        if (attestatoDraft) clone.querySelectorAll('[data-attestato-qr]').forEach(el => el.remove());
         if (attestatoDraft || wasRestrictedModel) {
             const notice = document.createElement('div');
             notice.style.cssText = 'border:2px solid #991b1b;color:#991b1b;font:800 11px Arial,sans-serif;text-align:center;padding:7px;margin-bottom:9px;';
@@ -5898,6 +5901,8 @@ window.updateAll = function() {
                 }
             }
             document.querySelectorAll('.val-scadenza').forEach(el => el.innerText = stringaScadenza);
+            // QR di verifica online sul retro dell'attestato (solo con codice di verifica).
+            if (typeof window.renderAttestatoVerificaQr === 'function') window.renderAttestatoVerificaQr(c1);
 
             window.aggiornaTabelleSessione();
         }
