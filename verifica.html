@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Verifica attestato</title>
+<style>
+  :root { --ink:#0f172a; --muted:#475569; --line:#e2e8f0; --bg:#f1f5f9; --ok:#047857; --okbg:#ecfdf5; --warn:#b45309; --warnbg:#fffbeb; --ko:#b91c1c; --kobg:#fef2f2; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; background:var(--bg); color:var(--ink); }
+  main { max-width: 640px; margin: 0 auto; padding: 20px 16px 40px; }
+  h1 { font-size: 20px; margin: 4px 0 2px; }
+  .sub { color: var(--muted); font-size: 13px; margin: 0 0 16px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:14px; padding:16px; margin-bottom:14px; }
+  .status { border-radius:12px; padding:14px 16px; font-weight:800; font-size:17px; display:flex; gap:10px; align-items:flex-start; }
+  .status small { display:block; font-weight:600; font-size:13px; margin-top:3px; }
+  .ok { background:var(--okbg); color:var(--ok); border:2px solid #6ee7b7; }
+  .warn { background:var(--warnbg); color:var(--warn); border:2px solid #fcd34d; }
+  .ko { background:var(--kobg); color:var(--ko); border:2px solid #fca5a5; }
+  .neutral { background:#fff; color:var(--muted); border:2px solid var(--line); }
+  dl { margin:0; display:grid; grid-template-columns: minmax(120px, 38%) 1fr; gap:10px 12px; font-size:14px; }
+  dt { color:var(--muted); font-weight:700; font-size:12px; text-transform:uppercase; letter-spacing:.03em; padding-top:2px; }
+  dd { margin:0; font-weight:700; word-break:break-word; }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  label { display:block; font-size:12px; font-weight:800; text-transform:uppercase; color:var(--muted); margin:10px 0 4px; }
+  input { width:100%; padding:11px 12px; border:1px solid #cbd5e1; border-radius:10px; font-size:15px; text-transform:uppercase; }
+  button { margin-top:14px; width:100%; padding:12px; border:0; border-radius:10px; background:#1e3a8a; color:#fff; font-weight:800; font-size:15px; cursor:pointer; }
+  button:disabled { opacity:.6; cursor:wait; }
+  .foot { color:var(--muted); font-size:12px; line-height:1.45; }
+  @media (max-width: 420px) { dl { grid-template-columns: 1fr; gap:2px; } dd { margin-bottom:8px; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Verifica attestato di formazione</h1>
+  <p class="sub">Salute e sicurezza nei luoghi di lavoro — D.Lgs. 81/2008</p>
+
+  <div id="result" aria-live="polite"></div>
+
+  <form id="manual" class="card" autocomplete="off" hidden>
+    <p class="foot" style="margin:0 0 4px">Senza QR code: inserisci l'ID certificato riportato sull'attestato e il codice fiscale del lavoratore.</p>
+    <label for="cert">ID certificato</label>
+    <input id="cert" name="cert" required maxlength="80" placeholder="Es. C2026-AV-2026-001-RSSMRA-001">
+    <label for="cf">Codice fiscale del lavoratore</label>
+    <input id="cf" name="cf" required maxlength="16" minlength="11">
+    <button type="submit" id="go">Verifica</button>
+  </form>
+
+  <p class="foot" id="when"></p>
+  <p class="foot">I dati provengono dall'archivio dei corsi e sono mostrati solo per attestati regolarmente emessi, a chi dispone del QR code dell'attestato oppure del suo ID e del codice fiscale del lavoratore.</p>
+</main>
+
+<!-- Catalogo corsi (titoli, ore, periodicità di aggiornamento) condiviso con l'app. -->
+<script src="js/data.js"></script>
+<script src="js/modules/emergency_courses_catalog.js"></script>
+<script>
+(function () {
+  'use strict';
+  // Stessi valori di js/supabase_config.js (l'anon key è pubblica: la sicurezza è nella funzione
+  // safety_verifica_attestato, che restituisce solo i campi previsti e solo per attestati validi).
+  var SUPABASE_URL = (function () { try { return window.SAFETY_SUPABASE_URL || localStorage.getItem('SAFETY_SUPABASE_URL'); } catch (_) { return ''; } })() ||
+    'https://gblcedkfnasqlnrxupzx.supabase.co';
+  var SUPABASE_ANON_KEY = (function () { try { return window.SAFETY_SUPABASE_ANON_KEY || localStorage.getItem('SAFETY_SUPABASE_ANON_KEY'); } catch (_) { return ''; } })() ||
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdibGNlZGtmbmFzcWxucnh1cHp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3NDU3NzksImV4cCI6MjA5NzMyMTc3OX0.KKt8nVCPnYsdHBITY0w901CvLweIVdmxJWVgEVCPDNs';
+  var UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+  var result = document.getElementById('result');
+  var form = document.getElementById('manual');
+  var esc = function (v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+  var fmt = function (iso) { var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || '')); return m ? m[3] + '/' + m[2] + '/' + m[1] : ''; };
+  var todayIso = function () { var d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); };
+
+  function course(id) {
+    var c = (window.DB_CORSI || {})[id];
+    return c ? { titolo: c.t, ore: c.ore, scad: c.scad } : { titolo: 'Corso personalizzato', ore: null, scad: null };
+  }
+
+  function expiry(d, c) {
+    if (d.data_scadenza) return d.data_scadenza;
+    if (c.scad === 99 || c.scad == null || !d.data_fine) return '';
+    var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(d.data_fine);
+    return m ? (Number(m[1]) + Number(c.scad)) + '-' + m[2] + '-' + m[3] : '';
+  }
+
+  function status(cls, title, note) {
+    return '<div class="status ' + cls + '"><div>' + esc(title) + (note ? '<small>' + esc(note) + '</small>' : '') + '</div></div>';
+  }
+
+  function show(d) {
+    if (!d || d.trovato === false) {
+      result.innerHTML = '<div class="card">' + status('ko', 'Nessun attestato trovato', 'Il codice non corrisponde ad alcun attestato in archivio. Controlla di aver inquadrato il QR originale o i dati inseriti.') + '</div>';
+      form.hidden = false; return;
+    }
+    if (d.valido !== true) {
+      result.innerHTML = '<div class="card">' + status('ko', 'Attestato non valido', 'Risulta in archivio ma non è stato emesso come attestato valido (corso non concluso, esito non positivo o iscrizione annullata).') + '</div>';
+      return;
+    }
+    var c = course(d.corso_id);
+    var scad = expiry(d, c);
+    var expired = scad && scad < todayIso();
+    var head = expired
+      ? status('warn', 'Attestato autentico — validità scaduta', 'Scaduto il ' + fmt(scad) + ': serve il corso di aggiornamento.')
+      : status('ok', 'Attestato valido', 'Emesso il ' + fmt(d.data_emissione) + (scad ? ' · valido fino al ' + fmt(scad) : ''));
+    var periodo = fmt(d.data_inizio) && fmt(d.data_fine) && d.data_inizio !== d.data_fine
+      ? 'dal ' + fmt(d.data_inizio) + ' al ' + fmt(d.data_fine) : fmt(d.data_fine || d.data_inizio);
+    var rows = [
+      ['Lavoratore', d.nome],
+      ['Luogo e data di nascita', d.nascita],
+      ['Codice fiscale', d.cf, 'mono'],
+      ['Azienda di appartenenza', d.azienda],
+      ['Corso svolto', c.titolo + (c.ore ? ' (' + c.ore + ' ore)' : '')],
+      ['Svolto', periodo],
+      ['Data di emissione', fmt(d.data_emissione)],
+      ['Scadenza', scad ? fmt(scad) : 'Nessuna scadenza'],
+      ['ID certificato', d.id_certificato, 'mono']
+    ];
+    result.innerHTML = '<div class="card">' + head + '<dl style="margin-top:14px">' +
+      rows.map(function (r) { return '<dt>' + esc(r[0]) + '</dt><dd' + (r[2] ? ' class="' + r[2] + '"' : '') + '>' + esc(r[1] || '—') + '</dd>'; }).join('') +
+      '</dl></div>';
+    form.hidden = true;
+  }
+
+  async function verify(params) {
+    result.innerHTML = '<div class="card">' + status('neutral', 'Verifica in corso…') + '</div>';
+    try {
+      var res = await fetch(SUPABASE_URL + '/rest/v1/rpc/safety_verifica_attestato', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + SUPABASE_ANON_KEY },
+        body: JSON.stringify(params)
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      show(await res.json());
+    } catch (e) {
+      result.innerHTML = '<div class="card">' + status('neutral', 'Servizio di verifica non raggiungibile', 'Riprova tra qualche minuto. Se il problema persiste contatta chi ha rilasciato l’attestato.') + '</div>';
+      form.hidden = false;
+    }
+    document.getElementById('when').textContent = 'Verifica eseguita il ' + new Date().toLocaleString('it-IT') + '.';
+  }
+
+  form.addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    var cert = document.getElementById('cert').value.trim().toUpperCase();
+    var cf = document.getElementById('cf').value.trim().toUpperCase();
+    if (!cert || !cf) return;
+    var btn = document.getElementById('go'); btn.disabled = true;
+    verify({ p_id_certificato: cert, p_cf: cf }).finally(function () { btn.disabled = false; });
+  });
+
+  var token = (new URLSearchParams(location.search).get('t') || '').trim().toLowerCase();
+  if (UUID_RE.test(token)) verify({ p_token: token });
+  else form.hidden = false;
+})();
+</script>
+</body>
+</html>

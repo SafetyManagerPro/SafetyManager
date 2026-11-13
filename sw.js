@@ -21,6 +21,8 @@ self.addEventListener('fetch',event=>{
   if(req.method!=='GET') return;
   const url=new URL(req.url);
   if(url.origin!==self.location.origin || url.pathname.startsWith('/api/')) return;
+  // Pagina pubblica di verifica attestati: sempre dalla rete, mai salvata al posto dell'app.
+  if(url.pathname==='/verifica.html') return;
 
   // Rete prima per HTML, JavaScript e manifest: gli aggiornamenti non restano bloccati nella cache.
   const freshFirst=req.mode==='navigate' || url.pathname.endsWith('.js') || url.pathname.endsWith('.html') || url.pathname.endsWith('.json');
