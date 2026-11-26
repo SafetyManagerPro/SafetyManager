@@ -4,6 +4,7 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
 permissions:
   contents: read
 concurrency:
@@ -11,6 +12,8 @@ concurrency:
   cancel-in-progress: true
 jobs:
   quality:
+    # Salta le PR in bozza: i controlli partono solo quando la PR e' segnata come pronta.
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
