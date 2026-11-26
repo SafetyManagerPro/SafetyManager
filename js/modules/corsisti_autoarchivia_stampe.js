@@ -23,6 +23,7 @@ const types={
 };
 let libraryPromise=null;
 const jobs=new Set();
+let queue=Promise.resolve();
 const enabled=()=>{try{return localStorage.getItem(PREF)==='1';}catch(_){return false;}};
 const setEnabled=value=>{
  try{localStorage.setItem(PREF,value?'1':'0');}catch(e){console.warn('[Autoarchivia] Preferenza non salvata:',e);}
@@ -60,7 +61,7 @@ function library(){
 function ensurePrintIsolation(){
  if(document.getElementById('safety-autoarchive-isolation'))return;
  const style=document.createElement('style');style.id='safety-autoarchive-isolation';
- style.textContent='@media print{#safety-autoarchive-staging,#safety-autoarchive-notice{display:none!important}}'+
+ style.textContent='@media print{#safety-autoarchive-staging,#safety-autoarchive-notice,.html2pdf__overlay,.html2pdf__container,iframe.html2canvas-container{display:none!important}}'+
    '#safety-autoarchive-staging{position:fixed;left:0;top:0;z-index:-99999;width:210mm;background:#fff;pointer-events:none;}'+
    '#safety-autoarchive-staging .doc-page,#safety-autoarchive-staging .safety-company-doc-page{box-shadow:none!important;transform:none!important;margin:0!important;display:block!important;background:#fff!important;}';
  document.head.appendChild(style);
@@ -123,8 +124,13 @@ function capture(area,ctx={}){
  let cloned;
  try{cloned=snapshot(area);}
  catch(error){console.error('[Autoarchivia] Snapshot:',error);toast('Documento stampabile, ma non archiviato: '+error.message,true);return null;}
+ ensurePrintIsolation();
+ const previous=queue;
  const job=(async()=>{
-   toast('Stampa avviata. Sto creando il PDF da archiviare nel fascicolo…');
+   toast(jobs.size?'Stampa avviata. Archiviazione in coda dopo quella precedente…':'Stampa avviata. Sto creando il PDF da archiviare nel fascicolo…');
+   await previous.catch(()=>null);
+   // Attende la fine della stampa prima di avviare la conversione (pesante) del PDF.
+   await new Promise(r=>setTimeout(r,1500));
    const pdf=await renderPdf(cloned);
    const archive=window.SafetyCorsistiFascicolo;
    if(!archive?.archiveGenerated)throw Error('Fascicolo non disponibile: ricarica la pagina Corsisti.');
@@ -143,6 +149,7 @@ function capture(area,ctx={}){
    toast('La stampa resta disponibile. Archiviazione PDF non riuscita: '+(err?.message||err),true);
    return null;
  }).finally(()=>jobs.delete(job));
+ queue=job;
  jobs.add(job);
  return job;
 }
